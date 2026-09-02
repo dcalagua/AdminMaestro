@@ -18,3 +18,8 @@ blob-report/
 .playwright/
 supabase/.temp/
 supabase/.branches/
+
+# Artefactos de Playwright
+/test-results/
+/playwright-report/
+/blob-report/

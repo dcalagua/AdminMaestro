@@ -51,9 +51,15 @@ declare
   v_u jsonb;
 begin
   for v_u in select * from jsonb_array_elements(v_users) loop
+    -- Las columnas de token de GoTrue deben ser '' y NUNCA NULL: su driver las
+    -- escanea como string y un NULL rompe TODO login con
+    -- "Database error querying schema" (500), sin decir qué usuario ni qué
+    -- columna. Es el fallo clásico de sembrar auth.users a mano.
     insert into auth.users (
       instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
-      raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+      raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+      confirmation_token, recovery_token, email_change_token_new, email_change,
+      email_change_token_current, phone_change, phone_change_token, reauthentication_token
     )
     values (
       '00000000-0000-0000-0000-000000000000',
@@ -64,7 +70,8 @@ begin
       now(),
       '{"provider":"email","providers":["email"]}'::jsonb,
       jsonb_build_object('full_name', v_u ->> 'name'),
-      now(), now()
+      now(), now(),
+      '', '', '', '', '', '', '', ''
     )
     on conflict (id) do nothing;
 
