@@ -1,0 +1,85 @@
+import { usePlans } from '@/services/queries';
+import { useSearchFilter } from '@/hooks/useSearchFilter';
+import {
+  PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge,
+} from '@/components/ui/primitives';
+import { formatMoney } from '@/lib/format';
+import { DEPLOYMENT_MODE_LABEL } from '@/types/domain';
+
+/**
+ * Planes y licencias.
+ *
+ * Los tres modelos comerciales conviven aquí sin ramas de código:
+ *   SHARED            -> licencia por tenant productivo
+ *   PARTNER_DEDICATED -> licencia base del partner (is_partner_base) + N licencias
+ *   TENANT_DEDICATED  -> licencia Enterprise + infra + soporte
+ * Lo que los distingue es `deployment_mode` y los `charge_kind` de sus precios.
+ */
+export function PlansPage() {
+  const plans = usePlans();
+  const { term, setTerm, filtered } = useSearchFilter(plans.data, (p) => [
+    p.code, p.name, p.description, (p.saas_products as { short_name: string } | null)?.short_name,
+  ]);
+
+  return (
+    <PageContainer
+      title="Planes y licencias"
+      description="Catálogo comercial por producto y modelo de despliegue. Los precios tienen vigencia: nunca se editan, se cierran y se abre uno nuevo."
+    >
+      <Card>
+        <SearchBar value={term} onChange={setTerm} placeholder="Buscar plan por nombre, código o producto…" />
+        {plans.isLoading ? (
+          <LoadingState />
+        ) : plans.error ? (
+          <ErrorState error={plans.error} onRetry={() => void plans.refetch()} />
+        ) : filtered.length === 0 ? (
+          <EmptyState title="Sin planes" description="Ningún plan coincide con la búsqueda." />
+        ) : (
+          <DataTable columns={['Plan', 'Producto', 'Modelo', 'Sociedades', 'Precios vigentes']}>
+            {filtered.map((p) => (
+              <tr key={p.id}>
+                <td className="ebim-td">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">{p.name}</span>
+                    {p.is_partner_base ? <Badge tone="accent">Licencia base partner</Badge> : null}
+                    {p.multi_country ? <Badge tone="info">Multi-país</Badge> : null}
+                  </div>
+                  <div className="font-mono text-xs text-muted">{p.code}</div>
+                </td>
+                <td className="ebim-td">{(p.saas_products as { short_name: string } | null)?.short_name}</td>
+                <td className="ebim-td">
+                  {p.deployment_mode ? (
+                    <Badge tone="accent">
+                      {DEPLOYMENT_MODE_LABEL[p.deployment_mode as keyof typeof DEPLOYMENT_MODE_LABEL]}
+                    </Badge>
+                  ) : (
+                    <span className="text-muted">Cualquiera</span>
+                  )}
+                </td>
+                <td className="ebim-td tabular-nums">{p.included_companies}</td>
+                <td className="ebim-td">
+                  <div className="space-y-0.5">
+                    {((p.plan_prices ?? []) as Array<Record<string, unknown>>)
+                      .filter((pr) => !pr.valid_to)
+                      .map((pr) => (
+                        <div key={pr.id as string} className="whitespace-nowrap text-xs">
+                          <span className="text-muted">{pr.charge_kind as string}</span>{' '}
+                          <span className="font-semibold tabular-nums">
+                            {formatMoney(Number(pr.amount), pr.currency as string)}
+                          </span>
+                          <span className="text-muted"> / {pr.billing_interval as string}</span>
+                        </div>
+                      ))}
+                    {((p.plan_prices ?? []) as unknown[]).length === 0 ? (
+                      <span className="text-xs text-muted">Sin precios</span>
+                    ) : null}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </DataTable>
+        )}
+      </Card>
+    </PageContainer>
+  );
+}

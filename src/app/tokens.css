@@ -16,6 +16,9 @@
   --accent-deep: #2f7355; /* variante AA para texto sobre claro */
   --accent-soft: #e8f4ee;
   --accent-fg: #ffffff;
+  /* Anillo de foco: alfa fija. Tailwind no puede calcular opacidad sobre un
+     color declarado como var(), así que el token trae su propia transparencia. */
+  --accent-ring: rgba(90, 169, 127, 0.3);
   --accent2: #056769; /* teal secundario */
   --brand-mark: #0a5a52; /* isotipo sobre fondo claro (§4.6) */
 
@@ -61,6 +64,7 @@
 
   --accent-soft: #1b3329;
   --accent-deep: #7cc79c; /* sobre fondo oscuro el "deep" invierte para mantener AA */
+  --accent-ring: rgba(124, 199, 156, 0.35);
 
   --ok-soft: #12291d;
   --warn-soft: #2c2110;
