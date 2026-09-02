@@ -1,0 +1,91 @@
+/* ==========================================================================
+   EBIM Control Plane — tokens de diseño
+   Fuente: EBIM-DESIGN-BRIEF.md §2 · EBIM-CONTRATO-PLATAFORMA.md §4.4 / §4.6
+   --------------------------------------------------------------------------
+   Reglas no negociables implementadas aquí:
+   · El accent es del TENANT/marca, nunca elegible por el usuario (§4.4).
+     El usuario elige SOLO modo (light/dark) y densidad.
+   · `--accent`      -> fills, barras, fondos.
+   · `--accent-deep` -> TEXTO sobre fondo claro (~4.5:1, WCAG AA).
+   · Densidad: control-h/row-h/pad-y/pad-x, valores 1:1 con el contrato.
+   ========================================================================== */
+
+:root {
+  /* --- Marca EBIM (default de la suite) -------------------------------- */
+  --accent: #5aa97f; /* verde EBIM */
+  --accent-deep: #2f7355; /* variante AA para texto sobre claro */
+  --accent-soft: #e8f4ee;
+  --accent-fg: #ffffff;
+  --accent2: #056769; /* teal secundario */
+  --brand-mark: #0a5a52; /* isotipo sobre fondo claro (§4.6) */
+
+  --sidebar: linear-gradient(168deg, #185d4a 0%, #2b997c 78%, #2b997c 100%);
+  --hero-grad: linear-gradient(155deg, #185d4a 0%, #2b997c 70%, #2b997c 100%);
+
+  /* --- Neutros (light) -------------------------------------------------- */
+  --bg: #f7f8f7;
+  --card: #ffffff;
+  --elevated: #ffffff;
+  --border: #e4e7e5;
+  --text: #16211d;
+  --muted: #667a72;
+
+  /* --- Semánticos ------------------------------------------------------- */
+  --ok: #1f8a52;
+  --ok-soft: #e6f4ec;
+  --warn: #b06b00;
+  --warn-soft: #fdf1de;
+  --danger: #b42318;
+  --danger-soft: #fdeceb;
+  --info: #0b6b8f;
+  --info-soft: #e6f2f7;
+
+  /* --- Densidad: default de suite = "equilibrada" (§4.4) ---------------- */
+  --control-h: 36px;
+  --row-h: 44px;
+  --pad-y: 9px;
+  --pad-x: 12px;
+
+  color-scheme: light;
+}
+
+/* Sólo `bg/card/border/text/muted` y semánticos cambian con el modo.
+   El accent y sus derivados NO se recalculan por modo (§4.4 mini-spec). */
+:root[data-theme='dark'] {
+  --bg: #0e1613;
+  --card: #151f1b;
+  --elevated: #1b2723;
+  --border: #26332e;
+  --text: #e8efeb;
+  --muted: #93a79e;
+
+  --accent-soft: #1b3329;
+  --accent-deep: #7cc79c; /* sobre fondo oscuro el "deep" invierte para mantener AA */
+
+  --ok-soft: #12291d;
+  --warn-soft: #2c2110;
+  --danger-soft: #2e1513;
+  --info-soft: #10262f;
+
+  color-scheme: dark;
+}
+
+/* --- Densidades (contrato §4.4, valores 1:1) ---------------------------- */
+:root[data-density='comoda'] {
+  --control-h: 40px;
+  --row-h: 52px;
+  --pad-y: 12px;
+  --pad-x: 14px;
+}
+:root[data-density='equilibrada'] {
+  --control-h: 36px;
+  --row-h: 44px;
+  --pad-y: 9px;
+  --pad-x: 12px;
+}
+:root[data-density='compacta'] {
+  --control-h: 32px;
+  --row-h: 38px;
+  --pad-y: 6px;
+  --pad-x: 10px;
+}

@@ -1,0 +1,91 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&display=swap');
+@import './tokens.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family:
+      'DM Sans',
+      system-ui,
+      -apple-system,
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    @apply bg-bg text-fg;
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  *:focus-visible {
+    outline: 2px solid var(--accent-deep);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* §4.6 — respetar prefers-reduced-motion en la animación del isotipo */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+
+  ::selection {
+    background: var(--accent-soft);
+    color: var(--accent-deep);
+  }
+}
+
+@layer components {
+  .ebim-card {
+    @apply rounded-card border border-border bg-card shadow-card;
+  }
+
+  .ebim-input {
+    @apply h-control w-full rounded-field border border-border bg-card px-3 text-sm text-fg
+           placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2
+           focus:ring-accent/25 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .ebim-label {
+    @apply mb-1.5 block text-[13px] font-semibold text-fg;
+  }
+
+  .ebim-btn {
+    @apply inline-flex h-control items-center justify-center gap-2 rounded-field px-4 text-sm
+           font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-55;
+  }
+
+  .ebim-btn-primary {
+    @apply ebim-btn bg-accent text-[color:var(--accent-fg)] hover:brightness-95 active:brightness-90;
+  }
+
+  .ebim-btn-ghost {
+    @apply ebim-btn border border-border bg-card text-fg hover:bg-accent-soft;
+  }
+
+  .ebim-btn-danger {
+    @apply ebim-btn bg-danger text-white hover:brightness-95;
+  }
+
+  .ebim-th {
+    @apply whitespace-nowrap px-3 py-2.5 text-left text-[11px] font-bold uppercase
+           tracking-wider text-muted;
+  }
+
+  .ebim-td {
+    @apply h-row px-3 align-middle text-sm text-fg;
+  }
+
+  .ebim-link {
+    @apply font-semibold text-accent-deep hover:underline;
+  }
+}
