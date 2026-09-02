@@ -9,18 +9,18 @@
 
 | # | Fase | Estado |
 |---|---|---|
-| 1 | Guardrails y discovery | EN CURSO |
-| 2 | Bootstrap React + Supabase | PENDIENTE |
-| 3 | Modelo de datos Control Plane | PENDIENTE |
-| 4 | Auth + RBAC + RLS | PENDIENTE |
-| 5 | Multi-SaaS + Partner + Tenant | PENDIENTE |
-| 6 | Comercial + Licencias + Comisiones | PENDIENTE |
-| 7 | Costos + Facturación gerencial + Margen | PENDIENTE |
-| 8 | Deployment modes + Provisioning | PENDIENTE |
-| 9 | UI administrativa completa | PENDIENTE |
-| 10 | Seed de escenarios | PENDIENTE |
-| 11 | Tests, hardening y calidad | PENDIENTE |
-| 12 | Documentación y handoff | PENDIENTE |
+| 1 | Guardrails y discovery | COMPLETADA |
+| 2 | Bootstrap React + Supabase | COMPLETADA |
+| 3 | Modelo de datos Control Plane | COMPLETADA |
+| 4 | Auth + RBAC + RLS | COMPLETADA |
+| 5 | Multi-SaaS + Partner + Tenant | COMPLETADA |
+| 6 | Comercial + Licencias + Comisiones | COMPLETADA |
+| 7 | Costos + Facturación gerencial + Margen | COMPLETADA |
+| 8 | Deployment modes + Provisioning | COMPLETADA |
+| 9 | UI administrativa completa | COMPLETADA (lectura) · escrituras pendientes |
+| 10 | Seed de escenarios | COMPLETADA |
+| 11 | Tests, hardening y calidad | COMPLETADA |
+| 12 | Documentación y handoff | COMPLETADA |
 
 ## Herramientas detectadas
 
@@ -33,3 +33,12 @@
 | docker | 29.7.2 | daemon respondiendo |
 | supabase CLI | 2.115.0 | |
 | psql | ausente | se usa `supabase db`/docker exec para SQL |
+
+## Cierre
+
+**Fin:** 2026-09-02 03:11:18 -05
+**Resultado:** 29 PASS · 1 PARTIAL · 0 FAIL · 0 BLOCKED_ENVIRONMENT
+**Tests:** 52 DB + 29 unitarios + 21 E2E = **102 PASS / 0 FAIL**
+
+Ver `FINAL_REPORT.md` para el informe completo y `QUALITY_GATE.md` para la
+evidencia de cada gate.
