@@ -193,3 +193,106 @@ profundidad (contrato de plataforma v1.15, diseño del hub, design brief, estado
 de las 4 apps, runbook del operador) y **no se modificó ni un archivo**. Las
 convenciones adoptadas están trazadas a su sección de origen en
 `docs/architecture/EBIM_CONVENTIONS.md`.
+
+---
+
+# FINAL CERTIFICATION
+
+**Veredicto: `GO_WITH_GAPS`**
+
+No hay fallas de seguridad ni inconsistencias del modelo. El único gap es de
+alcance funcional (faltan las escrituras desde la UI), no de calidad: el dominio
+y los permisos que esas escrituras necesitarán ya existen y están probados en la
+base. No se marca `GO` porque una consola administrativa en la que todavía no se
+puede dar de alta un tenant no está terminada como producto.
+
+## 1. Verificación funcional (consultas a la base real, no a la documentación)
+
+| # | Certificación | Resultado |
+|---|---|---|
+| 1 | eSupplier existe como SaaS configurable | **SÍ** |
+| 2 | EWM by EBIM existe con el mismo core | **SÍ** |
+| 3 | Se pueden agregar otros SaaS por catálogo | **SÍ** — 5 productos, sin columnas por producto (test 13) |
+| 4 | Un partner puede estar habilitado para varios SaaS | **SÍ** — Consultora Andina en eSupplier (25%) y EWM (18%) |
+| 5 | Shared admite partner/empresa con múltiples tenants | **SÍ** — 3 tenants SHARED con `managing_organization_id` |
+| 6 | Partner Dedicated: licencia base + N tenants + infra | **SÍ** — los 3 `charge_kind` presentes y ligados a planes `PARTNER_DEDICATED` |
+| 7 | Tenant Dedicated: Enterprise + infra + setup | **SÍ** |
+| 8 | Implementation/onboarding fee en el modelo | **SÍ** — 6 ítems `IMPLEMENTATION_FEE` |
+| 9 | Comercial independiente puede recibir comisión | **SÍ** — 6 eventos devengados |
+| 10 | El comercial **no** accede al tenant operacional | **CONFIRMADO** — cero intersecciones entre `tenant_memberships` y `sales_attributions` del mismo agente y tenant |
+| 11 | Costos y margen por producto / partner / tenant | **SÍ** — 5 / 2 / 13 filas calculadas |
+| 12 | Provisioning DRY_RUN existente y auditable | **SÍ** — 4 solicitudes, 7 eventos de timeline |
+| 13 | RLS evita cross-org y cross-tenant | **SÍ** — 39/39 tablas con RLS + FORCE; 12 tests negativos en verde |
+
+La certificación #10 es la que sostiene la regla comercial del prompt §2.3, y se
+verificó con una consulta que buscaría activamente la violación:
+
+```sql
+select 1 from platform.tenant_memberships tm
+  join platform.sales_agents sa      on sa.user_id = tm.user_id
+  join platform.sales_attributions a on a.sales_agent_id = sa.id
+                                    and a.tenant_id = tm.tenant_id;
+-- 0 filas
+```
+
+## 2. Tabla de gates
+
+| Gate | Estado |
+|---|---|
+| FILESYSTEM_GUARDRAILS · REPO_INITIALIZED · REACT_APP · SUPABASE_LOCAL | PASS |
+| DB_RESET · MIGRATIONS · SEED · AUTH · RBAC · RLS | PASS |
+| MULTI_SAAS · PARTNERS · TENANTS · SALES_AGENTS · COMMISSIONS | PASS |
+| SUBSCRIPTIONS · COSTS_MARGIN · DEPLOYMENT_MODEL · PROVISIONING_DRY_RUN | PASS |
+| **ADMIN_UI** | **PARTIAL** |
+| PARTNER_UI · TESTS_DB · TESTS_FRONTEND · TYPECHECK · LINT · BUILD · E2E | PASS |
+| SECURITY_NEGATIVE_TESTS · SECRETS_SCAN · DOCUMENTATION | PASS |
+
+**29 PASS · 1 PARTIAL · 0 FAIL · 0 BLOCKED_ENVIRONMENT**
+
+## 3. Conteos verificados
+
+```
+102 tests PASS / 0 FAIL   (52 pgTAP + 29 Vitest + 21 Playwright)
+ 39 tablas · 39 con RLS+FORCE · 69 políticas · 0 GRANTs a anon
+  7 vistas · 7 con security_invoker · 42 funciones · 34 definer con search_path
+ 13 migraciones · 152 índices · 0 FKs sin índice
+  5 commits · 129 archivos · git status limpio
+```
+
+## 4. Blockers críticos o altos
+
+**Ninguno.** Los 4 blockers de entorno que aparecieron están resueltos y
+documentados en `BLOCKERS.md`; el quinto (sin autorización para provisioning
+LIVE) es el comportamiento esperado por el propio prompt.
+
+## 5. Deuda técnica priorizada
+
+| Prioridad | Deuda | Por qué importa |
+|---|---|---|
+| **Alta** | Sin escrituras desde la UI | La consola se puede leer pero no operar. Bloquea el uso real. |
+| **Alta** | Decidir la relación con el hub `platform` que ya vive en el proyecto de GMAO | Si ambos evolucionan por separado, divergen. Requiere al operador y a GMAO como lead de suite. |
+| Media | Sin snapshot mensual de MRR | No se puede reconstruir el MRR histórico. |
+| Media | Sin conversión FX | Los dashboards multi-moneda no consolidan. |
+| Media | Sin CI | Los 102 tests corren a mano; nada impide un merge que los rompa. |
+| Media | `provisioning-worker` sin desplegar | El reintento desde la UI no cierra el ciclo. |
+| Baja | Bundle en un solo chunk (587 kB) | Primer render más lento de lo necesario. |
+| Baja | Costo `PLATFORM` sin prorratear a productos | Aparece en el total pero no en el margen por producto. |
+| Baja | Sin reconocimiento diferido de ingresos | Correcto para caja, no para devengo contable. |
+
+## 6. Recomendación de la primera tarea del día
+
+**Implementar el alta de tenant desde la UI**, invocando
+`platform.create_tenant()` vía RPC.
+
+Por qué esa y no otra:
+- es el flujo que más se va a usar y el que hoy obliga a entrar por SQL;
+- la función ya existe, valida y audita: sólo falta el formulario;
+- ejercita de punta a punta la regla del contrato §3.2 — el error
+  `ADMIN_EMAIL_REQUERIDO` debe mostrarse como validación del campo de correo,
+  demostrando que la regla vive en la base y la UI simplemente la refleja;
+- convierte `ADMIN_UI` de PARTIAL a PASS, que es el único gate que falta.
+
+Ruta sugerida: botón "Nuevo tenant" en `/tenants` → modal con React Hook Form +
+Zod → `supabase.rpc('create_tenant', …)` → invalidar `['tenant-overview']` →
+test E2E que verifique tanto el alta correcta como el rechazo sin correo de
+administrador.
