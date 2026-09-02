@@ -37,16 +37,24 @@ export default tseslint.config(
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
-      // La `service_role` key nunca puede aparecer en el cliente. Esta regla es
-      // un cinturón extra sobre el scan de secretos.
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
+    },
+  },
+  {
+    // La clave de servicio no puede aparecer en el código que se compila al
+    // bundle del navegador. La regla se acota a `src/**` a propósito: una Edge
+    // Function server-side SÍ debe leer SUPABASE_SERVICE_ROLE_KEY de su entorno
+    // — ese es exactamente su trabajo — y prohibírselo ahí sería ruido, no
+    // seguridad. Es un cinturón extra sobre `npm run secrets:scan`.
+    files: ['src/**/*.{ts,tsx}'],
+    rules: {
       'no-restricted-syntax': [
         'error',
         {
-          selector: "Literal[value=/service_role/i]",
-          message: 'La service_role key jamás debe aparecer en el código del cliente.',
+          selector: 'Literal[value=/service_role/i]',
+          message: 'La clave de servicio jamás debe aparecer en el código del cliente.',
         },
       ],
-      'no-console': ['warn', { allow: ['warn', 'error'] }],
     },
   },
   {
