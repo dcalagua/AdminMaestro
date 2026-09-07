@@ -337,3 +337,43 @@ test.describe('J13 · Vista 360 de organización', () => {
     await expect(page.getByText('Infraestructura y provisioning')).toBeVisible();
   });
 });
+
+test.describe('J14 · Datos de facturación del titular (V2.1)', () => {
+  test('dice qué falta para poder cobrar, en vez de rellenarlo por su cuenta', async ({ page }) => {
+    await login(page, USERS.superAdmin);
+    await goToSection(page, 'Clientes');
+    // Cliente EWM Norte llega sin contacto de facturación: es el estado en que
+    // entra cualquier organización nueva.
+    await page.getByRole('row', { name: /Cliente EWM Norte/ }).getByRole('link', { name: 'Ver detalle' }).click();
+    await page.getByRole('tab', { name: 'Resumen' }).click();
+
+    await expect(page.getByText('Datos de facturación del titular')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('Faltan 5')).toBeVisible();
+    // El error que se llevaría el operador si intentara domiciliar el cobro,
+    // dicho ANTES de intentarlo.
+    await expect(page.getByText('DATOS_FACTURACION_INCOMPLETOS')).toBeVisible();
+    // La lista nombra los campos que faltan, sin que el operador tenga que
+    // deducirlos del mensaje de la pasarela.
+    await expect(page.getByRole('listitem').filter({ hasText: 'Domicilio' })).toBeVisible();
+  });
+
+  test('el formulario llega con lo ya cargado y valida antes que la pasarela', async ({ page }) => {
+    await login(page, USERS.superAdmin);
+    await goToSection(page, 'Clientes');
+    await page.getByRole('row', { name: /GRUPASA/ }).getByRole('link', { name: 'Ver detalle' }).click();
+    await page.getByRole('tab', { name: 'Resumen' }).click();
+
+    await expect(page.getByText('Datos de facturación del titular')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('Completos')).toBeVisible();
+
+    await page.getByRole('button', { name: /datos de facturación/i }).click();
+    // Se abre con lo que ya hay: editar no es volver a teclearlo todo.
+    await expect(page.getByLabel('Ciudad')).toHaveValue('Lima');
+
+    // Un teléfono con formato humano se rechaza AQUÍ. En la pasarela el mensaje
+    // no dice qué campo es.
+    await page.getByLabel('Teléfono').fill('+51 987 654 321');
+    await page.getByRole('button', { name: 'Guardar' }).click();
+    await expect(page.getByText(/Solo dígitos, entre 5 y 15/)).toBeVisible();
+  });
+});

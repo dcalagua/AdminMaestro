@@ -21,7 +21,17 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: false,
-    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    /*
+     * También los módulos puros de las Edge Functions. No es un capricho de
+     * organización: las traducciones a Culqi (cadencia, importes, fechas,
+     * clasificación de eventos) son donde se esconden los errores caros, y
+     * hasta la V2.1 no las cubría ninguna prueba. Solo se incluyen módulos SIN
+     * dependencias de Deno; lo que necesita el runtime se prueba contra la API.
+     */
+    include: [
+      'src/**/*.{test,spec}.{ts,tsx}',
+      'supabase/functions/**/*.{test,spec}.ts',
+    ],
     coverage: { provider: 'v8', reporter: ['text', 'json-summary'] },
   },
 });
