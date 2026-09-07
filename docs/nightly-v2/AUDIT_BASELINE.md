@@ -206,6 +206,32 @@ inadvertido.
 
 Ambos gates PASS tras la corrección (§6).
 
+### R-03 — Secuela de R-02: `tsc` había emitido `.js` DENTRO de `src/`
+
+**Detectado en la Fase 02, no en la 01.** Documentado aquí porque su causa es R-02.
+
+La primera ejecución del `typecheck` roto (`tsc -b --noEmit false …`) llegó a **emitir
+JavaScript junto a cada `.tsx`**: 50 archivos `src/**/*.js`. Se colaron en el commit de
+la Fase 01 por un `git add -A`.
+
+El daño no es cosmético. `resolve.extensions` de Vite pone `.js` **antes** que `.tsx`, así
+que `import { ProductsPage } from '@/features/catalog/ProductsPage'` resolvía al `.js`
+congelado. Consecuencia: **el bundle dejó de reflejar el código fuente**. Se detectó porque
+tras añadir ~2.500 líneas de UI el bundle seguía pesando exactamente 586,64 kB y
+`grep "Nuevo producto SaaS" dist/assets/*.js` no encontraba nada.
+
+**Corrección:**
+1. `git rm --cached` + borrado en disco de los 50 `.js` (se conserva `src/vite-env.d.ts`,
+   que es fuente real, no artefacto).
+2. Regla en `.gitignore` (`src/**/*.js`) con el porqué escrito al lado, para que un `tsc`
+   mal invocado no vuelva a congelar el bundle en silencio.
+
+**Verificación:** el bundle pasó de 586,64 kB a **776,37 kB** y los textos nuevos
+(`Nuevo producto SaaS`, `Encolar solicitud`, `Versionar tarifa`…) aparecen en `dist`.
+
+> Lección para el gate: «build PASS» no significa «build correcto». A partir de aquí, la
+> evidencia de build incluye comprobar que un string nuevo del código aparece en `dist/`.
+
 ---
 
 ## 6. Evidencia de ejecución del baseline
@@ -217,7 +243,7 @@ Ambos gates PASS tras la corrección (§6).
 | `npm run typecheck` | ✅ exit 0 (tras R-02) |
 | `npm run lint` | ✅ exit 0, sin warnings |
 | `npm run test` | ✅ `Test Files 3 passed (3) · Tests 29 passed (29)` |
-| `npm run build` | ✅ `✓ 172 modules transformed` · `dist/assets/index-*.js 586.64 kB` (tras R-01) |
+| `npm run build` | ✅ tras R-01. **Nota:** ese build usaba los `.js` obsoletos de R-03; el build fiable es el de la Fase 02 (`776.37 kB`, 172→186 módulos reales). |
 
 `npm ci` **no** se ejecutó: `node_modules/` está íntegro y `npm ci` lo borraría y
 re-descargaría sin aportar información al baseline. Las versiones instaladas se

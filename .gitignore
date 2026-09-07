@@ -23,3 +23,11 @@ supabase/.branches/
 /test-results/
 /playwright-report/
 /blob-report/
+
+# Salida de compilador dentro de src/.
+# Un `tsc` sin --noEmit emite .js JUNTO a cada .tsx y Vite los resuelve ANTES
+# que el .tsx (resolve.extensions pone .js primero), así que el bundle se queda
+# congelado en la última compilación. Ver docs/nightly-v2/AUDIT_BASELINE.md §5.
+src/**/*.js
+src/**/*.js.map
+!src/**/*.config.js

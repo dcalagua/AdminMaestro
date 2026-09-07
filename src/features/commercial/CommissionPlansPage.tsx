@@ -1,9 +1,17 @@
+import { useState } from 'react';
 import { useCommissionPlans } from '@/services/queries';
+import { useDeactivateCommissionRule } from '@/services/mutations';
 import { useSearchFilter } from '@/hooks/useSearchFilter';
+import { usePermissions } from '@/hooks/usePermissions';
 import {
   PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge,
 } from '@/components/ui/primitives';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useToast } from '@/components/ui/toast-context';
+import { businessErrorMessage } from '@/lib/pgError';
 import { formatMoney, formatPercent, formatDate } from '@/lib/format';
+import { CommissionPlanFormDialog, CommissionRuleFormDialog } from './CommercialDialogs';
+import type { CommissionPlanDraft } from './CommercialDialogs';
 
 const BASIS_LABEL: Record<string, string> = {
   COLLECTED_LICENSE: '% de licencia cobrada',
@@ -20,6 +28,32 @@ const BASIS_LABEL: Record<string, string> = {
  */
 export function CommissionPlansPage() {
   const plans = useCommissionPlans();
+  const perms = usePermissions();
+  const toast = useToast();
+  const deactivate = useDeactivateCommissionRule();
+
+  const [planDialog, setPlanDialog] = useState<{ open: boolean; plan: CommissionPlanDraft | null }>({
+    open: false,
+    plan: null,
+  });
+  const [ruleDialog, setRuleDialog] = useState<{ planId: string; planName: string } | null>(null);
+  const [closingRule, setClosingRule] = useState<{ id: string; name: string } | null>(null);
+
+  async function confirmCloseRule() {
+    if (!closingRule) return;
+    try {
+      await deactivate.mutateAsync({
+        p_rule_id: closingRule.id,
+        p_reason: 'Cerrada desde la consola',
+      });
+      toast.success('Regla cerrada', closingRule.name);
+    } catch (error) {
+      toast.error('No se pudo cerrar la regla', businessErrorMessage(error));
+    } finally {
+      setClosingRule(null);
+    }
+  }
+
   const { term, setTerm, filtered } = useSearchFilter(plans.data, (p) => [
     p.code, p.name, p.description,
   ]);
@@ -28,6 +62,17 @@ export function CommissionPlansPage() {
     <PageContainer
       title="Planes de comisión"
       description="Las reglas tienen vigencia y no se editan retroactivamente: se cierran y se abre una nueva, para que una comisión histórica siga siendo explicable."
+      actions={
+        perms.canReadFinance ? (
+          <button
+            type="button"
+            className="ebim-btn-primary"
+            onClick={() => setPlanDialog({ open: true, plan: null })}
+          >
+            Nuevo plan de comisión
+          </button>
+        ) : null
+      }
     >
       <Card>
         <SearchBar value={term} onChange={setTerm} placeholder="Buscar plan de comisión…" />
@@ -52,10 +97,42 @@ export function CommissionPlansPage() {
                   ) : (
                     <Badge tone="neutral">Todos los productos</Badge>
                   )}
+                  {perms.canReadFinance ? (
+                    <span className="ml-auto flex gap-3">
+                      <button
+                        type="button"
+                        className="ebim-link text-[13px]"
+                        onClick={() =>
+                          setPlanDialog({
+                            open: true,
+                            plan: {
+                              id: p.id,
+                              code: p.code,
+                              name: p.name,
+                              description: p.description,
+                              saas_product_id: p.saas_product_id,
+                              status: p.status,
+                              valid_from: p.valid_from,
+                              valid_to: p.valid_to,
+                            },
+                          })
+                        }
+                      >
+                        Editar plan
+                      </button>
+                      <button
+                        type="button"
+                        className="ebim-link text-[13px]"
+                        onClick={() => setRuleDialog({ planId: p.id, planName: p.name })}
+                      >
+                        Añadir regla
+                      </button>
+                    </span>
+                  ) : null}
                 </div>
                 <p className="mb-3 text-sm text-muted">{p.description}</p>
                 <div className="rounded-card border border-border">
-                  <DataTable columns={['Regla', 'Base', 'Tasa / Monto', 'Recurrente', 'Tope meses', 'Tope monto', 'Vigencia']}>
+                  <DataTable columns={['Regla', 'Base', 'Tasa / Monto', 'Recurrente', 'Tope meses', 'Tope monto', 'Vigencia', '']}>
                     {((p.commission_rules ?? []) as Array<Record<string, unknown>>).map((r) => (
                       <tr key={r.id as string}>
                         <td className="ebim-td font-medium">{r.name as string}</td>
@@ -75,6 +152,19 @@ export function CommissionPlansPage() {
                         <td className="ebim-td text-xs text-muted">
                           {formatDate(r.valid_from as string)} → {r.valid_to ? formatDate(r.valid_to as string) : 'sin fin'}
                         </td>
+                        <td className="ebim-td text-right">
+                          {perms.canReadFinance && r.status === 'ACTIVE' ? (
+                            <button
+                              type="button"
+                              className="text-[13px] text-danger hover:underline"
+                              onClick={() =>
+                                setClosingRule({ id: r.id as string, name: r.name as string })
+                              }
+                            >
+                              Cerrar
+                            </button>
+                          ) : null}
+                        </td>
                       </tr>
                     ))}
                   </DataTable>
@@ -84,6 +174,28 @@ export function CommissionPlansPage() {
           </div>
         )}
       </Card>
+
+      <CommissionPlanFormDialog
+        open={planDialog.open}
+        plan={planDialog.plan}
+        onClose={() => setPlanDialog({ open: false, plan: null })}
+      />
+
+      <CommissionRuleFormDialog
+        open={Boolean(ruleDialog)}
+        planId={ruleDialog?.planId ?? null}
+        planName={ruleDialog?.planName ?? ''}
+        onClose={() => setRuleDialog(null)}
+      />
+
+      <ConfirmDialog
+        open={Boolean(closingRule)}
+        title={`¿Cerrar la regla "${closingRule?.name}"?`}
+        message="Dejará de aplicarse a cobros futuros. Las comisiones ya devengadas con esta regla se conservan intactas."
+        confirmLabel="Cerrar regla"
+        onConfirm={() => void confirmCloseRule()}
+        onCancel={() => setClosingRule(null)}
+      />
     </PageContainer>
   );
 }

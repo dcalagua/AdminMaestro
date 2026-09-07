@@ -1,13 +1,18 @@
 import { useState } from 'react';
 import { useProvisioningRequests } from '@/services/queries';
+import { useRetryProvisioning } from '@/services/mutations';
 import { useSearchFilter } from '@/hooks/useSearchFilter';
+import { usePermissions } from '@/hooks/usePermissions';
 import { StatusTabs } from '@/components/ui/SectionTabs';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useToast } from '@/components/ui/toast-context';
+import { businessErrorMessage } from '@/lib/pgError';
 import {
   PageContainer, Card, DataTable, SearchBar, StatCard, LoadingState, ErrorState, EmptyState, Badge,
 } from '@/components/ui/primitives';
 import { formatDateTime } from '@/lib/format';
 import { PROVISIONING_STATUS_LABEL } from '@/types/domain';
+import { EnqueueProvisioningDialog } from './DeploymentDialogs';
 
 type QueueFilter = 'ALL' | 'OPEN' | 'FAILED' | 'DONE';
 
@@ -20,9 +25,27 @@ type QueueFilter = 'ALL' | 'OPEN' | 'FAILED' | 'DONE';
  */
 export function ProvisioningPage() {
   const requests = useProvisioningRequests();
+  const perms = usePermissions();
+  const toast = useToast();
+  const retry = useRetryProvisioning();
   const [filter, setFilter] = useState<QueueFilter>('ALL');
   const [expanded, setExpanded] = useState<string | null>(null);
   const [retryTarget, setRetryTarget] = useState<string | null>(null);
+  const [enqueueOpen, setEnqueueOpen] = useState(false);
+
+  async function confirmRetry() {
+    if (!retryTarget) return;
+    try {
+      // La RPC crea una solicitud NUEVA que referencia a la fallida: el historial
+      // de la original no se muta.
+      await retry.mutateAsync({ p_request_id: retryTarget });
+      toast.success('Reintento encolado', 'Se creó una solicitud nueva ligada a la fallida.');
+    } catch (error) {
+      toast.error('No se pudo reintentar', businessErrorMessage(error));
+    } finally {
+      setRetryTarget(null);
+    }
+  }
   const { term, setTerm, filtered } = useSearchFilter(requests.data, (r) => [
     r.action, r.status, r.idempotency_key,
     (r.tenants as { name: string } | null)?.name,
@@ -44,7 +67,16 @@ export function ProvisioningPage() {
     <PageContainer
       title="Provisioning"
       description="Solicitudes de aprovisionamiento con máquina de estados e idempotencia. Modo DRY_RUN por defecto: no se ejecuta ninguna llamada remota real."
-      actions={<Badge tone="info">Modo por defecto: DRY_RUN</Badge>}
+      actions={
+        <div className="flex items-center gap-2">
+          <Badge tone="info">Modo por defecto: DRY_RUN</Badge>
+          {perms.canManagePlatform ? (
+            <button type="button" className="ebim-btn-primary" onClick={() => setEnqueueOpen(true)}>
+              Encolar solicitud
+            </button>
+          ) : null}
+        </div>
+      }
     >
       <div className="mb-4 grid gap-3 sm:grid-cols-4">
         <StatCard label="Solicitudes" value={String(all.length)} />
@@ -162,8 +194,10 @@ export function ProvisioningPage() {
         confirmLabel="Reintentar"
         tone="primary"
         onCancel={() => setRetryTarget(null)}
-        onConfirm={() => setRetryTarget(null)}
+        onConfirm={() => void confirmRetry()}
       />
+
+      <EnqueueProvisioningDialog open={enqueueOpen} onClose={() => setEnqueueOpen(false)} />
     </PageContainer>
   );
 }

@@ -1,10 +1,15 @@
+import { useState } from 'react';
 import { useSubscriptions } from '@/services/queries';
 import { useSearchFilter } from '@/hooks/useSearchFilter';
+import { usePermissions } from '@/hooks/usePermissions';
 import {
   PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge,
 } from '@/components/ui/primitives';
 import { formatMoney, formatDate, formatPercent } from '@/lib/format';
 import { DEPLOYMENT_MODE_LABEL } from '@/types/domain';
+import {
+  SubscriptionFormDialog, SubscriptionStatusDialog, SubscriptionItemDialog,
+} from './SubscriptionDialogs';
 
 /**
  * Suscripciones.
@@ -15,6 +20,11 @@ import { DEPLOYMENT_MODE_LABEL } from '@/types/domain';
  */
 export function SubscriptionsPage() {
   const subs = useSubscriptions();
+  const perms = usePermissions();
+  const [creating, setCreating] = useState(false);
+  const [statusTarget, setStatusTarget] = useState<{ id: string; code: string; status: string } | null>(null);
+  const [itemTarget, setItemTarget] = useState<{ id: string; code: string } | null>(null);
+
   const { term, setTerm, filtered } = useSearchFilter(subs.data, (s) => [
     s.code,
     (s.organizations as { display_name: string } | null)?.display_name,
@@ -28,6 +38,13 @@ export function SubscriptionsPage() {
     <PageContainer
       title="Suscripciones"
       description="El contrato recurrente vivo. Incluye licencias por tenant, licencias base de partner y fees de infraestructura dedicada."
+      actions={
+        perms.canManageCommercial ? (
+          <button type="button" className="ebim-btn-primary" onClick={() => setCreating(true)}>
+            Nueva suscripción
+          </button>
+        ) : null
+      }
     >
       <Card>
         <SearchBar value={term} onChange={setTerm} placeholder="Buscar por código, organización, tenant o plan…" />
@@ -38,7 +55,7 @@ export function SubscriptionsPage() {
         ) : filtered.length === 0 ? (
           <EmptyState title="Sin suscripciones" />
         ) : (
-          <DataTable columns={['Código', 'Facturado a', 'Producto', 'Tenant', 'Plan', 'Modelo', 'Margen canal', 'Inicio', 'Estado']}>
+          <DataTable columns={['Código', 'Facturado a', 'Producto', 'Tenant', 'Plan', 'Modelo', 'Margen canal', 'Inicio', 'Estado', '']}>
             {filtered.map((s) => (
               <tr key={s.id}>
                 <td className="ebim-td font-mono text-xs font-semibold">{s.code}</td>
@@ -72,6 +89,26 @@ export function SubscriptionsPage() {
                     {s.status}
                   </Badge>
                 </td>
+                <td className="ebim-td">
+                  {perms.canManageCommercial ? (
+                    <div className="flex items-center justify-end gap-3">
+                      <button
+                        type="button"
+                        className="ebim-link text-[13px]"
+                        onClick={() => setItemTarget({ id: s.id, code: s.code })}
+                      >
+                        Añadir línea
+                      </button>
+                      <button
+                        type="button"
+                        className="ebim-link text-[13px]"
+                        onClick={() => setStatusTarget({ id: s.id, code: s.code, status: s.status })}
+                      >
+                        Estado
+                      </button>
+                    </div>
+                  ) : null}
+                </td>
               </tr>
             ))}
           </DataTable>
@@ -91,6 +128,23 @@ export function SubscriptionsPage() {
         )}{' '}
         mensuales entre las suscripciones listadas.
       </p>
+
+      <SubscriptionFormDialog open={creating} onClose={() => setCreating(false)} />
+
+      <SubscriptionStatusDialog
+        open={Boolean(statusTarget)}
+        subscriptionId={statusTarget?.id ?? null}
+        subscriptionCode={statusTarget?.code ?? ''}
+        currentStatus={statusTarget?.status ?? 'DRAFT'}
+        onClose={() => setStatusTarget(null)}
+      />
+
+      <SubscriptionItemDialog
+        open={Boolean(itemTarget)}
+        subscriptionId={itemTarget?.id ?? null}
+        subscriptionCode={itemTarget?.code ?? ''}
+        onClose={() => setItemTarget(null)}
+      />
     </PageContainer>
   );
 }

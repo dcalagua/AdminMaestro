@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/features/auth/AuthContext';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+import { ToastProvider } from '@/components/ui/Toast';
 import { AppShell } from './AppShell';
 import { RequireAuth, RequirePersona } from './guards';
 
@@ -48,131 +49,136 @@ export function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <AuthProvider>
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
-
-              <Route
-                element={
-                  <RequireAuth>
-                    <AppShell />
-                  </RequireAuth>
-                }
-              >
-                <Route index element={<DashboardPage />} />
-
-                <Route path="products" element={<ProductsPage />} />
-                <Route path="products/:productId" element={<ProductDetailPage />} />
-                <Route path="plans" element={<PlansPage />} />
-                <Route path="feature-flags" element={<FeatureFlagsPage />} />
+        <ToastProvider>
+          <BrowserRouter>
+            <AuthProvider>
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
 
                 <Route
-                  path="organizations"
                   element={
-                    <RequirePersona personas={['EBIM', 'PARTNER']}>
-                      <OrganizationsPage />
-                    </RequirePersona>
+                    <RequireAuth>
+                      <AppShell />
+                    </RequireAuth>
                   }
-                />
-                <Route path="organizations/:organizationId" element={<OrganizationDetailPage />} />
-                <Route
-                  path="partners"
-                  element={
-                    <RequirePersona personas={['EBIM', 'PARTNER']}>
-                      <PartnersPage />
-                    </RequirePersona>
-                  }
-                />
-                <Route
-                  path="customers"
-                  element={
-                    <RequirePersona personas={['EBIM', 'PARTNER']}>
-                      <CustomersPage />
-                    </RequirePersona>
-                  }
-                />
+                >
+                  <Route index element={<DashboardPage />} />
 
-                <Route path="tenants" element={<TenantsPage />} />
-                <Route path="tenants/:tenantId" element={<TenantDetailPage />} />
+                  <Route path="products" element={<ProductsPage />} />
+                  <Route path="products/:productId" element={<ProductDetailPage />} />
+                  <Route path="plans" element={<PlansPage />} />
+                  <Route path="feature-flags" element={<FeatureFlagsPage />} />
 
-                <Route
-                  path="sales-agents"
-                  element={
-                    <RequirePersona personas={['EBIM', 'PARTNER']}>
-                      <SalesAgentsPage />
-                    </RequirePersona>
-                  }
-                />
-                <Route path="attributions" element={<AttributionsPage />} />
-                <Route
-                  path="commission-plans"
-                  element={
-                    <RequirePersona personas={['EBIM', 'PARTNER']}>
-                      <CommissionPlansPage />
-                    </RequirePersona>
-                  }
-                />
-                <Route path="commissions" element={<CommissionsPage />} />
+                  <Route
+                    path="organizations"
+                    element={
+                      <RequirePersona personas={['EBIM', 'PARTNER']}>
+                        <OrganizationsPage />
+                      </RequirePersona>
+                    }
+                  />
+                  <Route
+                    path="organizations/:organizationId"
+                    element={<OrganizationDetailPage />}
+                  />
+                  <Route
+                    path="partners"
+                    element={
+                      <RequirePersona personas={['EBIM', 'PARTNER']}>
+                        <PartnersPage />
+                      </RequirePersona>
+                    }
+                  />
+                  <Route
+                    path="customers"
+                    element={
+                      <RequirePersona personas={['EBIM', 'PARTNER']}>
+                        <CustomersPage />
+                      </RequirePersona>
+                    }
+                  />
 
-                <Route
-                  path="subscriptions"
-                  element={
-                    <RequirePersona personas={['EBIM', 'PARTNER']}>
-                      <SubscriptionsPage />
-                    </RequirePersona>
-                  }
-                />
-                <Route
-                  path="billing"
-                  element={
-                    <RequirePersona personas={['EBIM', 'PARTNER']}>
-                      <BillingPage />
-                    </RequirePersona>
-                  }
-                />
-                <Route
-                  path="costs"
-                  element={
-                    <RequirePersona personas={['EBIM']}>
-                      <CostsPage />
-                    </RequirePersona>
-                  }
-                />
+                  <Route path="tenants" element={<TenantsPage />} />
+                  <Route path="tenants/:tenantId" element={<TenantDetailPage />} />
 
-                <Route
-                  path="deployments"
-                  element={
-                    <RequirePersona personas={['EBIM', 'PARTNER']}>
-                      <DeploymentsPage />
-                    </RequirePersona>
-                  }
-                />
-                <Route
-                  path="provisioning"
-                  element={
-                    <RequirePersona personas={['EBIM', 'PARTNER']}>
-                      <ProvisioningPage />
-                    </RequirePersona>
-                  }
-                />
+                  <Route
+                    path="sales-agents"
+                    element={
+                      <RequirePersona personas={['EBIM', 'PARTNER']}>
+                        <SalesAgentsPage />
+                      </RequirePersona>
+                    }
+                  />
+                  <Route path="attributions" element={<AttributionsPage />} />
+                  <Route
+                    path="commission-plans"
+                    element={
+                      <RequirePersona personas={['EBIM', 'PARTNER']}>
+                        <CommissionPlansPage />
+                      </RequirePersona>
+                    }
+                  />
+                  <Route path="commissions" element={<CommissionsPage />} />
 
-                <Route
-                  path="audit"
-                  element={
-                    <RequirePersona personas={['EBIM', 'PARTNER']}>
-                      <AuditPage />
-                    </RequirePersona>
-                  }
-                />
-                <Route path="settings" element={<SettingsPage />} />
+                  <Route
+                    path="subscriptions"
+                    element={
+                      <RequirePersona personas={['EBIM', 'PARTNER']}>
+                        <SubscriptionsPage />
+                      </RequirePersona>
+                    }
+                  />
+                  <Route
+                    path="billing"
+                    element={
+                      <RequirePersona personas={['EBIM', 'PARTNER']}>
+                        <BillingPage />
+                      </RequirePersona>
+                    }
+                  />
+                  <Route
+                    path="costs"
+                    element={
+                      <RequirePersona personas={['EBIM']}>
+                        <CostsPage />
+                      </RequirePersona>
+                    }
+                  />
 
-                <Route path="404" element={<NotFoundPage />} />
-                <Route path="*" element={<Navigate to="/404" replace />} />
-              </Route>
-            </Routes>
-          </AuthProvider>
-        </BrowserRouter>
+                  <Route
+                    path="deployments"
+                    element={
+                      <RequirePersona personas={['EBIM', 'PARTNER']}>
+                        <DeploymentsPage />
+                      </RequirePersona>
+                    }
+                  />
+                  <Route
+                    path="provisioning"
+                    element={
+                      <RequirePersona personas={['EBIM', 'PARTNER']}>
+                        <ProvisioningPage />
+                      </RequirePersona>
+                    }
+                  />
+
+                  <Route
+                    path="audit"
+                    element={
+                      <RequirePersona personas={['EBIM', 'PARTNER']}>
+                        <AuditPage />
+                      </RequirePersona>
+                    }
+                  />
+                  <Route path="settings" element={<SettingsPage />} />
+
+                  <Route path="404" element={<NotFoundPage />} />
+                  <Route path="*" element={<Navigate to="/404" replace />} />
+                </Route>
+              </Routes>
+            </AuthProvider>
+          </BrowserRouter>
+        </ToastProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );

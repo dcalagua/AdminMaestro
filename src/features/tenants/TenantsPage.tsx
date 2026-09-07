@@ -6,8 +6,10 @@ import { StatusTabs } from '@/components/ui/SectionTabs';
 import {
   PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge, StatCard,
 } from '@/components/ui/primitives';
+import { usePermissions } from '@/hooks/usePermissions';
 import { formatMoney, formatNumber } from '@/lib/format';
 import { DEPLOYMENT_MODE_LABEL, TENANT_TYPE_LABEL, TENANT_STATUS_LABEL } from '@/types/domain';
+import { TenantFormDialog, TenantStatusDialog } from './TenantDialogs';
 
 type TenantFilter = 'ALL' | 'PRODUCTION' | 'DEMO_TRIAL' | 'SHARED' | 'DEDICATED';
 
@@ -20,7 +22,14 @@ type TenantFilter = 'ALL' | 'PRODUCTION' | 'DEMO_TRIAL' | 'SHARED' | 'DEDICATED'
  */
 export function TenantsPage() {
   const tenants = useTenantOverview();
+  const perms = usePermissions();
   const [tab, setTab] = useState<TenantFilter>('ALL');
+  const [creating, setCreating] = useState(false);
+  const [statusTarget, setStatusTarget] = useState<{
+    id: string;
+    name: string;
+    status: string;
+  } | null>(null);
   const { term, setTerm, filtered } = useSearchFilter(tenants.data, (t) => [
     t.name, t.slug, t.customer_name, t.managing_name, t.product_short_name,
     t.deployment_mode, t.tenant_type, t.admin_email,
@@ -43,6 +52,13 @@ export function TenantsPage() {
     <PageContainer
       title="Tenants"
       description="Cada tenant pertenece a UN producto SaaS. Dónde vive físicamente lo decide su deployment mode, no su jerarquía comercial."
+      actions={
+        perms.canManagePlatform ? (
+          <button type="button" className="ebim-btn-primary" onClick={() => setCreating(true)}>
+            Nuevo tenant
+          </button>
+        ) : null
+      }
     >
       <div className="mb-4 grid gap-3 sm:grid-cols-4">
         <StatCard label="Total de tenants" value={formatNumber(all.length)} />
@@ -85,7 +101,7 @@ export function TenantsPage() {
           />
         ) : (
           <DataTable
-            columns={['Tenant', 'Producto', 'Cliente', 'Administra', 'Tipo', 'Modelo', 'Infraestructura', 'MRR', 'Estado']}
+            columns={['Tenant', 'Producto', 'Cliente', 'Administra', 'Tipo', 'Modelo', 'Infraestructura', 'MRR', 'Estado', '']}
           >
             {rows.map((t) => (
               <tr key={t.tenant_id as string}>
@@ -113,11 +129,38 @@ export function TenantsPage() {
                     {TENANT_STATUS_LABEL[t.status as keyof typeof TENANT_STATUS_LABEL]}
                   </Badge>
                 </td>
+                <td className="ebim-td text-right">
+                  {perms.canManagePlatform || perms.canManageOrganization(t.customer_organization_id as string) ? (
+                    <button
+                      type="button"
+                      className="ebim-link text-[13px]"
+                      onClick={() =>
+                        setStatusTarget({
+                          id: t.tenant_id as string,
+                          name: t.name as string,
+                          status: t.status as string,
+                        })
+                      }
+                    >
+                      Cambiar estado
+                    </button>
+                  ) : null}
+                </td>
               </tr>
             ))}
           </DataTable>
         )}
       </Card>
+
+      <TenantFormDialog open={creating} onClose={() => setCreating(false)} />
+
+      <TenantStatusDialog
+        open={Boolean(statusTarget)}
+        tenantId={statusTarget?.id ?? null}
+        tenantName={statusTarget?.name ?? ''}
+        currentStatus={statusTarget?.status ?? 'ACTIVE'}
+        onClose={() => setStatusTarget(null)}
+      />
     </PageContainer>
   );
 }

@@ -1,10 +1,14 @@
+import { useState } from 'react';
 import { useDeploymentTargets } from '@/services/queries';
 import { useSearchFilter } from '@/hooks/useSearchFilter';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Link } from 'react-router-dom';
 import {
   PageContainer, Card, DataTable, SearchBar, StatCard, LoadingState, ErrorState, EmptyState, Badge,
 } from '@/components/ui/primitives';
 import { DEPLOYMENT_MODE_LABEL } from '@/types/domain';
+import { DeploymentTargetDialog, AttachTenantDialog } from './DeploymentDialogs';
+import type { TargetDraft } from './DeploymentDialogs';
 
 /**
  * Deployment targets: la infraestructura FÍSICA, desacoplada del tenant lógico.
@@ -15,6 +19,15 @@ import { DEPLOYMENT_MODE_LABEL } from '@/types/domain';
  */
 export function DeploymentsPage() {
   const targets = useDeploymentTargets();
+  const perms = usePermissions();
+  const [targetDialog, setTargetDialog] = useState<{ open: boolean; target: TargetDraft | null }>({
+    open: false,
+    target: null,
+  });
+  const [attachTarget, setAttachTarget] = useState<{ id: string; code: string; mode: string } | null>(
+    null,
+  );
+
   const { term, setTerm, filtered } = useSearchFilter(targets.data, (t) => [
     t.code, t.name, t.region, t.provider, t.deployment_mode,
     (t.organizations as { display_name: string } | null)?.display_name,
@@ -27,6 +40,17 @@ export function DeploymentsPage() {
     <PageContainer
       title="Deployments"
       description="Dónde vive físicamente cada tenant. Un target compartido aloja muchos; uno dedicado de cliente, exactamente uno."
+      actions={
+        perms.canManagePlatform ? (
+          <button
+            type="button"
+            className="ebim-btn-primary"
+            onClick={() => setTargetDialog({ open: true, target: null })}
+          >
+            Nuevo target
+          </button>
+        ) : null
+      }
     >
       <div className="mb-4 grid gap-3 sm:grid-cols-4">
         <StatCard label="Targets totales" value={String(all.length)} />
@@ -59,6 +83,44 @@ export function DeploymentsPage() {
                     <Badge tone="info">{t.provider}</Badge>
                     {t.region ? <Badge tone="neutral">{t.region}</Badge> : null}
                     <Badge tone={t.status === 'ACTIVE' ? 'ok' : 'neutral'}>{t.status}</Badge>
+                    {perms.canManagePlatform ? (
+                      <span className="ml-auto flex gap-3">
+                        <button
+                          type="button"
+                          className="ebim-link text-[13px]"
+                          onClick={() =>
+                            setTargetDialog({
+                              open: true,
+                              target: {
+                                id: t.id,
+                                code: t.code,
+                                name: t.name,
+                                provider: t.provider,
+                                deployment_mode: t.deployment_mode,
+                                environment: t.environment,
+                                region: t.region,
+                                provider_project_ref: t.provider_project_ref,
+                                owner_organization_id: t.owner_organization_id,
+                                saas_product_id: t.saas_product_id,
+                                cost_center: t.cost_center,
+                                status: t.status,
+                              },
+                            })
+                          }
+                        >
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          className="ebim-link text-[13px]"
+                          onClick={() =>
+                            setAttachTarget({ id: t.id, code: t.code, mode: t.deployment_mode })
+                          }
+                        >
+                          Adjuntar tenant
+                        </button>
+                      </span>
+                    ) : null}
                   </div>
                   <p className="mb-1 text-sm text-fg">{t.name}</p>
                   <p className="mb-3 text-xs text-muted">
@@ -99,6 +161,20 @@ export function DeploymentsPage() {
           </div>
         )}
       </Card>
+
+      <DeploymentTargetDialog
+        open={targetDialog.open}
+        target={targetDialog.target}
+        onClose={() => setTargetDialog({ open: false, target: null })}
+      />
+
+      <AttachTenantDialog
+        open={Boolean(attachTarget)}
+        targetId={attachTarget?.id ?? null}
+        targetCode={attachTarget?.code ?? ''}
+        targetMode={attachTarget?.mode ?? 'SHARED'}
+        onClose={() => setAttachTarget(null)}
+      />
     </PageContainer>
   );
 }

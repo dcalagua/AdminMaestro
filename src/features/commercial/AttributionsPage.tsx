@@ -1,10 +1,17 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAttributions } from '@/services/queries';
+import { useEndAttribution } from '@/services/mutations';
 import { useSearchFilter } from '@/hooks/useSearchFilter';
+import { usePermissions } from '@/hooks/usePermissions';
 import {
   PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge,
 } from '@/components/ui/primitives';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useToast } from '@/components/ui/toast-context';
+import { businessErrorMessage } from '@/lib/pgError';
 import { formatDate } from '@/lib/format';
+import { AttributionFormDialog } from './CommercialDialogs';
 
 /**
  * Atribuciones comerciales.
@@ -15,6 +22,28 @@ import { formatDate } from '@/lib/format';
  */
 export function AttributionsPage() {
   const attributions = useAttributions();
+  const perms = usePermissions();
+  const toast = useToast();
+  const endAttribution = useEndAttribution();
+  const [creating, setCreating] = useState(false);
+  const [ending, setEnding] = useState<{ id: string; label: string } | null>(null);
+
+  async function confirmEnd() {
+    if (!ending) return;
+    try {
+      await endAttribution.mutateAsync({
+        p_attribution_id: ending.id,
+        p_reason: 'Cerrada desde la consola',
+      });
+      // Cerrar NO borra: las comisiones ya devengadas apuntan a esta atribución.
+      toast.success('Atribución cerrada', ending.label);
+    } catch (error) {
+      toast.error('No se pudo cerrar', businessErrorMessage(error));
+    } finally {
+      setEnding(null);
+    }
+  }
+
   const { term, setTerm, filtered } = useSearchFilter(attributions.data, (a) => [
     (a.sales_agents as { full_name: string } | null)?.full_name,
     (a.saas_products as { short_name: string } | null)?.short_name,
@@ -27,6 +56,13 @@ export function AttributionsPage() {
     <PageContainer
       title="Atribuciones comerciales"
       description="Quién se lleva el crédito de cada venta, con vigencia. Una venta puede repartirse entre varios participantes sin duplicar la comisión."
+      actions={
+        perms.canManageCommercial ? (
+          <button type="button" className="ebim-btn-primary" onClick={() => setCreating(true)}>
+            Nueva atribución
+          </button>
+        ) : null
+      }
     >
       <Card>
         <SearchBar value={term} onChange={setTerm} placeholder="Buscar por comercial, producto, cliente o tenant…" />
@@ -37,7 +73,7 @@ export function AttributionsPage() {
         ) : filtered.length === 0 ? (
           <EmptyState title="Sin atribuciones" description="No hay atribuciones visibles para tu rol." />
         ) : (
-          <DataTable columns={['Comercial', 'Producto', 'Cliente', 'Tenant', 'Canal', '%', 'Plan de comisión', 'Origen', 'Vigencia']}>
+          <DataTable columns={['Comercial', 'Producto', 'Cliente', 'Tenant', 'Canal', '%', 'Plan de comisión', 'Origen', 'Vigencia', '']}>
             {filtered.map((a) => (
               <tr key={a.id}>
                 <td className="ebim-td font-semibold">
@@ -65,11 +101,40 @@ export function AttributionsPage() {
                 <td className="ebim-td text-xs text-muted">
                   {formatDate(a.valid_from)} → {a.valid_to ? formatDate(a.valid_to) : 'sin fin'}
                 </td>
+                <td className="ebim-td text-right">
+                  {perms.canManageCommercial && a.status === 'ACTIVE' ? (
+                    <button
+                      type="button"
+                      className="text-[13px] text-danger hover:underline"
+                      onClick={() =>
+                        setEnding({
+                          id: a.id,
+                          label:
+                            (a.sales_agents as { full_name: string } | null)?.full_name ??
+                            'atribución',
+                        })
+                      }
+                    >
+                      Cerrar
+                    </button>
+                  ) : null}
+                </td>
               </tr>
             ))}
           </DataTable>
         )}
       </Card>
+
+      <AttributionFormDialog open={creating} onClose={() => setCreating(false)} />
+
+      <ConfirmDialog
+        open={Boolean(ending)}
+        title="¿Cerrar la vigencia de esta atribución?"
+        message="La atribución dejará de generar comisión nueva. No se borra: las comisiones ya devengadas siguen apuntando a ella."
+        confirmLabel="Cerrar atribución"
+        onConfirm={() => void confirmEnd()}
+        onCancel={() => setEnding(null)}
+      />
     </PageContainer>
   );
 }

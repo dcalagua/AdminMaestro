@@ -3398,10 +3398,60 @@ export type Database = {
       }
     }
     Functions: {
+      archive_saas_product: {
+        Args: { p_product_id: string; p_reason?: string }
+        Returns: undefined
+      }
+      attach_tenant_to_target: {
+        Args: {
+          p_deployment_target_id: string
+          p_is_primary?: boolean
+          p_notes?: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
+      can_manage_commercial: { Args: never; Returns: boolean }
       can_manage_platform_entities: { Args: never; Returns: boolean }
       can_manage_tenant: { Args: { p_tenant: string }; Returns: boolean }
       can_read_finance: { Args: never; Returns: boolean }
       can_read_tenant: { Args: { p_tenant: string }; Returns: boolean }
+      create_sales_attribution: {
+        Args: {
+          p_attribution_pct: number
+          p_channel_organization_id?: string
+          p_commission_plan_id?: string
+          p_customer_organization_id: string
+          p_notes?: string
+          p_saas_product_id: string
+          p_sales_agent_id: string
+          p_source?: Database["platform"]["Enums"]["attribution_source"]
+          p_subscription_id?: string
+          p_tenant_id?: string
+          p_valid_from?: string
+          p_valid_to?: string
+        }
+        Returns: string
+      }
+      create_subscription: {
+        Args: {
+          p_billed_organization_id: string
+          p_billing_interval: Database["platform"]["Enums"]["billing_interval"]
+          p_channel_margin_rate?: number
+          p_code?: string
+          p_currency: string
+          p_ends_on?: string
+          p_metadata?: Json
+          p_notes?: string
+          p_plan_id: string
+          p_quantity?: number
+          p_saas_product_id: string
+          p_started_on?: string
+          p_status?: Database["platform"]["Enums"]["subscription_status"]
+          p_tenant_id?: string
+        }
+        Returns: string
+      }
       create_tenant: {
         Args: {
           p_admin_email: string
@@ -3418,8 +3468,36 @@ export type Database = {
         Returns: string
       }
       dashboard_summary: { Args: never; Returns: Json }
+      deactivate_commission_rule: {
+        Args: { p_reason?: string; p_rule_id: string; p_valid_to?: string }
+        Returns: undefined
+      }
       effective_config: { Args: { p_company: string }; Returns: Json }
       effective_tenant_config: { Args: { p_tenant: string }; Returns: Json }
+      end_sales_attribution: {
+        Args: {
+          p_attribution_id: string
+          p_reason?: string
+          p_valid_to?: string
+        }
+        Returns: undefined
+      }
+      end_subscription_item: {
+        Args: { p_item_id: string; p_valid_to?: string }
+        Returns: undefined
+      }
+      enqueue_provisioning_request: {
+        Args: {
+          p_action: Database["platform"]["Enums"]["provisioning_action"]
+          p_deployment_target_id?: string
+          p_idempotency_key?: string
+          p_mode?: string
+          p_payload?: Json
+          p_saas_product_id?: string
+          p_tenant_id?: string
+        }
+        Returns: string
+      }
       generate_commission_events: {
         Args: { p_payment_id: string }
         Returns: number
@@ -3453,12 +3531,229 @@ export type Database = {
       my_org_ids: { Args: never; Returns: string[] }
       my_sales_agent_ids: { Args: never; Returns: string[] }
       my_tenant_ids: { Args: never; Returns: string[] }
+      retry_provisioning_request: {
+        Args: { p_request_id: string }
+        Returns: string
+      }
+      set_plan_price: {
+        Args: {
+          p_amount: number
+          p_billing_interval: Database["platform"]["Enums"]["billing_interval"]
+          p_charge_kind: Database["platform"]["Enums"]["charge_kind"]
+          p_currency: string
+          p_plan_id: string
+          p_valid_from?: string
+        }
+        Returns: string
+      }
+      set_subscription_status: {
+        Args: {
+          p_reason?: string
+          p_status: Database["platform"]["Enums"]["subscription_status"]
+          p_subscription_id: string
+        }
+        Returns: undefined
+      }
+      set_tenant_feature: {
+        Args: {
+          p_enabled: boolean
+          p_feature_key: string
+          p_tenant_id: string
+          p_value?: Json
+        }
+        Returns: undefined
+      }
+      set_tenant_status: {
+        Args: {
+          p_reason?: string
+          p_status: Database["platform"]["Enums"]["tenant_status"]
+          p_tenant_id: string
+        }
+        Returns: undefined
+      }
       settle_commissions: {
         Args: {
           p_currency?: string
           p_period_end: string
           p_period_start: string
           p_sales_agent_id: string
+        }
+        Returns: string
+      }
+      update_tenant: {
+        Args: {
+          p_accent_color?: string
+          p_admin_email?: string
+          p_logo_url?: string
+          p_metadata?: Json
+          p_name: string
+          p_tenant_id: string
+          p_white_label?: boolean
+        }
+        Returns: undefined
+      }
+      upsert_catalog_item: {
+        Args: {
+          p_available?: boolean
+          p_code: string
+          p_currency?: string
+          p_description?: string
+          p_id?: string
+          p_item_type?: string
+          p_name: string
+          p_price_month?: number
+          p_saas_product_id?: string
+          p_scope?: string
+        }
+        Returns: string
+      }
+      upsert_commission_plan: {
+        Args: {
+          p_code: string
+          p_description?: string
+          p_id?: string
+          p_name: string
+          p_saas_product_id?: string
+          p_status?: Database["platform"]["Enums"]["entity_status"]
+          p_valid_from?: string
+          p_valid_to?: string
+        }
+        Returns: string
+      }
+      upsert_commission_rule: {
+        Args: {
+          p_basis: Database["platform"]["Enums"]["commission_basis"]
+          p_charge_kind?: Database["platform"]["Enums"]["charge_kind"]
+          p_commission_plan_id: string
+          p_currency?: string
+          p_fixed_amount?: number
+          p_id?: string
+          p_is_recurring?: boolean
+          p_max_months?: number
+          p_max_total_amount?: number
+          p_name: string
+          p_priority?: number
+          p_rate?: number
+          p_status?: Database["platform"]["Enums"]["entity_status"]
+          p_valid_from?: string
+          p_valid_to?: string
+        }
+        Returns: string
+      }
+      upsert_company: {
+        Args: {
+          p_country_code?: string
+          p_currency?: string
+          p_erp_code?: string
+          p_id?: string
+          p_is_default?: boolean
+          p_name: string
+          p_organization_id: string
+          p_status?: Database["platform"]["Enums"]["entity_status"]
+          p_tax_id?: string
+        }
+        Returns: string
+      }
+      upsert_deployment_target: {
+        Args: {
+          p_code: string
+          p_cost_center?: string
+          p_deployment_mode: Database["platform"]["Enums"]["deployment_mode"]
+          p_environment?: Database["platform"]["Enums"]["environment_kind"]
+          p_id?: string
+          p_metadata?: Json
+          p_name: string
+          p_owner_organization_id?: string
+          p_provider: Database["platform"]["Enums"]["infra_provider"]
+          p_provider_project_ref?: string
+          p_region?: string
+          p_saas_product_id?: string
+          p_status?: Database["platform"]["Enums"]["entity_status"]
+        }
+        Returns: string
+      }
+      upsert_organization: {
+        Args: {
+          p_accent_color?: string
+          p_billing_email?: string
+          p_brand_slug?: string
+          p_capabilities?: Database["platform"]["Enums"]["org_capability"][]
+          p_country_code?: string
+          p_display_name: string
+          p_id?: string
+          p_legal_name: string
+          p_logo_url?: string
+          p_metadata?: Json
+          p_slug: string
+          p_status?: Database["platform"]["Enums"]["entity_status"]
+          p_tax_id?: string
+          p_white_label?: boolean
+        }
+        Returns: string
+      }
+      upsert_plan: {
+        Args: {
+          p_code: string
+          p_deployment_mode?: Database["platform"]["Enums"]["deployment_mode"]
+          p_description?: string
+          p_id?: string
+          p_included_companies?: number
+          p_is_partner_base?: boolean
+          p_metadata?: Json
+          p_multi_country?: boolean
+          p_name: string
+          p_saas_product_id: string
+          p_sort_order?: number
+          p_status?: Database["platform"]["Enums"]["entity_status"]
+        }
+        Returns: string
+      }
+      upsert_saas_product: {
+        Args: {
+          p_accent_color?: string
+          p_billing_unit?: string
+          p_code: string
+          p_description?: string
+          p_id?: string
+          p_is_billable?: boolean
+          p_metadata?: Json
+          p_name: string
+          p_short_name: string
+          p_sort_order?: number
+          p_status?: Database["platform"]["Enums"]["entity_status"]
+        }
+        Returns: string
+      }
+      upsert_sales_agent: {
+        Args: {
+          p_agent_type?: Database["platform"]["Enums"]["sales_agent_type"]
+          p_code: string
+          p_contact_email?: string
+          p_full_name: string
+          p_id?: string
+          p_metadata?: Json
+          p_organization_id?: string
+          p_status?: Database["platform"]["Enums"]["entity_status"]
+          p_user_id?: string
+          p_valid_from?: string
+          p_valid_to?: string
+        }
+        Returns: string
+      }
+      upsert_subscription_item: {
+        Args: {
+          p_billing_interval: Database["platform"]["Enums"]["billing_interval"]
+          p_catalog_item_code?: string
+          p_charge_kind: Database["platform"]["Enums"]["charge_kind"]
+          p_currency?: string
+          p_description: string
+          p_id?: string
+          p_quantity: number
+          p_subscription_id: string
+          p_tenant_id?: string
+          p_unit_amount: number
+          p_valid_from?: string
+          p_valid_to?: string
         }
         Returns: string
       }
