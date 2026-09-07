@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "additionalDirectories": [
+      "/Users/edudavidmorenoccama/Library/CloudStorage/GoogleDrive-gep.soporteit@gmail.com/My Drive/EBIM-Plataforma"
+    ],
+    "allow": [
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(supabase start*)",
+      "Bash(supabase stop*)",
+      "Bash(supabase status*)",
+      "Bash(supabase db reset*)",
+      "Bash(supabase test db*)",
+      "Bash(supabase gen types*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git add*)",
+      "Bash(git commit*)"
+    ],
+    "deny": [
+      "Edit(//Users/edudavidmorenoccama/Library/CloudStorage/GoogleDrive-gep.soporteit@gmail.com/My Drive/EBIM-Plataforma/**)",
+      "Edit(//Users/edudavidmorenoccama/.ssh/**)",
+      "Read(//Users/edudavidmorenoccama/.ssh/**)",
+      "Read(./.env)",
+      "Read(./.env.local)",
+      "Bash(git push*)",
+      "Bash(supabase db push*)",
+      "Bash(supabase link*)",
+      "Bash(supabase projects delete*)",
+      "Bash(*EBIM-Plataforma*)",
+      "Bash(supabase db reset --linked*)",
+      "Bash(supabase db reset --db-url*)",
+      "Bash(supabase functions deploy*)",
+      "Bash(supabase secrets set*)"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": false,
+    "filesystem": {
+      "denyWrite": [
+        "/Users/edudavidmorenoccama/Library/CloudStorage/GoogleDrive-gep.soporteit@gmail.com/My Drive/EBIM-Plataforma"
+      ]
+    }
+  }
+}
