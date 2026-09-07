@@ -208,6 +208,50 @@ export function useEndSubscriptionItem() {
 }
 
 /* ==========================================================================
+   Cobranza (Fases 07-08)
+   ========================================================================== */
+
+const COLLECTION_KEYS = [
+  'subscription-collection', 'subscriptions', 'subscription', 'subscription-document-status',
+];
+
+export function useUpsertProviderAccount() {
+  return useRpc('upsert_payment_provider_account', ['provider-accounts', ...COLLECTION_KEYS]);
+}
+
+/** Versiona el perfil de cobro. Configurar cómo se cobra NO registra ningún cobro. */
+export function useSetCollectionProfile() {
+  return useRpc('set_subscription_collection_profile', COLLECTION_KEYS);
+}
+
+const DOCUMENT_KEYS = ['commercial-documents', 'subscription-document-status', 'billing-alerts'];
+
+export function useRequestDocument() {
+  return useRpc('request_commercial_document', DOCUMENT_KEYS);
+}
+
+export function useReceiveDocument() {
+  return useRpc('receive_commercial_document', DOCUMENT_KEYS);
+}
+
+/** Aprobar una OS/OC habilita la continuidad administrativa; no crea un payment. */
+export function useApproveDocument() {
+  return useRpc('approve_commercial_document', DOCUMENT_KEYS);
+}
+
+export function useRejectDocument() {
+  return useRpc('reject_commercial_document', DOCUMENT_KEYS);
+}
+
+export function useCancelDocument() {
+  return useRpc('cancel_commercial_document', DOCUMENT_KEYS);
+}
+
+export function useExpireDocuments() {
+  return useRpc('expire_commercial_documents', DOCUMENT_KEYS);
+}
+
+/* ==========================================================================
    Infraestructura
    ========================================================================== */
 

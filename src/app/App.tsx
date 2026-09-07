@@ -24,6 +24,7 @@ import { AttributionsPage } from '@/features/commercial/AttributionsPage';
 import { CommissionPlansPage } from '@/features/commercial/CommissionPlansPage';
 import { CommissionsPage } from '@/features/commercial/CommissionsPage';
 import { SubscriptionsPage } from '@/features/billing/SubscriptionsPage';
+import { SubscriptionDetailPage } from '@/features/billing/SubscriptionDetailPage';
 import { BillingPage } from '@/features/billing/BillingPage';
 import { CostsPage } from '@/features/billing/CostsPage';
 import { DeploymentsPage } from '@/features/deployments/DeploymentsPage';
@@ -135,6 +136,14 @@ export function App() {
                     element={
                       <RequirePersona personas={['EBIM', 'PARTNER']}>
                         <SubscriptionsPage />
+                      </RequirePersona>
+                    }
+                  />
+                  <Route
+                    path="subscriptions/:subscriptionId"
+                    element={
+                      <RequirePersona personas={['EBIM', 'PARTNER']}>
+                        <SubscriptionDetailPage />
                       </RequirePersona>
                     }
                   />

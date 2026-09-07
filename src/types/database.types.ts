@@ -1118,6 +1118,20 @@ export type Database = {
             foreignKeyName: "invoices_subscription_id_fkey"
             columns: ["subscription_id"]
             isOneToOne: false
+            referencedRelation: "v_subscription_collection"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_documents"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
             referencedRelation: "v_subscription_mrr"
             referencedColumns: ["subscription_id"]
           },
@@ -1571,6 +1585,95 @@ export type Database = {
           white_label?: boolean
         }
         Relationships: []
+      }
+      payment_provider_accounts: {
+        Row: {
+          code: string
+          country_code: string
+          created_at: string
+          currency: string
+          environment: Database["platform"]["Enums"]["provider_environment"]
+          id: string
+          metadata: Json
+          name: string
+          owner_organization_id: string | null
+          provider_kind: Database["platform"]["Enums"]["provider_kind"]
+          public_key: string | null
+          rsa_id_ref: string | null
+          rsa_public_key_ref: string | null
+          secret_key_ref: string | null
+          status: Database["platform"]["Enums"]["entity_status"]
+          updated_at: string
+          webhook_endpoint: string | null
+        }
+        Insert: {
+          code: string
+          country_code?: string
+          created_at?: string
+          currency?: string
+          environment?: Database["platform"]["Enums"]["provider_environment"]
+          id?: string
+          metadata?: Json
+          name: string
+          owner_organization_id?: string | null
+          provider_kind: Database["platform"]["Enums"]["provider_kind"]
+          public_key?: string | null
+          rsa_id_ref?: string | null
+          rsa_public_key_ref?: string | null
+          secret_key_ref?: string | null
+          status?: Database["platform"]["Enums"]["entity_status"]
+          updated_at?: string
+          webhook_endpoint?: string | null
+        }
+        Update: {
+          code?: string
+          country_code?: string
+          created_at?: string
+          currency?: string
+          environment?: Database["platform"]["Enums"]["provider_environment"]
+          id?: string
+          metadata?: Json
+          name?: string
+          owner_organization_id?: string | null
+          provider_kind?: Database["platform"]["Enums"]["provider_kind"]
+          public_key?: string | null
+          rsa_id_ref?: string | null
+          rsa_public_key_ref?: string | null
+          secret_key_ref?: string | null
+          status?: Database["platform"]["Enums"]["entity_status"]
+          updated_at?: string
+          webhook_endpoint?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_provider_accounts_owner_organization_id_fkey"
+            columns: ["owner_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_provider_accounts_owner_organization_id_fkey"
+            columns: ["owner_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_margin"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "payment_provider_accounts_owner_organization_id_fkey"
+            columns: ["owner_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["customer_organization_id"]
+          },
+          {
+            foreignKeyName: "payment_provider_accounts_owner_organization_id_fkey"
+            columns: ["owner_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["managing_organization_id"]
+          },
+        ]
       }
       payments: {
         Row: {
@@ -2303,6 +2406,20 @@ export type Database = {
             foreignKeyName: "sales_attributions_subscription_id_fkey"
             columns: ["subscription_id"]
             isOneToOne: false
+            referencedRelation: "v_subscription_collection"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "sales_attributions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_documents"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "sales_attributions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
             referencedRelation: "v_subscription_mrr"
             referencedColumns: ["subscription_id"]
           },
@@ -2333,6 +2450,220 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_tenant_overview"
             referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      subscription_collection_profiles: {
+        Row: {
+          auto_charge: boolean
+          auto_suspend: boolean
+          collection_method: Database["platform"]["Enums"]["collection_method"]
+          created_at: string
+          currency: string
+          document_lead_days: number
+          effective_from: string
+          effective_to: string | null
+          grace_period_days: number
+          id: string
+          invoice_lead_days: number
+          notes: string | null
+          payment_due_days: number
+          provider_account_id: string | null
+          renewal_notice_days: number
+          requires_purchase_order: boolean
+          requires_service_order: boolean
+          status: Database["platform"]["Enums"]["collection_profile_status"]
+          subscription_id: string
+          updated_at: string
+        }
+        Insert: {
+          auto_charge?: boolean
+          auto_suspend?: boolean
+          collection_method: Database["platform"]["Enums"]["collection_method"]
+          created_at?: string
+          currency?: string
+          document_lead_days?: number
+          effective_from?: string
+          effective_to?: string | null
+          grace_period_days?: number
+          id?: string
+          invoice_lead_days?: number
+          notes?: string | null
+          payment_due_days?: number
+          provider_account_id?: string | null
+          renewal_notice_days?: number
+          requires_purchase_order?: boolean
+          requires_service_order?: boolean
+          status?: Database["platform"]["Enums"]["collection_profile_status"]
+          subscription_id: string
+          updated_at?: string
+        }
+        Update: {
+          auto_charge?: boolean
+          auto_suspend?: boolean
+          collection_method?: Database["platform"]["Enums"]["collection_method"]
+          created_at?: string
+          currency?: string
+          document_lead_days?: number
+          effective_from?: string
+          effective_to?: string | null
+          grace_period_days?: number
+          id?: string
+          invoice_lead_days?: number
+          notes?: string | null
+          payment_due_days?: number
+          provider_account_id?: string | null
+          renewal_notice_days?: number
+          requires_purchase_order?: boolean
+          requires_service_order?: boolean
+          status?: Database["platform"]["Enums"]["collection_profile_status"]
+          subscription_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_collection_profiles_provider_account_id_fkey"
+            columns: ["provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "payment_provider_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_collection_profiles_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_collection_profiles_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_collection"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "subscription_collection_profiles_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_documents"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "subscription_collection_profiles_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_mrr"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "subscription_collection_profiles_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["subscription_id"]
+          },
+        ]
+      }
+      subscription_commercial_documents: {
+        Row: {
+          amount: number | null
+          approved_at: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          document_number: string | null
+          document_type: Database["platform"]["Enums"]["commercial_document_type"]
+          external_file_ref: string | null
+          id: string
+          notes: string | null
+          received_at: string | null
+          rejected_at: string | null
+          requested_at: string
+          status: Database["platform"]["Enums"]["commercial_document_status"]
+          subscription_id: string
+          updated_at: string
+          updated_by: string | null
+          valid_from: string | null
+          valid_to: string | null
+        }
+        Insert: {
+          amount?: number | null
+          approved_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          document_number?: string | null
+          document_type: Database["platform"]["Enums"]["commercial_document_type"]
+          external_file_ref?: string | null
+          id?: string
+          notes?: string | null
+          received_at?: string | null
+          rejected_at?: string | null
+          requested_at?: string
+          status?: Database["platform"]["Enums"]["commercial_document_status"]
+          subscription_id: string
+          updated_at?: string
+          updated_by?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Update: {
+          amount?: number | null
+          approved_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          document_number?: string | null
+          document_type?: Database["platform"]["Enums"]["commercial_document_type"]
+          external_file_ref?: string | null
+          id?: string
+          notes?: string | null
+          received_at?: string | null
+          rejected_at?: string | null
+          requested_at?: string
+          status?: Database["platform"]["Enums"]["commercial_document_status"]
+          subscription_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_commercial_documents_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_commercial_documents_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_collection"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "subscription_commercial_documents_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_documents"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "subscription_commercial_documents_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_mrr"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "subscription_commercial_documents_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["subscription_id"]
           },
         ]
       }
@@ -2402,6 +2733,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "subscriptions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_items_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_collection"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "subscription_items_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_documents"
+            referencedColumns: ["subscription_id"]
           },
           {
             foreignKeyName: "subscription_items_subscription_id_fkey"
@@ -3314,6 +3659,196 @@ export type Database = {
         }
         Relationships: []
       }
+      v_subscription_collection: {
+        Row: {
+          auto_charge: boolean | null
+          auto_suspend: boolean | null
+          billed_organization_id: string | null
+          billed_organization_name: string | null
+          billing_interval:
+            | Database["platform"]["Enums"]["billing_interval"]
+            | null
+          collection_method:
+            | Database["platform"]["Enums"]["collection_method"]
+            | null
+          currency: string | null
+          document_lead_days: number | null
+          effective_from: string | null
+          ends_on: string | null
+          grace_period_days: number | null
+          invoice_lead_days: number | null
+          payment_due_days: number | null
+          product_code: string | null
+          product_short_name: string | null
+          profile_id: string | null
+          profile_missing: boolean | null
+          profile_status:
+            | Database["platform"]["Enums"]["collection_profile_status"]
+            | null
+          provider_account_code: string | null
+          provider_account_id: string | null
+          provider_environment:
+            | Database["platform"]["Enums"]["provider_environment"]
+            | null
+          provider_kind: Database["platform"]["Enums"]["provider_kind"] | null
+          renewal_notice_days: number | null
+          requires_purchase_order: boolean | null
+          requires_service_order: boolean | null
+          saas_product_id: string | null
+          started_on: string | null
+          subscription_code: string | null
+          subscription_id: string | null
+          subscription_status:
+            | Database["platform"]["Enums"]["subscription_status"]
+            | null
+          tenant_id: string | null
+          tenant_name: string | null
+          tenant_slug: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_collection_profiles_provider_account_id_fkey"
+            columns: ["provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "payment_provider_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_billed_organization_id_fkey"
+            columns: ["billed_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_billed_organization_id_fkey"
+            columns: ["billed_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_margin"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_billed_organization_id_fkey"
+            columns: ["billed_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["customer_organization_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_billed_organization_id_fkey"
+            columns: ["billed_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["managing_organization_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_margin"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      v_subscription_documents: {
+        Row: {
+          approved_at: string | null
+          billed_organization_id: string | null
+          billed_organization_name: string | null
+          collection_method:
+            | Database["platform"]["Enums"]["collection_method"]
+            | null
+          document_amount: number | null
+          document_currency: string | null
+          document_id: string | null
+          document_lead_days: number | null
+          document_number: string | null
+          document_ok: boolean | null
+          document_required: boolean | null
+          document_status:
+            | Database["platform"]["Enums"]["commercial_document_status"]
+            | null
+          document_type:
+            | Database["platform"]["Enums"]["commercial_document_type"]
+            | null
+          external_file_ref: string | null
+          product_code: string | null
+          received_at: string | null
+          requested_at: string | null
+          requires_purchase_order: boolean | null
+          requires_service_order: boolean | null
+          subscription_code: string | null
+          subscription_id: string | null
+          tenant_name: string | null
+          valid_from: string | null
+          valid_to: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_billed_organization_id_fkey"
+            columns: ["billed_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_billed_organization_id_fkey"
+            columns: ["billed_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_margin"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_billed_organization_id_fkey"
+            columns: ["billed_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["customer_organization_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_billed_organization_id_fkey"
+            columns: ["billed_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["managing_organization_id"]
+          },
+        ]
+      }
       v_subscription_mrr: {
         Row: {
           billed_organization_id: string | null
@@ -3498,6 +4033,10 @@ export type Database = {
       }
     }
     Functions: {
+      approve_commercial_document: {
+        Args: { p_document_id: string; p_notes?: string; p_valid_to?: string }
+        Returns: undefined
+      }
       archive_saas_product: {
         Args: { p_product_id: string; p_reason?: string }
         Returns: undefined
@@ -3513,9 +4052,17 @@ export type Database = {
       }
       can_manage_commercial: { Args: never; Returns: boolean }
       can_manage_platform_entities: { Args: never; Returns: boolean }
+      can_manage_subscription_documents: {
+        Args: { p_subscription_id: string }
+        Returns: boolean
+      }
       can_manage_tenant: { Args: { p_tenant: string }; Returns: boolean }
       can_read_finance: { Args: never; Returns: boolean }
       can_read_tenant: { Args: { p_tenant: string }; Returns: boolean }
+      cancel_commercial_document: {
+        Args: { p_document_id: string; p_reason?: string }
+        Returns: undefined
+      }
       create_sales_attribution: {
         Args: {
           p_attribution_pct: number
@@ -3612,6 +4159,10 @@ export type Database = {
         }
         Returns: string
       }
+      expire_commercial_documents: {
+        Args: { p_as_of?: string }
+        Returns: number
+      }
       generate_commission_events: {
         Args: { p_payment_id: string }
         Returns: number
@@ -3677,6 +4228,34 @@ export type Database = {
         }
         Returns: Json
       }
+      receive_commercial_document: {
+        Args: {
+          p_amount?: number
+          p_document_id: string
+          p_document_number: string
+          p_external_file_ref?: string
+          p_notes?: string
+          p_valid_from?: string
+          p_valid_to?: string
+        }
+        Returns: undefined
+      }
+      reject_commercial_document: {
+        Args: { p_document_id: string; p_reason: string }
+        Returns: undefined
+      }
+      request_commercial_document: {
+        Args: {
+          p_amount?: number
+          p_currency?: string
+          p_document_type: Database["platform"]["Enums"]["commercial_document_type"]
+          p_notes?: string
+          p_subscription_id: string
+          p_valid_from?: string
+          p_valid_to?: string
+        }
+        Returns: string
+      }
       request_tenant_resume: {
         Args: { p_mode?: string; p_reason?: string; p_tenant_id: string }
         Returns: Json
@@ -3697,6 +4276,27 @@ export type Database = {
           p_currency: string
           p_plan_id: string
           p_valid_from?: string
+        }
+        Returns: string
+      }
+      set_subscription_collection_profile: {
+        Args: {
+          p_auto_charge?: boolean
+          p_auto_suspend?: boolean
+          p_collection_method: Database["platform"]["Enums"]["collection_method"]
+          p_currency?: string
+          p_document_lead_days?: number
+          p_effective_from?: string
+          p_grace_period_days?: number
+          p_invoice_lead_days?: number
+          p_notes?: string
+          p_payment_due_days?: number
+          p_provider_account_id?: string
+          p_renewal_notice_days?: number
+          p_requires_purchase_order?: boolean
+          p_requires_service_order?: boolean
+          p_status?: Database["platform"]["Enums"]["collection_profile_status"]
+          p_subscription_id: string
         }
         Returns: string
       }
@@ -3845,6 +4445,26 @@ export type Database = {
         }
         Returns: string
       }
+      upsert_payment_provider_account: {
+        Args: {
+          p_code: string
+          p_country_code?: string
+          p_currency?: string
+          p_environment?: Database["platform"]["Enums"]["provider_environment"]
+          p_id?: string
+          p_metadata?: Json
+          p_name: string
+          p_owner_organization_id?: string
+          p_provider_kind: Database["platform"]["Enums"]["provider_kind"]
+          p_public_key?: string
+          p_rsa_id_ref?: string
+          p_rsa_public_key_ref?: string
+          p_secret_key_ref?: string
+          p_status?: Database["platform"]["Enums"]["entity_status"]
+          p_webhook_endpoint?: string
+        }
+        Returns: string
+      }
       upsert_plan: {
         Args: {
           p_code: string
@@ -3952,6 +4572,21 @@ export type Database = {
         | "ADDON"
         | "PROFESSIONAL_SERVICES"
         | "DISCOUNT"
+      collection_method:
+        | "CULQI_CARD"
+        | "SERVICE_ORDER"
+        | "PURCHASE_ORDER"
+        | "BANK_TRANSFER"
+        | "MANUAL"
+      collection_profile_status: "ACTIVE" | "INACTIVE" | "PENDING_SETUP"
+      commercial_document_status:
+        | "REQUESTED"
+        | "RECEIVED"
+        | "APPROVED"
+        | "REJECTED"
+        | "EXPIRED"
+        | "CANCELLED"
+      commercial_document_type: "SERVICE_ORDER" | "PURCHASE_ORDER"
       commission_basis:
         | "COLLECTED_LICENSE"
         | "COLLECTED_IMPLEMENTATION"
@@ -3998,6 +4633,8 @@ export type Database = {
         | "ORG_VIEWER"
       payment_status: "PENDING" | "CONFIRMED" | "REVERSED"
       platform_role: "EBIM_SUPER_ADMIN" | "EBIM_PRODUCT_ADMIN" | "EBIM_FINANCE"
+      provider_environment: "TEST" | "LIVE"
+      provider_kind: "CULQI" | "MANUAL" | "BANK" | "OTHER"
       provisioning_action:
         | "CREATE_TENANT_SPACE"
         | "CREATE_DEDICATED_TARGET"
@@ -4170,6 +4807,23 @@ export const Constants = {
         "PROFESSIONAL_SERVICES",
         "DISCOUNT",
       ],
+      collection_method: [
+        "CULQI_CARD",
+        "SERVICE_ORDER",
+        "PURCHASE_ORDER",
+        "BANK_TRANSFER",
+        "MANUAL",
+      ],
+      collection_profile_status: ["ACTIVE", "INACTIVE", "PENDING_SETUP"],
+      commercial_document_status: [
+        "REQUESTED",
+        "RECEIVED",
+        "APPROVED",
+        "REJECTED",
+        "EXPIRED",
+        "CANCELLED",
+      ],
+      commercial_document_type: ["SERVICE_ORDER", "PURCHASE_ORDER"],
       commission_basis: [
         "COLLECTED_LICENSE",
         "COLLECTED_IMPLEMENTATION",
@@ -4221,6 +4875,8 @@ export const Constants = {
       ],
       payment_status: ["PENDING", "CONFIRMED", "REVERSED"],
       platform_role: ["EBIM_SUPER_ADMIN", "EBIM_PRODUCT_ADMIN", "EBIM_FINANCE"],
+      provider_environment: ["TEST", "LIVE"],
+      provider_kind: ["CULQI", "MANUAL", "BANK", "OTHER"],
       provisioning_action: [
         "CREATE_TENANT_SPACE",
         "CREATE_DEDICATED_TARGET",

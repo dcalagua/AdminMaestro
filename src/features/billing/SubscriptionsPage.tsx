@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useSubscriptions } from '@/services/queries';
 import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -58,7 +59,11 @@ export function SubscriptionsPage() {
           <DataTable columns={['Código', 'Facturado a', 'Producto', 'Tenant', 'Plan', 'Modelo', 'Margen canal', 'Inicio', 'Estado', '']}>
             {filtered.map((s) => (
               <tr key={s.id}>
-                <td className="ebim-td font-mono text-xs font-semibold">{s.code}</td>
+                <td className="ebim-td">
+                  <Link className="ebim-link font-mono text-xs font-semibold" to={`/subscriptions/${s.id}`}>
+                    {s.code}
+                  </Link>
+                </td>
                 <td className="ebim-td">{(s.organizations as { display_name: string } | null)?.display_name}</td>
                 <td className="ebim-td">{(s.saas_products as { short_name: string } | null)?.short_name}</td>
                 <td className="ebim-td">

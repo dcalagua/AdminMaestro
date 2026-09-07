@@ -11,8 +11,8 @@
 | 04 Partners | **PASS** | `20260907000200_channel_agreements_v2.sql`: acuerdo con `allowed_deployment_modes`, `allowed_tenant_types`, `billing_responsibility`, `max_tenants` + trigger `enforce_agreement_scope` + vista `v_partner_agreements` (security_invoker) + `AgreementFormDialog`. |
 | 05 Tenants/Licensing | **PASS** | `20260907000300_onboarding_rpc.sql`: `onboard_customer_subscription()` atómica + `current_plan_price()` + wizard `/onboarding` de 5 pasos. Verificado: MRR 850 con implementación 1500 ONE_TIME fuera del MRR; 0 tenant_memberships; DEMO sin recurrente; fallo de correo operador no deja tenant huérfano. |
 | 06 Dedicated | **PASS** | `request_tenant_suspension` / `request_tenant_resume` (estado + cola en una transacción) + acciones en TenantDetailPage + alta/edición de targets y adjuntar tenant (Fase 02). Aislamiento verificado en DB. |
-| 07 Collection | NOT_STARTED | |
-| 08 OS/OC | NOT_STARTED | |
+| 07 Collection | **PASS** | `20260907000400_collection_profiles.sql`: enums `collection_method`/`provider_kind`/`collection_profile_status`/`provider_environment`, tablas `payment_provider_accounts` y `subscription_collection_profiles` (RLS+FORCE), guard cross-org, vista `v_subscription_collection` y RPCs. UI: pestaña Cobranza en `/subscriptions/:id`. |
+| 08 OS/OC | **PASS** | `20260907000500_commercial_documents.sql`: `subscription_commercial_documents` con máquina de estados REQUESTED->RECEIVED->APPROVED/REJECTED/EXPIRED/CANCELLED, 5 RPCs, `expire_commercial_documents` idempotente y vista `v_subscription_documents`. Verificado que aprobar NO crea payment ni comisión. |
 | 09 Culqi Architecture | NOT_STARTED | |
 | 10 Culqi Implementation | NOT_STARTED | |
 | 11 Renewals | NOT_STARTED | |

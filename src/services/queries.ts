@@ -194,6 +194,73 @@ export function useSubscriptions() {
   });
 }
 
+/* ==========================================================================
+   Cobranza (Fases 07-08)
+   ========================================================================== */
+
+/** Cómo se cobra cada suscripción. `profile_missing` = cobro manual por omisión. */
+export function useSubscriptionCollection(subscriptionId?: string) {
+  return useQuery({
+    queryKey: ['subscription-collection', subscriptionId ?? 'all'],
+    queryFn: async () => {
+      let q = supabase.from('v_subscription_collection').select('*').order('subscription_code');
+      if (subscriptionId) q = q.eq('subscription_id', subscriptionId);
+      return unwrap(await q);
+    },
+  });
+}
+
+/** Cuentas de proveedor de cobro. No contienen secretos, solo referencias. */
+export function useProviderAccounts() {
+  return useQuery({
+    queryKey: ['provider-accounts'],
+    queryFn: async () =>
+      unwrap(await supabase.from('payment_provider_accounts').select('*').order('code')),
+  });
+}
+
+/** Órdenes de Servicio / Compra. Un documento aprobado NO es un cobro. */
+export function useCommercialDocuments(subscriptionId?: string) {
+  return useQuery({
+    queryKey: ['commercial-documents', subscriptionId ?? 'all'],
+    queryFn: async () => {
+      let q = supabase
+        .from('subscription_commercial_documents')
+        .select('*, subscriptions(code, billed_organization_id, saas_products(short_name))')
+        .order('requested_at', { ascending: false });
+      if (subscriptionId) q = q.eq('subscription_id', subscriptionId);
+      return unwrap(await q);
+    },
+  });
+}
+
+/** Estado documental agregado: ¿tiene hoy la autorización que su método exige? */
+export function useSubscriptionDocumentStatus() {
+  return useQuery({
+    queryKey: ['subscription-document-status'],
+    queryFn: async () =>
+      unwrap(await supabase.from('v_subscription_documents').select('*')),
+  });
+}
+
+export function useSubscription(subscriptionId: string | undefined) {
+  return useQuery({
+    queryKey: ['subscription', subscriptionId],
+    enabled: Boolean(subscriptionId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .select(
+          '*, saas_products(code, short_name, lockup_name), plans(name, code), organizations!subscriptions_billed_organization_id_fkey(display_name), tenants(name, slug, deployment_mode), subscription_items(*)',
+        )
+        .eq('id', subscriptionId!)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      return data;
+    },
+  });
+}
+
 export function useInvoices() {
   return useQuery({
     queryKey: ['invoices'],
