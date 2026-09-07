@@ -49,6 +49,23 @@ explícita. El de Customer **no aparece** en las páginas consultadas; el adapte
 no depende de él (trata todos los ids externos como texto opaco), así que no se
 afirma aquí como hecho verificado.
 
+### Endpoints — CORREGIDOS en V2.1
+
+Verificado contra la API TEST el 2026-09-07, no deducido:
+
+| Operación | Endpoint | Nota |
+|---|---|---|
+| Crear plan | `POST /recurrent/plans/create` | `POST /plans` responde **400** |
+| Crear suscripción | `POST /recurrent/subscriptions/create` | `POST /subscriptions` responde **401** |
+| Consultar suscripción | `GET /recurrent/subscriptions/{id}` | única vía para `next_billing_date` |
+| Cancelar suscripción | `DELETE /recurrent/subscriptions/{id}` | |
+| Customer, Card, Token, Charge | `/customers`, `/cards`, `/tokens`, `/charges` | cuelgan de la raíz |
+
+La versión anterior de este documento y del adapter usaba `/plans` y
+`/subscriptions`. Con esos endpoints la domiciliación **nunca** habría
+funcionado; como el sistema operaba en MOCK, el fallo estaba esperando al día en
+que se cargaran credenciales reales.
+
 **Campos de creación de una suscripción**, verbatim de la documentación:
 
 ```json
@@ -62,6 +79,25 @@ afirma aquí como hecho verificado.
 
 `tyc` es la aceptación de términos y condiciones del titular. La UI debe
 capturarla explícitamente; el adapter no la asume.
+
+**Donde la documentación y la API no coinciden.** El ejemplo publicado muestra
+`next_billing_date` en la respuesta de creación. La API TEST real devuelve solo
+`{id, customer_id, plan_id, status, created_at, metadata}`. El adapter consulta
+la suscripción a continuación; sin ese segundo viaje, `next_billing_at` se
+guardaba siempre null y la pantalla de Renovaciones no mostraba nunca una
+suscripción con tarjeta.
+
+**Cadencia.** `interval_unit_time` **no sigue un orden intuitivo**: 3 es
+mensual, **4 es ANUAL** y **5 es TRIMESTRAL** (medido por la distancia real
+hasta el siguiente cobro: 30, 365 y 91 días). `interval_count` **no multiplica**
+la cadencia. La tabla completa y la evidencia están en
+`docs/nightly-v2-1/CULQI_TEST_EVIDENCE.md` y codificadas, con su medición al
+lado, en `supabase/functions/_shared/payments/culqi-mapping.ts`.
+
+**El Customer exige siete campos**: nombre, apellido, correo, domicilio, ciudad,
+país y teléfono. El Control Plane solo tenía correo y país; los otros cinco se
+modelaron en la migración 23 y se piden en la ficha de la organización. No se
+rellenan con literales: viajan a la pasarela y salen en el recibo del cliente.
 
 ---
 
@@ -192,6 +228,26 @@ antes de tocar `payments`.
 Culqi publica su rango, y activar alertas sobre `provider_webhook_events` con
 `status = 'REJECTED'`.
 
+#### Reverificación V2.1 (2026-09-07)
+
+Se volvió a consultar la documentación de webhooks del proveedor. **Nada ha
+cambiado**: sigue sin publicarse firma criptográfica, cabecera HMAC, secreto
+compartido ni lista de IP. El CulqiPanel solo permite registrar la URL y elegir
+categorías de evento (Tokens, Cargos, Devoluciones, Clientes, Tarjetas, Planes,
+Suscripciones, Órdenes); los nombres exactos de evento no están publicados.
+
+Por eso el clasificador (`classifyCulqiEvent`) reconoce **patrones** en lugar de
+una lista cerrada de literales, y lo que no reconoce se rechaza en vez de
+interpretarse. Y por eso la verificación server-to-server no es una defensa
+adicional opcional: es **la** defensa. Un tercero puede inventar el evento; no
+puede hacer que Culqi confirme un `chr_` que no existe. Medido: un evento con un
+`chr_` inventado por 999.000 USD se rechazó con `CARGO_NO_VERIFICADO`.
+
+**El cobro recurrente llega como `subscription.charge.succeeded`.** Hasta la
+V2.1 se clasificaba como un simple cambio de estado y se archivaba «sin efecto
+contable»: ninguna renovación generaba pago ni comisión. Ver F-08 en
+`docs/nightly-v2-1/SECURITY_FIXES.md`.
+
 ---
 
 ## 6. Idempotencia: por qué un webhook repetido 5 veces genera 1 pago
@@ -238,8 +294,17 @@ credenciales, en vez de fingir que el cobro está operativo.
 
 **Lo que el modo MOCK NO valida:** que las credenciales reales funcionen, que el
 formato del webhook real coincida, que el enrutado test/live sea el esperado, o
-que los importes y monedas se acepten. Eso solo lo valida un test contra Culqi
-TEST con credenciales, y eso está en el checklist de §10.
+que los importes y monedas se acepten.
+
+Esa frase se escribió como advertencia teórica en la V2. En la V2.1 se ejecutó
+la comprobación que faltaba, y resultó ser exacta: **el modo MOCK ocultaba tres
+fallos que habrían impedido cobrar** (endpoints inexistentes, fechas leídas en
+la unidad equivocada y el cobro recurrente clasificado como un cambio de estado
+sin efecto contable). Ninguno era visible sin hablar con la pasarela.
+
+La integración ya está ejercitada contra Culqi TEST de extremo a extremo; la
+evidencia con identificadores reales está en
+`docs/nightly-v2-1/CULQI_TEST_EVIDENCE.md`.
 
 ---
 

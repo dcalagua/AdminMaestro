@@ -1,0 +1,17 @@
+* 31ace33 (HEAD -> dev) fase18-98(docs,auditoría): documentación de handoff e informe final
+* ba09cbb fase17(e2e): 39 journeys PASS y corrección del arranque de la suite
+* ca1822d fase15-16(seed,seguridad): 9 escenarios de negocio y 102 tests pgTAP
+* 48c9a9f fase11-14(renovaciones,comisiones,finanzas,ui): motor de cobranza y paneles
+* 43e7c28 fase09-10(culqi): adapter desacoplado, webhook idempotente y modo MOCK explícito
+* d62a1f4 fase07-08(cobranza): método de cobro por suscripción y ciclo de OS/OC
+* a688aa4 fase05-06(onboarding,infra): alta transaccional de cliente y ciclo de tenant
+* 92650c5 fase03-04(suite,canal): producto data-driven y acuerdos de canal con límites
+* 6e8286d fase02(crud): escritura administrativa por RPC auditada + UI de mutación
+* cf8ad75 fase01(audit): baseline V2 verificado contra la DB viva + corrección de gates
+* 561053e (origin/dev, origin/HEAD) docs(nightly): FINAL CERTIFICATION — GO_WITH_GAPS
+* 91e1ea0 docs(nightly): STATE, BLOCKERS, QUALITY_GATE y FINAL_REPORT con evidencia
+* 2f2f16b docs: documentación de arquitectura, seguridad, comercial, finanzas y operación
+* 23a8d67 test(e2e): 21 smoke Playwright + corrección del seed de auth.users
+* b2f9abf feat(ui): consola administrativa React completa + provisioning DRY_RUN
+* 10182c1 feat(db): seed demo determinista + 52 tests pgTAP + índices de FK
+* 95ee389 feat(db): modelo de datos del Control Plane EBIM (schema platform)
