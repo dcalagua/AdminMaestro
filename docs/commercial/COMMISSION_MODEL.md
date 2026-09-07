@@ -133,3 +133,78 @@ liquidación `PAID` traiga fecha y referencia de pago.
 | `02` #18 | Reprocesar un pago devengado crea 0 eventos. |
 | `02` #13-14 | DRAFT/VOID no entran en ingreso; no se confirma un cobro sobre DRAFT. |
 | `01` #13-15 | Un comercial no ve las atribuciones ni las comisiones de otro. |
+
+---
+
+# V2 · Origen del cobro, reversos y lo que NO devenga
+
+## 1. La regla no cambia
+
+**Solo un `payments.status = 'CONFIRMED'` devenga comisión.** V2 añade caminos
+hacia ese estado; no añade excepciones a la regla.
+
+| Origen | Devenga | Por qué |
+|---|---|---|
+| Cobro recurrente Culqi confirmado | **Sí** | `register_provider_payment` inserta el `payments` y el trigger del baseline devenga |
+| Transferencia/manual confirmada por finanzas | **Sí** | `confirm_manual_payment`, mismo trigger |
+| **OS/OC recibida o aprobada** | **NO** | Es un documento administrativo. Verificado: los contadores no se mueven |
+| Factura emitida y no cobrada | **NO** | Ya era así en el baseline |
+| Cobro fallido del proveedor | **NO** | `register_provider_payment_failure` no crea `payments` |
+
+## 2. Implementación comisionable, pero solo por regla
+
+Un `IMPLEMENTATION_FEE` devenga **solo** si la `commission_rule` usa
+`COLLECTED_IMPLEMENTATION` o `COLLECTED_ANY`, **y** el fee fue efectivamente
+cobrado. No hay comisión por implementación facturada y no pagada.
+
+## 3. Margen de canal ≠ comisión de comercial
+
+Se confunden constantemente, y sumarlos cuenta el mismo dinero dos veces:
+
+| | Qué es | Efecto |
+|---|---|---|
+| **Margen del canal** (`channel_margin_rate`) | Descuento sobre el precio de lista pactado con el partner | Dinero que EBIM **nunca ingresa** |
+| **Comisión del comercial** (`commission_events`) | Pago a una persona por una venta cobrada | Dinero que EBIM ingresa y **luego paga** |
+
+`v_partner_finance` los expone en **columnas separadas** justamente para que
+nadie los agregue.
+
+## 4. Reversos: contra-evento, no borrado
+
+Se consideraron tres mecanismos:
+
+| Opción | Por qué se descartó / eligió |
+|---|---|
+| Borrar los eventos | **Descartada.** Destruye la historia: en marzo el comercial vio una comisión y en abril desapareció sin rastro |
+| Marcarlos `VOID` | **Descartada a medias.** Si el evento ya entró en una liquidación PAGADA, anularlo reescribe un periodo cerrado. El dinero ya salió |
+| **Contra-evento negativo** | **ELEGIDA.** El original queda intacto y una fila nueva, negativa, netea en la siguiente liquidación. Es una nota de crédito |
+
+Ventaja concreta de la elegida: **todas las sumas existentes siguen siendo
+correctas sin tocarlas**. `v_product_margin` hace `sum(e.amount)` y
+`recalc_settlement_total` también: el negativo se resta solo. No hubo que
+reescribir ni una vista del baseline.
+
+`reverse_payment(p_payment_id, p_reason)`:
+- exige motivo auditable;
+- marca el pago `REVERSED` (el trigger del baseline recalcula la factura);
+- inserta un contra-evento `ELIGIBLE` con importe negativo por cada devengo;
+- es idempotente: un segundo reverso devuelve `already_reversed`.
+
+Verificado: comisión de 85,00 → tras el reverso hay **2 filas** cuya suma neta
+es **0,00**, el original sigue existiendo y aparece marcado `has_reversal`.
+
+### El CHECK quedó más estricto, no más laxo
+
+```sql
+check ((reversal_of_event_id is null and amount >= 0)
+    or (reversal_of_event_id is not null and amount <= 0))
+```
+
+Un devengo normal negativo se sigue rechazando. Solo un contra-evento puede
+serlo, y cada evento admite **un solo** contra-evento (índice único parcial).
+
+## 5. Trazabilidad en pantalla
+
+`v_commission_detail` traduce el origen a lenguaje de negocio —Licencia,
+Implementación, Infraestructura, Soporte, **Reverso**— e indica si el devengo ya
+fue compensado (`has_reversal`), sin obligar a cruzar tablas a mano.

@@ -120,20 +120,25 @@ select is(
 -- ---------------------------------------------------------------------------
 -- 7-10. SECRETOS: la base rechaza cualquier cosa con forma de credencial.
 -- ---------------------------------------------------------------------------
+-- Los valores de prueba se dejan DELIBERADAMENTE cortos (`sk_test_X`). El CHECK
+-- sólo mira el prefijo, así que la prueba es igual de válida, y así el propio
+-- escáner de secretos (`npm run secrets:scan`) no marca este archivo: un fixture
+-- con pinta de credencial real en el repositorio es exactamente lo que el
+-- escáner debe seguir detectando en cualquier otro sitio.
 select throws_ok(
   $$ insert into platform.payment_provider_accounts (code, name, provider_kind, secret_key_ref)
-     values ('culqi-fuga', 'Fuga', 'CULQI', 'sk_test_1234567890abcdef') $$,
+     values ('culqi-fuga', 'Fuga', 'CULQI', 'sk_test_X') $$,
   '23514',
   null,
-  'Una clave sk_test_ real en secret_key_ref viola el CHECK: no se guarda nunca'
+  'Un valor con prefijo sk_test_ en secret_key_ref viola el CHECK: no se guarda nunca'
 );
 
 select throws_ok(
   $$ insert into platform.payment_provider_accounts (code, name, provider_kind, public_key)
-     values ('culqi-fuga2', 'Fuga 2', 'CULQI', 'sk_live_abcdef1234567890') $$,
+     values ('culqi-fuga2', 'Fuga 2', 'CULQI', 'sk_live_X') $$,
   '23514',
   null,
-  'Una clave secreta en la columna de llave PÚBLICA también se rechaza'
+  'Un valor con prefijo de clave secreta en la columna PÚBLICA también se rechaza'
 );
 
 select throws_ok(
@@ -153,15 +158,18 @@ select throws_ok(
   'Una metadata con pinta de credencial (api_key) se rechaza'
 );
 
--- Ninguna columna de las tablas V2 puede guardar un PAN: `last4` son 4 dígitos.
+-- Ninguna columna de las tablas V2 puede guardar un PAN: `last4` es char(4), así
+-- que cualquier cosa más larga que cuatro caracteres se rechaza. Se usa un texto
+-- evidente en vez de un número de tarjeta de prueba para no dejar en el
+-- repositorio nada con forma de PAN.
 select throws_ok(
   $$ insert into platform.provider_payment_methods
        (provider_account_id, organization_id, external_payment_method_id, last4)
-     select a.id, '30000000-0000-4000-a000-000000000004', 'crd_mock_test', '4111111111111111'
+     select a.id, '30000000-0000-4000-a000-000000000004', 'crd_mock_test', 'no-cabe-un-pan'
        from platform.payment_provider_accounts a where a.code = 'culqi-pe-test' $$,
   '22001',
   null,
-  'Un PAN completo no cabe en last4: la columna solo admite 4 dígitos'
+  'Nada más largo que 4 caracteres cabe en last4: un PAN no se puede guardar'
 );
 
 -- ---------------------------------------------------------------------------

@@ -50,7 +50,7 @@ supabase status         # copia API URL y anon key
 
 ```bash
 npm run db:reset        # migraciones desde cero + seed demo
-npm run dev             # http://127.0.0.1:5173
+npm run dev             # http://127.0.0.1:5199
 ```
 
 ### Puertos
@@ -132,6 +132,47 @@ Contraseña común, **sólo válida en el stack local**: `Ebim.Demo2026!`
 
 ---
 
+## 5-bis. Novedades V2 (2026-09-07)
+
+El Control Plane pasa de consola de LECTURA a consola administrable. 8 migraciones
+nuevas (`20260907*`) sobre las 13 baseline, que **no se tocaron**.
+
+| Área | Qué se añadió |
+|---|---|
+| **Administración** | 25 RPCs `SECURITY DEFINER` auditadas. No se abrió ni un GRANT de escritura: el baseline los revoca a propósito |
+| **Canal** | Acuerdo por producto con modelos permitidos, tipos de tenant, tope y responsabilidad de factura |
+| **Licenciamiento** | `onboard_customer_subscription()`: una venta = una transacción |
+| **Cobranza** | Método de cobro **por suscripción**: Culqi Card, OS, OC, transferencia, manual |
+| **OS/OC** | Ciclo completo. Aprobar **no** es cobrar |
+| **Culqi** | Adapter desacoplado, webhook idempotente, modo MOCK explícito sin credenciales |
+| **Renovaciones** | Alertas idempotentes, gracia y suspensión configurable |
+| **Comisiones** | Reverso por contra-evento: la historia no se borra |
+| **Finanzas** | Reconciliación y paneles por producto y por canal, agrupados por moneda |
+
+### Rutas nuevas
+
+| Ruta | Para qué |
+|---|---|
+| `/onboarding` | Wizard «Nueva venta / alta de cliente» (solo EBIM) |
+| `/subscriptions/:id` | Detalle con pestaña **Cobranza** (perfil + OS/OC + facturas) |
+| `/renewals` | Renovaciones, alertas y suspensiones |
+| `/reconciliation` | Hallazgos, panel por producto, por canal y eventos del proveedor (solo EBIM) |
+| `/organizations/:id` → **Vista 360** | La demostración principal: todo sobre una cuenta en una pantalla |
+
+### Puerto de desarrollo
+
+El dev server escucha en **5199**, no en el 5173 por defecto, con `strictPort`.
+El 5173 lo ocupa de forma permanente el dev server de otro proyecto de la
+máquina de desarrollo; con `reuseExistingServer` la suite E2E llegó a ejecutarse
+entera contra esa otra aplicación. Mismo criterio que el blocker B-01 del
+baseline: se mueve NUESTRO puerto, no se mata el servidor ajeno.
+
+> ⚠️ **Nunca ejecutes `tsc` sin `--noEmit`.** `tsconfig.app.json` y
+> `tsconfig.node.json` compilarían un `.js` junto a cada `.tsx` y junto a
+> `vite.config.ts`, y tanto Vite como Playwright resuelven `.js` **antes** que
+> `.ts`. El resultado es una app que se queda congelada en la última compilación
+> sin dar ningún error. Ver `docs/nightly-v2/AUDIT_BASELINE.md` §5 (R-03).
+
 ## 6. Documentación
 
 | Documento | Contenido |
@@ -150,6 +191,18 @@ Contraseña común, **sólo válida en el stack local**: `Ebim.Demo2026!`
 | [`docs/nightly/FINAL_REPORT.md`](docs/nightly/FINAL_REPORT.md) | Informe de la ejecución y estado de los gates. |
 
 ---
+
+### Documentación V2
+
+| Documento | Contenido |
+|---|---|
+| `docs/payments/COLLECTION_MODEL.md` | Método de cobro por suscripción |
+| `docs/payments/CULQI_ARCHITECTURE.md` | Adapter, webhooks, idempotencia y checklist de activación |
+| `docs/payments/SERVICE_ORDER_PURCHASE_ORDER.md` | Ciclo de OS/OC |
+| `docs/operations/RENEWALS_AND_SUSPENSION.md` | Motor de renovaciones y suspensión |
+| `docs/demo/DEMO_SCENARIOS_V2.md` | Guion de demostración gerencial |
+| `docs/nightly-v2/FINAL_REPORT_V2.md` | Informe final con evidencia |
+| `docs/nightly-v2/E2E_REPORT.md` | Resultado E2E detallado |
 
 ## 7. Principios no negociables
 

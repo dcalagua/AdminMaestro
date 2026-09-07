@@ -123,3 +123,64 @@ está escrita en el dato, no en la cabeza de quien la definió.
 | 2 | MRR desde `subscription_items` vigentes, no desde un snapshot mensual | No se puede reconstruir el MRR histórico de hace 6 meses. Requiere una tabla de snapshots. |
 | 3 | Sin reconocimiento diferido de ingresos | Un pago anual se cuenta cobrado el día que entra, no prorrateado. Es correcto para caja, no para devengo contable. |
 | 4 | El costo de plataforma (`scope = PLATFORM`) no se prorratea a productos | Aparece en el total pero no en el margen por producto. Requiere una regla de asignación acordada con negocio. |
+
+---
+
+# V2 · Reconciliación y paneles gerenciales
+
+## 1. La regla de precisión sigue en pie
+
+**No se mezclan monedas.** No hay tabla de tipos de cambio, así que todas las
+vistas de V2 agrupan por `currency`. Consolidar PEN y USD con un FX implícito
+produciría un número que nadie puede auditar, y eso es peor que no darlo.
+
+La conversión consolidada queda **explícitamente fuera de alcance de V2**. Para
+habilitarla haría falta una tabla de tipos de cambio con fecha y fuente (riesgo
+R-02 del baseline, sigue abierto).
+
+## 2. Reconciliación: describe, no corrige
+
+`v_finance_reconciliation` devuelve hallazgos tipados con estado
+`OK` / `REVIEW` / `ERROR`:
+
+| Hallazgo | Cuándo |
+|---|---|
+| `PROVIDER_DRIFT` | El estado del proveedor no coincide con el local |
+| `OPEN_INVOICE` | Factura emitida y vencida sin cobrar (ERROR pasados 30 días) |
+| `EXPIRED_DOCUMENT` | OS/OC vencida en una suscripción que exige documento |
+| `REVERSED_PAYMENT` | Cobro revertido; avisa si le falta el contra-evento |
+| `REJECTED_WEBHOOK` | Evento del proveedor que no superó la validación |
+| `MISSING_COLLECTION_PROFILE` | Suscripción activa sin perfil: se cobra a mano |
+
+**Ninguna corrige nada.** Un ajuste contable automático a partir de una
+comparación hace que el número cuadre y que nadie sepa por qué. La Edge Function
+`payment-reconcile` solo registra pagos faltantes si se la llama explícitamente
+con `apply_missing: true`, y aun entonces pasa por
+`register_provider_payment()`, con su idempotencia y su auditoría.
+
+## 3. Panel por producto
+
+`v_product_finance` separa las partidas que gerencia pide ver:
+
+| Columna | Qué es |
+|---|---|
+| `mrr` / `arr` | Solo lo recurrente |
+| `collected_license` | Licencia efectivamente cobrada |
+| `collected_implementation` | Implementación cobrada (one-time) |
+| `collected_infrastructure` | Infraestructura dedicada cobrada |
+| `collected_support` | Soporte / SLA cobrado |
+| `direct_cost` | Costo imputado |
+| `commission_total` | Comisiones **netas** de contra-eventos |
+| `gross_margin` | Cobrado − costo − comisiones |
+| `margin_rate` | Margen sobre cobrado |
+
+## 4. Panel por canal
+
+`v_partner_finance` muestra margen de canal y comisión de comerciales en
+columnas **separadas**: son conceptos distintos y sumarlos contaría el mismo
+dinero dos veces (ver `COMMISSION_MODEL.md` §3).
+
+## 5. Dónde se ve
+
+`/reconciliation`, con cuatro pestañas: Hallazgos, Por producto, Por canal y
+Eventos del proveedor.

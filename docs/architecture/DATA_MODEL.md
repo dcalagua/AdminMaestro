@@ -138,3 +138,78 @@ Estas reglas no dependen de que el frontend se acuerde de aplicarlas.
 - **39 tablas** en `platform`, todas con RLS + FORCE.
 - **7 vistas**, todas con `security_invoker = true`.
 - **52 tests** pgTAP en 3 archivos.
+
+---
+
+# Extensión V2 (2026-09-07)
+
+El schema pasa de **39 a 48 tablas**, de 7 a 16 vistas, de 26 a 37 enums y de 42
+a 96 funciones. Las 13 migraciones baseline `20260902*` **no se tocaron**: todo
+lo nuevo son 8 migraciones `20260907*`.
+
+## Tablas nuevas
+
+### Canal
+`organization_product_agreements` **se extiende** (no se duplica) con
+`allowed_deployment_modes`, `allowed_tenant_types`, `billing_responsibility`,
+`max_tenants` y `notes`. Los defaults son PERMISIVOS a propósito: una columna
+nueva no puede prohibir retroactivamente lo que el sistema ya permitía.
+
+### Cobranza (Fase 07)
+| Tabla | Qué guarda |
+|---|---|
+| `payment_provider_accounts` | Cuentas de cobro. **Referencias a secretos, nunca secretos** |
+| `subscription_collection_profiles` | Cómo se cobra cada suscripción, versionado por vigencia |
+
+### Documentos comerciales (Fase 08)
+| Tabla | Qué guarda |
+|---|---|
+| `subscription_commercial_documents` | OS/OC con máquina de estados. Aprobar NO es cobrar |
+
+### Proveedor de pago (Fase 10)
+| Tabla | Qué guarda |
+|---|---|
+| `provider_customers` | Mapeo organización ↔ Customer externo |
+| `provider_payment_methods` | Marca y últimos 4. **Nunca PAN, CVV ni token** |
+| `provider_plans` | Mapeo plan local ↔ Plan externo, con snapshot del importe |
+| `provider_subscriptions` | Mapeo suscripción ↔ Subscription externa y su estado |
+| `provider_webhook_events` | **Ledger de idempotencia.** Culqi no firma sus webhooks |
+
+### Cobranza operativa (Fase 11)
+| Tabla | Qué guarda |
+|---|---|
+| `billing_alerts` | Trabajo pendiente, con `dedupe_key` que hace idempotente el recálculo |
+
+### Comisiones (Fase 12)
+`commission_events` **se extiende** con `reversal_of_event_id` y
+`reversal_reason`. El `CHECK` de importe se sustituye por uno **más estricto**:
+un devengo sigue siendo `>= 0` y un contra-evento es obligatoriamente `<= 0`.
+
+## Vistas nuevas
+
+| Vista | Para qué |
+|---|---|
+| `v_partner_agreements` | Acuerdos de canal con su uso real (tenants, cupo, MRR) |
+| `v_subscription_collection` | Cómo se cobra cada suscripción; `profile_missing` = manual |
+| `v_subscription_documents` | `document_ok`: ¿hay autorización administrativa hoy? |
+| `v_provider_reconciliation` | Deriva proveedor ↔ local |
+| `v_renewal_dashboard` | Cartera por ventana 7/15/30/45/60 |
+| `v_commission_detail` | Comisión con su origen legible y si fue compensada |
+| `v_finance_reconciliation` | 6 tipos de hallazgo con estado OK/REVIEW/ERROR |
+| `v_product_finance` | Panel por producto con partidas separadas, por moneda |
+| `v_partner_finance` | Margen de canal y comisión de agentes, en columnas SEPARADAS |
+
+**Todas** son `security_invoker = true`. Sin eso, una vista se ejecuta con los
+privilegios de su dueño y se convierte en un bypass de RLS. Lo comprueba el
+test 8 de `00_structure.test.sql` — que de hecho detectó el defecto cuando
+`v_partner_agreements` nació sin él.
+
+## Invariantes añadidos
+
+| Trigger | Qué impide |
+|---|---|
+| `enforce_agreement_scope` | Vender un modelo, un tipo de tenant o más tenants de los que autoriza el acuerdo |
+| `normalize_agreement_modes` | Que el modo por defecto quede fuera de los permitidos |
+| `enforce_collection_profile_scope` | Que la pasarela de un partner cobre a otra organización |
+| `enforce_document_transition` | Aprobar una OS/OC que no ha llegado |
+| `resolve_alerts_on_payment` | Que el tablero acumule alertas ya resueltas |

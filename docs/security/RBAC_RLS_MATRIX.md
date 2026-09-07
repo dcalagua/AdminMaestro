@@ -145,3 +145,84 @@ reales fijando `request.jwt.claims`, que es de donde `auth.uid()` lee:
 
 Más `00_structure.test.sql` (14) para el hardening y `02_business_rules.test.sql`
 (18) para las reglas de negocio. **52 tests, todos en verde.**
+
+---
+
+# V2 · Tablas y RPCs nuevas
+
+## 1. Principio: escritura sensible = RPC, no GRANT
+
+La migración 09 del baseline revoca deliberadamente INSERT/UPDATE/DELETE a
+`authenticated` sobre casi todo el dominio financiero. **V2 no abre ni uno de
+esos GRANTs.** Toda escritura entra por una RPC `SECURITY DEFINER` que:
+
+1. autoriza en la primera línea del cuerpo, con los helpers existentes;
+2. valida IDs y estado previo antes de tocar nada;
+3. deja rastro con `platform.log_audit()`;
+4. revoca `public, anon` y concede lo mínimo.
+
+Comprobado en `03_v2_security.test.sql` §4: **cero** privilegios de escritura
+directa de `authenticated` sobre las tablas de cobranza.
+
+## 2. Lectura de las tablas nuevas
+
+| Tabla | Quién la lee |
+|---|---|
+| `payment_provider_accounts` | EBIM producto/finanzas, o la organización dueña de la cuenta |
+| `subscription_collection_profiles` | Quien puede ver la suscripción (finanzas, plataforma, org facturada, o tenant) |
+| `subscription_commercial_documents` | Igual que el perfil de cobro |
+| `provider_customers` / `provider_payment_methods` | EBIM finanzas/plataforma, o la propia organización |
+| `provider_plans` | EBIM finanzas/plataforma (catálogo, no revela clientes) |
+| `provider_subscriptions` | Igual que la suscripción asociada |
+| `provider_webhook_events` | **Solo EBIM finanzas y super admin.** Diagnóstico de plataforma |
+| `billing_alerts` | EBIM, o la organización facturada |
+
+## 3. RPCs por rol
+
+| RPC | `EBIM_SUPER_ADMIN` | `EBIM_PRODUCT_ADMIN` | `EBIM_FINANCE` | Admin de organización |
+|---|---|---|---|---|
+| `upsert_saas_product`, `upsert_plan`, `set_plan_price` | ✅ | ✅ | — | — |
+| `upsert_organization` (alta) | ✅ | ✅ | — | — |
+| `upsert_organization` (edición de la suya) | ✅ | ✅ | — | ✅ |
+| `upsert_product_agreement`, `end_product_agreement` | ✅ | ✅ | — | ❌ |
+| `create_tenant`, `set_tenant_status`, `update_tenant` | ✅ | ✅ | — | ✅ (su tenant) |
+| `create_subscription`, `set_subscription_status` | ✅ | ✅ | ✅ | — |
+| `upsert_commission_plan`, `upsert_commission_rule` | ✅ | — | ✅ | — |
+| `upsert_payment_provider_account` | ✅ | — | ✅ | ❌ |
+| `set_subscription_collection_profile` | ✅ | ✅ | ✅ | ✅ (org facturada) |
+| `request/receive/approve/reject/cancel_commercial_document` | ✅ | ✅ | ✅ | ✅ (org facturada) |
+| `refresh_billing_alerts` | ✅ | ✅ | ✅ | ❌ |
+| `apply_due_suspensions` | ✅ | ✅ | ❌ | ❌ |
+| `reverse_payment`, `confirm_manual_payment` | ✅ | ❌ | ✅ | ❌ |
+| `enqueue_provisioning_request` (DRY_RUN) | ✅ | ✅ | — | ❌ |
+| `enqueue_provisioning_request` (**LIVE**) | ✅ | ❌ | ❌ | ❌ |
+| `register_provider_payment` | servidor (`service_role`) | — | ✅ | ❌ |
+
+## 4. Invariantes de seguridad verificados
+
+| Invariante | Test |
+|---|---|
+| Las 9 tablas nuevas están en `platform` con RLS + FORCE | `03_v2_security` §1-2 |
+| `anon` sigue sin ningún GRANT | §3 |
+| Cero escritura directa sobre cobranza | §4 |
+| Toda RPC V2 `SECURITY DEFINER` fija `search_path` | §5 |
+| **Todas** las vistas usan `security_invoker` | §6 y `00_structure` §8 |
+| Una clave `sk_test_`/`sk_live_` no se puede guardar | §7-9 |
+| Un PAN no cabe en `last4` | §11 |
+| Un partner no se concede margen ni pasarela | §12-13 |
+| Un partner no ve los acuerdos ni los eventos de otro | §14-15 |
+| **Comercial ≠ acceso operativo**: 0 `tenant_memberships` | §17-21 |
+| Un usuario de tenant no ve finanzas de plataforma | §22-24 |
+| La pasarela de un partner no cobra a otra organización | §25-26 |
+
+## 5. El endpoint público, y por qué lo es
+
+`culqi-webhook` se despliega con `verify_jwt = false`: Culqi no puede enviar un
+JWT de Supabase. **Y Culqi tampoco firma criptográficamente sus webhooks** —
+verificado contra su documentación oficial el 2026-09-07.
+
+No se inventa una firma. Se compensa con cuatro defensas reales, documentadas en
+`docs/payments/CULQI_ARCHITECTURE.md` §5.1: idempotencia dura, validación
+estricta del payload, verificación server-to-server del cargo y correlación
+obligatoria con una suscripción existente. El endpoint **no escribe nada
+directamente**: todo pasa por `register_provider_payment()`.

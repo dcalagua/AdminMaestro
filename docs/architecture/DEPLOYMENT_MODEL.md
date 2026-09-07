@@ -103,3 +103,50 @@ y es barato.
 El reparto es una regla **explícita** (`allocation_rule`), no un prorrateo
 implícito, y la suma de `weight` por costo no puede exceder 1 (constraint
 trigger diferido).
+
+---
+
+# V2 · «Shared vía Partner» dicho explícitamente
+
+La confusión que más caro sale en este dominio es tratar «partner con muchos
+clientes» como si fuera «partner dedicado». **No lo es.**
+
+| | Infraestructura | Tenants por target | Quién es el dueño |
+|---|---|---|---|
+| **SHARED** | Compartida de EBIM | N, de **varios** clientes y **varios** partners | EBIM (`owner_organization_id IS NULL`) |
+| **PARTNER_DEDICATED** | Exclusiva del canal | N, todos de **ese** partner | El partner |
+| **TENANT_DEDICATED** | Exclusiva de un cliente | **Exactamente 1** | El cliente |
+
+## Un partner con 20 clientes en SHARED sigue siendo Shared
+
+Es el caso normal, no la excepción. Consultora Andina administra tenants de
+varios clientes sobre `shared-esupplier-sa-east`, la misma infraestructura donde
+viven los clientes directos de EBIM.
+
+Lo que decide el modelo es `tenants.deployment_mode`, no cuántos clientes tenga
+el canal. Y el acuerdo (`allowed_deployment_modes`) decide qué modelos puede
+vender: un acuerdo acotado a `{SHARED}` **rechaza** un alta PARTNER_DEDICATED
+con `MODO_NO_AUTORIZADO`, y permite tantos tenants SHARED como autorice
+`max_tenants`.
+
+## Aislamiento verificado
+
+`enforce_deployment_coherence` (baseline) + `enforce_agreement_scope` (V2):
+
+| Intento | Error |
+|---|---|
+| Tenant del partner A en el target dedicado del partner B | `TARGET_PARTNER_AJENO` |
+| Segundo tenant en un target TENANT_DEDICATED | `TARGET_DEDICADO_OCUPADO` |
+| Tenant en un target de otro producto | `PRODUCTO_INCOMPATIBLE` |
+| Modo fuera del acuerdo del canal | `MODO_NO_AUTORIZADO` |
+| Más tenants de los pactados | `LIMITE_TENANTS_ALCANZADO` |
+
+Los cinco están cubiertos por tests (`04_v2_business.test.sql` §24 y las pruebas
+focales de la Fase 06).
+
+## Suspender y reanudar
+
+No son un `UPDATE` suelto. `request_tenant_suspension` / `request_tenant_resume`
+cambian el estado **y** encolan el trabajo de infraestructura en la misma
+transacción. Un UPDATE aislado dejaría el tenant apagado en la consola y
+encendido en la infraestructura.

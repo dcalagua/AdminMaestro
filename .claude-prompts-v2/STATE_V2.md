@@ -1,6 +1,6 @@
 # STATE V2 - EBIM Control Plane
 
-**Estado:** IN_PROGRESS · última actualización 2026-09-07
+**Estado:** COMPLETADO · GO_WITH_GAPS · 2026-09-07
 **Baseline VERIFICADO en Fase 01:** 13 migraciones, 39 tablas, 7 vistas, 26 enums, 42 funciones en `platform`. DB local reconstruible; 52 tests pgTAP PASS.
 
 | Fase | Estado | Evidencia / siguiente acción |
@@ -22,11 +22,11 @@
 | 15 Seed | **PASS** | `supabase/seed.sql` ampliado con los 9 escenarios: perfiles de cobro para el baseline, GRUPASA multi-producto/multi-método, OS/OC en sus 3 estados vivos, renovación vencida en gracia y cobro Culqi fallido en MOCK. Bloque de verificación propio que hace FALLAR el reset si falta algún escenario. |
 | 16 Security/DB tests | **PASS** | `03_v2_security.test.sql` (26) + `04_v2_business.test.sql` (24). Total **102 tests pgTAP PASS**. Se corrigió `01_rls_isolation` para afirmar el invariante («el super admin lo ve todo») en vez del tamaño del seed. |
 | 17 E2E | **PASS** | `npx playwright test` -> **39 passed / 0 failed / 0 skipped**. 21 de humo + 18 journeys V2 que cubren los 13 recorridos de la fase. Evidencia en `docs/nightly-v2/E2E_REPORT.md`. Resuelto un bloqueo que invalidaba la suite entera: corría contra la app de otro proyecto. |
-| 18 Docs | NOT_STARTED | |
-| 98 Final Audit | NOT_STARTED | |
+| 18 Docs | **PASS** | README con V2 y rutas nuevas · DATA_MODEL, DEPLOYMENT_MODEL, COMMERCIAL_MODEL, COMMISSION_MODEL, COST_MARGIN_MODEL y RBAC_RLS_MATRIX ampliados · nuevos COLLECTION_MODEL, CULQI_ARCHITECTURE, SERVICE_ORDER_PURCHASE_ORDER, RENEWALS_AND_SUSPENSION, DEMO_SCENARIOS_V2 · FINAL_REPORT_V2 y E2E_REPORT. |
+| 98 Final Audit | **PASS (GO_WITH_GAPS)** | Auditoría desde cero: 13 migraciones baseline idénticas por SHA-256 vs `561053e`; db:reset OK; db:test 102/102; sin drift de tipos; secrets:scan PASS (tras corregir R-07); typecheck/lint OK; test 32/32; build OK; e2e 39/39 sin skips; 0 tablas sin RLS+FORCE; 0 grants a anon; 0 vistas sin security_invoker; 0 definer sin search_path; 0 comisiones sin pago confirmado. Contraste con la DoD: 37 PASS, 1 BLOCKED_EXTERNAL (Culqi), 0 FAIL. |
 
 ## Última migración V2
-Ninguna todavía (Fase 01 no toca DB).
+`20260907000800_commissions_and_finance.sql`. Total: 8 migraciones V2 sobre las 13 baseline, que quedan intactas (verificado por SHA-256).
 
 ## Bloqueos externos
 - **BE-02** Sin credenciales Culqi (`pk_test_`, `CULQI_SECRET_KEY`, `CULQI_API_BASE`). El adapter opera en modo MOCK determinista y la UI lo declara. El PRD de Culqi NO está validado. Checklist de activación en `docs/payments/CULQI_ARCHITECTURE.md` §10.

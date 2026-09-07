@@ -47,3 +47,53 @@ Detalle y evidencia en `docs/nightly-v2/AUDIT_BASELINE.md` §5.
 inventar ninguna nueva, tal y como autoriza `00_START_HERE_VSCODE.md`.
 **Consecuencia:** las convenciones C-*/S-*/U-*/P-* citadas en ese snapshot son vinculantes
 para V2. Si en el futuro GUIDELINES_ROOT vuelve a ser legible, hay que re-contrastar.
+
+### DV2-004 · 2026-09-07 · Reverso de comisión por CONTRA-EVENTO
+**Contexto:** un cobro revertido tiene que deshacer su comisión sin falsear el pasado.
+**Alternativas:** (a) borrar los eventos — destruye la historia; (b) marcarlos VOID —
+reescribe un periodo ya liquidado y pagado.
+**Decisión:** contra-evento con importe negativo que apunta al original.
+**Consecuencias:** el original queda intacto y **todas las sumas existentes siguen
+siendo correctas sin tocarlas** (`sum(amount)` netea solo). El CHECK de importe pasa
+a ser MÁS estricto: devengo >= 0, reverso <= 0.
+
+### DV2-005 · 2026-09-07 · No se inventa firma de webhook para Culqi
+**Contexto:** la documentación oficial de Culqi, consultada el 2026-09-07, no describe
+ninguna firma criptográfica ni cabecera HMAC para verificar un webhook.
+**Decisión:** NO inventar una. Se documenta la limitación y se compensa con idempotencia
+dura, validación estricta del payload, verificación server-to-server del cargo y
+correlación obligatoria con una suscripción existente.
+**Consecuencias:** el endpoint es público y no escribe nada directamente: todo pasa por
+`register_provider_payment()`. En PRD conviene restringir por IP de origen.
+
+### DV2-006 · 2026-09-07 · La URL base de la API de Culqi no se asume
+**Contexto:** `apidocs.culqi.com` no devolvió contenido legible desde esta sesión.
+**Decisión:** la URL base es configuración (`CULQI_API_BASE`) y su ausencia degrada a
+MOCK. En LIVE, en cambio, falla ruidosamente: nunca se degrada en silencio.
+**Consecuencias:** hay que confirmarla antes de activar producción (checklist §10).
+
+### DV2-007 · 2026-09-07 · Límites del acuerdo de canal con defaults PERMISIVOS
+**Contexto:** `allowed_deployment_modes` y `allowed_tenant_types` son columnas nuevas
+sobre una tabla con datos.
+**Decisión:** defaults permisivos. Una columna nueva no puede prohibir retroactivamente
+lo que el sistema ya permitía; poner `{SHARED}` habría invalidado de golpe los tenants
+PARTNER_DEDICATED que el seed ya tenía.
+**Consecuencias:** la restricción es OPT-IN, y el guard solo actúa cuando alguien acota
+el acuerdo a propósito.
+
+### DV2-008 · 2026-09-07 · Puerto de desarrollo 5199 con strictPort
+**Contexto:** el 5173 lo ocupa de forma permanente el dev server de otro proyecto de la
+máquina, y `reuseExistingServer: true` hizo que la suite E2E se ejecutara entera contra
+esa otra aplicación.
+**Decisión:** mover NUESTRO puerto (mismo criterio que el blocker B-01 del baseline),
+`strictPort: true` para fallar en vez de saltar en silencio, y `reuseExistingServer: false`.
+**Consecuencias:** ante un puerto ocupado se prefiere fallar a certificar la aplicación
+equivocada.
+
+### DV2-009 · 2026-09-07 · Nunca ejecutar `tsc` sin `--noEmit`
+**Contexto:** el typecheck roto del baseline emitió 53 archivos `.js` dentro de `src/` y
+junto a los configs de la raíz. Vite y Playwright resuelven `.js` ANTES que `.ts`, así
+que el bundle y la configuración quedaron congelados sin dar ningún error.
+**Decisión:** los scripts comprueban con `--noEmit`, `.gitignore` bloquea esos artefactos
+y el README lo advierte.
+**Consecuencias:** un `tsc` mal invocado ya no puede congelar la aplicación en silencio.

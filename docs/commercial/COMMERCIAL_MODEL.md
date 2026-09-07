@@ -128,3 +128,75 @@ Cómo está garantizado:
 
 En el seed, Carla Comercial vendió `alpha-esupplier` y `titan-ewm` y cobra
 comisión por ambos, sin una sola fila en `tenant_memberships`.
+
+---
+
+# V2 · Los tres esquemas de licenciamiento y el fee de implementación
+
+## 1. Composición por escenario
+
+### SHARED
+- 1 tenant productivo = 1 licencia activa (`LICENSE` o `TENANT_LICENSE`).
+- Fee de implementación **opcional**, siempre `ONE_TIME`.
+- Un partner puede administrar N tenants en SHARED sin infraestructura dedicada.
+
+### PARTNER_DEDICATED
+- 1 **licencia base de partner**: una `subscription` SIN `tenant_id`, con un
+  plan marcado `is_partner_base = true`. Es del canal, no de un cliente.
+- N licencias por tenant activo.
+- Fee de infraestructura dedicada, **recurrente** (porque el costo lo es).
+- Implementación opcional.
+
+### TENANT_DEDICATED
+- 1 licencia Enterprise por cliente/tenant.
+- Infraestructura dedicada.
+- Implementación / setup.
+- Soporte / SLA opcional (`SUPPORT_FEE`).
+
+## 2. El fee de implementación NO infla el MRR
+
+Es la regla que más fácil se rompe y más caro cuesta: un fee de implementación
+cargado como mensual convierte un ingreso único en recurrente y falsea el MRR
+para siempre.
+
+Tres capas lo impiden:
+
+1. `upsert_subscription_item` **rechaza** `IMPLEMENTATION_FEE` con un intervalo
+   distinto de `ONE_TIME` (`FEE_IMPLEMENTACION_RECURRENTE`).
+2. `onboard_customer_subscription` lo crea siempre como `ONE_TIME`.
+3. `v_subscription_mrr` solo cuenta lo recurrente.
+
+Verificado: un alta con licencia de 850 y fee de 1500 deja **MRR = 850**.
+
+## 3. Alta transaccional
+
+`onboard_customer_subscription()` convierte una venta en tenant + suscripción +
+líneas + atribución + provisioning DRY_RUN **en una sola transacción**.
+
+Antes eran cinco llamadas independientes: si la tercera fallaba quedaba un
+tenant sin contrato y una atribución sin venta. Ahora, o queda todo o no queda
+nada — verificado provocando un fallo de dominio operador a mitad del alta:
+tras el error, **0 tenants huérfanos**.
+
+No duplica seguridad: reutiliza `create_tenant()` con su `ADMIN_EMAIL_REQUERIDO`
+y su bloqueo de `@ebim.pe`, y las RPCs de la Fase 02.
+
+## 4. DEMO nunca genera recurrente
+
+`onboard_customer_subscription` devuelve `recurring: false` para un tenant DEMO
+y solo crea contrato si hay cargos únicos que cobrar — y entonces con intervalo
+`ONE_TIME`. El trigger `enforce_demo_not_recurring` del baseline es la segunda
+barrera.
+
+## 5. Un canal, N acuerdos
+
+`organization_product_agreements` es la fuente de verdad de qué puede vender
+cada canal y en qué condiciones. Consultora Andina con eSupplier al 25 % y WMS
+al 18 % son **dos filas**, no dos partners ni dos tipos de organización.
+
+El acuerdo acota, además: modelos de despliegue permitidos, tipos de tenant,
+tope de tenants y quién factura al cliente final (`billing_responsibility`).
+
+**Solo EBIM define acuerdos.** Un partner admin que llame a
+`upsert_product_agreement` recibe 42501: no puede concederse a sí mismo margen,
+modelos ni cupo.
