@@ -30,4 +30,13 @@ supabase/.branches/
 # congelado en la última compilación. Ver docs/nightly-v2/AUDIT_BASELINE.md §5.
 src/**/*.js
 src/**/*.js.map
-!src/**/*.config.js
+
+# Y los de la RAÍZ: tsconfig.node.json compila estos tres .ts, así que un `tsc`
+# sin --noEmit deja un .js al lado de cada uno. Vite y Playwright RESUELVEN EL
+# .js ANTES que el .ts, así que la app arranca con la configuración congelada.
+# Así se perdieron 20 minutos de suite E2E contra el puerto equivocado.
+# `eslint.config.js` y `postcss.config.js` NO van aquí: son fuentes reales.
+/vite.config.js
+/playwright.config.js
+/tailwind.config.js
+/vitest.config.js

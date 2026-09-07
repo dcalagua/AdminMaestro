@@ -21,7 +21,7 @@
 | 14 UI | **PASS** | Navegación reorganizada por el recorrido de una venta (Plataforma/Comercial/Tenancy/Cobranza/Infraestructura/Gobierno) + páginas nuevas `/onboarding`, `/subscriptions/:id`, `/renewals`, `/reconciliation`. Tests de navegación ampliados a 32. |
 | 15 Seed | **PASS** | `supabase/seed.sql` ampliado con los 9 escenarios: perfiles de cobro para el baseline, GRUPASA multi-producto/multi-método, OS/OC en sus 3 estados vivos, renovación vencida en gracia y cobro Culqi fallido en MOCK. Bloque de verificación propio que hace FALLAR el reset si falta algún escenario. |
 | 16 Security/DB tests | **PASS** | `03_v2_security.test.sql` (26) + `04_v2_business.test.sql` (24). Total **102 tests pgTAP PASS**. Se corrigió `01_rls_isolation` para afirmar el invariante («el super admin lo ve todo») en vez del tamaño del seed. |
-| 17 E2E | NOT_STARTED | |
+| 17 E2E | **PASS** | `npx playwright test` -> **39 passed / 0 failed / 0 skipped**. 21 de humo + 18 journeys V2 que cubren los 13 recorridos de la fase. Evidencia en `docs/nightly-v2/E2E_REPORT.md`. Resuelto un bloqueo que invalidaba la suite entera: corría contra la app de otro proyecto. |
 | 18 Docs | NOT_STARTED | |
 | 98 Final Audit | NOT_STARTED | |
 

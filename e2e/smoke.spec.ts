@@ -52,7 +52,8 @@ test.describe('Consola EBIM (super admin)', () => {
   });
 
   test('el catálogo lista los 5 SaaS iniciales', async ({ page }) => {
-    await page.getByRole('link', { name: 'SaaS Products' }).click();
+    // La Fase 14 renombró la entrada de menú: «SaaS Products» -> «Suite SaaS».
+    await page.getByRole('link', { name: 'Suite SaaS' }).click();
     for (const producto of ['eSupplier by EBIM', 'EWM by EBIM', 'TMS by EBIM', 'GMAO by EBIM', 'eChange by EBIM']) {
       await expect(page.getByText(producto, { exact: true })).toBeVisible();
     }

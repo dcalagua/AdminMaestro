@@ -13,15 +13,17 @@ export default defineConfig({
   reporter: process.env.CI ? [['github'], ['list']] : 'list',
   timeout: 45_000,
   use: {
-    baseURL: 'http://127.0.0.1:5173',
+    baseURL: 'http://127.0.0.1:5199',
     trace: 'retain-on-failure',
     locale: 'es-PE',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
     command: 'npm run dev',
-    url: 'http://127.0.0.1:5173',
-    reuseExistingServer: !process.env.CI,
+    url: 'http://127.0.0.1:5199',
+    // NUNCA reutilizar: si otro proceso ocupa el puerto, se prefiere fallar a
+    // ejecutar la suite entera contra la aplicación equivocada.
+    reuseExistingServer: false,
     timeout: 60_000,
   },
 });
