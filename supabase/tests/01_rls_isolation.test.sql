@@ -44,16 +44,32 @@ $$;
 
 -- ---------------------------------------------------------------------------
 -- 1-2. EBIM_SUPER_ADMIN administra entidades globales.
+--
+-- Se comparan contra el total REAL de la tabla, medido antes de asumir el rol,
+-- en vez de contra un número fijo. Lo que se afirma es el invariante —«el super
+-- admin lo ve todo»— y no el tamaño del seed, que cambia cada vez que se añade
+-- un escenario de demostración.
 -- ---------------------------------------------------------------------------
+-- Los totales se guardan en ajustes de sesión y no en una tabla temporal:
+-- una tabla temporal creada por `postgres` no es legible por `authenticated`,
+-- y aquí se cambia de rol a propósito.
+select pg_temp.act_as_postgres();
+select set_config('ebim.total_orgs',
+  (select count(*)::text from platform.organizations), true);
+select set_config('ebim.total_tenants',
+  (select count(*)::text from platform.tenants), true);
+
 select pg_temp.act_as('10000000-0000-4000-a000-000000000001');
 
 select is(
-  (select count(*)::int from platform.organizations), 10,
-  'SUPER_ADMIN ve las 10 organizaciones'
+  (select count(*)::int from platform.organizations),
+  current_setting('ebim.total_orgs')::int,
+  'SUPER_ADMIN ve TODAS las organizaciones, sin filtro de RLS'
 );
 select is(
-  (select count(*)::int from platform.tenants), 13,
-  'SUPER_ADMIN ve los 13 tenants de todos los productos'
+  (select count(*)::int from platform.tenants),
+  current_setting('ebim.total_tenants')::int,
+  'SUPER_ADMIN ve TODOS los tenants de todos los productos'
 );
 
 -- ---------------------------------------------------------------------------

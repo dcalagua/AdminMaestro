@@ -19,8 +19,8 @@
 | 12 Commissions | **PASS** | `20260907000800`: contra-eventos negativos (`reversal_of_event_id`), CHECK reescrito (devengo >= 0, reverso <= 0), índice de idempotencia con discriminante, `reverse_payment()` y `confirm_manual_payment()`, vista `v_commission_detail` con el origen legible. |
 | 13 Finance | **PASS** | Vistas `v_finance_reconciliation` (6 tipos de hallazgo), `v_product_finance` (licencia/implementación/infra/soporte por moneda) y `v_partner_finance` (margen de canal y comisión de agentes en columnas SEPARADAS). UI en `/reconciliation`. |
 | 14 UI | **PASS** | Navegación reorganizada por el recorrido de una venta (Plataforma/Comercial/Tenancy/Cobranza/Infraestructura/Gobierno) + páginas nuevas `/onboarding`, `/subscriptions/:id`, `/renewals`, `/reconciliation`. Tests de navegación ampliados a 32. |
-| 15 Seed | NOT_STARTED | |
-| 16 Security/DB tests | NOT_STARTED | |
+| 15 Seed | **PASS** | `supabase/seed.sql` ampliado con los 9 escenarios: perfiles de cobro para el baseline, GRUPASA multi-producto/multi-método, OS/OC en sus 3 estados vivos, renovación vencida en gracia y cobro Culqi fallido en MOCK. Bloque de verificación propio que hace FALLAR el reset si falta algún escenario. |
+| 16 Security/DB tests | **PASS** | `03_v2_security.test.sql` (26) + `04_v2_business.test.sql` (24). Total **102 tests pgTAP PASS**. Se corrigió `01_rls_isolation` para afirmar el invariante («el super admin lo ve todo») en vez del tamaño del seed. |
 | 17 E2E | NOT_STARTED | |
 | 18 Docs | NOT_STARTED | |
 | 98 Final Audit | NOT_STARTED | |

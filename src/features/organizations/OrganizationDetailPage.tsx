@@ -17,6 +17,7 @@ import { businessErrorMessage } from '@/lib/pgError';
 import { formatMoney, formatPercent, formatNumber, formatDate } from '@/lib/format';
 import { DEPLOYMENT_MODE_LABEL, TENANT_TYPE_LABEL } from '@/types/domain';
 import { AgreementFormDialog } from './AgreementFormDialog';
+import { Organization360 } from './Organization360';
 import type { AgreementDraft } from './AgreementFormDialog';
 
 /**
@@ -109,6 +110,17 @@ export function OrganizationDetailPage() {
 
       <SectionTabs
         tabs={[
+          {
+            id: 'view360',
+            label: 'Vista 360',
+            content: (
+              <Organization360
+                organizationId={o.id}
+                organizationName={o.display_name}
+                capabilities={capabilities}
+              />
+            ),
+          },
           {
             id: 'overview',
             label: 'Resumen',

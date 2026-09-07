@@ -834,3 +834,458 @@ begin
     v_products, v_tenants, v_modes, v_events, v_mrr;
 end;
 $$;
+
+-- ############################################################################
+-- ############################################################################
+-- SEED V2 · Escenarios de negocio de la Fase 15
+-- ----------------------------------------------------------------------------
+-- Se AÑADE sobre el seed original sin tocar ninguno de sus escenarios: los ids
+-- de V2 empiezan donde acaban los del baseline.
+--
+-- Qué añade, y por qué cada cosa:
+--
+--   · perfiles de cobro para los escenarios que ya existían (hasta ahora todos
+--     se cobraban «manualmente por omisión»);
+--   · GRUPASA, el caso que justifica todo el modelo de cobranza: UN cliente,
+--     DOS SaaS, DOS métodos de cobro distintos;
+--   · Órdenes de Servicio en sus tres estados vivos, para poder enseñar el ciclo;
+--   · una renovación vencida y en gracia, para que el tablero de alertas tenga
+--     algo real que mostrar;
+--   · un cobro Culqi fallido en modo MOCK, para la reconciliación.
+--
+-- REGLA DE SEGURIDAD DEL SEED: ni una credencial. Los identificadores externos
+-- llevan el prefijo `mock_` justamente para que sea imposible confundirlos con
+-- datos reales de un proveedor.
+-- ############################################################################
+
+-- ---------------------------------------------------------------------------
+-- 0. Perfiles de cobro para los escenarios del baseline.
+--
+-- Sin esto, las 13 suscripciones del seed original aparecen en la conciliación
+-- como MISSING_COLLECTION_PROFILE, que es correcto pero poco demostrativo.
+-- ---------------------------------------------------------------------------
+
+-- Escenario 1 · Alpha / eSupplier directo EBIM -> Culqi TEST (adapter en MOCK)
+insert into platform.subscription_collection_profiles (
+  id, subscription_id, collection_method, provider_account_id, auto_charge,
+  invoice_lead_days, renewal_notice_days, payment_due_days, grace_period_days,
+  document_lead_days, auto_suspend, currency, status, effective_from, notes
+)
+select
+  'c0000000-0000-4000-a000-000000000001', s.id, 'CULQI_CARD',
+  (select id from platform.payment_provider_accounts where code = 'culqi-pe-test'),
+  true, 0, 30, 15, 10, 45, false, s.currency, 'ACTIVE', current_date - 200,
+  'Cobro con tarjeta. Sin credenciales configuradas: el adapter opera en MOCK.'
+from platform.subscriptions s where s.code = 'SUB-ALPHA-ESUP';
+
+-- Escenario 5 · Omega Enterprise dedicado -> transferencia, para contrastar
+insert into platform.subscription_collection_profiles (
+  id, subscription_id, collection_method, auto_charge,
+  invoice_lead_days, renewal_notice_days, payment_due_days, grace_period_days,
+  document_lead_days, auto_suspend, currency, status, effective_from, notes
+)
+select
+  'c0000000-0000-4000-a000-000000000002', s.id, 'BANK_TRANSFER', false,
+  10, 60, 30, 15, 45, false, s.currency, 'ACTIVE', current_date - 200,
+  'Enterprise: transferencia conciliada por finanzas, sin domiciliación.'
+from platform.subscriptions s where s.code = 'SUB-OMEGA-ESUP';
+
+-- Escenarios 2 y 3 · tenants del partner Andina -> manual con margen de canal.
+-- SUB-P1-EWM y SUB-P2-ESUP quedan fuera a propósito: reciben más abajo su
+-- propio perfil con Orden de Servicio / de Compra (escenario 7).
+insert into platform.subscription_collection_profiles (
+  id, subscription_id, collection_method, auto_charge,
+  invoice_lead_days, renewal_notice_days, payment_due_days, grace_period_days,
+  document_lead_days, auto_suspend, currency, status, effective_from, notes
+)
+select
+  ('c0000000-0000-4000-a000-0000000000' || lpad((10 + row_number() over (order by s.code))::text, 2, '0'))::uuid,
+  s.id, 'MANUAL', false, 0, 30, 15, 10, 45, false, s.currency, 'ACTIVE', current_date - 150,
+  'Facturación consolidada al partner.'
+from platform.subscriptions s
+where s.code in ('SUB-ANDINA-PD-A', 'SUB-ANDINA-PD-B', 'SUB-P1-ESUP');
+
+-- ---------------------------------------------------------------------------
+-- 6. GRUPASA — el caso que justifica el modelo entero.
+--
+-- Una sola organización, dos productos, DOS MÉTODOS DE COBRO DISTINTOS:
+--   eSupplier -> tarjeta Culqi, mensual
+--   WMS/EWM   -> Orden de Servicio, anual, pedida con 45 días de antelación
+--
+-- Si el método colgara de la organización en vez de la suscripción, este caso
+-- —que es un caso real— sería irrepresentable.
+-- ---------------------------------------------------------------------------
+insert into platform.organizations (
+  id, slug, legal_name, display_name, kind, country_code, tax_id, status,
+  billing_email, accent_color, metadata
+) values (
+  '30000000-0000-4000-a000-00000000000b', 'grupasa', 'Grupo Agroindustrial GRUPASA S.A.C.',
+  'GRUPASA', 'COMPANY', 'PE', '20501234567', 'ACTIVE',
+  'facturacion@grupasa.ebim.test', '#1B6B4A',
+  jsonb_build_object('sector', 'agroindustria', 'escenario', 'multi-producto multi-método')
+);
+
+insert into platform.organization_capabilities (organization_id, capability)
+values ('30000000-0000-4000-a000-00000000000b', 'CUSTOMER');
+
+insert into platform.companies (id, organization_id, name, country_code, currency, tax_id, is_default, status)
+values (
+  'c1000000-0000-4000-a000-000000000001', '30000000-0000-4000-a000-00000000000b',
+  'GRUPASA Perú', 'PE', 'PEN', '20501234567', true, 'ACTIVE'
+);
+
+insert into platform.tenants (
+  id, slug, name, saas_product_id, customer_organization_id, company_id,
+  tenant_type, status, deployment_mode, environment, admin_email, activated_at, metadata
+) values
+(
+  '50000000-0000-4000-a000-00000000000e', 'grupasa-esupplier', 'GRUPASA · eSupplier',
+  (select id from platform.saas_products where code = 'esupplier'),
+  '30000000-0000-4000-a000-00000000000b', 'c1000000-0000-4000-a000-000000000001',
+  'PRODUCTION', 'ACTIVE', 'SHARED', 'PRODUCTION',
+  'admin@grupasa.ebim.test', now() - interval '8 months', '{}'::jsonb
+),
+(
+  '50000000-0000-4000-a000-00000000000f', 'grupasa-ewm', 'GRUPASA · EWM',
+  (select id from platform.saas_products where code = 'ewm'),
+  '30000000-0000-4000-a000-00000000000b', 'c1000000-0000-4000-a000-000000000001',
+  'PRODUCTION', 'ACTIVE', 'SHARED', 'PRODUCTION',
+  'admin@grupasa.ebim.test', now() - interval '6 months', '{}'::jsonb
+);
+
+-- Ambos tenants viven en la MISMA infraestructura compartida.
+insert into platform.tenant_deployments (tenant_id, deployment_target_id, is_primary, status, deployed_at)
+values
+('50000000-0000-4000-a000-00000000000e',
+ (select id from platform.deployment_targets where code = 'shared-esupplier-sa-east'),
+ true, 'ACTIVE', now() - interval '8 months'),
+('50000000-0000-4000-a000-00000000000f',
+ (select id from platform.deployment_targets where code = 'shared-ewm-sa-east'),
+ true, 'ACTIVE', now() - interval '6 months');
+
+insert into platform.subscriptions (
+  id, code, billed_organization_id, saas_product_id, tenant_id, plan_id, status,
+  billing_interval, currency, quantity, started_on, notes, metadata
+) values
+(
+  '70000000-0000-4000-a000-00000000000e', 'SUB-GRUPASA-ESUP',
+  '30000000-0000-4000-a000-00000000000b',
+  (select id from platform.saas_products where code = 'esupplier'),
+  '50000000-0000-4000-a000-00000000000e',
+  (select id from platform.plans where code = 'esupplier-shared-standard'),
+  'ACTIVE', 'MONTHLY', 'USD', 1, (current_date - interval '8 months')::date,
+  'Cobro con tarjeta, mensual.', '{}'::jsonb
+),
+(
+  '70000000-0000-4000-a000-00000000000f', 'SUB-GRUPASA-EWM',
+  '30000000-0000-4000-a000-00000000000b',
+  (select id from platform.saas_products where code = 'ewm'),
+  '50000000-0000-4000-a000-00000000000f',
+  (select id from platform.plans where code = 'ewm-shared-standard'),
+  'ACTIVE', 'YEARLY', 'USD', 1, (current_date - interval '6 months')::date,
+  'Cobro por Orden de Servicio anual: el circuito de compras del cliente lo exige.',
+  '{}'::jsonb
+);
+
+insert into platform.subscription_items (
+  subscription_id, charge_kind, description, quantity, unit_amount, currency,
+  billing_interval, tenant_id, valid_from
+) values
+('70000000-0000-4000-a000-00000000000e', 'LICENSE', 'Licencia eSupplier mensual',
+ 1, 850, 'USD', 'MONTHLY', '50000000-0000-4000-a000-00000000000e', (current_date - interval '8 months')::date),
+('70000000-0000-4000-a000-00000000000f', 'LICENSE', 'Licencia EWM anual',
+ 1, 24000, 'USD', 'YEARLY', '50000000-0000-4000-a000-00000000000f', (current_date - interval '6 months')::date),
+('70000000-0000-4000-a000-00000000000f', 'IMPLEMENTATION_FEE', 'Implementación EWM',
+ 1, 12000, 'USD', 'ONE_TIME', '50000000-0000-4000-a000-00000000000f', (current_date - interval '6 months')::date);
+
+-- LOS DOS MÉTODOS DISTINTOS, sobre el mismo cliente.
+insert into platform.subscription_collection_profiles (
+  id, subscription_id, collection_method, provider_account_id, auto_charge,
+  requires_service_order, invoice_lead_days, renewal_notice_days, payment_due_days,
+  grace_period_days, document_lead_days, auto_suspend, currency, status, effective_from, notes
+) values
+(
+  'c0000000-0000-4000-a000-000000000021', '70000000-0000-4000-a000-00000000000e',
+  'CULQI_CARD', (select id from platform.payment_provider_accounts where code = 'culqi-pe-test'),
+  true, false, 0, 30, 15, 10, 45, false, 'USD', 'ACTIVE', (current_date - interval '8 months')::date,
+  'eSupplier: tarjeta con cargo recurrente.'
+),
+(
+  'c0000000-0000-4000-a000-000000000022', '70000000-0000-4000-a000-00000000000f',
+  'SERVICE_ORDER', null,
+  false, true, 0, 60, 30, 15, 45, true, 'USD', 'ACTIVE', (current_date - interval '6 months')::date,
+  'EWM: Orden de Servicio anual, solicitada 45 días antes de la renovación.'
+);
+
+-- Mapeo Culqi en MOCK para la suscripción con tarjeta.
+insert into platform.provider_customers (
+  id, provider_account_id, organization_id, external_customer_id, status
+) values (
+  'd0000000-0000-4000-a000-000000000001',
+  (select id from platform.payment_provider_accounts where code = 'culqi-pe-test'),
+  '30000000-0000-4000-a000-00000000000b', 'cus_mock_grupasa01', 'ACTIVE'
+);
+
+insert into platform.provider_payment_methods (
+  id, provider_account_id, organization_id, provider_customer_id,
+  external_payment_method_id, brand, last4, exp_month, exp_year, is_default, status
+) values (
+  'd0000000-0000-4000-a000-000000000002',
+  (select id from platform.payment_provider_accounts where code = 'culqi-pe-test'),
+  '30000000-0000-4000-a000-00000000000b', 'd0000000-0000-4000-a000-000000000001',
+  'crd_mock_grupasa01', 'VISA', '4242', 12, 2030, true, 'ACTIVE'
+);
+
+insert into platform.provider_subscriptions (
+  id, provider_account_id, subscription_id, external_subscription_id,
+  external_plan_id, external_payment_method_id, external_customer_id,
+  provider_status, next_billing_at, status, metadata
+) values (
+  'd0000000-0000-4000-a000-000000000003',
+  (select id from platform.payment_provider_accounts where code = 'culqi-pe-test'),
+  '70000000-0000-4000-a000-00000000000e', 'sxn_mock_grupasa01',
+  'pln_mock_esup850', 'crd_mock_grupasa01', 'cus_mock_grupasa01',
+  'active', now() + interval '12 days', 'ACTIVE',
+  jsonb_build_object('mode', 'MOCK')
+);
+
+-- ---------------------------------------------------------------------------
+-- 7. Órdenes de Servicio en sus tres estados vivos.
+-- ---------------------------------------------------------------------------
+
+-- (a) APROBADA y vigente: GRUPASA / EWM. Cubre el periodo en curso.
+insert into platform.subscription_commercial_documents (
+  id, subscription_id, document_type, document_number, status,
+  requested_at, received_at, approved_at, valid_from, valid_to,
+  amount, currency, external_file_ref, notes
+) values (
+  'e0000000-0000-4000-a000-000000000001', '70000000-0000-4000-a000-00000000000f',
+  'SERVICE_ORDER', 'OS-2026-0455', 'APPROVED',
+  now() - interval '7 months', now() - interval '6 months 20 days', now() - interval '6 months 15 days',
+  (current_date - interval '6 months')::date, (current_date + interval '6 months')::date,
+  24000, 'USD', 'storage://os/2026/os-2026-0455.pdf',
+  'Aprobada. Habilita la continuidad administrativa; NO es un cobro.'
+);
+
+-- (b) RECIBIDA, pendiente de aprobar: Cliente Partner Uno / EWM.
+insert into platform.subscription_collection_profiles (
+  id, subscription_id, collection_method, requires_service_order,
+  invoice_lead_days, renewal_notice_days, payment_due_days, grace_period_days,
+  document_lead_days, auto_suspend, currency, status, effective_from, notes
+)
+select
+  'c0000000-0000-4000-a000-000000000031', s.id, 'SERVICE_ORDER', true,
+  0, 45, 30, 15, 45, false, s.currency, 'ACTIVE', current_date - 120,
+  'Circuito de compras del cliente: exige OS.'
+from platform.subscriptions s where s.code = 'SUB-P1-EWM';
+
+insert into platform.subscription_commercial_documents (
+  id, subscription_id, document_type, document_number, status,
+  requested_at, received_at, valid_from, valid_to, amount, currency, notes
+)
+select
+  'e0000000-0000-4000-a000-000000000002', s.id, 'SERVICE_ORDER', 'OS-2026-0512', 'RECEIVED',
+  now() - interval '20 days', now() - interval '3 days',
+  current_date, (current_date + interval '1 year')::date, 9600, 'USD',
+  'Recibida del cliente; pendiente de validación por finanzas.'
+from platform.subscriptions s where s.code = 'SUB-P1-EWM';
+
+-- (c) SOLICITADA, aún sin llegar: Cliente Partner Dos / eSupplier.
+insert into platform.subscription_collection_profiles (
+  id, subscription_id, collection_method, requires_purchase_order,
+  invoice_lead_days, renewal_notice_days, payment_due_days, grace_period_days,
+  document_lead_days, auto_suspend, currency, status, effective_from, notes
+)
+select
+  'c0000000-0000-4000-a000-000000000032', s.id, 'PURCHASE_ORDER', true,
+  0, 30, 30, 10, 45, false, s.currency, 'ACTIVE', current_date - 90,
+  'Requiere Orden de Compra del cliente.'
+from platform.subscriptions s where s.code = 'SUB-P2-ESUP';
+
+insert into platform.subscription_commercial_documents (
+  id, subscription_id, document_type, status, requested_at, valid_from, valid_to,
+  amount, currency, notes
+)
+select
+  'e0000000-0000-4000-a000-000000000003', s.id, 'PURCHASE_ORDER', 'REQUESTED',
+  now() - interval '5 days', current_date, (current_date + interval '1 year')::date,
+  7200, 'USD', 'Solicitada al cliente; todavía sin número de documento.'
+from platform.subscriptions s where s.code = 'SUB-P2-ESUP';
+
+-- ---------------------------------------------------------------------------
+-- 8. Renovación vencida y en periodo de gracia.
+--
+-- Factura emitida hace 40 días, vencida hace 12 y con 15 días de gracia: está
+-- DENTRO de la gracia, así que `refresh_billing_alerts` genera PAST_DUE pero
+-- todavía no SUSPENSION_DUE. Es el estado más útil para enseñar el tablero.
+-- ---------------------------------------------------------------------------
+insert into platform.subscription_collection_profiles (
+  id, subscription_id, collection_method, auto_charge,
+  invoice_lead_days, renewal_notice_days, payment_due_days, grace_period_days,
+  document_lead_days, auto_suspend, currency, status, effective_from, notes
+)
+select
+  'c0000000-0000-4000-a000-000000000041', s.id, 'BANK_TRANSFER', false,
+  0, 30, 15, 15, 45, true, s.currency, 'ACTIVE', current_date - 300,
+  'Con suspensión automática al acabar la gracia.'
+from platform.subscriptions s where s.code = 'SUB-EWM-NORTE';
+
+insert into platform.invoices (
+  id, number, customer_organization_id, subscription_id, status, currency,
+  issue_date, due_date, period_start, period_end, subtotal, tax_amount, total, notes
+)
+select
+  'f0000000-0000-4000-a000-000000000001', 'INV-DEMO-GRACIA',
+  s.billed_organization_id, s.id, 'ISSUED', s.currency,
+  current_date - 40, current_date - 12,
+  (current_date - interval '2 months')::date, (current_date - interval '1 month')::date,
+  1800, 0, 1800,
+  'Escenario de demostración: vencida y dentro del periodo de gracia.'
+from platform.subscriptions s where s.code = 'SUB-EWM-NORTE';
+
+insert into platform.invoice_lines (
+  invoice_id, charge_kind, description, saas_product_id, tenant_id,
+  quantity, unit_amount, currency, is_recurring
+)
+select
+  'f0000000-0000-4000-a000-000000000001', 'LICENSE', 'Licencia EWM Norte',
+  s.saas_product_id, s.tenant_id, 1, 1800, 'USD', true
+from platform.subscriptions s where s.code = 'SUB-EWM-NORTE';
+
+-- ---------------------------------------------------------------------------
+-- 9. Cobro Culqi fallido, en MOCK.
+--
+-- Un fallo NO crea `payments`: solo marca el mapeo del proveedor y deja el
+-- evento en el ledger. Es lo que alimenta la alerta PAYMENT_FAILURE y el
+-- hallazgo de reconciliación.
+-- ---------------------------------------------------------------------------
+insert into platform.provider_subscriptions (
+  id, provider_account_id, subscription_id, external_subscription_id,
+  external_plan_id, external_customer_id, provider_status,
+  last_error_code, last_error_message, next_billing_at, status, metadata
+)
+select
+  'd0000000-0000-4000-a000-000000000011',
+  (select id from platform.payment_provider_accounts where code = 'culqi-pe-test'),
+  s.id, 'sxn_mock_alpha01', 'pln_mock_esup850', 'cus_mock_alpha01',
+  'payment_failed', 'card_declined', 'Tarjeta rechazada por el emisor',
+  now() + interval '3 days', 'ACTIVE', jsonb_build_object('mode', 'MOCK')
+from platform.subscriptions s where s.code = 'SUB-ALPHA-ESUP';
+
+insert into platform.provider_webhook_events (
+  provider_account_id, external_event_key, event_type, payload, status,
+  subscription_id, error_code, error_message, received_at, processed_at
+)
+select
+  (select id from platform.payment_provider_accounts where code = 'culqi-pe-test'),
+  'evt_mock_failed_alpha01', 'charge.failed',
+  jsonb_build_object('type', 'charge.failed', 'subscription_id', 'sxn_mock_alpha01', 'simulated', true),
+  'PROCESSED', s.id, 'card_declined', 'Tarjeta rechazada por el emisor',
+  now() - interval '2 days', now() - interval '2 days'
+from platform.subscriptions s where s.code = 'SUB-ALPHA-ESUP';
+
+-- Un evento repetido, ya IGNORADO: demuestra la idempotencia en pantalla.
+insert into platform.provider_webhook_events (
+  provider_account_id, external_event_key, event_type, payload, status,
+  error_code, error_message, received_at, processed_at
+) values (
+  (select id from platform.payment_provider_accounts where code = 'culqi-pe-test'),
+  'evt_mock_duplicado_demo', 'charge.succeeded',
+  jsonb_build_object('type', 'charge.succeeded', 'simulated', true),
+  'IGNORED', 'PAGO_YA_REGISTRADO', 'Entrega repetida: el cargo ya estaba registrado',
+  now() - interval '1 day', now() - interval '1 day'
+);
+
+-- ---------------------------------------------------------------------------
+-- Atribución comercial de GRUPASA (escenario 1 del prompt, aplicado aquí).
+-- Crear la atribución NO crea ninguna `tenant_membership`.
+-- ---------------------------------------------------------------------------
+insert into platform.sales_attributions (
+  id, sales_agent_id, saas_product_id, tenant_id, subscription_id,
+  customer_organization_id, attribution_pct, source, commission_plan_id,
+  valid_from, status, notes
+) values (
+  'a1000000-0000-4000-a000-000000000001',
+  (select id from platform.sales_agents where code = 'carla-independiente'),
+  (select id from platform.saas_products where code = 'esupplier'),
+  '50000000-0000-4000-a000-00000000000e', '70000000-0000-4000-a000-00000000000e',
+  '30000000-0000-4000-a000-00000000000b', 1.0, 'REFERRAL',
+  (select id from platform.commission_plans where code = 'indep-standard'),
+  (current_date - interval '8 months')::date, 'ACTIVE',
+  'Venta referida. Comercial sin acceso operativo al tenant.'
+);
+
+-- ---------------------------------------------------------------------------
+-- Alertas materializadas, para que el tablero no arranque vacío.
+-- `refresh_billing_alerts` es idempotente: volver a ejecutarlo no duplica nada.
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_created integer;
+begin
+  -- El seed corre como superusuario, que no pasa por los helpers de rol; se
+  -- llama a la función igualmente porque `security definer` la ejecuta como
+  -- owner y `can_manage_commercial()` no aplica a `postgres`.
+  perform set_config('request.jwt.claim.sub',
+    (select id::text from auth.users where email = 'dcalagua@ebim.pe'), true);
+  select platform.refresh_billing_alerts(now()) into v_created;
+  raise notice 'SEED V2 · alertas de cobranza generadas: %', v_created;
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Verificación del seed V2. Si algo falta, el reset FALLA en vez de dejar una
+-- demo silenciosamente incompleta.
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_profiles  integer;
+  v_methods   integer;
+  v_grupasa   integer;
+  v_docs      integer;
+  v_alerts    integer;
+  v_failed    integer;
+begin
+  select count(*) into v_profiles from platform.subscription_collection_profiles;
+
+  -- El corazón del escenario 6: un cliente con DOS métodos distintos.
+  select count(distinct p.collection_method) into v_methods
+    from platform.subscription_collection_profiles p
+    join platform.subscriptions s on s.id = p.subscription_id
+   where s.billed_organization_id = '30000000-0000-4000-a000-00000000000b';
+
+  select count(*) into v_grupasa from platform.tenants
+   where customer_organization_id = '30000000-0000-4000-a000-00000000000b';
+
+  select count(distinct status) into v_docs
+    from platform.subscription_commercial_documents
+   where status in ('REQUESTED', 'RECEIVED', 'APPROVED');
+
+  select count(*) into v_alerts from platform.billing_alerts;
+
+  select count(*) into v_failed from platform.provider_subscriptions
+   where provider_status = 'payment_failed';
+
+  if v_profiles < 10 then
+    raise exception 'SEED_V2_INCOMPLETO: se esperaban >=10 perfiles de cobro, hay %', v_profiles;
+  end if;
+  if v_methods < 2 then
+    raise exception 'SEED_V2_INCOMPLETO: GRUPASA debe tener 2 métodos de cobro distintos, tiene %', v_methods;
+  end if;
+  if v_grupasa < 2 then
+    raise exception 'SEED_V2_INCOMPLETO: GRUPASA debe tener 2 tenants, tiene %', v_grupasa;
+  end if;
+  if v_docs < 3 then
+    raise exception 'SEED_V2_INCOMPLETO: faltan estados de OS/OC, hay % de 3', v_docs;
+  end if;
+  if v_alerts = 0 then
+    raise exception 'SEED_V2_INCOMPLETO: no se generó ninguna alerta de cobranza';
+  end if;
+  if v_failed = 0 then
+    raise exception 'SEED_V2_INCOMPLETO: falta el escenario de cobro fallido';
+  end if;
+
+  raise notice 'SEED V2 OK · perfiles=% metodos_grupasa=% tenants_grupasa=% estados_os=% alertas=% fallos=%',
+    v_profiles, v_methods, v_grupasa, v_docs, v_alerts, v_failed;
+end;
+$$;
