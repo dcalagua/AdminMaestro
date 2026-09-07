@@ -36,6 +36,15 @@ export interface SetupInput {
     firstName: string;
     lastName: string;
     countryCode: string;
+    /*
+     * Datos de facturación que la pasarela exige para crear el Customer. Se
+     * declaran obligatorios EN EL TIPO a propósito: la versión anterior no los
+     * tenía y el adapter habría tenido que inventarlos o fallar en tiempo de
+     * ejecución. Salen de `organizations` (migración 23), nunca de un literal.
+     */
+    address: string;
+    addressCity: string;
+    phoneNumber: string;
     /** Id externo previo, si esta organización ya era cliente del proveedor. */
     externalCustomerId?: string | null;
   };

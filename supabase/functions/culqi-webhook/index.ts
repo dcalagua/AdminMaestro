@@ -121,7 +121,8 @@ Deno.serve(async (req: Request) => {
     return json({ accepted: true, kind: event.kind, note: 'Registrado sin efecto contable' });
   }
 
-  if (!event.externalChargeId || !event.externalSubscriptionId) {
+  // Sin id de cargo no hay nada que verificar contra el proveedor.
+  if (!event.externalChargeId) {
     return json({ accepted: false, error: 'EVENTO_INCOMPLETO' }, 200);
   }
 
@@ -131,6 +132,14 @@ Deno.serve(async (req: Request) => {
   let amount = event.amount;
   let currency = event.currency;
   let paidAt = event.occurredAt;
+  /*
+   * El cobro RECURRENTE (`subscription.charge.succeeded`) no siempre trae el id
+   * de la suscripción en el mismo sitio que un cargo suelto. Se admite que lo
+   * aporte la consulta directa al proveedor, que es la fuente fiable; lo que no
+   * se admite es continuar sin él, porque sin suscripción no hay contrato al que
+   * imputar el pago ni comisión que devengar.
+   */
+  let subscriptionId = event.externalSubscriptionId;
 
   if (provider.mode !== 'MOCK') {
     const verified = await provider.verifyCharge(event.externalChargeId);
@@ -152,10 +161,27 @@ Deno.serve(async (req: Request) => {
     amount = verified.amount;
     currency = verified.currency;
     paidAt = verified.paidAt;
+    subscriptionId = subscriptionId ?? verified.externalSubscriptionId;
   }
 
   if (!amount || !currency) {
     return json({ accepted: false, error: 'IMPORTE_O_MONEDA_AUSENTE' }, 200);
+  }
+
+  if (!subscriptionId) {
+    // Se deja rastro: un cobro confirmado que no sabemos a quién imputar es
+    // justo el caso que la reconciliación tiene que ver.
+    await admin.from('provider_webhook_events').insert({
+      provider_account_id: account.id,
+      external_event_key: event.eventKey,
+      event_type: event.eventType,
+      payload: event.safePayload,
+      status: 'REJECTED',
+      error_code: 'SUSCRIPCION_NO_IDENTIFICADA',
+      error_message: 'El cargo está confirmado pero no se pudo asociar a una suscripción',
+      processed_at: new Date().toISOString(),
+    });
+    return json({ accepted: false, error: 'SUSCRIPCION_NO_IDENTIFICADA' }, 200);
   }
 
   // ---- Defensas 1 y 4 viven dentro de la RPC -------------------------------
@@ -164,7 +190,7 @@ Deno.serve(async (req: Request) => {
     p_external_event_key: event.eventKey,
     p_event_type: event.eventType,
     p_external_charge_id: event.externalChargeId,
-    p_external_subscription_id: event.externalSubscriptionId,
+    p_external_subscription_id: subscriptionId,
     p_amount: amount,
     p_currency: currency,
     p_paid_at: paidAt,
