@@ -3567,6 +3567,16 @@ export type Database = {
         }
         Returns: string
       }
+      current_plan_price: {
+        Args: {
+          p_as_of?: string
+          p_billing_interval: Database["platform"]["Enums"]["billing_interval"]
+          p_charge_kind: Database["platform"]["Enums"]["charge_kind"]
+          p_currency: string
+          p_plan_id: string
+        }
+        Returns: number
+      }
       dashboard_summary: { Args: never; Returns: Json }
       deactivate_commission_rule: {
         Args: { p_reason?: string; p_rule_id: string; p_valid_to?: string }
@@ -3635,6 +3645,46 @@ export type Database = {
       my_org_ids: { Args: never; Returns: string[] }
       my_sales_agent_ids: { Args: never; Returns: string[] }
       my_tenant_ids: { Args: never; Returns: string[] }
+      onboard_customer_subscription: {
+        Args: {
+          p_activate?: boolean
+          p_admin_email: string
+          p_attribution_pct?: number
+          p_attribution_source?: Database["platform"]["Enums"]["attribution_source"]
+          p_billing_interval?: Database["platform"]["Enums"]["billing_interval"]
+          p_channel_margin_rate?: number
+          p_commission_plan_id?: string
+          p_company_id?: string
+          p_currency?: string
+          p_customer_organization_id: string
+          p_deployment_mode?: Database["platform"]["Enums"]["deployment_mode"]
+          p_deployment_target_id?: string
+          p_implementation_fee?: number
+          p_infrastructure_fee?: number
+          p_license_amount?: number
+          p_managing_organization_id?: string
+          p_notes?: string
+          p_plan_id: string
+          p_provisioning_mode?: string
+          p_quantity?: number
+          p_saas_product_code: string
+          p_sales_agent_id?: string
+          p_started_on?: string
+          p_support_fee?: number
+          p_tenant_name: string
+          p_tenant_slug: string
+          p_tenant_type?: Database["platform"]["Enums"]["tenant_type"]
+        }
+        Returns: Json
+      }
+      request_tenant_resume: {
+        Args: { p_mode?: string; p_reason?: string; p_tenant_id: string }
+        Returns: Json
+      }
+      request_tenant_suspension: {
+        Args: { p_mode?: string; p_reason: string; p_tenant_id: string }
+        Returns: Json
+      }
       retry_provisioning_request: {
         Args: { p_request_id: string }
         Returns: string

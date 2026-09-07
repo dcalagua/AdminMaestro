@@ -16,6 +16,7 @@ import { OrganizationsPage } from '@/features/organizations/OrganizationsPage';
 import { OrganizationDetailPage } from '@/features/organizations/OrganizationDetailPage';
 import { PartnersPage } from '@/features/organizations/PartnersPage';
 import { CustomersPage } from '@/features/organizations/CustomersPage';
+import { OnboardingPage } from '@/features/onboarding/OnboardingPage';
 import { TenantsPage } from '@/features/tenants/TenantsPage';
 import { TenantDetailPage } from '@/features/tenants/TenantDetailPage';
 import { SalesAgentsPage } from '@/features/commercial/SalesAgentsPage';
@@ -98,7 +99,16 @@ export function App() {
                     }
                   />
 
-                  <Route path="tenants" element={<TenantsPage />} />
+                  <Route
+                  path="onboarding"
+                  element={
+                    <RequirePersona personas={['EBIM']}>
+                      <OnboardingPage />
+                    </RequirePersona>
+                  }
+                />
+
+                <Route path="tenants" element={<TenantsPage />} />
                   <Route path="tenants/:tenantId" element={<TenantDetailPage />} />
 
                   <Route

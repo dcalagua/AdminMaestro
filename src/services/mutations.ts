@@ -106,6 +106,22 @@ export function useEndProductAgreement() {
 }
 
 /* ==========================================================================
+   Onboarding (venta completa)
+   ========================================================================== */
+
+/**
+ * Convierte una venta en tenant + suscripción + líneas + atribución +
+ * provisioning DRY_RUN, en UNA transacción de base de datos. Si algo falla no
+ * queda ni un tenant huérfano.
+ */
+export function useOnboardCustomer() {
+  return useRpc('onboard_customer_subscription', [
+    'tenant-overview', 'subscriptions', 'attributions', 'provisioning-requests',
+    'organizations', 'organization', 'partner-agreements',
+  ]);
+}
+
+/* ==========================================================================
    Tenants
    ========================================================================== */
 
@@ -124,6 +140,19 @@ export function useUpdateTenant() {
 
 export function useSetTenantFeature() {
   return useRpc('set_tenant_feature', ['tenant-features', 'feature-flags']);
+}
+
+/** Suspende el tenant Y encola el trabajo de infraestructura, en una transacción. */
+export function useRequestTenantSuspension() {
+  return useRpc('request_tenant_suspension', [
+    'tenant-overview', 'tenant', 'provisioning-requests',
+  ]);
+}
+
+export function useRequestTenantResume() {
+  return useRpc('request_tenant_resume', [
+    'tenant-overview', 'tenant', 'provisioning-requests',
+  ]);
 }
 
 /* ==========================================================================

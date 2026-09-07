@@ -9,8 +9,8 @@
 | 02 CRUD Admin | **PASS** | `20260907000100_admin_write_rpcs.sql` (25 RPCs SECURITY DEFINER auditadas) + `src/services/mutations.ts` + diálogos en 9 páginas. Autorización negativa verificada en DB (partner admin y anon -> 42501). Corregido R-03: `.js` emitidos en `src/` congelaban el bundle. |
 | 03 Suite | **PASS** | `ProductDetailPage` con 6 tabs (Resumen/Planes/Partners/Tenants/Finanzas/Deployments) + alta/edición/archivado de producto y planes desde UI. Gate verificado: sexto producto `efield` creado extremo a extremo solo con RPCs, sin código ni migración nueva. |
 | 04 Partners | **PASS** | `20260907000200_channel_agreements_v2.sql`: acuerdo con `allowed_deployment_modes`, `allowed_tenant_types`, `billing_responsibility`, `max_tenants` + trigger `enforce_agreement_scope` + vista `v_partner_agreements` (security_invoker) + `AgreementFormDialog`. |
-| 05 Tenants/Licensing | NOT_STARTED | |
-| 06 Dedicated | NOT_STARTED | |
+| 05 Tenants/Licensing | **PASS** | `20260907000300_onboarding_rpc.sql`: `onboard_customer_subscription()` atómica + `current_plan_price()` + wizard `/onboarding` de 5 pasos. Verificado: MRR 850 con implementación 1500 ONE_TIME fuera del MRR; 0 tenant_memberships; DEMO sin recurrente; fallo de correo operador no deja tenant huérfano. |
+| 06 Dedicated | **PASS** | `request_tenant_suspension` / `request_tenant_resume` (estado + cola en una transacción) + acciones en TenantDetailPage + alta/edición de targets y adjuntar tenant (Fase 02). Aislamiento verificado en DB. |
 | 07 Collection | NOT_STARTED | |
 | 08 OS/OC | NOT_STARTED | |
 | 09 Culqi Architecture | NOT_STARTED | |

@@ -1,14 +1,20 @@
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   useTenant, useTenantFeatures, useTenantAttributions, useSubscriptions,
   useTenantMargin, useProvisioningRequests, useAuditLogs,
 } from '@/services/queries';
+import { useRequestTenantSuspension, useRequestTenantResume } from '@/services/mutations';
 import { useAuth } from '@/hooks/useAuth';
+import { usePermissions } from '@/hooks/usePermissions';
 import { isFinance, canManagePlatform } from '@/features/auth/session';
 import { SectionTabs } from '@/components/ui/SectionTabs';
 import {
   PageContainer, Card, DataTable, StatCard, LoadingState, ErrorState, EmptyState, Badge,
 } from '@/components/ui/primitives';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useToast } from '@/components/ui/toast-context';
+import { businessErrorMessage } from '@/lib/pgError';
 import { formatMoney, formatDate, formatDateTime } from '@/lib/format';
 import { DEPLOYMENT_MODE_LABEL, TENANT_TYPE_LABEL, TENANT_STATUS_LABEL, PROVISIONING_STATUS_LABEL } from '@/types/domain';
 
@@ -29,6 +35,36 @@ export function TenantDetailPage() {
   const margins = useTenantMargin();
   const provisioning = useProvisioningRequests();
   const audit = useAuditLogs();
+  const perms = usePermissions();
+  const toast = useToast();
+  const suspend = useRequestTenantSuspension();
+  const resume = useRequestTenantResume();
+  const [pendingAction, setPendingAction] = useState<'SUSPEND' | 'RESUME' | null>(null);
+
+  /**
+   * Suspender y reanudar pasan por RPC: cambian el estado del tenant Y encolan el
+   * trabajo de infraestructura en la misma transacción. Un UPDATE suelto dejaría
+   * el tenant apagado en la consola y encendido en la infraestructura.
+   */
+  async function applyAction() {
+    if (!pendingAction || !tenantId) return;
+    try {
+      if (pendingAction === 'SUSPEND') {
+        await suspend.mutateAsync({
+          p_tenant_id: tenantId,
+          p_reason: 'Suspensión solicitada desde la consola',
+        });
+        toast.success('Tenant suspendido', 'Se encoló la solicitud SUSPEND_TENANT en DRY_RUN.');
+      } else {
+        await resume.mutateAsync({ p_tenant_id: tenantId });
+        toast.success('Tenant reactivado', 'Se encoló la solicitud RESUME_TENANT en DRY_RUN.');
+      }
+    } catch (error) {
+      toast.error('No se pudo aplicar el cambio', businessErrorMessage(error));
+    } finally {
+      setPendingAction(null);
+    }
+  }
 
   if (tenant.isLoading) return <LoadingState />;
   if (tenant.error) return <ErrorState error={tenant.error} />;
@@ -59,7 +95,7 @@ export function TenantDetailPage() {
       description={`${t.product_lockup} · ${t.customer_name}${t.managing_name ? ` · administrado por ${t.managing_name}` : ' · venta directa EBIM'}`}
       breadcrumbs={<Link className="text-xs text-muted hover:text-fg" to="/tenants">← Tenants</Link>}
       actions={
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           <Badge tone={t.tenant_type === 'PRODUCTION' ? 'ok' : 'info'}>
             {TENANT_TYPE_LABEL[t.tenant_type as keyof typeof TENANT_TYPE_LABEL]}
           </Badge>
@@ -69,6 +105,22 @@ export function TenantDetailPage() {
           <Badge tone={t.status === 'ACTIVE' ? 'ok' : 'warn'}>
             {TENANT_STATUS_LABEL[t.status as keyof typeof TENANT_STATUS_LABEL]}
           </Badge>
+          {perms.canManagePlatform && t.status === 'ACTIVE' ? (
+            <button
+              type="button" className="ebim-btn-ghost ml-2"
+              onClick={() => setPendingAction('SUSPEND')}
+            >
+              Suspender
+            </button>
+          ) : null}
+          {perms.canManagePlatform && t.status === 'SUSPENDED' ? (
+            <button
+              type="button" className="ebim-btn-primary ml-2"
+              onClick={() => setPendingAction('RESUME')}
+            >
+              Reactivar
+            </button>
+          ) : null}
         </div>
       }
     >
@@ -316,6 +368,20 @@ export function TenantDetailPage() {
             ),
           },
         ]}
+      />
+
+      <ConfirmDialog
+        open={pendingAction !== null}
+        title={pendingAction === 'SUSPEND' ? '¿Suspender este tenant?' : '¿Reactivar este tenant?'}
+        message={
+          pendingAction === 'SUSPEND'
+            ? 'El tenant queda suspendido y se encola una solicitud SUSPEND_TENANT en DRY_RUN. El motivo queda en auditoría.'
+            : 'El tenant vuelve a estado activo y se encola una solicitud RESUME_TENANT en DRY_RUN.'
+        }
+        confirmLabel={pendingAction === 'SUSPEND' ? 'Suspender' : 'Reactivar'}
+        tone={pendingAction === 'SUSPEND' ? 'danger' : 'primary'}
+        onConfirm={() => void applyAction()}
+        onCancel={() => setPendingAction(null)}
       />
     </PageContainer>
   );

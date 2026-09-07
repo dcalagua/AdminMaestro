@@ -26,6 +26,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/partners', label: 'Partners / Resellers', group: 'Cuentas', personas: ['EBIM', 'PARTNER'] },
   { to: '/customers', label: 'Clientes', group: 'Cuentas', personas: ['EBIM', 'PARTNER'] },
   { to: '/tenants', label: 'Tenants', group: 'Cuentas' },
+  { to: '/onboarding', label: 'Nueva venta', group: 'Cuentas', personas: ['EBIM'] },
 
   { to: '/sales-agents', label: 'Comerciales', group: 'Comercial', personas: ['EBIM', 'PARTNER'] },
   { to: '/attributions', label: 'Atribuciones', group: 'Comercial' },
