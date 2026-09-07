@@ -252,6 +252,44 @@ export function useExpireDocuments() {
 }
 
 /* ==========================================================================
+   Renovaciones y finanzas (Fases 11-13)
+   ========================================================================== */
+
+const ALERT_KEYS = ['billing-alerts', 'renewal-dashboard', 'finance-reconciliation'];
+
+/** Recalcula el trabajo pendiente. Determinista e idempotente; no suspende nada. */
+export function useRefreshBillingAlerts() {
+  return useRpc('refresh_billing_alerts', ALERT_KEYS);
+}
+
+/** ÚNICA vía que suspende por impago, y solo donde la política lo autoriza. */
+export function useApplyDueSuspensions() {
+  return useRpc('apply_due_suspensions', [
+    ...ALERT_KEYS, 'tenant-overview', 'tenant', 'provisioning-requests',
+  ]);
+}
+
+export function useSetAlertStatus() {
+  return useRpc('set_billing_alert_status', ALERT_KEYS);
+}
+
+/** Revierte un cobro con contra-eventos de comisión. No borra historia. */
+export function useReversePayment() {
+  return useRpc('reverse_payment', [
+    'invoices', 'commission-events', 'commission-detail', 'settlements',
+    'finance-reconciliation', 'product-finance', 'partner-finance',
+  ]);
+}
+
+/** Cobro por transferencia o acuerdo manual. Devenga comisión como cualquier cobro. */
+export function useConfirmManualPayment() {
+  return useRpc('confirm_manual_payment', [
+    'invoices', 'commission-events', 'commission-detail',
+    'finance-reconciliation', 'product-finance', 'partner-finance', ...ALERT_KEYS,
+  ]);
+}
+
+/* ==========================================================================
    Infraestructura
    ========================================================================== */
 

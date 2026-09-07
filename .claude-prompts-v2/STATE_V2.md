@@ -15,10 +15,10 @@
 | 08 OS/OC | **PASS** | `20260907000500_commercial_documents.sql`: `subscription_commercial_documents` con máquina de estados REQUESTED->RECEIVED->APPROVED/REJECTED/EXPIRED/CANCELLED, 5 RPCs, `expire_commercial_documents` idempotente y vista `v_subscription_documents`. Verificado que aprobar NO crea payment ni comisión. |
 | 09 Culqi Architecture | **PASS** | `docs/payments/CULQI_ARCHITECTURE.md` con diagramas Mermaid, mapeo local<->Culqi, llaves, idempotencia, reconciliación, fallos y checklist de activación PRD. Fuentes: solo documentación oficial, consultada el 2026-09-07 y citada con lo verificado y lo NO verificado. |
 | 10 Culqi Implementation | **PASS** (MOCK/TEST) | `20260907000600_payment_provider_mappings.sql` (5 tablas + `register_provider_payment` idempotente + vista de reconciliación) · adapter en `supabase/functions/_shared/payments/` (types/culqi/mock/index) · Edge Functions `payment-setup`, `culqi-webhook` (verify_jwt=false), `payment-reconcile` · panel Culqi en la UI. **BLOQUEO EXTERNO:** sin credenciales Culqi, opera en MOCK. |
-| 11 Renewals | NOT_STARTED | |
-| 12 Commissions | NOT_STARTED | |
-| 13 Finance | NOT_STARTED | |
-| 14 UI | NOT_STARTED | |
+| 11 Renewals | **PASS** | `20260907000700_billing_alerts_and_renewals.sql`: `billing_alerts` con `dedupe_key`, `next_renewal_date()` inmutable, `refresh_billing_alerts(p_as_of)` determinista, `apply_due_suspensions()` separada, resolución automática al cobrar y vista `v_renewal_dashboard`. UI en `/renewals`. |
+| 12 Commissions | **PASS** | `20260907000800`: contra-eventos negativos (`reversal_of_event_id`), CHECK reescrito (devengo >= 0, reverso <= 0), índice de idempotencia con discriminante, `reverse_payment()` y `confirm_manual_payment()`, vista `v_commission_detail` con el origen legible. |
+| 13 Finance | **PASS** | Vistas `v_finance_reconciliation` (6 tipos de hallazgo), `v_product_finance` (licencia/implementación/infra/soporte por moneda) y `v_partner_finance` (margen de canal y comisión de agentes en columnas SEPARADAS). UI en `/reconciliation`. |
+| 14 UI | **PASS** | Navegación reorganizada por el recorrido de una venta (Plataforma/Comercial/Tenancy/Cobranza/Infraestructura/Gobierno) + páginas nuevas `/onboarding`, `/subscriptions/:id`, `/renewals`, `/reconciliation`. Tests de navegación ampliados a 32. |
 | 15 Seed | NOT_STARTED | |
 | 16 Security/DB tests | NOT_STARTED | |
 | 17 E2E | NOT_STARTED | |

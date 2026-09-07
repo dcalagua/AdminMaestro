@@ -27,6 +27,8 @@ import { SubscriptionsPage } from '@/features/billing/SubscriptionsPage';
 import { SubscriptionDetailPage } from '@/features/billing/SubscriptionDetailPage';
 import { BillingPage } from '@/features/billing/BillingPage';
 import { CostsPage } from '@/features/billing/CostsPage';
+import { RenewalsPage } from '@/features/billing/RenewalsPage';
+import { ReconciliationPage } from '@/features/billing/ReconciliationPage';
 import { DeploymentsPage } from '@/features/deployments/DeploymentsPage';
 import { ProvisioningPage } from '@/features/deployments/ProvisioningPage';
 import { AuditPage } from '@/features/settings/AuditPage';
@@ -152,6 +154,22 @@ export function App() {
                     element={
                       <RequirePersona personas={['EBIM', 'PARTNER']}>
                         <BillingPage />
+                      </RequirePersona>
+                    }
+                  />
+                  <Route
+                    path="renewals"
+                    element={
+                      <RequirePersona personas={['EBIM', 'PARTNER']}>
+                        <RenewalsPage />
+                      </RequirePersona>
+                    }
+                  />
+                  <Route
+                    path="reconciliation"
+                    element={
+                      <RequirePersona personas={['EBIM']}>
+                        <ReconciliationPage />
                       </RequirePersona>
                     }
                   />

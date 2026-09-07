@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import type { DashboardSummary } from '@/types/domain';
+import type { DashboardSummary, Enums } from '@/types/domain';
 
 /**
  * Capa de acceso a datos.
@@ -328,6 +328,74 @@ export function useInvoices() {
           .select('*, organizations(display_name), invoice_lines(*), payments(*)')
           .order('issue_date', { ascending: false, nullsFirst: false })
           .limit(200),
+      ),
+  });
+}
+
+/* ==========================================================================
+   Renovaciones y finanzas (Fases 11-13)
+   ========================================================================== */
+
+/** Trabajo de cobranza pendiente. Se materializa con `refresh_billing_alerts`. */
+export function useBillingAlerts(status: Enums<'billing_alert_status'> = 'OPEN') {
+  return useQuery({
+    queryKey: ['billing-alerts', status],
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('billing_alerts')
+          .select('*, subscriptions(code, saas_products(short_name), organizations!subscriptions_billed_organization_id_fkey(display_name))')
+          .eq('status', status)
+          .order('due_at'),
+      ),
+  });
+}
+
+/** Cartera por ventana de renovación (7/15/30/45/60 días). */
+export function useRenewalDashboard() {
+  return useQuery({
+    queryKey: ['renewal-dashboard'],
+    queryFn: async () =>
+      unwrap(await supabase.from('v_renewal_dashboard').select('*').order('renewal_on')),
+  });
+}
+
+/** Hallazgos de conciliación. Describe; no corrige. */
+export function useFinanceReconciliation() {
+  return useQuery({
+    queryKey: ['finance-reconciliation'],
+    queryFn: async () =>
+      unwrap(await supabase.from('v_finance_reconciliation').select('*')),
+  });
+}
+
+export function useProductFinance() {
+  return useQuery({
+    queryKey: ['product-finance'],
+    queryFn: async () =>
+      unwrap(await supabase.from('v_product_finance').select('*').order('product_code')),
+  });
+}
+
+export function usePartnerFinance() {
+  return useQuery({
+    queryKey: ['partner-finance'],
+    queryFn: async () =>
+      unwrap(await supabase.from('v_partner_finance').select('*').order('organization_name')),
+  });
+}
+
+/** Comisiones con su origen legible (licencia, implementación, reverso…). */
+export function useCommissionDetail() {
+  return useQuery({
+    queryKey: ['commission-detail'],
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('v_commission_detail')
+          .select('*')
+          .order('earned_on', { ascending: false })
+          .limit(300),
       ),
   });
 }

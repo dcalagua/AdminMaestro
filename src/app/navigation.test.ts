@@ -39,8 +39,30 @@ describe('navegación por perfil', () => {
   });
 
   it('agrupa manteniendo el orden de declaración', () => {
+    // La Fase 14 reordena el menú siguiendo el recorrido de una venta:
+    // Plataforma -> Comercial -> Tenancy -> Cobranza -> Infraestructura -> Gobierno.
     const grupos = navGroupsFor('EBIM').map((g) => g.group);
-    expect(grupos[0]).toBe('General');
+    expect(grupos[0]).toBe('Plataforma');
+    expect(grupos).toEqual([
+      'Plataforma', 'Comercial', 'Tenancy', 'Cobranza', 'Infraestructura', 'Gobierno',
+    ]);
     expect(new Set(grupos).size).toBe(grupos.length);
+  });
+
+  it('la reconciliación financiera es solo de EBIM', () => {
+    // Cruza cobros de todos los clientes y estados del proveedor de pago: no es
+    // información de un partner. RLS lo bloquea además en la base.
+    expect(navItemsFor('PARTNER').map((i) => i.to)).not.toContain('/reconciliation');
+    expect(navItemsFor('EBIM').map((i) => i.to)).toContain('/reconciliation');
+  });
+
+  it('el alta de cliente es solo de EBIM', () => {
+    // `onboard_customer_subscription` exige rol de plataforma o finanzas.
+    expect(navItemsFor('PARTNER').map((i) => i.to)).not.toContain('/onboarding');
+    expect(navItemsFor('SALES_AGENT').map((i) => i.to)).not.toContain('/onboarding');
+  });
+
+  it('un partner sí ve las renovaciones de su cartera', () => {
+    expect(navItemsFor('PARTNER').map((i) => i.to)).toContain('/renewals');
   });
 });
