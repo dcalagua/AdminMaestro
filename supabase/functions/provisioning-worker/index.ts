@@ -34,10 +34,86 @@ Deno.serve(async (req: Request) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!supabaseUrl || !serviceKey) {
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+  if (!supabaseUrl || !serviceKey || !anonKey) {
     return json({ error: 'CONFIGURACION_INCOMPLETA: faltan credenciales del servidor' }, 500);
   }
 
+  /*
+   * ============================ AUTORIZACIÓN ============================
+   *
+   * `verify_jwt = true` solo demuestra que quien llama trae un JWT válido —
+   * es decir, que ha iniciado sesión. NO demuestra que pueda aprovisionar
+   * infraestructura. Antes de este bloque, este worker construía el cliente
+   * `service_role` de inmediato: cualquier usuario autenticado, incluido un
+   * TENANT_USER, podía hacer avanzar la máquina de estados de provisioning
+   * enviando únicamente un UUID de solicitud.
+   *
+   * Hay DOS canales legítimos, y se distinguen explícitamente:
+   *
+   *   1. SERVIDOR (cron, otra Edge Function): presenta la clave de servicio en
+   *      `x-provisioning-secret`. No hay usuario detrás.
+   *   2. HUMANO desde la consola: presenta su JWT y debe superar
+   *      `platform.can_run_provisioning()` — super admin o EBIM_PRODUCT_ADMIN.
+   *
+   * Cualquier otra combinación se rechaza ANTES de tocar `service_role`.
+   */
+  const canalServidor = req.headers.get('x-provisioning-secret');
+  const esServidor = typeof canalServidor === 'string' && canalServidor === serviceKey;
+
+  if (!esServidor) {
+    const authHeader = req.headers.get('authorization') ?? '';
+    if (!authHeader.toLowerCase().startsWith('bearer ')) {
+      return json({ error: 'NO_AUTENTICADO: falta el token de sesión' }, 401);
+    }
+
+    const asUser = createClient(supabaseUrl, anonKey, {
+      db: { schema: 'platform' },
+      /*
+       * `Authorization` con A MAYÚSCULA, exactamente como la escribe supabase-js.
+       *
+       * Con `authorization` en minúscula —que es lo que había— la cabecera se
+       * DUPLICA: la nuestra y la que el cliente añade por su cuenta. La puerta de
+       * enlace responde entonces «Bad request» en texto plano, el cliente lo
+       * reporta como AuthUnknownError y esta función lo traduce a NO_AUTENTICADO.
+       *
+       * Efecto medido sobre el runtime real: 401 para TODO el mundo, incluido
+       * EBIM_FINANCE con un JWT válido. Falla cerrado, así que no abría ningún
+       * hueco; simplemente dejaba la función inservible sin decir por qué.
+       */
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    // El token se pasa EXPLÍCITAMENTE en vez de confiar en que el cliente lo
+    // deduzca de la cabecera: en una Edge Function no hay sesión almacenada de
+    // la que tirar, y así la identidad no depende del transporte.
+    const bearerToken = authHeader.slice('bearer '.length).trim();
+    const { data: userData, error: userError } = await asUser.auth.getUser(bearerToken);
+    if (userError || !userData?.user) {
+      return json({ error: 'NO_AUTENTICADO: sesión inválida' }, 401);
+    }
+
+    // Booleano explícito desde la base. Nunca «no hubo error, luego puede».
+    const { data: puedeAprovisionar, error: authzError } =
+      await asUser.rpc('can_run_provisioning');
+
+    if (authzError) {
+      return json({ error: 'NO_AUTORIZADO', message: 'No se pudo verificar la autorización' }, 403);
+    }
+    if (puedeAprovisionar !== true) {
+      return json(
+        {
+          error: 'NO_AUTORIZADO',
+          message:
+            'Ejecutar el worker de provisioning exige super admin o EBIM_PRODUCT_ADMIN. ' +
+            'Un JWT válido no es autorización.',
+        },
+        403,
+      );
+    }
+  }
+
+  // Solo aquí, superado el gate, se asume el rol de servidor.
   const admin = createClient(supabaseUrl, serviceKey, { db: { schema: 'platform' } });
 
   let body: RequestBody;

@@ -18,11 +18,19 @@ import {
 
 interface SetupBody {
   subscription_id: string;
-  provider_account_id?: string;
+  /**
+   * `provider_account_id` NO forma parte del contrato: la cuenta de cobro la
+   * resuelve el servidor desde la configuración de la suscripción. Ver §resolución
+   * de cuenta más abajo.
+   */
   /** Token efímero del Checkout. Un solo uso. */
   token: string;
   accepted_terms: boolean;
-  customer?: { email?: string; first_name?: string; last_name?: string };
+  /*
+   * `customer` YA NO forma parte del contrato: los datos fiscales se leen de la
+   * organización. Aceptarlos por petición permitía enviar a la pasarela un
+   * nombre o un domicilio distintos de los del titular registrado.
+   */
 }
 
 Deno.serve(async (req: Request) => {
@@ -45,10 +53,26 @@ Deno.serve(async (req: Request) => {
   // UI. Es lo que garantiza que no pueda configurar el cobro de otro cliente.
   const asUser = createClient(supabaseUrl, anonKey, {
     db: { schema: 'platform' },
-    global: { headers: { authorization: authHeader } },
+    /*
+     * `Authorization` con A MAYÚSCULA, exactamente como la escribe supabase-js.
+     *
+     * Con `authorization` en minúscula —que es lo que había— la cabecera se
+     * DUPLICA: la nuestra y la que el cliente añade por su cuenta. La puerta de
+     * enlace responde entonces «Bad request» en texto plano, el cliente lo
+     * reporta como AuthUnknownError y esta función lo traduce a NO_AUTENTICADO.
+     *
+     * Efecto medido sobre el runtime real: 401 para TODO el mundo, incluido
+     * EBIM_FINANCE con un JWT válido. Falla cerrado, así que no abría ningún
+     * hueco; simplemente dejaba la función inservible sin decir por qué.
+     */
+    global: { headers: { Authorization: authHeader } },
   });
 
-  const { data: userData, error: userError } = await asUser.auth.getUser();
+  // El token se pasa EXPLÍCITAMENTE en vez de confiar en que el cliente lo
+  // deduzca de la cabecera: en una Edge Function no hay sesión almacenada de
+  // la que tirar, y así la identidad no depende del transporte.
+  const bearerToken = authHeader.slice('bearer '.length).trim();
+  const { data: userData, error: userError } = await asUser.auth.getUser(bearerToken);
   if (userError || !userData?.user) {
     return json({ error: 'NO_AUTENTICADO: sesión inválida' }, 401);
   }
@@ -94,9 +118,39 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  const accountId = body.provider_account_id ?? collection.provider_account_id;
+  /*
+   * RESOLUCIÓN DE LA CUENTA DE COBRO — SERVER-SIDE, SIN INPUT DEL CLIENTE.
+   *
+   * Antes esto era `body.provider_account_id ?? collection.provider_account_id`,
+   * de modo que un valor enviado por el navegador GANABA sobre la configuración.
+   * Un cliente podía apuntar el alta de su tarjeta a la cuenta de comercio de
+   * OTRO partner: el Customer, la Card y la Subscription se habrían creado en la
+   * pasarela ajena, y los cobros habrían entrado en la cuenta equivocada.
+   *
+   * Que los UUID sean difíciles de adivinar no es un control de acceso. La
+   * cuenta se deriva ahora exclusivamente de:
+   *
+   *     subscription -> collection profile -> payment_provider_account
+   *
+   * Si el cliente envía `provider_account_id`, se IGNORA salvo que coincida
+   * exactamente con la configurada; si difiere, se rechaza en vez de callar,
+   * porque una discrepancia significa que alguien lo está intentando.
+   */
+  const accountId = collection.provider_account_id;
   if (!accountId) {
-    return json({ error: 'PROVEEDOR_REQUERIDO: la suscripción no tiene cuenta de proveedor' }, 409);
+    return json({ error: 'PROVEEDOR_REQUERIDO: la suscripción no tiene cuenta de proveedor configurada' }, 409);
+  }
+
+  const cuentaSolicitada = (body as Record<string, unknown>).provider_account_id;
+  if (typeof cuentaSolicitada === 'string' && cuentaSolicitada !== accountId) {
+    return json(
+      {
+        error: 'CUENTA_PROVEEDOR_NO_COINCIDE',
+        message:
+          'La cuenta de cobro la determina la configuración de la suscripción, no la petición.',
+      },
+      403,
+    );
   }
 
   // ---- A partir de aquí, servidor -------------------------------------------
@@ -161,17 +215,32 @@ Deno.serve(async (req: Request) => {
     .eq('currency', subscription.currency)
     .maybeSingle();
 
-  const { data: organization } = await admin
-    .from('organizations')
-    .select('display_name, billing_email, country_code')
-    .eq('id', subscription.billed_organization_id)
+  /*
+   * Datos de facturación del titular.
+   *
+   * La pasarela exige siete campos para el Customer. Se leen de la vista de
+   * preparación, que además dice cuáles faltan, en lugar de rellenarlos con
+   * literales: un domicilio inventado viaja al proveedor y acaba en el recibo
+   * del cliente. Si falta alguno, el alta se detiene aquí con la lista exacta.
+   */
+  const { data: readiness } = await admin
+    .from('v_billing_contact_readiness')
+    .select('*')
+    .eq('organization_id', subscription.billed_organization_id)
     .maybeSingle();
 
-  const email = body.customer?.email ?? organization?.billing_email ?? null;
-  if (!email) {
+  if (!readiness) return json({ error: 'ORGANIZACION_NO_ENCONTRADA' }, 404);
+
+  if (readiness.ready_for_card_payment !== true) {
     return json(
-      { error: 'CORREO_REQUERIDO: el proveedor exige un correo de facturación para el cliente' },
-      400,
+      {
+        error: 'DATOS_FACTURACION_INCOMPLETOS',
+        message:
+          'Faltan datos de facturación exigidos por la pasarela. Complétalos en la ficha ' +
+          'de la organización antes de domiciliar el cobro.',
+        missing_fields: readiness.missing_fields ?? [],
+      },
+      409,
     );
   }
 
@@ -181,10 +250,15 @@ Deno.serve(async (req: Request) => {
       token: body.token,
       customer: {
         organizationId: subscription.billed_organization_id,
-        email,
-        firstName: body.customer?.first_name ?? (organization?.display_name ?? 'Cliente'),
-        lastName: body.customer?.last_name ?? 'EBIM',
-        countryCode: organization?.country_code ?? 'PE',
+        // Todo sale de la ficha de la organización: el cuerpo de la petición no
+        // puede reescribir los datos fiscales que van a la pasarela.
+        email: String(readiness.billing_email),
+        firstName: String(readiness.billing_first_name),
+        lastName: String(readiness.billing_last_name),
+        address: String(readiness.billing_address),
+        addressCity: String(readiness.billing_city),
+        phoneNumber: String(readiness.billing_phone),
+        countryCode: String(readiness.country_code),
         externalCustomerId: existingCustomer?.external_customer_id ?? null,
       },
       plan: {

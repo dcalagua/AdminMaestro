@@ -59,19 +59,52 @@ Deno.serve(async (req: Request) => {
 
   const asUser = createClient(supabaseUrl, anonKey, {
     db: { schema: 'platform' },
-    global: { headers: { authorization: authHeader } },
+    /*
+     * `Authorization` con A MAYÚSCULA, exactamente como la escribe supabase-js.
+     *
+     * Con `authorization` en minúscula —que es lo que había— la cabecera se
+     * DUPLICA: la nuestra y la que el cliente añade por su cuenta. La puerta de
+     * enlace responde entonces «Bad request» en texto plano, el cliente lo
+     * reporta como AuthUnknownError y esta función lo traduce a NO_AUTENTICADO.
+     *
+     * Efecto medido sobre el runtime real: 401 para TODO el mundo, incluido
+     * EBIM_FINANCE con un JWT válido. Falla cerrado, así que no abría ningún
+     * hueco; simplemente dejaba la función inservible sin decir por qué.
+     */
+    global: { headers: { Authorization: authHeader } },
   });
 
-  const { data: userData, error: userError } = await asUser.auth.getUser();
+  // El token se pasa EXPLÍCITAMENTE en vez de confiar en que el cliente lo
+  // deduzca de la cabecera: en una Edge Function no hay sesión almacenada de
+  // la que tirar, y así la identidad no depende del transporte.
+  const bearerToken = authHeader.slice('bearer '.length).trim();
+  const { data: userData, error: userError } = await asUser.auth.getUser(bearerToken);
   if (userError || !userData?.user) return json({ error: 'NO_AUTENTICADO' }, 401);
 
-  // RLS decide: si no puede leer los eventos del proveedor, no es finanzas.
-  const { error: probeError } = await asUser
-    .from('provider_webhook_events')
-    .select('id')
-    .limit(1);
-  if (probeError) {
-    return json({ error: 'NO_AUTORIZADO: la reconciliación exige rol financiero' }, 403);
+  /*
+   * AUTORIZACIÓN EXPLÍCITA.
+   *
+   * Lo que había aquí antes era un `select` sobre una tabla con RLS seguido de
+   * «si no hubo error, está autorizado». Eso NO es un control de acceso: una
+   * política RLS que no concede acceso no devuelve un error, devuelve CERO
+   * FILAS. `error` venía `null` para cualquier usuario autenticado, así que un
+   * TENANT_USER superaba el gate y la función construía a continuación un
+   * cliente `service_role` con acceso total.
+   *
+   * Ahora se pregunta a la base, explícitamente, por un booleano.
+   */
+  const { data: puedeLeerFinanzas, error: authzError } = await asUser.rpc('can_read_finance');
+
+  if (authzError) {
+    return json({ error: 'NO_AUTORIZADO', message: 'No se pudo verificar la autorización' }, 403);
+  }
+  // Comparación estricta contra `true`: ni null, ni undefined, ni un objeto
+  // vacío pueden colarse como autorización.
+  if (puedeLeerFinanzas !== true) {
+    return json(
+      { error: 'NO_AUTORIZADO', message: 'La reconciliación exige rol financiero (EBIM_FINANCE o super admin)' },
+      403,
+    );
   }
 
   let body: ReconcileBody = {};
@@ -85,6 +118,8 @@ Deno.serve(async (req: Request) => {
   const from = body.from ?? new Date(Date.now() - 30 * 86_400_000).toISOString();
   const accountCode = body.account_code ?? 'culqi-pe-test';
 
+  // A partir de AQUÍ, y solo tras superar el gate de autorización, se asume
+  // el rol de servidor. Antes de esta línea no existe ningún cliente privilegiado.
   const admin = createClient(supabaseUrl, serviceKey, { db: { schema: 'platform' } });
 
   const { data: accountRow } = await admin

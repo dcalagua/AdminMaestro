@@ -434,3 +434,10 @@ verify_jwt = true
 # payload, verificación server-to-server del cargo y correlación obligatoria
 # con una suscripción existente. NO se inventa una firma.
 verify_jwt = false
+
+[functions.provisioning-worker]
+# Exige JWT, pero eso NO basta: la función comprueba además
+# `platform.can_run_provisioning()` (super admin o EBIM_PRODUCT_ADMIN) antes de
+# asumir el rol de servidor. Un JWT válido demuestra sesión, no autorización.
+# El canal servidor-a-servidor usa la cabecera `x-provisioning-secret`.
+verify_jwt = true
