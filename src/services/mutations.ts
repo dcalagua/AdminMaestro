@@ -94,6 +94,17 @@ export function useUpsertCompany() {
   return useRpc('upsert_company', ['organization', 'organizations']);
 }
 
+/** Condiciones de un canal para UN producto. Un partner puede tener N acuerdos. */
+export function useUpsertProductAgreement() {
+  return useRpc('upsert_product_agreement', [
+    'agreements', 'partner-agreements', 'organization', 'organizations',
+  ]);
+}
+
+export function useEndProductAgreement() {
+  return useRpc('end_product_agreement', ['agreements', 'partner-agreements', 'organization']);
+}
+
 /* ==========================================================================
    Tenants
    ========================================================================== */

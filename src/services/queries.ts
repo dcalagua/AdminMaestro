@@ -95,6 +95,25 @@ export function useOrganizationAgreements(organizationId?: string) {
   });
 }
 
+/**
+ * Acuerdos de canal con su uso real (tenants administrados, MRR atribuible).
+ * La vista es `security_invoker`, así que un partner admin solo ve los suyos.
+ */
+export function usePartnerAgreements(organizationId?: string) {
+  return useQuery({
+    queryKey: ['partner-agreements', organizationId ?? 'all'],
+    queryFn: async () => {
+      let q = supabase
+        .from('v_partner_agreements')
+        .select('*')
+        .order('organization_name')
+        .order('product_code');
+      if (organizationId) q = q.eq('organization_id', organizationId);
+      return unwrap(await q);
+    },
+  });
+}
+
 export function useTenantOverview() {
   return useQuery({
     queryKey: ['tenant-overview'],

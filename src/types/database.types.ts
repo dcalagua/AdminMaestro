@@ -1305,12 +1305,17 @@ export type Database = {
       }
       organization_product_agreements: {
         Row: {
+          allowed_deployment_modes: Database["platform"]["Enums"]["deployment_mode"][]
+          allowed_tenant_types: Database["platform"]["Enums"]["tenant_type"][]
+          billing_responsibility: Database["platform"]["Enums"]["billing_responsibility"]
           can_manage_tenants: boolean
           can_resell: boolean
           created_at: string
           default_deployment_mode: Database["platform"]["Enums"]["deployment_mode"]
           id: string
           margin_rate: number
+          max_tenants: number | null
+          notes: string | null
           organization_id: string
           saas_product_id: string
           status: Database["platform"]["Enums"]["entity_status"]
@@ -1320,12 +1325,17 @@ export type Database = {
           valid_to: string | null
         }
         Insert: {
+          allowed_deployment_modes?: Database["platform"]["Enums"]["deployment_mode"][]
+          allowed_tenant_types?: Database["platform"]["Enums"]["tenant_type"][]
+          billing_responsibility?: Database["platform"]["Enums"]["billing_responsibility"]
           can_manage_tenants?: boolean
           can_resell?: boolean
           created_at?: string
           default_deployment_mode?: Database["platform"]["Enums"]["deployment_mode"]
           id?: string
           margin_rate?: number
+          max_tenants?: number | null
+          notes?: string | null
           organization_id: string
           saas_product_id: string
           status?: Database["platform"]["Enums"]["entity_status"]
@@ -1335,12 +1345,17 @@ export type Database = {
           valid_to?: string | null
         }
         Update: {
+          allowed_deployment_modes?: Database["platform"]["Enums"]["deployment_mode"][]
+          allowed_tenant_types?: Database["platform"]["Enums"]["tenant_type"][]
+          billing_responsibility?: Database["platform"]["Enums"]["billing_responsibility"]
           can_manage_tenants?: boolean
           can_resell?: boolean
           created_at?: string
           default_deployment_mode?: Database["platform"]["Enums"]["deployment_mode"]
           id?: string
           margin_rate?: number
+          max_tenants?: number | null
+          notes?: string | null
           organization_id?: string
           saas_product_id?: string
           status?: Database["platform"]["Enums"]["entity_status"]
@@ -3181,6 +3196,91 @@ export type Database = {
           },
         ]
       }
+      v_partner_agreements: {
+        Row: {
+          agreement_id: string | null
+          allowed_deployment_modes:
+            | Database["platform"]["Enums"]["deployment_mode"][]
+            | null
+          allowed_tenant_types:
+            | Database["platform"]["Enums"]["tenant_type"][]
+            | null
+          billing_responsibility:
+            | Database["platform"]["Enums"]["billing_responsibility"]
+            | null
+          can_manage_tenants: boolean | null
+          can_resell: boolean | null
+          channel_mrr: number | null
+          default_deployment_mode:
+            | Database["platform"]["Enums"]["deployment_mode"]
+            | null
+          managed_tenants: number | null
+          margin_rate: number | null
+          max_tenants: number | null
+          notes: string | null
+          organization_id: string | null
+          organization_name: string | null
+          organization_slug: string | null
+          product_code: string | null
+          product_short_name: string | null
+          saas_product_id: string | null
+          shared_tenants: number | null
+          status: Database["platform"]["Enums"]["entity_status"] | null
+          valid_from: string | null
+          valid_to: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_product_agreements_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_product_agreements_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_margin"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "organization_product_agreements_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["customer_organization_id"]
+          },
+          {
+            foreignKeyName: "organization_product_agreements_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["managing_organization_id"]
+          },
+          {
+            foreignKeyName: "organization_product_agreements_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_product_agreements_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "organization_product_agreements_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+        ]
+      }
       v_partner_margin: {
         Row: {
           collected_revenue: number | null
@@ -3474,6 +3574,10 @@ export type Database = {
       }
       effective_config: { Args: { p_company: string }; Returns: Json }
       effective_tenant_config: { Args: { p_tenant: string }; Returns: Json }
+      end_product_agreement: {
+        Args: { p_agreement_id: string; p_reason?: string; p_valid_to?: string }
+        Returns: undefined
+      }
       end_sales_attribution: {
         Args: {
           p_attribution_id: string
@@ -3708,6 +3812,27 @@ export type Database = {
         }
         Returns: string
       }
+      upsert_product_agreement: {
+        Args: {
+          p_allowed_deployment_modes?: Database["platform"]["Enums"]["deployment_mode"][]
+          p_allowed_tenant_types?: Database["platform"]["Enums"]["tenant_type"][]
+          p_billing_responsibility?: Database["platform"]["Enums"]["billing_responsibility"]
+          p_can_manage_tenants?: boolean
+          p_can_resell?: boolean
+          p_default_deployment_mode?: Database["platform"]["Enums"]["deployment_mode"]
+          p_id?: string
+          p_margin_rate?: number
+          p_max_tenants?: number
+          p_notes?: string
+          p_organization_id: string
+          p_saas_product_id: string
+          p_status?: Database["platform"]["Enums"]["entity_status"]
+          p_terms?: Json
+          p_valid_from?: string
+          p_valid_to?: string
+        }
+        Returns: string
+      }
       upsert_saas_product: {
         Args: {
           p_accent_color?: string
@@ -3766,6 +3891,7 @@ export type Database = {
         | "INBOUND"
         | "CAMPAIGN"
       billing_interval: "MONTHLY" | "QUARTERLY" | "YEARLY" | "ONE_TIME"
+      billing_responsibility: "EBIM" | "PARTNER" | "MIXED"
       charge_kind:
         | "LICENSE"
         | "PARTNER_BASE_LICENSE"
@@ -3982,6 +4108,7 @@ export const Constants = {
         "CAMPAIGN",
       ],
       billing_interval: ["MONTHLY", "QUARTERLY", "YEARLY", "ONE_TIME"],
+      billing_responsibility: ["EBIM", "PARTNER", "MIXED"],
       charge_kind: [
         "LICENSE",
         "PARTNER_BASE_LICENSE",

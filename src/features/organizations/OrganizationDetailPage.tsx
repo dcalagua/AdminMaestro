@@ -1,15 +1,23 @@
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
-  useOrganization, useOrganizationAgreements, useTenantOverview, usePartnerMargin, useSalesAgents,
+  useOrganization, usePartnerAgreements, useTenantOverview, usePartnerMargin, useSalesAgents,
 } from '@/services/queries';
+import { useEndProductAgreement } from '@/services/mutations';
 import { useAuth } from '@/hooks/useAuth';
+import { usePermissions } from '@/hooks/usePermissions';
 import { isFinance } from '@/features/auth/session';
 import { SectionTabs } from '@/components/ui/SectionTabs';
 import {
   PageContainer, Card, DataTable, StatCard, LoadingState, ErrorState, EmptyState, Badge,
 } from '@/components/ui/primitives';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useToast } from '@/components/ui/toast-context';
+import { businessErrorMessage } from '@/lib/pgError';
 import { formatMoney, formatPercent, formatNumber, formatDate } from '@/lib/format';
 import { DEPLOYMENT_MODE_LABEL, TENANT_TYPE_LABEL } from '@/types/domain';
+import { AgreementFormDialog } from './AgreementFormDialog';
+import type { AgreementDraft } from './AgreementFormDialog';
 
 /**
  * Detalle de organización, en tabs centrados con deep-link `#hash`
@@ -19,10 +27,37 @@ export function OrganizationDetailPage() {
   const { organizationId } = useParams();
   const { roles } = useAuth();
   const org = useOrganization(organizationId);
-  const agreements = useOrganizationAgreements(organizationId);
+  const agreements = usePartnerAgreements(organizationId);
   const tenants = useTenantOverview();
   const margin = usePartnerMargin();
   const agents = useSalesAgents();
+  const perms = usePermissions();
+  const toast = useToast();
+  const endAgreement = useEndProductAgreement();
+
+  const [agreementDialog, setAgreementDialog] = useState<{
+    open: boolean;
+    agreement: AgreementDraft | null;
+  }>({ open: false, agreement: null });
+  const [endingAgreement, setEndingAgreement] = useState<{ id: string; product: string } | null>(
+    null,
+  );
+
+  async function confirmEndAgreement() {
+    if (!endingAgreement) return;
+    try {
+      await endAgreement.mutateAsync({
+        p_agreement_id: endingAgreement.id,
+        p_reason: 'Cerrado desde la consola',
+      });
+      toast.success('Acuerdo cerrado', endingAgreement.product);
+    } catch (error) {
+      // La RPC bloquea si el canal aún administra tenants vivos de ese producto.
+      toast.error('No se pudo cerrar el acuerdo', businessErrorMessage(error));
+    } finally {
+      setEndingAgreement(null);
+    }
+  }
 
   if (org.isLoading) return <LoadingState />;
   if (org.error) return <ErrorState error={org.error} />;
@@ -124,26 +159,130 @@ export function OrganizationDetailPage() {
             id: 'products',
             label: 'Productos autorizados',
             content: (
-              <Card description="Un partner multi-SaaS tiene condiciones potencialmente distintas por producto (contrato §11.1).">
+              <Card
+                description="Un canal multi-SaaS tiene condiciones distintas por producto: eSupplier al 25% y WMS al 18% son dos acuerdos, no dos partners."
+                actions={
+                  perms.canManagePlatform ? (
+                    <button
+                      type="button"
+                      className="ebim-btn-ghost"
+                      onClick={() => setAgreementDialog({ open: true, agreement: null })}
+                    >
+                      Nuevo acuerdo
+                    </button>
+                  ) : null
+                }
+              >
                 {(agreements.data ?? []).length === 0 ? (
-                  <EmptyState title="Sin acuerdos de producto" description="Esta organización no está habilitada para comercializar ningún SaaS." />
+                  <EmptyState
+                    title="Sin acuerdos de producto"
+                    description="Esta organización no está habilitada para comercializar ningún SaaS."
+                    action={
+                      perms.canManagePlatform ? (
+                        <button
+                          type="button"
+                          className="ebim-btn-primary"
+                          onClick={() => setAgreementDialog({ open: true, agreement: null })}
+                        >
+                          Crear el primer acuerdo
+                        </button>
+                      ) : null
+                    }
+                  />
                 ) : (
-                  <DataTable columns={['Producto', 'Revende', 'Administra', 'Margen', 'Modelo por defecto', 'Vigencia']}>
+                  <DataTable
+                    columns={[
+                      'Producto', 'Revende', 'Administra', 'Margen', 'Modelos permitidos',
+                      'Tipos', 'Tenants', 'Factura', 'Vigencia', '',
+                    ]}
+                  >
                     {(agreements.data ?? []).map((a) => (
-                      <tr key={a.id as string}>
-                        <td className="ebim-td font-semibold">
-                          {(a.saas_products as { lockup_name: string } | null)?.lockup_name}
-                        </td>
+                      <tr key={a.agreement_id as string}>
+                        <td className="ebim-td font-semibold">{a.product_short_name}</td>
                         <td className="ebim-td">{a.can_resell ? 'Sí' : 'No'}</td>
                         <td className="ebim-td">{a.can_manage_tenants ? 'Sí' : 'No'}</td>
-                        <td className="ebim-td tabular-nums font-semibold">{formatPercent(Number(a.margin_rate))}</td>
+                        <td className="ebim-td tabular-nums font-semibold">
+                          {formatPercent(Number(a.margin_rate))}
+                        </td>
                         <td className="ebim-td">
-                          <Badge tone="accent">
-                            {DEPLOYMENT_MODE_LABEL[a.default_deployment_mode as keyof typeof DEPLOYMENT_MODE_LABEL]}
-                          </Badge>
+                          <div className="flex flex-wrap gap-1">
+                            {((a.allowed_deployment_modes ?? []) as string[]).map((m) => (
+                              <Badge
+                                key={m}
+                                tone={m === a.default_deployment_mode ? 'accent' : 'neutral'}
+                              >
+                                {DEPLOYMENT_MODE_LABEL[m as keyof typeof DEPLOYMENT_MODE_LABEL]}
+                              </Badge>
+                            ))}
+                          </div>
                         </td>
                         <td className="ebim-td text-xs text-muted">
-                          {formatDate(a.valid_from as string)} → {a.valid_to ? formatDate(a.valid_to as string) : 'sin fin'}
+                          {((a.allowed_tenant_types ?? []) as string[]).join(', ')}
+                        </td>
+                        <td className="ebim-td tabular-nums">
+                          {formatNumber(Number(a.managed_tenants))}
+                          {a.max_tenants ? (
+                            <span className="text-muted"> / {a.max_tenants}</span>
+                          ) : null}
+                          {Number(a.shared_tenants) > 0 ? (
+                            <div className="text-xs text-muted">
+                              {formatNumber(Number(a.shared_tenants))} en compartido
+                            </div>
+                          ) : null}
+                        </td>
+                        <td className="ebim-td text-xs text-muted">{a.billing_responsibility}</td>
+                        <td className="ebim-td text-xs text-muted">
+                          {formatDate(a.valid_from as string)} →{' '}
+                          {a.valid_to ? formatDate(a.valid_to as string) : 'sin fin'}
+                        </td>
+                        <td className="ebim-td">
+                          {perms.canManagePlatform ? (
+                            <div className="flex items-center justify-end gap-3">
+                              <button
+                                type="button"
+                                className="ebim-link text-[13px]"
+                                onClick={() =>
+                                  setAgreementDialog({
+                                    open: true,
+                                    agreement: {
+                                      agreement_id: a.agreement_id as string,
+                                      saas_product_id: a.saas_product_id as string,
+                                      can_resell: a.can_resell as boolean,
+                                      can_manage_tenants: a.can_manage_tenants as boolean,
+                                      margin_rate: Number(a.margin_rate),
+                                      default_deployment_mode: a.default_deployment_mode as string,
+                                      allowed_deployment_modes:
+                                        (a.allowed_deployment_modes ?? []) as string[],
+                                      allowed_tenant_types:
+                                        (a.allowed_tenant_types ?? []) as string[],
+                                      billing_responsibility: a.billing_responsibility as string,
+                                      max_tenants: a.max_tenants as number | null,
+                                      valid_from: a.valid_from as string,
+                                      valid_to: a.valid_to as string | null,
+                                      status: a.status as string,
+                                      notes: a.notes as string | null,
+                                    },
+                                  })
+                                }
+                              >
+                                Editar
+                              </button>
+                              {a.status === 'ACTIVE' ? (
+                                <button
+                                  type="button"
+                                  className="text-[13px] text-danger hover:underline"
+                                  onClick={() =>
+                                    setEndingAgreement({
+                                      id: a.agreement_id as string,
+                                      product: a.product_short_name as string,
+                                    })
+                                  }
+                                >
+                                  Cerrar
+                                </button>
+                              ) : null}
+                            </div>
+                          ) : null}
                         </td>
                       </tr>
                     ))}
@@ -213,6 +352,23 @@ export function OrganizationDetailPage() {
             ),
           },
         ]}
+      />
+
+      <AgreementFormDialog
+        open={agreementDialog.open}
+        organizationId={o.id}
+        organizationName={o.display_name}
+        agreement={agreementDialog.agreement}
+        onClose={() => setAgreementDialog({ open: false, agreement: null })}
+      />
+
+      <ConfirmDialog
+        open={Boolean(endingAgreement)}
+        title={`¿Cerrar el acuerdo de ${endingAgreement?.product}?`}
+        message="El canal dejará de poder vender y administrar tenants de este producto. La base lo impide si aún administra tenants vivos."
+        confirmLabel="Cerrar acuerdo"
+        onConfirm={() => void confirmEndAgreement()}
+        onCancel={() => setEndingAgreement(null)}
       />
     </PageContainer>
   );
