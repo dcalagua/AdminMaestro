@@ -25,6 +25,16 @@ const PATTERNS = [
   { name: 'Clave de API de Google', re: /\bAIza[0-9A-Za-z_-]{35}\b/ },
   { name: 'Clave de API de OpenAI/Anthropic', re: /\b(?:sk-ant-|sk-proj-|sk-)[A-Za-z0-9_-]{24,}/ },
   { name: 'Client secret de Microsoft Graph', re: /MS_CLIENT_SECRET\s*=\s*["']?[A-Za-z0-9~._-]{20,}/ },
+
+  // --- Proveedor de pago (Fases 09-10) ---
+  // La clave SECRETA de Culqi jamás puede estar en el repo: vive en secrets del
+  // servidor. La PÚBLICA (pk_) sí puede, y por eso no se busca.
+  { name: 'Clave secreta de Culqi (sk_test_/sk_live_)', re: /\bsk_(?:test|live)_[A-Za-z0-9]{10,}/ },
+  { name: 'Token de tarjeta de Culqi (tkn_)', re: /\btkn_(?:test|live)_[A-Za-z0-9]{10,}/ },
+  // Un PAN de 13-19 dígitos con la estructura de una tarjeta. Se exigen
+  // separadores o límites de palabra para no marcar cualquier número largo.
+  { name: 'Posible PAN de tarjeta', re: /\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13})\b/ },
+  { name: 'CVV junto a datos de tarjeta', re: /["']?cvv["']?\s*[:=]\s*["']?[0-9]{3,4}["']?/i },
 ];
 
 /** Archivos donde un placeholder es legítimo y no debe disparar el escáner. */

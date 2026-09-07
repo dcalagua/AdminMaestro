@@ -13,8 +13,8 @@
 | 06 Dedicated | **PASS** | `request_tenant_suspension` / `request_tenant_resume` (estado + cola en una transacción) + acciones en TenantDetailPage + alta/edición de targets y adjuntar tenant (Fase 02). Aislamiento verificado en DB. |
 | 07 Collection | **PASS** | `20260907000400_collection_profiles.sql`: enums `collection_method`/`provider_kind`/`collection_profile_status`/`provider_environment`, tablas `payment_provider_accounts` y `subscription_collection_profiles` (RLS+FORCE), guard cross-org, vista `v_subscription_collection` y RPCs. UI: pestaña Cobranza en `/subscriptions/:id`. |
 | 08 OS/OC | **PASS** | `20260907000500_commercial_documents.sql`: `subscription_commercial_documents` con máquina de estados REQUESTED->RECEIVED->APPROVED/REJECTED/EXPIRED/CANCELLED, 5 RPCs, `expire_commercial_documents` idempotente y vista `v_subscription_documents`. Verificado que aprobar NO crea payment ni comisión. |
-| 09 Culqi Architecture | NOT_STARTED | |
-| 10 Culqi Implementation | NOT_STARTED | |
+| 09 Culqi Architecture | **PASS** | `docs/payments/CULQI_ARCHITECTURE.md` con diagramas Mermaid, mapeo local<->Culqi, llaves, idempotencia, reconciliación, fallos y checklist de activación PRD. Fuentes: solo documentación oficial, consultada el 2026-09-07 y citada con lo verificado y lo NO verificado. |
+| 10 Culqi Implementation | **PASS** (MOCK/TEST) | `20260907000600_payment_provider_mappings.sql` (5 tablas + `register_provider_payment` idempotente + vista de reconciliación) · adapter en `supabase/functions/_shared/payments/` (types/culqi/mock/index) · Edge Functions `payment-setup`, `culqi-webhook` (verify_jwt=false), `payment-reconcile` · panel Culqi en la UI. **BLOQUEO EXTERNO:** sin credenciales Culqi, opera en MOCK. |
 | 11 Renewals | NOT_STARTED | |
 | 12 Commissions | NOT_STARTED | |
 | 13 Finance | NOT_STARTED | |
@@ -29,4 +29,5 @@
 Ninguna todavía (Fase 01 no toca DB).
 
 ## Bloqueos externos
+- **BE-02** Sin credenciales Culqi (`pk_test_`, `CULQI_SECRET_KEY`, `CULQI_API_BASE`). El adapter opera en modo MOCK determinista y la UI lo declara. El PRD de Culqi NO está validado. Checklist de activación en `docs/payments/CULQI_ARCHITECTURE.md` §10.
 - **BE-01** `GUIDELINES_ROOT` no enumerable desde la sesión (gate de permisos de Bash rechaza `ls`/`find` sobre esa ruta). Mitigado con el snapshot local `docs/architecture/EBIM_CONVENTIONS.md`, como prescribe `00_START_HERE_VSCODE.md`. GUIDELINES_ROOT no fue modificado.

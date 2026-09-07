@@ -16,6 +16,7 @@ import { formatMoney, formatDate, formatDateTime } from '@/lib/format';
 import {
   CollectionProfileDialog, RequestDocumentDialog, ReceiveDocumentDialog, ApproveDocumentDialog,
 } from './CollectionDialogs';
+import { CulqiCardPanel } from './CulqiCardPanel';
 
 /**
  * Detalle de suscripción, con la pestaña **Cobranza** que introduce la Fase 07.
@@ -279,6 +280,13 @@ export function SubscriptionDetailPage() {
                     </dl>
                   )}
                 </Card>
+
+                <CulqiCardPanel
+                  subscriptionId={subscriptionId}
+                  collectionMethod={profile?.collection_method as string | null}
+                  providerAccountCode={profile?.provider_account_code as string | null}
+                  providerEnvironment={profile?.provider_environment as string | null}
+                />
 
                 <Card
                   title="Órdenes de Servicio / Compra"

@@ -1951,6 +1951,430 @@ export type Database = {
         }
         Relationships: []
       }
+      provider_customers: {
+        Row: {
+          created_at: string
+          external_customer_id: string
+          id: string
+          metadata: Json
+          organization_id: string
+          provider_account_id: string
+          status: Database["platform"]["Enums"]["provider_mapping_status"]
+          synced_at: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          external_customer_id: string
+          id?: string
+          metadata?: Json
+          organization_id: string
+          provider_account_id: string
+          status?: Database["platform"]["Enums"]["provider_mapping_status"]
+          synced_at?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          external_customer_id?: string
+          id?: string
+          metadata?: Json
+          organization_id?: string
+          provider_account_id?: string
+          status?: Database["platform"]["Enums"]["provider_mapping_status"]
+          synced_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_customers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_customers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_margin"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "provider_customers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["customer_organization_id"]
+          },
+          {
+            foreignKeyName: "provider_customers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["managing_organization_id"]
+          },
+          {
+            foreignKeyName: "provider_customers_provider_account_id_fkey"
+            columns: ["provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "payment_provider_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_payment_methods: {
+        Row: {
+          brand: string | null
+          created_at: string
+          exp_month: number | null
+          exp_year: number | null
+          external_payment_method_id: string
+          id: string
+          is_default: boolean
+          last4: string | null
+          metadata: Json
+          organization_id: string
+          provider_account_id: string
+          provider_customer_id: string | null
+          status: Database["platform"]["Enums"]["provider_mapping_status"]
+          synced_at: string
+          updated_at: string
+        }
+        Insert: {
+          brand?: string | null
+          created_at?: string
+          exp_month?: number | null
+          exp_year?: number | null
+          external_payment_method_id: string
+          id?: string
+          is_default?: boolean
+          last4?: string | null
+          metadata?: Json
+          organization_id: string
+          provider_account_id: string
+          provider_customer_id?: string | null
+          status?: Database["platform"]["Enums"]["provider_mapping_status"]
+          synced_at?: string
+          updated_at?: string
+        }
+        Update: {
+          brand?: string | null
+          created_at?: string
+          exp_month?: number | null
+          exp_year?: number | null
+          external_payment_method_id?: string
+          id?: string
+          is_default?: boolean
+          last4?: string | null
+          metadata?: Json
+          organization_id?: string
+          provider_account_id?: string
+          provider_customer_id?: string | null
+          status?: Database["platform"]["Enums"]["provider_mapping_status"]
+          synced_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_payment_methods_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_payment_methods_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_margin"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "provider_payment_methods_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["customer_organization_id"]
+          },
+          {
+            foreignKeyName: "provider_payment_methods_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["managing_organization_id"]
+          },
+          {
+            foreignKeyName: "provider_payment_methods_provider_account_id_fkey"
+            columns: ["provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "payment_provider_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_payment_methods_provider_customer_id_fkey"
+            columns: ["provider_customer_id"]
+            isOneToOne: false
+            referencedRelation: "provider_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_plans: {
+        Row: {
+          amount: number
+          billing_interval: Database["platform"]["Enums"]["billing_interval"]
+          created_at: string
+          currency: string
+          external_plan_id: string
+          id: string
+          metadata: Json
+          plan_id: string
+          provider_account_id: string
+          status: Database["platform"]["Enums"]["provider_mapping_status"]
+          synced_at: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          billing_interval: Database["platform"]["Enums"]["billing_interval"]
+          created_at?: string
+          currency: string
+          external_plan_id: string
+          id?: string
+          metadata?: Json
+          plan_id: string
+          provider_account_id: string
+          status?: Database["platform"]["Enums"]["provider_mapping_status"]
+          synced_at?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          billing_interval?: Database["platform"]["Enums"]["billing_interval"]
+          created_at?: string
+          currency?: string
+          external_plan_id?: string
+          id?: string
+          metadata?: Json
+          plan_id?: string
+          provider_account_id?: string
+          status?: Database["platform"]["Enums"]["provider_mapping_status"]
+          synced_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_plans_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_plans_provider_account_id_fkey"
+            columns: ["provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "payment_provider_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_subscriptions: {
+        Row: {
+          created_at: string
+          external_customer_id: string | null
+          external_payment_method_id: string | null
+          external_plan_id: string | null
+          external_subscription_id: string
+          id: string
+          last_error_code: string | null
+          last_error_message: string | null
+          metadata: Json
+          next_billing_at: string | null
+          provider_account_id: string
+          provider_status: string
+          status: Database["platform"]["Enums"]["provider_mapping_status"]
+          subscription_id: string
+          synced_at: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          external_customer_id?: string | null
+          external_payment_method_id?: string | null
+          external_plan_id?: string | null
+          external_subscription_id: string
+          id?: string
+          last_error_code?: string | null
+          last_error_message?: string | null
+          metadata?: Json
+          next_billing_at?: string | null
+          provider_account_id: string
+          provider_status?: string
+          status?: Database["platform"]["Enums"]["provider_mapping_status"]
+          subscription_id: string
+          synced_at?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          external_customer_id?: string | null
+          external_payment_method_id?: string | null
+          external_plan_id?: string | null
+          external_subscription_id?: string
+          id?: string
+          last_error_code?: string | null
+          last_error_message?: string | null
+          metadata?: Json
+          next_billing_at?: string | null
+          provider_account_id?: string
+          provider_status?: string
+          status?: Database["platform"]["Enums"]["provider_mapping_status"]
+          subscription_id?: string
+          synced_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_subscriptions_provider_account_id_fkey"
+            columns: ["provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "payment_provider_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_subscriptions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_subscriptions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_collection"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "provider_subscriptions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_documents"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "provider_subscriptions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_mrr"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "provider_subscriptions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["subscription_id"]
+          },
+        ]
+      }
+      provider_webhook_events: {
+        Row: {
+          error_code: string | null
+          error_message: string | null
+          event_type: string
+          external_event_key: string
+          id: string
+          payload: Json
+          payment_id: string | null
+          processed_at: string | null
+          provider_account_id: string
+          received_at: string
+          status: Database["platform"]["Enums"]["webhook_event_status"]
+          subscription_id: string | null
+        }
+        Insert: {
+          error_code?: string | null
+          error_message?: string | null
+          event_type: string
+          external_event_key: string
+          id?: string
+          payload?: Json
+          payment_id?: string | null
+          processed_at?: string | null
+          provider_account_id: string
+          received_at?: string
+          status?: Database["platform"]["Enums"]["webhook_event_status"]
+          subscription_id?: string | null
+        }
+        Update: {
+          error_code?: string | null
+          error_message?: string | null
+          event_type?: string
+          external_event_key?: string
+          id?: string
+          payload?: Json
+          payment_id?: string | null
+          processed_at?: string | null
+          provider_account_id?: string
+          received_at?: string
+          status?: Database["platform"]["Enums"]["webhook_event_status"]
+          subscription_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_webhook_events_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_webhook_events_provider_account_id_fkey"
+            columns: ["provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "payment_provider_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_webhook_events_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_webhook_events_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_collection"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "provider_webhook_events_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_documents"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "provider_webhook_events_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_mrr"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "provider_webhook_events_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["subscription_id"]
+          },
+        ]
+      }
       provisioning_events: {
         Row: {
           detail: Json
@@ -3659,6 +4083,104 @@ export type Database = {
         }
         Relationships: []
       }
+      v_provider_reconciliation: {
+        Row: {
+          billed_organization_id: string | null
+          billed_organization_name: string | null
+          confirmed_payments: number | null
+          external_subscription_id: string | null
+          last_error_code: string | null
+          last_error_message: string | null
+          local_status:
+            | Database["platform"]["Enums"]["subscription_status"]
+            | null
+          next_billing_at: string | null
+          provider_account_code: string | null
+          provider_account_id: string | null
+          provider_environment:
+            | Database["platform"]["Enums"]["provider_environment"]
+            | null
+          provider_status: string | null
+          provider_subscription_id: string | null
+          reconciliation_status: string | null
+          rejected_events: number | null
+          subscription_code: string | null
+          subscription_id: string | null
+          synced_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_subscriptions_provider_account_id_fkey"
+            columns: ["provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "payment_provider_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_subscriptions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_subscriptions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_collection"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "provider_subscriptions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_documents"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "provider_subscriptions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_mrr"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "provider_subscriptions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_billed_organization_id_fkey"
+            columns: ["billed_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_billed_organization_id_fkey"
+            columns: ["billed_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_margin"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_billed_organization_id_fkey"
+            columns: ["billed_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["customer_organization_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_billed_organization_id_fkey"
+            columns: ["billed_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["managing_organization_id"]
+          },
+        ]
+      }
       v_subscription_collection: {
         Row: {
           auto_charge: boolean | null
@@ -4240,6 +4762,32 @@ export type Database = {
         }
         Returns: undefined
       }
+      register_provider_payment: {
+        Args: {
+          p_amount: number
+          p_currency: string
+          p_event_type: string
+          p_external_charge_id: string
+          p_external_event_key: string
+          p_external_subscription_id: string
+          p_paid_at?: string
+          p_payload?: Json
+          p_provider_account_id: string
+        }
+        Returns: Json
+      }
+      register_provider_payment_failure: {
+        Args: {
+          p_error_code?: string
+          p_error_message?: string
+          p_event_type: string
+          p_external_event_key: string
+          p_external_subscription_id: string
+          p_payload?: Json
+          p_provider_account_id: string
+        }
+        Returns: Json
+      }
       reject_commercial_document: {
         Args: { p_document_id: string; p_reason: string }
         Returns: undefined
@@ -4503,6 +5051,20 @@ export type Database = {
         }
         Returns: string
       }
+      upsert_provider_subscription: {
+        Args: {
+          p_external_customer_id?: string
+          p_external_payment_method_id?: string
+          p_external_plan_id?: string
+          p_external_subscription_id: string
+          p_metadata?: Json
+          p_next_billing_at?: string
+          p_provider_account_id: string
+          p_provider_status?: string
+          p_subscription_id: string
+        }
+        Returns: string
+      }
       upsert_saas_product: {
         Args: {
           p_accent_color?: string
@@ -4635,6 +5197,7 @@ export type Database = {
       platform_role: "EBIM_SUPER_ADMIN" | "EBIM_PRODUCT_ADMIN" | "EBIM_FINANCE"
       provider_environment: "TEST" | "LIVE"
       provider_kind: "CULQI" | "MANUAL" | "BANK" | "OTHER"
+      provider_mapping_status: "ACTIVE" | "INACTIVE" | "FAILED" | "PENDING"
       provisioning_action:
         | "CREATE_TENANT_SPACE"
         | "CREATE_DEDICATED_TARGET"
@@ -4660,6 +5223,7 @@ export type Database = {
       tenant_role: "TENANT_ADMIN" | "TENANT_USER"
       tenant_status: "PENDING" | "ACTIVE" | "SUSPENDED" | "CHURNED" | "ARCHIVED"
       tenant_type: "DEMO" | "TRIAL" | "PRODUCTION" | "SANDBOX"
+      webhook_event_status: "RECEIVED" | "PROCESSED" | "IGNORED" | "REJECTED"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -4877,6 +5441,7 @@ export const Constants = {
       platform_role: ["EBIM_SUPER_ADMIN", "EBIM_PRODUCT_ADMIN", "EBIM_FINANCE"],
       provider_environment: ["TEST", "LIVE"],
       provider_kind: ["CULQI", "MANUAL", "BANK", "OTHER"],
+      provider_mapping_status: ["ACTIVE", "INACTIVE", "FAILED", "PENDING"],
       provisioning_action: [
         "CREATE_TENANT_SPACE",
         "CREATE_DEDICATED_TARGET",
@@ -4905,6 +5470,7 @@ export const Constants = {
       tenant_role: ["TENANT_ADMIN", "TENANT_USER"],
       tenant_status: ["PENDING", "ACTIVE", "SUSPENDED", "CHURNED", "ARCHIVED"],
       tenant_type: ["DEMO", "TRIAL", "PRODUCTION", "SANDBOX"],
+      webhook_event_status: ["RECEIVED", "PROCESSED", "IGNORED", "REJECTED"],
     },
   },
 } as const

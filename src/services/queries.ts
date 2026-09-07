@@ -243,6 +243,63 @@ export function useSubscriptionDocumentStatus() {
   });
 }
 
+/**
+ * Estado del cobro con proveedor para una suscripción: mapeo externo, medio de
+ * pago (marca y últimos 4, nunca el PAN) y próxima fecha de cobro.
+ */
+export function useProviderSubscription(subscriptionId: string | undefined) {
+  return useQuery({
+    queryKey: ['provider-subscription', subscriptionId],
+    enabled: Boolean(subscriptionId),
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('provider_subscriptions')
+          .select('*, payment_provider_accounts(code, environment, provider_kind, public_key)')
+          .eq('subscription_id', subscriptionId!)
+          .order('created_at', { ascending: false }),
+      ),
+  });
+}
+
+export function useProviderPaymentMethods(organizationId: string | undefined) {
+  return useQuery({
+    queryKey: ['provider-payment-methods', organizationId],
+    enabled: Boolean(organizationId),
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('provider_payment_methods')
+          .select('*')
+          .eq('organization_id', organizationId!)
+          .order('is_default', { ascending: false }),
+      ),
+  });
+}
+
+/** Diagnóstico proveedor vs. local. Describe; no corrige. */
+export function useProviderReconciliation() {
+  return useQuery({
+    queryKey: ['provider-reconciliation'],
+    queryFn: async () =>
+      unwrap(await supabase.from('v_provider_reconciliation').select('*')),
+  });
+}
+
+export function useWebhookEvents(limit = 100) {
+  return useQuery({
+    queryKey: ['webhook-events'],
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('provider_webhook_events')
+          .select('*, payment_provider_accounts(code)')
+          .order('received_at', { ascending: false })
+          .limit(limit),
+      ),
+  });
+}
+
 export function useSubscription(subscriptionId: string | undefined) {
   return useQuery({
     queryKey: ['subscription', subscriptionId],

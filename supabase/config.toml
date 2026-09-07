@@ -412,3 +412,25 @@ enabled = true
 # declarative_schema_path = "./schemas"
 # JSON string passed through to pg-delta SQL formatting.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
+
+# ============================================================================
+# Edge Functions de cobro (Fase 10)
+# ============================================================================
+
+[functions.payment-setup]
+# Exige JWT: canjea el token de tarjeta y escribe mapeos. Nunca es público.
+verify_jwt = true
+
+[functions.payment-reconcile]
+# Exige JWT: es información financiera. La función además comprueba el rol.
+verify_jwt = true
+
+[functions.culqi-webhook]
+# PÚBLICO por necesidad: Culqi no puede enviar un JWT de Supabase.
+#
+# Culqi tampoco firma criptográficamente sus webhooks (verificado contra la
+# documentación oficial el 2026-09-07, ver docs/payments/CULQI_ARCHITECTURE.md
+# §5.1). La función lo compensa con idempotencia dura, validación estricta del
+# payload, verificación server-to-server del cargo y correlación obligatoria
+# con una suscripción existente. NO se inventa una firma.
+verify_jwt = false
