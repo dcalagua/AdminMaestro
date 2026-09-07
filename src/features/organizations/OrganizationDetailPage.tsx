@@ -18,6 +18,7 @@ import { formatMoney, formatPercent, formatNumber, formatDate } from '@/lib/form
 import { DEPLOYMENT_MODE_LABEL, TENANT_TYPE_LABEL } from '@/types/domain';
 import { AgreementFormDialog } from './AgreementFormDialog';
 import { Organization360 } from './Organization360';
+import { BillingContactPanel } from './BillingContactPanel';
 import type { AgreementDraft } from './AgreementFormDialog';
 
 /**
@@ -164,6 +165,12 @@ export function OrganizationDetailPage() {
                     </DataTable>
                   )}
                 </Card>
+
+                {capabilities.includes('CUSTOMER') ? (
+                  <div className="lg:col-span-2">
+                    <BillingContactPanel organizationId={o.id} />
+                  </div>
+                ) : null}
               </div>
             ),
           },

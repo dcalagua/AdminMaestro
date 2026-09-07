@@ -1289,3 +1289,25 @@ begin
     v_profiles, v_methods, v_grupasa, v_docs, v_alerts, v_failed;
 end;
 $$;
+
+-- ===========================================================================
+-- Datos de facturación del titular (migración 23).
+--
+-- La pasarela exige siete campos para crear el Customer y el Control Plane
+-- solo traía correo y país. Estos son fixtures de QA sobre el dominio
+-- reservado `*.ebim.test`: direcciones y teléfonos evidentemente de prueba,
+-- para que la demo ejercite el flujo de cobro sin inventar los datos fiscales
+-- de una empresa real.
+--
+-- Solo los clientes que cobran con tarjeta. El resto se queda sin ellos a
+-- propósito: así la pantalla enseña también el estado «faltan datos», que es
+-- el que se va a encontrar cualquier alta nueva.
+-- ===========================================================================
+update platform.organizations
+   set billing_first_name = 'Contacto',
+       billing_last_name  = 'Facturacion',
+       billing_address    = 'Av. Demostracion 123, Oficina 401',
+       billing_city       = 'Lima',
+       billing_phone      = '51987654321',
+       billing_email      = coalesce(billing_email, 'facturacion@' || slug || '.ebim.test')
+ where slug in ('grupasa', 'empresa-directa-alpha');

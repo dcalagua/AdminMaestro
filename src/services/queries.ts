@@ -81,6 +81,30 @@ export function useOrganization(organizationId: string | undefined) {
   });
 }
 
+/**
+ * ¿Tiene esta organización los datos que la pasarela exige para cobrar con
+ * tarjeta?
+ *
+ * La vista responde con `missing_fields`, así que la UI NO reimplementa la
+ * regla: si mañana el proveedor pide un campo más, se añade en la migración y
+ * esta pantalla lo refleja sola.
+ */
+export function useBillingContactReadiness(organizationId: string | undefined) {
+  return useQuery({
+    queryKey: ['billing-contact', organizationId],
+    enabled: Boolean(organizationId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('v_billing_contact_readiness')
+        .select('*')
+        .eq('organization_id', organizationId!)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      return data;
+    },
+  });
+}
+
 export function useOrganizationAgreements(organizationId?: string) {
   return useQuery({
     queryKey: ['agreements', organizationId ?? 'all'],

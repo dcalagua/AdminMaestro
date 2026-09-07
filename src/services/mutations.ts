@@ -94,6 +94,19 @@ export function useUpsertCompany() {
   return useRpc('upsert_company', ['organization', 'organizations']);
 }
 
+/**
+ * Datos de facturación del titular.
+ *
+ * Existen porque la pasarela los exige para crear el Customer y NO se pueden
+ * inventar: viajan al proveedor y acaban en el recibo del cliente. Es una RPC
+ * aparte —y no un campo más de `upsert_organization`— para que el permiso sea
+ * el suyo: un admin de la propia organización puede corregir su domicilio de
+ * facturación sin poder tocar capacidades ni estado.
+ */
+export function useSetBillingContact() {
+  return useRpc('set_billing_contact', ['organization', 'organizations', 'billing-contact']);
+}
+
 /** Condiciones de un canal para UN producto. Un partner puede tener N acuerdos. */
 export function useUpsertProductAgreement() {
   return useRpc('upsert_product_agreement', [
