@@ -77,3 +77,18 @@ Pasa a SECURITY INVOKER: un partner recibe NULL para un plan que no contrata; ll
 onboarding (DEFINER) conserva los permisos de la RPC que ya autorizó. El onboarding autoriza
 en su primera línea (plataforma o finanzas EBIM, lo que la navegación ya documentaba) para no
 revelar por el texto del error si existe una tarifa regional.
+
+## DV3-009 · Cadena de moneda por trigger: heredar si falta, rechazar si difiere (fase 06)
+
+La moneda la fija el contrato y baja: suscripción → líneas / perfil de cobro / documentos /
+facturas; factura → líneas / cobros; cobro → eventos de comisión. Un único trigger
+(`enforce_currency_chain`) es el punto de enforcement para INSERT directo, service_role, Edge
+Functions y RPCs: por eso G-15 (`upsert_subscription_item`, `set_subscription_collection_profile`,
+`request_commercial_document` con moneda explícita distinta) se cierra sin reescribir esas RPCs.
+Se retiran los `default 'USD'` de todas las columnas `currency` de documentos: los hijos heredan
+del padre y las raíces exigen moneda explícita por NOT NULL. `payment_provider_accounts` queda
+fuera: es configuración y su país/moneda se rediseñan con el routing (fase 07). La moneda de un
+padre con historia es inmutable (`MONEDA_CONTRACTUAL_INMUTABLE`, `MONEDA_DOCUMENTO_INMUTABLE`);
+un borrador sin hijos sí puede corregirla. No se reescriben filas previas: las incoherencias
+históricas se listan en `v_currency_integrity_issues` (vacía en el seed). `cost_entries` no
+pertenece a la cadena: un costo USD sobre un ingreso PEN es legítimo; sumarlo no (fase 10).

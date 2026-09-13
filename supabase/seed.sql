@@ -531,15 +531,17 @@ insert into platform.commission_plans (id, code, name, description, saas_product
    '3% sobre cualquier cobro elegible.', null, current_date - interval '2 years')
 on conflict (code) do nothing;
 
+-- V3 (fase 06): la moneda ya no tiene default. En una regla porcentual la moneda
+-- solo acota importes fijos y topes (fase 11); estas reglas no tienen ninguno.
 insert into platform.commission_rules
-  (commission_plan_id, name, basis, charge_kind, rate, fixed_amount, is_recurring, max_months, max_total_amount, priority, valid_from) values
+  (commission_plan_id, name, basis, charge_kind, rate, fixed_amount, currency, is_recurring, max_months, max_total_amount, priority, valid_from) values
   -- Plan independiente: dos reglas complementarias.
-  ('90000000-0000-4000-a000-000000000001', '10% licencia cobrada (12 meses)', 'COLLECTED_LICENSE', null, 0.1000, null, true, 12, null, 10, current_date - interval '2 years'),
-  ('90000000-0000-4000-a000-000000000001', '5% implementation fee cobrado (una vez)', 'COLLECTED_IMPLEMENTATION', 'IMPLEMENTATION_FEE', 0.0500, null, false, null, null, 20, current_date - interval '2 years'),
+  ('90000000-0000-4000-a000-000000000001', '10% licencia cobrada (12 meses)', 'COLLECTED_LICENSE', null, 0.1000, null, 'USD', true, 12, null, 10, current_date - interval '2 years'),
+  ('90000000-0000-4000-a000-000000000001', '5% implementation fee cobrado (una vez)', 'COLLECTED_IMPLEMENTATION', 'IMPLEMENTATION_FEE', 0.0500, null, 'USD', false, null, null, 20, current_date - interval '2 years'),
   -- Plan de comercial de partner.
-  ('90000000-0000-4000-a000-000000000002', '6% licencia cobrada (recurrente)', 'COLLECTED_LICENSE', null, 0.0600, null, true, null, null, 10, current_date - interval '2 years'),
+  ('90000000-0000-4000-a000-000000000002', '6% licencia cobrada (recurrente)', 'COLLECTED_LICENSE', null, 0.0600, null, 'USD', true, null, null, 10, current_date - interval '2 years'),
   -- Plan interno EBIM.
-  ('90000000-0000-4000-a000-000000000003', '3% sobre cualquier cobro', 'COLLECTED_ANY', null, 0.0300, null, true, null, null, 10, current_date - interval '2 years')
+  ('90000000-0000-4000-a000-000000000003', '3% sobre cualquier cobro', 'COLLECTED_ANY', null, 0.0300, null, 'USD', true, null, null, 10, current_date - interval '2 years')
 on conflict do nothing;
 
 insert into platform.sales_attributions

@@ -68,12 +68,21 @@ export function resolvePaymentProvider(account: ProviderAccountConfig): PaymentP
 
 /** Configuración de cuenta tal y como sale de la base, sin secretos. */
 export function toAccountConfig(row: Record<string, unknown>): ProviderAccountConfig {
+  // V3: sin moneda no se asume PEN. Una cuenta regional mal cargada debe
+  // fallar aquí, no cobrar en la moneda de otro país.
+  if (typeof row.currency !== 'string' || !/^[A-Z]{3}$/.test(row.currency)) {
+    throw new ProviderError(
+      'CUENTA_SIN_MONEDA',
+      `La cuenta de cobro ${String(row.code)} no declara una moneda ISO válida.`,
+      500,
+    );
+  }
   return {
     id: String(row.id),
     code: String(row.code),
     providerKind: row.provider_kind as ProviderAccountConfig['providerKind'],
     environment: row.environment as ProviderAccountConfig['environment'],
-    currency: String(row.currency ?? 'PEN'),
+    currency: row.currency,
     publicKey: (row.public_key as string | null) ?? null,
     secretKeyRef: (row.secret_key_ref as string | null) ?? null,
   };

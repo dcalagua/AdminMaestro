@@ -276,7 +276,7 @@ export type Database = {
           available?: boolean
           code: string
           created_at?: string
-          currency?: string
+          currency: string
           description?: string | null
           id?: string
           item_type?: string
@@ -370,7 +370,7 @@ export type Database = {
           calculation?: Json
           commission_rule_id: string
           created_at?: string
-          currency?: string
+          currency: string
           earned_on: string
           id?: string
           invoice_line_id?: string | null
@@ -616,7 +616,7 @@ export type Database = {
           charge_kind?: Database["platform"]["Enums"]["charge_kind"] | null
           commission_plan_id: string
           created_at?: string
-          currency?: string
+          currency: string
           fixed_amount?: number | null
           id?: string
           is_recurring?: boolean
@@ -689,7 +689,7 @@ export type Database = {
           approved_by?: string | null
           code: string
           created_at?: string
-          currency?: string
+          currency: string
           id?: string
           notes?: string | null
           paid_at?: string | null
@@ -758,9 +758,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          country_code?: string
+          country_code: string
           created_at?: string
-          currency?: string
+          currency: string
           erp_code?: string | null
           id?: string
           is_default?: boolean
@@ -1048,7 +1048,7 @@ export type Database = {
           amount: number
           category: Database["platform"]["Enums"]["cost_category"]
           created_at?: string
-          currency?: string
+          currency: string
           description: string
           id?: string
           is_recurring?: boolean
@@ -1257,7 +1257,7 @@ export type Database = {
           amount?: number | null
           charge_kind: Database["platform"]["Enums"]["charge_kind"]
           created_at?: string
-          currency?: string
+          currency: string
           description: string
           id?: string
           invoice_id: string
@@ -1394,7 +1394,7 @@ export type Database = {
         Insert: {
           company_id?: string | null
           created_at?: string
-          currency?: string
+          currency: string
           customer_organization_id: string
           due_date?: string | null
           id?: string
@@ -2304,7 +2304,7 @@ export type Database = {
         Insert: {
           amount: number
           created_at?: string
-          currency?: string
+          currency: string
           id?: string
           invoice_id: string
           method?: string | null
@@ -2377,7 +2377,7 @@ export type Database = {
           billing_interval?: Database["platform"]["Enums"]["billing_interval"]
           charge_kind?: Database["platform"]["Enums"]["charge_kind"]
           created_at?: string
-          currency?: string
+          currency: string
           id?: string
           market_id?: string | null
           plan_id: string
@@ -3667,7 +3667,7 @@ export type Database = {
           auto_suspend?: boolean
           collection_method: Database["platform"]["Enums"]["collection_method"]
           created_at?: string
-          currency?: string
+          currency: string
           document_lead_days?: number
           effective_from?: string
           effective_to?: string | null
@@ -3792,7 +3792,7 @@ export type Database = {
           approved_at?: string | null
           created_at?: string
           created_by?: string | null
-          currency?: string
+          currency: string
           document_number?: string | null
           document_type: Database["platform"]["Enums"]["commercial_document_type"]
           external_file_ref?: string | null
@@ -3905,7 +3905,7 @@ export type Database = {
           catalog_item_code?: string | null
           charge_kind: Database["platform"]["Enums"]["charge_kind"]
           created_at?: string
-          currency?: string
+          currency: string
           description: string
           id?: string
           quantity?: number
@@ -4042,7 +4042,7 @@ export type Database = {
           channel_margin_rate?: number | null
           code: string
           created_at?: string
-          currency?: string
+          currency: string
           ends_on?: string | null
           id?: string
           market_id?: string | null
@@ -5154,6 +5154,17 @@ export type Database = {
             referencedColumns: ["code"]
           },
         ]
+      }
+      v_currency_integrity_issues: {
+        Row: {
+          issue_kind: string | null
+          parent_currency: string | null
+          parent_id: string | null
+          parent_kind: string | null
+          record_currency: string | null
+          record_id: string | null
+        }
+        Relationships: []
       }
       v_finance_reconciliation: {
         Row: {
