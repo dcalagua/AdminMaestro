@@ -1,7 +1,7 @@
 # STATE V3
 
 Status: IN_PROGRESS
-Current phase: 17
+Current phase: 18
 
 HEAD inicial V3: `1c6b5ce chore: checkpoint before V3 multicurrency`
 Checksums baseline: `docs/nightly-v3/BASELINE_MIGRATIONS.sha256` (23 migraciones)
@@ -24,6 +24,6 @@ Checksums baseline: `docs/nightly-v3/BASELINE_MIGRATIONS.sha256` (23 migraciones
 | 14 Seeds | COMPLETE | Sección `SEED V3` en `supabase/seed.sql`: R1 PE/PEN, R2 PE/USD, R3 BO/BOB vía Andina, R4 BO/USD Partner Dedicated, R5 EC/USD, R6 partner en PE+BO, R7 costos USD, R8 comisiones PEN/BOB/USD, tarifas por mercado, cuentas bancarias DEMO BO/EC, FX MANUAL DEMO 2026-09-01; verificación que aborta el reset (DV3-018). `docs/demo/DEMO_SCENARIOS_V3.md`. db reset OK; pgTAP 311/311 (08 y 13 desacoplados del seed USD); E2E 55/55 (R5 actualizado) |
 | 15 Domain Tests | COMPLETE | `15_v3_domain_regressions.test.sql` (16 tests, un test por cada regla mínima con su nombre literal, sobre el seed regional; totales consolidados recalculados de forma independiente desde tablas base con las tasas DEMO) y `src/lib/multicurrency.regression.test.ts` (7 tests espejo de UI). pgTAP 327/327; unit 91/91; typecheck/lint PASS |
 | 16 Security/RLS | COMPLETE | Migración 33 `20260913001000_v3_security_hardening.sql` (H-1 devengo solo por trigger/service_role, H-2/H-3 funciones de trigger sin EXECUTE), verificación empírica de disparo sin EXECUTE; `16_v3_security_rls.test.sql` 42 tests (estructura explícita V3 + negativos partner, tenant, comercial, producto, finanzas); `docs/security/V3_MULTICURRENCY_SECURITY_AUDIT.md` (DV3-019). pgTAP 369/369; secrets scan PASS; sin service_role en `src/` |
-| 17 E2E Regional | PENDING | |
+| 17 E2E Regional | COMPLETE | `e2e/v3-regional-journeys.spec.ts`: A Perú PEN (venta → contrato → factura → cobro manual → comisión PEN 315 → dashboard), B Bolivia BOB vía partner (comisión BOB 354, consolidado con tasas DEMO completo), C Ecuador USD (tarifa 700), D PE/USD 850 vs EC/USD 700, E FX faltante (aviso, «Incompleto», «FX faltante» por mercado). Habilitado con migración 34 `20260913001100_v3_subscription_invoicing.sql` + UI «Emitir factura del mes» / «Registrar cobro» (DV3-020); pgTAP `17_v3_subscription_invoicing` 9 tests. pgTAP 378/378; unit 91/91; E2E suite completa 60/60 PASS dos ejecuciones seguidas sin reset, 0 skips |
 | 18 Documentation | PENDING | |
 | 98 Final Audit | PENDING | |

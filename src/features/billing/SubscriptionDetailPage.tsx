@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import {
   useSubscription, useSubscriptionCollection, useCommercialDocuments, useInvoices,
 } from '@/services/queries';
-import { useRejectDocument, useCancelDocument } from '@/services/mutations';
+import { useRejectDocument, useCancelDocument, useIssueSubscriptionInvoice } from '@/services/mutations';
 import { usePermissions } from '@/hooks/usePermissions';
 import { SectionTabs } from '@/components/ui/SectionTabs';
 import {
@@ -17,6 +17,7 @@ import {
   CollectionProfileDialog, RequestDocumentDialog, ReceiveDocumentDialog, ApproveDocumentDialog,
 } from './CollectionDialogs';
 import { CulqiCardPanel } from './CulqiCardPanel';
+import { ManualPaymentDialog } from './ManualPaymentDialog';
 
 /**
  * Detalle de suscripción, con la pestaña **Cobranza** que introduce la Fase 07.
@@ -72,6 +73,8 @@ export function SubscriptionDetailPage() {
   } | null>(null);
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [cancelId, setCancelId] = useState<string | null>(null);
+  const [paying, setPaying] = useState<{ id: string; number: string; currency: string; outstanding: number } | null>(null);
+  const issueInvoice = useIssueSubscriptionInvoice();
 
   if (subscription.isLoading) return <LoadingState />;
   if (subscription.error) return <ErrorState error={subscription.error} />;
@@ -406,14 +409,40 @@ export function SubscriptionDetailPage() {
               <Card
                 title="Facturas de esta suscripción"
                 description="Aquí sí hay dinero: una factura PAGADA implica un pago CONFIRMED, y solo eso devenga comisión."
+                actions={
+                  perms.canReadFinance && (s.status === 'ACTIVE' || s.status === 'PAST_DUE') ? (
+                    <button
+                      type="button"
+                      className="ebim-btn-ghost"
+                      disabled={issueInvoice.isPending}
+                      onClick={async () => {
+                        try {
+                          const r = (await issueInvoice.mutateAsync({ p_subscription_id: s.id })) as {
+                            number?: string; created?: boolean; total?: number; currency?: string;
+                          } | null;
+                          toast.success(
+                            r?.created ? 'Factura emitida' : 'La factura del mes ya existía',
+                            `${r?.number ?? ''} · ${formatMoney(Number(r?.total ?? 0), r?.currency ?? s.currency)}`,
+                          );
+                        } catch (error) {
+                          toast.error('No se pudo emitir la factura', businessErrorMessage(error));
+                        }
+                      }}
+                    >
+                      {issueInvoice.isPending ? 'Emitiendo…' : `Emitir factura del mes (${s.currency})`}
+                    </button>
+                  ) : null
+                }
               >
                 {subInvoices.length === 0 ? (
                   <EmptyState title="Sin facturas emitidas" />
                 ) : (
-                  <DataTable columns={['Número', 'Emitida', 'Vence', 'Total', 'Estado', 'Cobros']}>
+                  <DataTable columns={['Número', 'Emitida', 'Vence', 'Total', 'Estado', 'Cobros', '']}>
                     {subInvoices.map((i) => {
                       const payments = (i.payments ?? []) as Array<Record<string, unknown>>;
                       const confirmed = payments.filter((p) => p.status === 'CONFIRMED');
+                      const outstanding =
+                        Math.round((Number(i.total) - confirmed.reduce((a, p) => a + Number(p.amount ?? 0), 0)) * 100) / 100;
                       return (
                         <tr key={i.id}>
                           <td className="ebim-td font-mono text-xs font-semibold">{i.number}</td>
@@ -443,6 +472,17 @@ export function SubscriptionDetailPage() {
                               ))
                             )}
                           </td>
+                          <td className="ebim-td text-right">
+                            {perms.canReadFinance && (i.status === 'ISSUED' || i.status === 'PARTIALLY_PAID') && outstanding > 0 ? (
+                              <button
+                                type="button"
+                                className="ebim-link text-[13px]"
+                                onClick={() => setPaying({ id: i.id, number: i.number, currency: i.currency, outstanding })}
+                              >
+                                Registrar cobro
+                              </button>
+                            ) : null}
+                          </td>
                         </tr>
                       );
                     })}
@@ -453,6 +493,8 @@ export function SubscriptionDetailPage() {
           },
         ]}
       />
+
+      <ManualPaymentDialog invoice={paying} onClose={() => setPaying(null)} />
 
       <CollectionProfileDialog
         open={profileOpen}

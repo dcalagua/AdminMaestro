@@ -217,7 +217,7 @@ export function TenantDetailPage() {
                       <div key={s.id} className="rounded-card border border-border">
                         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2.5">
                           <div>
-                            <span className="font-semibold">{s.code}</span>
+                            <Link className="ebim-link font-semibold" to={`/subscriptions/${s.id}`}>{s.code}</Link>
                             <span className="ml-2 text-sm text-muted">
                               {(s.plans as { name: string } | null)?.name}
                             </span>

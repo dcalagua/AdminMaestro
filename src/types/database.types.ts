@@ -6703,6 +6703,10 @@ export type Database = {
       is_service_context: { Args: never; Returns: boolean }
       is_slug: { Args: { p_value: string }; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
+      issue_subscription_invoice: {
+        Args: { p_period_start?: string; p_subscription_id: string }
+        Returns: Json
+      }
       jsonb_deep_merge: { Args: { a: Json; b: Json }; Returns: Json }
       log_audit: {
         Args: {

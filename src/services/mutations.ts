@@ -294,10 +294,17 @@ export function useReversePayment() {
   ]);
 }
 
+/** Factura gerencial del mes en la moneda del contrato. Idempotente por periodo. */
+export function useIssueSubscriptionInvoice() {
+  return useRpc('issue_subscription_invoice', [
+    'invoices', 'subscription', 'subscriptions', 'finance-reconciliation', 'finance-consolidated', ...ALERT_KEYS,
+  ]);
+}
+
 /** Cobro por transferencia o acuerdo manual. Devenga comisión como cualquier cobro. */
 export function useConfirmManualPayment() {
   return useRpc('confirm_manual_payment', [
-    'invoices', 'commission-events', 'commission-detail',
+    'invoices', 'commission-events', 'commission-detail', 'finance-consolidated',
     'finance-reconciliation', 'product-finance', 'partner-finance', ...ALERT_KEYS,
   ]);
 }

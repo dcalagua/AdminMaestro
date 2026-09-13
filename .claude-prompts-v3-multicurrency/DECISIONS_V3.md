@@ -235,3 +235,16 @@ el trigger modifica la fila igual), así que el cambio no altera ningún flujo. 
 tarifa, FX, routing y reporting son SECURITY INVOKER a propósito: la autorización de datos la da
 RLS del llamante; las escrituras son SECURITY DEFINER con autorización explícita en la primera
 línea. Detalle en `docs/security/V3_MULTICURRENCY_SECURITY_AUDIT.md`.
+
+## DV3-020 · Emisión de factura gerencial del periodo para cerrar el journey venta → cobro (fase 17)
+
+Los journeys exigen «subscription → invoice → payment manual → commission», pero antes de V3 las
+facturas solo nacían del seed o del webhook del proveedor y `confirm_manual_payment` no tenía
+pantalla. Se añade `issue_subscription_invoice(subscription, periodo)` (EBIM_FINANCE / super
+admin): factura de CONTROL GERENCIAL del mes, en la moneda del contrato (heredada por la cadena de
+moneda), con las líneas recurrentes vigentes y los cargos únicos aún no facturados, idempotente
+por (suscripción, periodo) y sin facturas vacías. No es un comprobante fiscal (MasterAdmin no es
+ERP). En el detalle de suscripción: «Emitir factura del mes (MON)» y «Registrar cobro», cuyo
+diálogo muestra la moneda de la factura deshabilitada: no se elige. El alta de cliente la hace el
+super admin en los E2E porque `create_tenant` exige rol de plataforma (EBIM_FINANCE no crea
+tenants), comportamiento V2 que no se cambia.
