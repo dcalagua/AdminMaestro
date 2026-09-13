@@ -147,6 +147,15 @@ insert into platform.organization_capabilities (organization_id, capability) val
   ('30000000-0000-4000-a000-00000000000a', 'CUSTOMER')
 on conflict do nothing;
 
+-- Monedas de sociedades fuera de los mercados V3 (Colombia, Chile). Existen en
+-- el catálogo porque hay datos que las usan (FK de la migración 24), pero
+-- INACTIVE: no admiten ventas nuevas. Mismo criterio que el backfill de la
+-- migración para un entorno con historia.
+insert into platform.currencies (code, name, symbol, decimals, status) values
+  ('COP', 'Peso colombiano', null, 2, 'INACTIVE'),
+  ('CLP', 'Peso chileno',    null, 0, 'INACTIVE')
+on conflict (code) do nothing;
+
 -- Sociedades (contrato §3.1 Modelo A: multipaís dentro de la misma cuenta).
 insert into platform.companies (id, organization_id, name, country_code, currency, tax_id, erp_code, is_default) values
   ('31000000-0000-4000-a000-000000000001', '30000000-0000-4000-a000-000000000004', 'Alpha Perú', 'PE', 'PEN', '20500000004', '1000', true),
