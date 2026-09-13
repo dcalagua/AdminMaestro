@@ -2177,6 +2177,52 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_provider_account_currencies: {
+        Row: {
+          created_at: string
+          currency_code: string
+          provider_account_id: string
+          status: Database["platform"]["Enums"]["entity_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency_code: string
+          provider_account_id: string
+          status?: Database["platform"]["Enums"]["entity_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency_code?: string
+          provider_account_id?: string
+          status?: Database["platform"]["Enums"]["entity_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_provider_account_currencies_currency_code_fkey"
+            columns: ["currency_code"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "payment_provider_account_currencies_provider_account_id_fkey"
+            columns: ["provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "payment_provider_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_provider_account_currencies_provider_account_id_fkey"
+            columns: ["provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "v_provider_account_routes"
+            referencedColumns: ["provider_account_id"]
+          },
+        ]
+      }
       payment_provider_accounts: {
         Row: {
           code: string
@@ -2185,11 +2231,13 @@ export type Database = {
           currency: string
           environment: Database["platform"]["Enums"]["provider_environment"]
           id: string
+          market_id: string | null
           metadata: Json
           name: string
           owner_organization_id: string | null
           provider_kind: Database["platform"]["Enums"]["provider_kind"]
           public_key: string | null
+          routing_priority: number
           rsa_id_ref: string | null
           rsa_public_key_ref: string | null
           secret_key_ref: string | null
@@ -2199,16 +2247,18 @@ export type Database = {
         }
         Insert: {
           code: string
-          country_code?: string
+          country_code: string
           created_at?: string
-          currency?: string
+          currency: string
           environment?: Database["platform"]["Enums"]["provider_environment"]
           id?: string
+          market_id?: string | null
           metadata?: Json
           name: string
           owner_organization_id?: string | null
           provider_kind: Database["platform"]["Enums"]["provider_kind"]
           public_key?: string | null
+          routing_priority?: number
           rsa_id_ref?: string | null
           rsa_public_key_ref?: string | null
           secret_key_ref?: string | null
@@ -2223,11 +2273,13 @@ export type Database = {
           currency?: string
           environment?: Database["platform"]["Enums"]["provider_environment"]
           id?: string
+          market_id?: string | null
           metadata?: Json
           name?: string
           owner_organization_id?: string | null
           provider_kind?: Database["platform"]["Enums"]["provider_kind"]
           public_key?: string | null
+          routing_priority?: number
           rsa_id_ref?: string | null
           rsa_public_key_ref?: string | null
           secret_key_ref?: string | null
@@ -2242,6 +2294,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "currencies"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "payment_provider_accounts_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "payment_provider_accounts_owner_organization_id_fkey"
@@ -2685,6 +2744,13 @@ export type Database = {
             referencedRelation: "payment_provider_accounts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "provider_customers_provider_account_id_fkey"
+            columns: ["provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "v_provider_account_routes"
+            referencedColumns: ["provider_account_id"]
+          },
         ]
       }
       provider_payment_methods: {
@@ -2790,6 +2856,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "provider_payment_methods_provider_account_id_fkey"
+            columns: ["provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "v_provider_account_routes"
+            referencedColumns: ["provider_account_id"]
+          },
+          {
             foreignKeyName: "provider_payment_methods_provider_customer_id_fkey"
             columns: ["provider_customer_id"]
             isOneToOne: false
@@ -2863,6 +2936,13 @@ export type Database = {
             referencedRelation: "payment_provider_accounts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "provider_plans_provider_account_id_fkey"
+            columns: ["provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "v_provider_account_routes"
+            referencedColumns: ["provider_account_id"]
+          },
         ]
       }
       provider_subscriptions: {
@@ -2927,6 +3007,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "payment_provider_accounts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_subscriptions_provider_account_id_fkey"
+            columns: ["provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "v_provider_account_routes"
+            referencedColumns: ["provider_account_id"]
           },
           {
             foreignKeyName: "provider_subscriptions_subscription_id_fkey"
@@ -3029,6 +3116,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "payment_provider_accounts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_webhook_events_provider_account_id_fkey"
+            columns: ["provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "v_provider_account_routes"
+            referencedColumns: ["provider_account_id"]
           },
           {
             foreignKeyName: "provider_webhook_events_subscription_id_fkey"
@@ -3720,6 +3814,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "payment_provider_accounts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_collection_profiles_provider_account_id_fkey"
+            columns: ["provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "v_provider_account_routes"
+            referencedColumns: ["provider_account_id"]
           },
           {
             foreignKeyName: "subscription_collection_profiles_subscription_id_fkey"
@@ -5438,6 +5539,86 @@ export type Database = {
         }
         Relationships: []
       }
+      v_provider_account_routes: {
+        Row: {
+          code: string | null
+          country_code: string | null
+          currencies: string[] | null
+          environment:
+            | Database["platform"]["Enums"]["provider_environment"]
+            | null
+          is_live: boolean | null
+          market_code: string | null
+          market_id: string | null
+          market_name: string | null
+          name: string | null
+          owner_organization_id: string | null
+          primary_currency: string | null
+          provider_account_id: string | null
+          provider_kind: Database["platform"]["Enums"]["provider_kind"] | null
+          routing_priority: number | null
+          status: Database["platform"]["Enums"]["entity_status"] | null
+          supported_methods: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_provider_accounts_currency_fk"
+            columns: ["primary_currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "payment_provider_accounts_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_provider_accounts_owner_organization_id_fkey"
+            columns: ["owner_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_provider_accounts_owner_organization_id_fkey"
+            columns: ["owner_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_billing_contact_readiness"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "payment_provider_accounts_owner_organization_id_fkey"
+            columns: ["owner_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_finance"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "payment_provider_accounts_owner_organization_id_fkey"
+            columns: ["owner_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_margin"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "payment_provider_accounts_owner_organization_id_fkey"
+            columns: ["owner_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["customer_organization_id"]
+          },
+          {
+            foreignKeyName: "payment_provider_accounts_owner_organization_id_fkey"
+            columns: ["owner_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["managing_organization_id"]
+          },
+        ]
+      }
       v_provider_reconciliation: {
         Row: {
           billed_organization_id: string | null
@@ -5470,6 +5651,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "payment_provider_accounts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_subscriptions_provider_account_id_fkey"
+            columns: ["provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "v_provider_account_routes"
+            referencedColumns: ["provider_account_id"]
           },
           {
             foreignKeyName: "provider_subscriptions_subscription_id_fkey"
@@ -5708,6 +5896,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "payment_provider_accounts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_collection_profiles_provider_account_id_fkey"
+            columns: ["provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "v_provider_account_routes"
+            referencedColumns: ["provider_account_id"]
           },
           {
             foreignKeyName: "subscriptions_billed_organization_id_fkey"
@@ -6353,6 +6548,32 @@ export type Database = {
         }
         Returns: boolean
       }
+      provider_account_candidates: {
+        Args: {
+          p_collection_method: Database["platform"]["Enums"]["collection_method"]
+          p_subscription_id: string
+        }
+        Returns: {
+          account_code: string
+          account_name: string
+          currencies: string[]
+          eligible: boolean
+          environment: Database["platform"]["Enums"]["provider_environment"]
+          market_code: string
+          owner_organization_id: string
+          provider_account_id: string
+          provider_kind: Database["platform"]["Enums"]["provider_kind"]
+          reason: string
+          route_rank: number
+        }[]
+      }
+      provider_kind_supports_method: {
+        Args: {
+          p_kind: Database["platform"]["Enums"]["provider_kind"]
+          p_method: Database["platform"]["Enums"]["collection_method"]
+        }
+        Returns: boolean
+      }
       receive_commercial_document: {
         Args: {
           p_amount?: number
@@ -6496,6 +6717,7 @@ export type Database = {
           p_renewal_notice_days?: number
           p_requires_purchase_order?: boolean
           p_requires_service_order?: boolean
+          p_route_provider?: boolean
           p_status?: Database["platform"]["Enums"]["collection_profile_status"]
           p_subscription_id: string
         }
@@ -6672,15 +6894,16 @@ export type Database = {
       upsert_payment_provider_account: {
         Args: {
           p_code: string
-          p_country_code?: string
-          p_currency?: string
+          p_currencies?: string[]
           p_environment?: Database["platform"]["Enums"]["provider_environment"]
           p_id?: string
+          p_market_code?: string
           p_metadata?: Json
           p_name: string
           p_owner_organization_id?: string
           p_provider_kind: Database["platform"]["Enums"]["provider_kind"]
           p_public_key?: string
+          p_routing_priority?: number
           p_rsa_id_ref?: string
           p_rsa_public_key_ref?: string
           p_secret_key_ref?: string

@@ -294,6 +294,35 @@ export function useProviderAccounts() {
   });
 }
 
+/**
+ * Elegibilidad de cuentas de cobro para una suscripción y un método (V3).
+ * SECURITY INVOKER: cada rol ve las cuentas que RLS le deja ver; la ruta real la
+ * vuelve a calcular el servidor al guardar el perfil.
+ */
+export function useProviderAccountCandidates(subscriptionId: string | null, method: string) {
+  return useQuery({
+    queryKey: ['provider-account-candidates', subscriptionId, method],
+    enabled: Boolean(subscriptionId),
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('provider_account_candidates', {
+        p_subscription_id: subscriptionId!,
+        p_collection_method: method as Enums<'collection_method'>,
+      });
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    },
+  });
+}
+
+/** Cuentas de cobro con mercado, monedas y métodos soportados (sin secretos). */
+export function useProviderAccountRoutes() {
+  return useQuery({
+    queryKey: ['provider-accounts', 'routes'],
+    queryFn: async () =>
+      unwrap(await supabase.from('v_provider_account_routes').select('*').order('market_code').order('code')),
+  });
+}
+
 /** Órdenes de Servicio / Compra. Un documento aprobado NO es un cobro. */
 export function useCommercialDocuments(subscriptionId?: string) {
   return useQuery({

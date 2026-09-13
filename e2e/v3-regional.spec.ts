@@ -130,3 +130,25 @@ test.describe('R1b · Tarifa regional en el catálogo (fase 04)', () => {
     await expect(page.getByTitle('Mercado PE').first()).toBeVisible();
   });
 });
+
+test.describe('R3 · Routing regional de cobro (fase 07)', () => {
+  test('la cuenta de tarjeta la asigna el servidor por mercado y moneda, sin selector', async ({ page }) => {
+    await login(page, USERS.finance);
+    await page.goto('/subscriptions');
+    await page.getByRole('link', { name: 'SUB-TITAN-EWM' }).click();
+    await page.getByRole('tab', { name: 'Cobranza' }).click();
+    await page.getByRole('button', { name: /Configurar cobranza|Cambiar método/ }).click();
+
+    const dialog = page.getByRole('dialog');
+    await field(dialog, 'Método de cobro').selectOption('CULQI_CARD');
+
+    // No existe un <select> de cuenta: la ruta es informativa y la calcula la base.
+    await expect(dialog.getByLabel(/Cuenta de proveedor/)).toHaveCount(0);
+    await expect(dialog.getByTestId('collection-route')).toHaveText(/culqi-pe-test · PE · PEN\/USD \(TEST\)/);
+
+    // Un método sin pasarela no usa cuenta.
+    await field(dialog, 'Método de cobro').selectOption('SERVICE_ORDER');
+    await expect(dialog.getByTestId('collection-route')).toHaveText('No aplica: este método no usa pasarela');
+    await dialog.getByRole('button', { name: 'Cancelar' }).click();
+  });
+});

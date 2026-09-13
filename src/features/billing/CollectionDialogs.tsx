@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { FormDialog } from '@/components/ui/FormDialog';
 import { TextField, SelectField, NumberField, CheckboxField, TextAreaField, FieldRow } from '@/components/ui/fields';
 import { useToast } from '@/components/ui/toast-context';
-import { useProviderAccounts } from '@/services/queries';
+import { useProviderAccountCandidates } from '@/services/queries';
 import {
   useSetCollectionProfile, useRequestDocument, useReceiveDocument, useApproveDocument,
 } from '@/services/mutations';
@@ -27,7 +27,6 @@ const profileSchema = z
     collection_method: z.enum([
       'CULQI_CARD', 'SERVICE_ORDER', 'PURCHASE_ORDER', 'BANK_TRANSFER', 'MANUAL',
     ]),
-    provider_account_id: z.string().optional(),
     invoice_lead_days: z.coerce.number().int().min(0).max(365),
     renewal_notice_days: z.coerce.number().int().min(0).max(365),
     payment_due_days: z.coerce.number().int().min(0).max(365),
@@ -36,10 +35,6 @@ const profileSchema = z
     auto_suspend: z.boolean(),
     effective_from: z.string().min(1, 'Obligatorio'),
     notes: z.string().trim().optional(),
-  })
-  .refine((v) => v.collection_method !== 'CULQI_CARD' || Boolean(v.provider_account_id), {
-    path: ['provider_account_id'],
-    message: 'El cobro con tarjeta exige una cuenta de proveedor Culqi',
   })
   .refine((v) => !v.auto_suspend || v.grace_period_days >= 1, {
     path: ['grace_period_days'],
@@ -62,13 +57,12 @@ export function CollectionProfileDialog({
   onClose: () => void;
 }) {
   const toast = useToast();
-  const accounts = useProviderAccounts();
   const setProfile = useSetCollectionProfile();
 
   const form = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      collection_method: 'MANUAL', provider_account_id: '',
+      collection_method: 'MANUAL',
       invoice_lead_days: 0, renewal_notice_days: 30, payment_due_days: 15,
       grace_period_days: 10, document_lead_days: 45, auto_suspend: false,
       effective_from: new Date().toISOString().slice(0, 10), notes: '',
@@ -81,7 +75,6 @@ export function CollectionProfileDialog({
     form.reset({
       collection_method:
         (current?.collection_method as ProfileValues['collection_method']) ?? 'MANUAL',
-      provider_account_id: (current?.provider_account_id as string) ?? '',
       invoice_lead_days: (current?.invoice_lead_days as number) ?? 0,
       renewal_notice_days: (current?.renewal_notice_days as number) ?? 30,
       payment_due_days: (current?.payment_due_days as number) ?? 15,
@@ -99,10 +92,17 @@ export function CollectionProfileDialog({
   const needsProvider = method === 'CULQI_CARD';
   const needsDocument = method === 'SERVICE_ORDER' || method === 'PURCHASE_ORDER';
 
-  const accountOptions = (accounts.data ?? [])
-    .filter((a) => a.status === 'ACTIVE')
-    .filter((a) => !needsProvider || a.provider_kind === 'CULQI')
-    .map((a) => ({ value: a.id, label: `${a.code} · ${a.name} (${a.environment})` }));
+  /**
+   * V3 · la cuenta de cobro la decide el SERVIDOR por mercado + moneda + método
+   * (`provider_account_candidates`). Aquí solo se muestra la ruta que asignará y,
+   * si no hay ninguna, por qué: la UI no elige cuenta ni puede imponerla.
+   */
+  const candidates = useProviderAccountCandidates(
+    open && needsProvider ? subscriptionId : null,
+    method,
+  );
+  const route = (candidates.data ?? []).find((c) => c.route_rank === 1) ?? null;
+  const rejected = (candidates.data ?? []).filter((c) => !c.eligible);
 
   const submit = form.handleSubmit(async (raw) => {
     const v = profileSchema.parse(raw);
@@ -111,7 +111,7 @@ export function CollectionProfileDialog({
       await setProfile.mutateAsync({
         p_subscription_id: subscriptionId,
         p_collection_method: v.collection_method,
-        p_provider_account_id: v.provider_account_id || undefined,
+        p_route_provider: true,
         p_invoice_lead_days: v.invoice_lead_days,
         p_renewal_notice_days: v.renewal_notice_days,
         p_payment_due_days: v.payment_due_days,
@@ -150,22 +150,45 @@ export function CollectionProfileDialog({
           error={form.formState.errors.collection_method}
           {...form.register('collection_method')}
         />
-        <SelectField
-          label="Cuenta de proveedor"
-          placeholder={needsProvider ? 'Elige la cuenta Culqi…' : 'Ninguna'}
-          options={accountOptions}
-          disabled={!needsProvider}
-          hint={
-            needsProvider
-              ? 'Solo se listan cuentas Culqi activas. Las cuentas no guardan secretos.'
-              : 'Solo aplica al cobro con tarjeta.'
-          }
-          error={form.formState.errors.provider_account_id}
-          {...form.register('provider_account_id')}
-        />
+        <div>
+          <span className="ebim-label">Cuenta de cobro</span>
+          <div
+            className="ebim-input flex min-h-[var(--control-h)] items-center text-sm"
+            aria-live="polite"
+            data-testid="collection-route"
+          >
+            {!needsProvider
+              ? 'No aplica: este método no usa pasarela'
+              : candidates.isLoading
+                ? 'Calculando ruta…'
+                : route
+                  ? `${route.account_code} · ${route.market_code ?? '—'} · ${(route.currencies ?? []).join('/')} (${route.environment})`
+                  : 'Sin cuenta elegible'}
+          </div>
+          <p className="mt-1 text-xs text-muted">
+            La asigna el servidor por mercado, moneda y método. No se elige a mano.
+          </p>
+        </div>
       </FieldRow>
 
-      {needsProvider ? (
+      {needsProvider && !candidates.isLoading && !route ? (
+        <div className="rounded-lg bg-warn-soft px-3 py-2 text-xs text-warn" role="alert">
+          <p className="font-semibold">
+            No hay cuenta de tarjeta para el mercado y la moneda de esta suscripción. La base
+            rechazará el perfil (PROVEEDOR_NO_DISPONIBLE_EN_MERCADO): elige otro método.
+          </p>
+          {rejected.length > 0 ? (
+            <ul className="mt-1 list-disc pl-4">
+              {rejected.slice(0, 5).map((c) => (
+                <li key={c.provider_account_id}>
+                  {c.account_code}: {c.reason}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+      {needsProvider && route ? (
         <p className="rounded-lg bg-info-soft px-3 py-2 text-xs text-info">
           El cargo automático queda activado. Si la cuenta no tiene credenciales configuradas, el
           adapter opera en modo MOCK y no se ejecuta ningún cobro real.

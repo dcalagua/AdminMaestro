@@ -92,3 +92,30 @@ padre con historia es inmutable (`MONEDA_CONTRACTUAL_INMUTABLE`, `MONEDA_DOCUMEN
 un borrador sin hijos sí puede corregirla. No se reescriben filas previas: las incoherencias
 históricas se listan en `v_currency_integrity_issues` (vacía en el seed). `cost_entries` no
 pertenece a la cadena: un costo USD sobre un ingreso PEN es legítimo; sumarlo no (fase 10).
+
+## DV3-010 · Routing de cobro en servidor: mercado + monedas por cuenta + métodos por proveedor (fase 07)
+
+Una cuenta de cobro pertenece a un mercado (`payment_provider_accounts.market_id`) y declara las
+monedas que cobra (`payment_provider_account_currencies`; la principal siempre incluida). Qué
+métodos soporta cada tipo de proveedor vive en una sola función (`provider_kind_supports_method`:
+CULQI = tarjeta; BANK = transferencia; MANUAL = manual, transferencia, OS y OC; OTHER = nada).
+`provider_account_candidates()` (SECURITY INVOKER) evalúa cada cuenta contra una suscripción y
+dice por qué no sirve; `route_rank = 1` es la ruta: la cuenta propia de quien paga, luego
+`routing_priority`, luego código. `set_subscription_collection_profile` recibe `p_route_provider`
+AL FINAL (compatibilidad posicional V2): con `true` el servidor elige y una cuenta enviada por el
+cliente se rechaza (`CUENTA_PROVEEDOR_NO_COINCIDE`); sin cuenta elegible,
+`PROVEEDOR_NO_DISPONIBLE_EN_MERCADO` (Culqi no es universal). Sin `p_route_provider` sigue el
+modo V2, pero la cuenta explícita pasa por el mismo guard de elegibilidad. La UI ya no tiene
+selector de cuenta. Backfill explícito: `culqi-pe-test` cobra también USD (evidencia V2.1) y
+`ebim-manual` también PEN. Se retiran los defaults PE/PEN de columnas y RPC; el webhook exige
+`?account=`. El guard del perfil solo re-evalúa cuando cambian cuenta, método o suscripción:
+cerrar un perfil histórico no vuelve a juzgar una cuenta que era válida entonces.
+
+## DV3-011 · Defecto V2 corregido: `upsert_payment_provider_account` nunca completaba (fase 07)
+
+Su auditoría escribía la clave `has_secret_ref`, y el guard `reject_secret_like_json` de
+`audit_logs` rechaza toda clave que contenga «secret» (42501 `METADATA_CON_SECRETO`). Ningún test
+V2 lo cubría: solo probaban el rechazo por autorización. La versión V3 audita
+`server_credential_configured`. Los fixtures de `03_v2_security` declaran ahora país y moneda en
+sus INSERT directos de cuentas (sin default ya no nacen PE/PEN); cada prueba sigue fallando por
+su motivo original (el secreto).

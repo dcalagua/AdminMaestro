@@ -37,8 +37,15 @@ Deno.serve(async (req: Request) => {
   // La cuenta se identifica por query string (?account=culqi-pe-test), que es lo
   // que se registra como URL en el panel del proveedor. No es un secreto: la
   // seguridad no depende de que esta URL sea desconocida.
+  //
+  // V3: sin `?account=` no se asume la cuenta de Perú. Cada cuenta regional
+  // registra su propia URL; una llamada sin cuenta es una configuración rota y
+  // debe verse como tal, no acabar registrada contra el comercio equivocado.
   const url = new URL(req.url);
-  const accountCode = url.searchParams.get('account') ?? 'culqi-pe-test';
+  const accountCode = url.searchParams.get('account');
+  if (!accountCode) {
+    return json({ error: 'CUENTA_REQUERIDA: el webhook se registra como ?account=<código de cuenta>' }, 400);
+  }
 
   const rawBody = await req.text();
   // Un cuerpo desmesurado es abuso, no un evento. Se corta antes de parsear.

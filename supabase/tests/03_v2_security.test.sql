@@ -125,33 +125,35 @@ select is(
 -- escáner de secretos (`npm run secrets:scan`) no marca este archivo: un fixture
 -- con pinta de credencial real en el repositorio es exactamente lo que el
 -- escáner debe seguir detectando en cualquier otro sitio.
+-- V3 (fase 07): una cuenta ya no nace PE/PEN por defecto; los fixtures declaran
+-- país y moneda para que cada prueba siga fallando por SU motivo (el secreto).
 select throws_ok(
-  $$ insert into platform.payment_provider_accounts (code, name, provider_kind, secret_key_ref)
-     values ('culqi-fuga', 'Fuga', 'CULQI', 'sk_test_X') $$,
+  $$ insert into platform.payment_provider_accounts (code, name, provider_kind, country_code, currency, secret_key_ref)
+     values ('culqi-fuga', 'Fuga', 'CULQI', 'PE', 'PEN', 'sk_test_X') $$,
   '23514',
   null,
   'Un valor con prefijo sk_test_ en secret_key_ref viola el CHECK: no se guarda nunca'
 );
 
 select throws_ok(
-  $$ insert into platform.payment_provider_accounts (code, name, provider_kind, public_key)
-     values ('culqi-fuga2', 'Fuga 2', 'CULQI', 'sk_live_X') $$,
+  $$ insert into platform.payment_provider_accounts (code, name, provider_kind, country_code, currency, public_key)
+     values ('culqi-fuga2', 'Fuga 2', 'CULQI', 'PE', 'PEN', 'sk_live_X') $$,
   '23514',
   null,
   'Un valor con prefijo de clave secreta en la columna PÚBLICA también se rechaza'
 );
 
 select throws_ok(
-  $$ insert into platform.payment_provider_accounts (code, name, provider_kind, environment, secret_key_ref)
-     values ('culqi-live-sin-ref', 'Live sin secreto', 'CULQI', 'LIVE', null) $$,
+  $$ insert into platform.payment_provider_accounts (code, name, provider_kind, environment, country_code, currency, secret_key_ref)
+     values ('culqi-live-sin-ref', 'Live sin secreto', 'CULQI', 'LIVE', 'PE', 'PEN', null) $$,
   '23514',
   null,
   'Una cuenta Culqi LIVE sin referencia de secreto es una configuración inválida'
 );
 
 select throws_ok(
-  $$ insert into platform.payment_provider_accounts (code, name, provider_kind, metadata)
-     values ('culqi-meta', 'Meta', 'CULQI',
+  $$ insert into platform.payment_provider_accounts (code, name, provider_kind, country_code, currency, metadata)
+     values ('culqi-meta', 'Meta', 'CULQI', 'PE', 'PEN',
              jsonb_build_object('api_key', 'algo')) $$,
   '42501',
   null,
@@ -281,10 +283,10 @@ select pg_temp.act_as_postgres();
 -- Una cuenta de proveedor con dueño solo cobra a su dueño.
 select lives_ok(
   $$ insert into platform.payment_provider_accounts
-       (id, code, name, provider_kind, owner_organization_id)
+       (id, code, name, provider_kind, owner_organization_id, country_code, currency)
      values ('b0000000-0000-4000-a000-0000000000ff', 'andina-culqi',
              'Culqi de Consultora Andina', 'CULQI',
-             '30000000-0000-4000-a000-000000000002') $$,
+             '30000000-0000-4000-a000-000000000002', 'PE', 'PEN') $$,
   'Se puede crear una cuenta de cobro propiedad de un partner'
 );
 
