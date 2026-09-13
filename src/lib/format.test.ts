@@ -84,6 +84,12 @@ describe('formateo de fechas', () => {
     expect(formatDate('2026-03-15')).not.toBe('—');
   });
 
+  it('una fecha sin hora es un día de calendario: no retrocede por zona horaria', () => {
+    // es-PE abrevia el mes («13 set. 2026»); lo que importa es el DÍA.
+    expect(formatDate('2026-09-13')).toMatch(/^13\b/);
+    expect(formatDate('2031-01-01')).toMatch(/^1\b/);
+  });
+
   it('no revienta con una fecha inválida', () => {
     expect(formatDate('no-es-una-fecha')).toBe('—');
     expect(formatDateTime('')).toBe('—');

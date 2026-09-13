@@ -70,6 +70,47 @@ export interface DashboardSummary {
   provisioning_failures: number;
 }
 
+/* ---- V3 · Consolidado gerencial (`platform.finance_consolidated`) ---------- */
+
+export type ConsolidatedMetricKey =
+  | 'MRR' | 'ARR' | 'COLLECTED' | 'COST' | 'COMMISSION' | 'COMMISSION_PENDING' | 'COMMISSION_PAID';
+
+export interface ConsolidatedMetric {
+  /** Importe por moneda nativa. Nunca un total mezclado. */
+  native: Record<string, number>;
+  /** Equivalente en moneda de reporte; NULL si falta alguna conversión. */
+  reporting_amount: number | null;
+  complete: boolean;
+  missing_currencies: string[];
+}
+
+export interface ConsolidatedGroup {
+  key: string;
+  label: string;
+  metrics: Partial<Record<ConsolidatedMetricKey, ConsolidatedMetric>>;
+  native_margin: Record<string, number>;
+  margin: { reporting_amount: number | null; complete: boolean };
+}
+
+export interface ConsolidatedRate {
+  from: string;
+  to: string;
+  rate: number;
+  method: 'DIRECT' | 'RECIPROCAL';
+  rate_date: string;
+  is_demo: boolean;
+}
+
+export interface FinanceConsolidated {
+  as_of: string;
+  reporting_currency: string | null;
+  fx_max_rate_age_days: number | null;
+  group_by: 'TOTAL' | 'MARKET' | 'PRODUCT' | 'PARTNER';
+  groups: ConsolidatedGroup[];
+  completeness: { complete: boolean; missing_fx_count: number; missing_currencies: string[] };
+  rates_used: ConsolidatedRate[];
+}
+
 /**
  * Rol efectivo del usuario en la sesión. Se resuelve SIEMPRE contra la base
  * (platform_admins / organization_memberships / sales_agents), nunca contra

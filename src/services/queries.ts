@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import type { DashboardSummary, Enums } from '@/types/domain';
+import type { DashboardSummary, Enums, FinanceConsolidated } from '@/types/domain';
 import { toMarketOptions, type MarketRow } from '@/lib/regional';
 
 /**
@@ -264,6 +264,37 @@ export function useExchangeRates() {
           .order('quote_currency')
           .limit(300),
       ),
+  });
+}
+
+export interface FinanceConsolidatedParams {
+  asOf: string;
+  groupBy: 'TOTAL' | 'MARKET' | 'PRODUCT' | 'PARTNER';
+  marketCode?: string;
+  currency?: string;
+  saasProductId?: string;
+  organizationId?: string;
+}
+
+/**
+ * Consolidado gerencial (V3). La base suma por moneda, convierte cada total con
+ * una tasa explícita y declara lo que falta: la UI solo presenta.
+ */
+export function useFinanceConsolidated(params: FinanceConsolidatedParams) {
+  return useQuery({
+    queryKey: ['finance-consolidated', params],
+    queryFn: async (): Promise<FinanceConsolidated> => {
+      const { data, error } = await supabase.rpc('finance_consolidated', {
+        p_as_of: params.asOf,
+        p_group_by: params.groupBy,
+        p_market_code: params.marketCode || undefined,
+        p_currency: params.currency || undefined,
+        p_saas_product_id: params.saasProductId || undefined,
+        p_organization_id: params.organizationId || undefined,
+      });
+      if (error) throw new Error(error.message);
+      return data as unknown as FinanceConsolidated;
+    },
   });
 }
 

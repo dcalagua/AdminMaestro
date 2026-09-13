@@ -195,3 +195,18 @@ reporte, tipos de cambio (publicar, anular con motivo, probar conversión con `f
 tarifas por mercado (vigentes/programadas/historial/legacy, versionar) y mercados con rutas de
 cobro. El país de una organización sigue siendo texto: no existe catálogo de países y organizaciones
 fuera de PE/BO/EC son legítimas.
+
+## DV3-017 · Dashboard regional: filtros analíticos y cifras incompletas explícitas (fase 13)
+
+El dashboard EBIM añade «Finanzas regionales» con modo NATIVO (mapas por moneda, margen por
+moneda) y CONSOLIDADO (moneda de reporte, fecha de las tasas y su tolerancia, tasas usadas con
+método y marca DEMO). Filtros de mercado, moneda, producto y organización/partner: la regla U-06
+(«un buscador por listado, sin paneles multi-campo») rige LISTADOS; aquí los filtros acotan el
+cálculo de la base (`finance_consolidated`), que suma por moneda y convierte en el servidor, y no
+filtran filas ya sumadas en el navegador. En consolidado una métrica con cualquier conversión
+faltante se muestra «Incompleto» (con la moneda que falta y el nativo como ayuda), el margen
+«No calculable», cada mercado afectado lleva «FX faltante» y hay un aviso `role=alert`: una cifra
+parcial nunca se presenta como total. La presentación vive en `src/lib/consolidated.ts` (pura,
+probada). Defecto corregido de paso: `formatDate('YYYY-MM-DD')` pintaba el día anterior en UTC−5
+porque `new Date()` interpreta la fecha sin hora como medianoche UTC; ahora se construye en hora
+local (afectaba a toda fecha de calendario de la consola, incluida la fecha de las tasas).

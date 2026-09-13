@@ -242,3 +242,57 @@ test.describe('R5 · UI regional: FX, tarifas por mercado e importes con ISO (fa
     await expect(page.locator('main')).not.toContainText('US$');
   });
 });
+
+async function setReportingCurrency(page: Page, code: string) {
+  await page.goto('/regional#reporting');
+  const select = page.getByRole('combobox', { name: 'Moneda de reporte' });
+  await expect(select).toBeVisible();
+  if ((await select.inputValue()) === code) return;
+  await select.selectOption(code);
+  await page.getByRole('button', { name: 'Guardar' }).click();
+  await expect(page.getByText(`Actual: ${code}`)).toBeVisible({ timeout: 15_000 });
+}
+
+test.describe('R6 · Dashboard regional NATIVO / CONSOLIDADO (fase 13)', () => {
+  test('nativo separa por moneda y consolidado declara moneda de reporte y fecha de tasas', async ({ page }) => {
+    await login(page, USERS.finance);
+    const panel = page.locator('section').filter({ hasText: 'Finanzas regionales' });
+    await expect(panel.getByRole('tab', { name: 'Nativo' })).toHaveAttribute('aria-selected', 'true');
+
+    // Por mercado: Perú y los contratos fuera del modelo regional, por separado.
+    await expect(panel.getByRole('row').filter({ hasText: 'Perú' })).toBeVisible();
+    await expect(panel.getByRole('row').filter({ hasText: 'Sin mercado' })).toBeVisible();
+
+    await field(panel, 'Mercado').selectOption('PE');
+    await expect(panel.getByRole('row').filter({ hasText: 'Sin mercado' })).toHaveCount(0);
+
+    await panel.getByRole('tab', { name: 'Consolidado' }).click();
+    await expect(panel.getByTestId('fx-context')).toContainText(/Moneda de reporte:\s*\w{3}/);
+    await expect(panel.getByTestId('fx-context')).toContainText('tasas al');
+  });
+
+  test('si falta un tipo de cambio el consolidado lo advierte y no presenta cifras como completas', async ({ page }) => {
+    await login(page, USERS.finance);
+    try {
+      // Con BOB como moneda de reporte, los hechos USD/PEN necesitan tasas hacia BOB en la
+      // fecha elegida. Una fecha sin tasas publicadas garantiza el faltante.
+      await setReportingCurrency(page, 'BOB');
+      await page.goto('/');
+      const panel = page.locator('section').filter({ hasText: 'Finanzas regionales' });
+      await panel.getByRole('tab', { name: 'Consolidado' }).click();
+      await field(panel, 'Fecha de las tasas').fill('2001-01-01');
+
+      await expect(panel.getByRole('alert')).toContainText('Consolidado incompleto');
+      await expect(panel.locator('.ebim-card').filter({ hasText: 'Cobrado' }).first()).toContainText('Incompleto');
+      await expect(panel.locator('.ebim-card').filter({ hasText: 'Margen bruto' })).toContainText('No calculable');
+      await expect(panel.getByText('FX faltante').first()).toBeVisible();
+
+      // El modo nativo sigue mostrando los importes reales, por moneda.
+      await panel.getByRole('tab', { name: 'Nativo' }).click();
+      await expect(panel.getByRole('alert')).toHaveCount(0);
+      await expect(panel.locator('.ebim-card').filter({ hasText: 'Cobrado' }).first()).toContainText(/USD\s/);
+    } finally {
+      await setReportingCurrency(page, 'USD');
+    }
+  });
+});

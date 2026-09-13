@@ -1,7 +1,7 @@
 # STATE V3
 
 Status: IN_PROGRESS
-Current phase: 13
+Current phase: 14
 
 HEAD inicial V3: `1c6b5ce chore: checkpoint before V3 multicurrency`
 Checksums baseline: `docs/nightly-v3/BASELINE_MIGRATIONS.sha256` (23 migraciones)
@@ -20,7 +20,7 @@ Checksums baseline: `docs/nightly-v3/BASELINE_MIGRATIONS.sha256` (23 migraciones
 | 10 Consolidated Finance | COMPLETE | Migración 31 `20260913000800_v3_consolidated_finance.sql`: R-1 `dashboard_summary` por moneda, R-2 `channel_mrr` + `channel_mrr_by_currency`, R-3 márgenes por (entidad, moneda), G-32 `v_tenant_overview` sin USD por defecto (+`market_code`), `v_finance_facts`, `finance_reporting_rows`, `finance_consolidated` con completitud FX (DV3-014). Totales del seed verificados contra el dashboard nativo. pgTAP `13_v3_consolidated_finance` 20 tests (PEN, BOB, USD, FX faltante y totales con FX); suite 291/291; typecheck PASS |
 | 11 Commissions | COMPLETE | Migración 32 `20260913000900_v3_multicurrency_commissions.sql`: guard evento↔liquidación mono-moneda, moneda de liquidación inmutable, `settle_commissions` con moneda obligatoria y código por moneda sin reabrir cerradas, `generate_commission_events` con fijos/topes solo en la moneda de la regla, `upsert_commission_rule` sin USD (DV3-015). pgTAP `14_v3_multicurrency_commissions` 20 tests (USD no toma BOB, BOB no toma PEN, mixta DENIED, reverso BOB); suite 311/311; typecheck PASS |
 | 12 UI | COMPLETE | `formatMoney` sin default y con código ISO, `sumByCurrency`/`subtractByCurrency`, `Money` + `currencySymbolHint`; totales R-7 por moneda en Facturación, Costos, Suscripciones, Comisiones, Dashboard (EBIM y comercial), Tenants y 360; márgenes de detalle por moneda; selector de moneda en reglas de comisión; «Monedas y FX» con pestañas Moneda de reporte, Tipos de cambio (publicar/anular/probar), Tarifas por mercado y Mercados/rutas (DV3-016). Unit 75/75; typecheck/lint PASS; E2E suite completa 53/53 PASS, 0 skips |
-| 13 Dashboard | PENDING | |
+| 13 Dashboard | COMPLETE | `RegionalFinancePanel` en el dashboard EBIM: modos Nativo/Consolidado, filtros mercado/moneda/producto/organización, contexto de moneda de reporte y tasas (DEMO rotulado), aviso de FX faltante, «Incompleto»/«No calculable», desglose por mercado (DV3-017). `useFinanceConsolidated`, tipos `FinanceConsolidated`, helper `consolidated.ts` (8 tests). Corregido `formatDate` de fechas sin hora (día anterior en UTC−5). Unit 84/84; typecheck/lint PASS; E2E suite completa 55/55 PASS (R6 2 nuevos), 0 skips; captura visual revisada |
 | 14 Seeds | PENDING | |
 | 15 Domain Tests | PENDING | |
 | 16 Security/RLS | PENDING | |

@@ -94,9 +94,21 @@ export function formatPercent(value: number | null | undefined, digits = 1): str
   }).format(value);
 }
 
+/**
+ * Una fecha SIN hora (`2026-09-13`) es un día de calendario, no un instante:
+ * `new Date('2026-09-13')` la interpreta como medianoche UTC y en Lima (UTC−5)
+ * se pintaba el día anterior. Se construye en hora local.
+ */
+function parseDateValue(value: string | Date): Date {
+  if (value instanceof Date) return value;
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (dateOnly) return new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]));
+  return new Date(value);
+}
+
 export function formatDate(value: string | Date | null | undefined): string {
   if (!value) return '—';
-  const date = typeof value === 'string' ? new Date(value) : value;
+  const date = parseDateValue(value);
   if (Number.isNaN(date.getTime())) return '—';
   return new Intl.DateTimeFormat(LOCALE, { dateStyle: 'medium' }).format(date);
 }

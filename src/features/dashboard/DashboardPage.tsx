@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/primitives';
 import { formatMoney, formatCurrencyMap, sumByCurrency, formatNumber, formatDate } from '@/lib/format';
 import { COMMISSION_STATUS_LABEL } from '@/types/domain';
+import { RegionalFinancePanel } from './RegionalFinancePanel';
 
 /**
  * Dashboard adaptado al perfil (prompt fase 9).
@@ -73,6 +74,10 @@ function EbimDashboard() {
           value={Object.values(s.tenants_by_mode).join(' / ') || '—'}
           hint={Object.keys(s.tenants_by_mode).join(' / ') || 'Sin datos'}
         />
+      </div>
+
+      <div className="mt-5">
+        <RegionalFinancePanel />
       </div>
 
       <div className="mt-5">
