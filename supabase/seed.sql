@@ -169,6 +169,16 @@ insert into platform.companies (id, organization_id, name, country_code, currenc
   ('31000000-0000-4000-a000-000000000009', '30000000-0000-4000-a000-00000000000a', 'Titán Perú', 'PE', 'PEN', '20500000010', '5000', true)
 on conflict (id) do nothing;
 
+-- V3 · EBIM regional: UNA organización PLATFORM con TRES sociedades, una por
+-- mercado. El mercado lo asigna el guard `companies_market_guard` desde el país
+-- (hay un único mercado activo por país) y valida que la moneda esté admitida.
+-- Identificadores fiscales ficticios, con el mismo patrón de fixtures del seed.
+insert into platform.companies (id, organization_id, name, country_code, currency, tax_id, erp_code, is_default) values
+  ('31000000-0000-4000-a000-0000000000e1', '30000000-0000-4000-a000-000000000001', 'EBIM Perú',    'PE', 'PEN', '20500000001',   'EBIM-PE', true),
+  ('31000000-0000-4000-a000-0000000000e2', '30000000-0000-4000-a000-000000000001', 'EBIM Bolivia', 'BO', 'BOB', '1020000001',    'EBIM-BO', false),
+  ('31000000-0000-4000-a000-0000000000e3', '30000000-0000-4000-a000-000000000001', 'EBIM Ecuador', 'EC', 'USD', '1790000000001', 'EBIM-EC', false)
+on conflict (id) do nothing;
+
 -- Relaciones comerciales.
 insert into platform.organization_relationships (parent_organization_id, child_organization_id, relationship_type) values
   ('30000000-0000-4000-a000-000000000002', '30000000-0000-4000-a000-000000000006', 'MANAGES'),

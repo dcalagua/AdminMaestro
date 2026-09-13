@@ -148,12 +148,17 @@ export function OrganizationDetailPage() {
                   {companies.length === 0 ? (
                     <EmptyState title="Sin sociedades registradas" />
                   ) : (
-                    <DataTable columns={['Sociedad', 'País', 'Moneda', 'ERP code']}>
+                    <DataTable columns={['Sociedad', 'Mercado', 'País', 'Moneda', 'ERP code']}>
                       {companies.map((c) => (
                         <tr key={c.id as string}>
                           <td className="ebim-td font-semibold">
                             {c.name as string}
                             {c.is_default ? <Badge tone="accent">Principal</Badge> : null}
+                          </td>
+                          <td className="ebim-td">
+                            {(c.markets as { code: string; name: string } | null)?.name ?? (
+                              <span className="text-muted">Fuera de mercado</span>
+                            )}
                           </td>
                           <td className="ebim-td">{c.country_code as string}</td>
                           <td className="ebim-td">{c.currency as string}</td>

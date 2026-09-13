@@ -37,3 +37,12 @@ el estado ACTIVE.
 Monedas, mercados, tipos de cambio y moneda de reporte son catálogo financiero:
 `can_manage_regional_catalog()` = EBIM_FINANCE o EBIM_SUPER_ADMIN. EBIM_PRODUCT_ADMIN conserva
 la tarifa (`set_plan_price`), como en V2. Lectura del catálogo: cualquier autenticado.
+
+## DV3-005 · EBIM regional = 1 organización PLATFORM + 3 sociedades (fase 03)
+
+No se crean tres organizaciones EBIM: `organizations_single_platform_uk` y la gobernanza del
+super admin único dependen de que haya una. `companies.market_id` (nullable) ancla cada sociedad
+a su mercado. Si no se indica y el país tiene un único mercado activo, el guard lo asigna; si hay
+cero o varios, queda NULL («fuera del modelo regional») en vez de inventarse. Las sociedades EBIM
+se siembran en `seed.sql` (sus datos fiscales no son catálogo universal); en QAS/PRD se crean con
+`upsert_company(p_market_code => 'BO', ...)`.

@@ -72,7 +72,7 @@ export function useOrganization(organizationId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('organizations')
-        .select('*, organization_capabilities(capability), companies(*)')
+        .select('*, organization_capabilities(capability), companies(*, markets(code, name))')
         .eq('id', organizationId!)
         .maybeSingle();
       if (error) throw new Error(error.message);

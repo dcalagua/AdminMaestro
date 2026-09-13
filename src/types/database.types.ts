@@ -750,6 +750,7 @@ export type Database = {
           erp_code: string | null
           id: string
           is_default: boolean
+          market_id: string | null
           name: string
           organization_id: string
           status: Database["platform"]["Enums"]["entity_status"]
@@ -763,6 +764,7 @@ export type Database = {
           erp_code?: string | null
           id?: string
           is_default?: boolean
+          market_id?: string | null
           name: string
           organization_id: string
           status?: Database["platform"]["Enums"]["entity_status"]
@@ -776,6 +778,7 @@ export type Database = {
           erp_code?: string | null
           id?: string
           is_default?: boolean
+          market_id?: string | null
           name?: string
           organization_id?: string
           status?: Database["platform"]["Enums"]["entity_status"]
@@ -789,6 +792,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "currencies"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "companies_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "companies_organization_id_fkey"
@@ -857,6 +867,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "companies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_config_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "v_company_markets"
+            referencedColumns: ["company_id"]
           },
         ]
       }
@@ -1423,6 +1440,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_markets"
+            referencedColumns: ["company_id"]
+          },
+          {
             foreignKeyName: "invoices_currency_fk"
             columns: ["currency"]
             isOneToOne: false
@@ -1761,6 +1785,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_memberships_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_markets"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "organization_memberships_organization_id_fkey"
@@ -4512,6 +4543,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "tenants_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_markets"
+            referencedColumns: ["company_id"]
+          },
+          {
             foreignKeyName: "tenants_customer_organization_id_fkey"
             columns: ["customer_organization_id"]
             isOneToOne: false
@@ -5011,6 +5049,89 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_tenant_overview"
             referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      v_company_markets: {
+        Row: {
+          company_id: string | null
+          country_code: string | null
+          currency: string | null
+          in_regional_model: boolean | null
+          is_default: boolean | null
+          market_code: string | null
+          market_default_currency: string | null
+          market_id: string | null
+          market_name: string | null
+          name: string | null
+          organization_id: string | null
+          organization_kind: Database["platform"]["Enums"]["org_kind"] | null
+          organization_name: string | null
+          status: Database["platform"]["Enums"]["entity_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "companies_currency_fk"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "companies_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "companies_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "companies_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_billing_contact_readiness"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "companies_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_finance"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "companies_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_margin"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "companies_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["customer_organization_id"]
+          },
+          {
+            foreignKeyName: "companies_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["managing_organization_id"]
+          },
+          {
+            foreignKeyName: "markets_default_currency_code_fkey"
+            columns: ["market_default_currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -6336,6 +6457,7 @@ export type Database = {
           p_erp_code?: string
           p_id?: string
           p_is_default?: boolean
+          p_market_code?: string
           p_name: string
           p_organization_id: string
           p_status?: Database["platform"]["Enums"]["entity_status"]
