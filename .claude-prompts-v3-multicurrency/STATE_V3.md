@@ -1,7 +1,7 @@
 # STATE V3
 
-Status: IN_PROGRESS
-Current phase: 98
+Status: COMPLETE · veredicto GO_QAS_CANDIDATE (sin aplicar en QAS)
+Current phase: — (V3 cerrada)
 
 HEAD inicial V3: `1c6b5ce chore: checkpoint before V3 multicurrency`
 Checksums baseline: `docs/nightly-v3/BASELINE_MIGRATIONS.sha256` (23 migraciones)
@@ -26,4 +26,4 @@ Checksums baseline: `docs/nightly-v3/BASELINE_MIGRATIONS.sha256` (23 migraciones
 | 16 Security/RLS | COMPLETE | Migración 33 `20260913001000_v3_security_hardening.sql` (H-1 devengo solo por trigger/service_role, H-2/H-3 funciones de trigger sin EXECUTE), verificación empírica de disparo sin EXECUTE; `16_v3_security_rls.test.sql` 42 tests (estructura explícita V3 + negativos partner, tenant, comercial, producto, finanzas); `docs/security/V3_MULTICURRENCY_SECURITY_AUDIT.md` (DV3-019). pgTAP 369/369; secrets scan PASS; sin service_role en `src/` |
 | 17 E2E Regional | COMPLETE | `e2e/v3-regional-journeys.spec.ts`: A Perú PEN (venta → contrato → factura → cobro manual → comisión PEN 315 → dashboard), B Bolivia BOB vía partner (comisión BOB 354, consolidado con tasas DEMO completo), C Ecuador USD (tarifa 700), D PE/USD 850 vs EC/USD 700, E FX faltante (aviso, «Incompleto», «FX faltante» por mercado). Habilitado con migración 34 `20260913001100_v3_subscription_invoicing.sql` + UI «Emitir factura del mes» / «Registrar cobro» (DV3-020); pgTAP `17_v3_subscription_invoicing` 9 tests. pgTAP 378/378; unit 91/91; E2E suite completa 60/60 PASS dos ejecuciones seguidas sin reset, 0 skips |
 | 18 Documentation | COMPLETE | Nuevos: `docs/architecture/MULTICURRENCY_ARCHITECTURE.md`, `docs/architecture/COUNTRY_MARKET_MODEL.md`, `docs/commercial/REGIONAL_PRICING.md`, `docs/finance/FX_REPORTING.md`, `docs/nightly-v3/IMPLEMENTATION_SUMMARY.md` (+ `docs/demo/DEMO_SCENARIOS_V3.md` y `docs/security/V3_MULTICURRENCY_SECURITY_AUDIT.md` de fases 14/16). Actualizados: README (Novedades V3 y documentación), `COST_MARGIN_MODEL.md`, `COMMISSION_MODEL.md`, `CULQI_ARCHITECTURE.md`. Tasas DEMO documentadas como no reales; límites V3 y fuera de alcance explícitos. Secrets scan PASS |
-| 98 Final Audit | PENDING | |
+| 98 Final Audit | COMPLETE | Checklist completo (`FINAL_REPORT_V3_MULTICURRENCY.md` §3): baseline 23/23, 12 migraciones V3, defaults auditados (remediación migración 35 `20260913001200_v3_organization_country_required.sql` + UI, DV3-021), `SUM(` revisados, grants/definer/vistas, secrets, sin remoto, provisioning intacto. Gates frescos en `docs/nightly-v3/evidence/`: db reset PASS (35 migraciones), pgTAP 380/380, unit 91/91, typecheck, lint, build, secrets scan PASS, E2E 60/60 0 skips |

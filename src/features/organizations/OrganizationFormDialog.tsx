@@ -95,7 +95,7 @@ export function OrganizationFormDialog({
       slug: '',
       legal_name: '',
       display_name: '',
-      country_code: 'PE',
+      country_code: '',
       tax_id: '',
       billing_email: '',
       status: 'ACTIVE',
@@ -115,7 +115,8 @@ export function OrganizationFormDialog({
       slug: organization?.slug ?? '',
       legal_name: organization?.legal_name ?? '',
       display_name: organization?.display_name ?? '',
-      country_code: organization?.country_code ?? 'PE',
+      // V3: sin país por defecto; el país sugiere el mercado de cada venta.
+      country_code: organization?.country_code ?? '',
       tax_id: organization?.tax_id ?? '',
       billing_email: organization?.billing_email ?? '',
       status: (organization?.status as FormValues['status']) ?? 'ACTIVE',
@@ -197,8 +198,8 @@ export function OrganizationFormDialog({
         <TextField
           label="País"
           required
-          placeholder="PE"
-          hint="Código ISO de 2 letras, en mayúsculas."
+          placeholder="PE, BO, EC…"
+          hint="Código ISO de 2 letras. Sugiere el mercado (y la moneda) de sus ventas."
           error={form.formState.errors.country_code}
           {...form.register('country_code')}
         />

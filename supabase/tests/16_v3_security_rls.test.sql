@@ -6,7 +6,7 @@
 -- pueden lo suyo. Un partner o un tenant nunca tocan FX ni catálogos globales.
 -- ============================================================================
 begin;
-select plan(42);
+select plan(44);
 
 create or replace function pg_temp.act_as(p_user uuid)
 returns void language plpgsql as $$
@@ -210,6 +210,18 @@ select throws_ok($$ select platform.settle_commissions('80000000-0000-4000-a000-
   'EBIM_PRODUCT_ADMIN: no liquida comisiones');
 select lives_ok($$ select platform.set_plan_price('60000000-0000-4000-a000-000000000005', 'BO', 'LICENSE', 'MONTHLY', 4700, 'BOB') $$,
   'EBIM_PRODUCT_ADMIN: sí publica tarifas regionales');
+
+-- Auditoría final (migración 35): ningún país regional implícito.
+select is(
+  (select count(*)::int from information_schema.columns
+    where table_schema = 'platform' and column_name in ('country_code', 'currency') and column_default is not null),
+  0,
+  'Ninguna columna de país o moneda conserva un default regional (PE/PEN/USD)'
+);
+select pg_temp.act_as(pg_temp.product());
+select throws_like($$ select platform.upsert_organization('qa-sin-pais', 'QA Sin País S.A.', 'QA Sin País') $$,
+  'PAIS_REQUERIDO%',
+  'Una organización ya no nace peruana por omisión: el país es obligatorio');
 
 select pg_temp.act_as(pg_temp.finance());
 select throws_ok($$ select platform.set_plan_price('60000000-0000-4000-a000-000000000005', 'EC', 'LICENSE', 'MONTHLY', 600, 'USD', current_date + 1) $$, '42501', null,

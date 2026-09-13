@@ -166,7 +166,8 @@ function PublishRateDialog({
   const toast = useToast();
   const publish = usePublishExchangeRate();
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [base, setBase] = useState('USD');
+  // Sin par preseleccionado: publicar una tasa exige elegir ambas monedas.
+  const [base, setBase] = useState('');
   const [quote, setQuote] = useState('');
   const [rate, setRate] = useState('');
   const [notes, setNotes] = useState('');
@@ -210,7 +211,7 @@ function PublishRateDialog({
         />
       </FieldRow>
       <FieldRow>
-        <SelectField label="Moneda base" required options={currencies} value={base} onChange={(e) => setBase(e.target.value)} />
+        <SelectField label="Moneda base" required placeholder="Elige la moneda…" options={currencies} value={base} onChange={(e) => setBase(e.target.value)} />
         <SelectField
           label="Moneda cotizada" required placeholder="Elige la moneda…" options={currencies}
           value={quote} onChange={(e) => setQuote(e.target.value)}

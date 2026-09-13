@@ -248,3 +248,13 @@ ERP). En el detalle de suscripción: «Emitir factura del mes (MON)» y «Regist
 diálogo muestra la moneda de la factura deshabilitada: no se elige. El alta de cliente la hace el
 super admin en los E2E porque `create_tenant` exige rol de plataforma (EBIM_FINANCE no crea
 tenants), comportamiento V2 que no se cambia.
+
+## DV3-021 · Auditoría final: país obligatorio en organizaciones y sin par FX preseleccionado (fase 98)
+
+La búsqueda de defaults regionales encontró `organizations.country_code default 'PE'` y
+`upsert_organization(p_country_code default 'PE')` (baseline/V2). No es un importe, pero en V3 el
+país sugiere el mercado y la moneda de cada venta: una organización boliviana creada sin país nacía
+peruana. La migración 35 retira el default de la columna, recrea la RPC con `p_country_code default
+null` y exige un ISO de dos letras (`PAIS_REQUERIDO`); el formulario deja de proponer «PE». También se
+retira la base `USD` preseleccionada al publicar un tipo de cambio. Se clasificó como válido el
+probador de conversión con PEN→USD (solo lectura). Todo `SUM(` vigente se revisó: ninguno cruza monedas.

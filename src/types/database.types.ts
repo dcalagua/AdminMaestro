@@ -2272,7 +2272,7 @@ export type Database = {
           billing_last_name?: string | null
           billing_phone?: string | null
           brand_slug?: string | null
-          country_code?: string
+          country_code: string
           created_at?: string
           display_name: string
           id?: string
