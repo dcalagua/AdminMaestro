@@ -119,3 +119,17 @@ V2 lo cubría: solo probaban el rechazo por autorización. La versión V3 audita
 `server_credential_configured`. Los fixtures de `03_v2_security` declaran ahora país y moneda en
 sus INSERT directos de cuentas (sin default ya no nacen PE/PEN); cada prueba sigue fallando por
 su motivo original (el secreto).
+
+## DV3-012 · FX: directa primero, recíproca documentada, sin triangulación, ventana explícita (fase 08)
+
+`exchange_rates` guarda `1 base = rate quote` con fuente MANUAL (enum ampliable a BCRP/BCB/BCE
+en otra fase). Una tasa no se edita: republicar la misma fecha la deja `SUPERSEDED` (con
+`superseded_by`) y anular exige motivo (`VOIDED`); una sola ACTIVE por fecha/par/fuente.
+`fx_rate_lookup` resuelve en este orden: IDENTITY → DIRECT (la ACTIVE más reciente con
+`rate_date ∈ [as_of − max_age, as_of]`) → RECIPROCAL (`1/inversa`, misma ventana) → MISSING.
+Nunca usa tasas futuras ni triangula por una tercera moneda. `p_max_age_days` vale 0 por
+defecto (solo la fecha exacta): la tolerancia la declara quien consulta (la moneda de reporte la
+toma de su setting, fase 09). `fx_convert` redondea a los decimales ISO destino y con MISSING
+devuelve NULL, nunca 0. Las funciones son SECURITY INVOKER: quien no puede leer tasas (partner,
+tenant) obtiene MISSING, no una conversión. Lectura de tasas: plataforma o finanzas; escritura:
+`can_manage_regional_catalog()` (EBIM_FINANCE / super admin).

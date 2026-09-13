@@ -1237,6 +1237,99 @@ export type Database = {
           },
         ]
       }
+      exchange_rates: {
+        Row: {
+          base_currency: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_demo: boolean
+          notes: string | null
+          quote_currency: string
+          rate: number
+          rate_date: string
+          source: Database["platform"]["Enums"]["fx_rate_source"]
+          status: Database["platform"]["Enums"]["fx_rate_status"]
+          status_changed_at: string | null
+          status_changed_by: string | null
+          status_reason: string | null
+          superseded_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          base_currency: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_demo?: boolean
+          notes?: string | null
+          quote_currency: string
+          rate: number
+          rate_date: string
+          source?: Database["platform"]["Enums"]["fx_rate_source"]
+          status?: Database["platform"]["Enums"]["fx_rate_status"]
+          status_changed_at?: string | null
+          status_changed_by?: string | null
+          status_reason?: string | null
+          superseded_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          base_currency?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_demo?: boolean
+          notes?: string | null
+          quote_currency?: string
+          rate?: number
+          rate_date?: string
+          source?: Database["platform"]["Enums"]["fx_rate_source"]
+          status?: Database["platform"]["Enums"]["fx_rate_status"]
+          status_changed_at?: string | null
+          status_changed_by?: string | null
+          status_reason?: string | null
+          superseded_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exchange_rates_base_currency_fkey"
+            columns: ["base_currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "exchange_rates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exchange_rates_quote_currency_fkey"
+            columns: ["quote_currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "exchange_rates_status_changed_by_fkey"
+            columns: ["status_changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exchange_rates_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "exchange_rates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_lines: {
         Row: {
           amount: number | null
@@ -6457,6 +6550,39 @@ export type Database = {
         Args: { p_as_of?: string }
         Returns: number
       }
+      fx_convert: {
+        Args: {
+          p_amount: number
+          p_as_of: string
+          p_from: string
+          p_max_age_days?: number
+          p_to: string
+        }
+        Returns: {
+          amount: number
+          is_demo: boolean
+          rate: number
+          rate_date: string
+          rate_id: string
+          status: string
+        }[]
+      }
+      fx_rate_lookup: {
+        Args: {
+          p_as_of: string
+          p_base: string
+          p_max_age_days?: number
+          p_quote: string
+        }
+        Returns: {
+          is_demo: boolean
+          rate: number
+          rate_date: string
+          rate_id: string
+          source: Database["platform"]["Enums"]["fx_rate_source"]
+          status: string
+        }[]
+      }
       generate_commission_events: {
         Args: { p_payment_id: string }
         Returns: number
@@ -6686,6 +6812,18 @@ export type Database = {
           p_last_name: string
           p_organization_id: string
           p_phone: string
+        }
+        Returns: string
+      }
+      set_exchange_rate: {
+        Args: {
+          p_base: string
+          p_is_demo?: boolean
+          p_notes?: string
+          p_quote: string
+          p_rate: number
+          p_rate_date: string
+          p_source?: Database["platform"]["Enums"]["fx_rate_source"]
         }
         Returns: string
       }
@@ -7013,6 +7151,10 @@ export type Database = {
         }
         Returns: string
       }
+      void_exchange_rate: {
+        Args: { p_rate_id: string; p_reason: string }
+        Returns: undefined
+      }
     }
     Enums: {
       attribution_source:
@@ -7085,6 +7227,8 @@ export type Database = {
       deployment_mode: "SHARED" | "PARTNER_DEDICATED" | "TENANT_DEDICATED"
       entity_status: "ACTIVE" | "INACTIVE" | "SUSPENDED" | "ARCHIVED"
       environment_kind: "DEMO" | "TRIAL" | "PRODUCTION" | "SANDBOX"
+      fx_rate_source: "MANUAL"
+      fx_rate_status: "ACTIVE" | "SUPERSEDED" | "VOIDED"
       infra_provider: "SUPABASE" | "AWS" | "AZURE" | "GCP" | "ON_PREMISE"
       invoice_status:
         | "DRAFT"
@@ -7338,6 +7482,8 @@ export const Constants = {
       deployment_mode: ["SHARED", "PARTNER_DEDICATED", "TENANT_DEDICATED"],
       entity_status: ["ACTIVE", "INACTIVE", "SUSPENDED", "ARCHIVED"],
       environment_kind: ["DEMO", "TRIAL", "PRODUCTION", "SANDBOX"],
+      fx_rate_source: ["MANUAL"],
+      fx_rate_status: ["ACTIVE", "SUPERSEDED", "VOIDED"],
       infra_provider: ["SUPABASE", "AWS", "AZURE", "GCP", "ON_PREMISE"],
       invoice_status: [
         "DRAFT",

@@ -1,13 +1,13 @@
 # QUALITY GATE V3
 
-Última actualización: fase 07. Solo se marca PASS con salida de comando ejecutada en la fase indicada.
+Última actualización: fase 08. Solo se marca PASS con salida de comando ejecutada en la fase indicada.
 
 | Gate | Result | Evidence |
 |---|---|---|
-| db reset | PASS (fase 07) | 28 migraciones + seed |
-| pgTAP | PASS (fase 07) | 11 ficheros, 231/231 |
+| db reset | PASS (fase 08) | 29 migraciones + seed |
+| pgTAP | PASS (fase 08) | 12 ficheros, 255/255 |
 | unit | PASS (fase 07) | 5 ficheros, 66/66 |
-| typecheck | PASS (fase 07) | tras `db:types`; `deno check` adapter de pagos OK (fase 06); `deno check culqi-webhook` no ejecutable en local por dependencias npm |
+| typecheck | PASS (fase 08) | tras `db:types`; `deno check` adapter de pagos OK (fase 06); `deno check culqi-webhook` no ejecutable en local por dependencias npm |
 | lint | PASS (fase 07) | `eslint .` exit 0 |
 | build | NOT_RUN | |
 | secrets scan | NOT_RUN | |
