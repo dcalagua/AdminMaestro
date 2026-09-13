@@ -388,3 +388,16 @@ Solo documentación oficial (regla de la Fase 09: nada de blogs).
 - El prompt pedía "la máxima validación que Culqi soporte oficialmente" para el
   webhook. La respuesta honesta es: **no soporta ninguna firma documentada**, y
   el diseño lo compensa por idempotencia y verificación server-to-server (§5.1).
+
+---
+
+## V3 · Culqi dentro del routing regional
+
+- La cuenta `culqi-pe-test` pertenece al **mercado PE** y cobra **PEN y USD** (evidencia V2.1). No
+  cobra contratos de Bolivia ni de Ecuador: en esos mercados el routing responde
+  `PROVEEDOR_NO_DISPONIBLE_EN_MERCADO` y se usan métodos no-card.
+- La cuenta del perfil de cobro la elige el servidor (`set_subscription_collection_profile` con
+  `p_route_provider`); la UI ya no envía `provider_account_id`.
+- El webhook **exige** `?account=<código>` en la URL: ya no asume `culqi-pe-test` (400
+  `CUENTA_REQUERIDA`). Cada cuenta regional registra su propia URL en el panel del proveedor.
+- El adapter falla (`CUENTA_SIN_MONEDA`) si una cuenta no declara moneda, en vez de asumir PEN.

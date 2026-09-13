@@ -184,3 +184,17 @@ dinero dos veces (ver `COMMISSION_MODEL.md` §3).
 
 `/reconciliation`, con cuatro pestañas: Hallazgos, Por producto, Por canal y
 Eventos del proveedor.
+
+---
+
+# V3 · Multicurrency: la deuda FX queda cerrada sin romper la regla
+
+La regla de precisión sigue en pie: **ningún total nativo mezcla monedas**. V3 añade lo que la
+deuda #1 pedía —tipos de cambio con fecha y fuente— como **capa de reporte separada**:
+
+- Los márgenes nativos pasan a una fila por (entidad, moneda): un costo USD de un producto que
+  cobra PEN ya no desaparece del margen.
+- El consolidado (`finance_consolidated`) suma por moneda, convierte cada total con una tasa MANUAL
+  explícita a la fecha del reporte y devuelve NULL + `missing_fx_count` si falta una tasa. El margen
+  consolidado solo existe con todas las conversiones.
+- Detalle en `docs/finance/FX_REPORTING.md`.

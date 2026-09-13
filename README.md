@@ -173,6 +173,23 @@ baseline: se mueve NUESTRO puerto, no se mata el servidor ajeno.
 > `.ts`. El resultado es una app que se queda congelada en la última compilación
 > sin dar ningún error. Ver `docs/nightly-v2/AUDIT_BASELINE.md` §5 (R-03).
 
+## 5-ter. Novedades V3 · Multicurrency (2026-09-13)
+
+Perú, Bolivia y Ecuador. **Cada operación conserva su moneda original**; una moneda de reporte
+configurable (USD inicial) ofrece equivalentes gerenciales con tasas MANUAL auditables. 11
+migraciones nuevas (`20260913*`, 24-34) sobre las 23 anteriores, que **no se tocaron**.
+
+| Área | Qué se añadió |
+|---|---|
+| **Mercados** | Catálogo de monedas y mercados (PE: PEN+USD · BO: BOB+USD · EC: USD); EBIM Perú/Bolivia/Ecuador como sociedades |
+| **Pricing** | Tarifa por plan + mercado + moneda + vigencia: PE/USD puede diferir de EC/USD |
+| **Venta** | Nueva venta con mercado sugerido, moneda admitida y tarifa regional obligatoria |
+| **Moneda contractual** | Líneas, facturas, cobros y comisiones heredan la moneda del contrato o se rechazan |
+| **Cobro** | La cuenta de cobro la elige el servidor por mercado + moneda + método |
+| **FX y reporte** | Tipos de cambio MANUAL, moneda de reporte, consolidado con aviso de FX faltante |
+| **Comisiones** | Devengo en moneda del cobro y liquidaciones mono-moneda |
+| **UI** | Código ISO en todo importe, totales por moneda, dashboard Nativo/Consolidado, página «Monedas y FX» |
+
 ## 6. Documentación
 
 | Documento | Contenido |
@@ -203,6 +220,19 @@ baseline: se mueve NUESTRO puerto, no se mata el servidor ajeno.
 | `docs/demo/DEMO_SCENARIOS_V2.md` | Guion de demostración gerencial |
 | `docs/nightly-v2/FINAL_REPORT_V2.md` | Informe final con evidencia |
 | `docs/nightly-v2/E2E_REPORT.md` | Resultado E2E detallado |
+
+### Documentación V3
+
+| Documento | Contenido |
+|---|---|
+| `docs/architecture/MULTICURRENCY_ARCHITECTURE.md` | Moneda nativa vs de reporte, capas y límites |
+| `docs/architecture/COUNTRY_MARKET_MODEL.md` | País, mercado, sociedad y moneda |
+| `docs/commercial/REGIONAL_PRICING.md` | Tarifas por mercado y venta regional |
+| `docs/finance/FX_REPORTING.md` | Tipos de cambio MANUAL, moneda de reporte y consolidado |
+| `docs/security/V3_MULTICURRENCY_SECURITY_AUDIT.md` | Reauditoría RLS/grants V3 |
+| `docs/demo/DEMO_SCENARIOS_V3.md` | Escenarios del seed regional (tasas DEMO, no reales) |
+| `docs/nightly-v3/IMPLEMENTATION_SUMMARY.md` | Migraciones, tests y defectos corregidos |
+| `docs/nightly-v3/FINAL_REPORT_V3_MULTICURRENCY.md` | Informe final con evidencia |
 
 ## 7. Principios no negociables
 

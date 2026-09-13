@@ -208,3 +208,18 @@ serlo, y cada evento admite **un solo** contra-evento (índice único parcial).
 `v_commission_detail` traduce el origen a lenguaje de negocio —Licencia,
 Implementación, Infraestructura, Soporte, **Reverso**— e indica si el devengo ya
 fue compensado (`has_reversal`), sin obligar a cruzar tablas a mano.
+
+---
+
+## V3 · Comisiones multimoneda
+
+- Un evento de comisión está en la **moneda de su cobro**; el porcentaje se aplica sobre el importe
+  original (BOB 5,900 × 6% = BOB 354.00). Nunca se convierte.
+- `commission_rules.currency` es la moneda del **importe fijo** y del **tope**. Una regla
+  FIXED_AMOUNT o con tope no devenga sobre cobros en otra moneda (USD 50 no son «PEN 50»); para
+  varios mercados se define una regla por moneda.
+- **Liquidación mono-moneda:** `settle_commissions(agente, desde, hasta, moneda)` exige moneda,
+  genera `STL-<agente>-<YYYYMM>-<MON>` y no añade eventos a una liquidación aprobada o pagada. Un
+  evento no puede quedar en una liquidación de otra moneda (`LIQUIDACION_MULTIMONEDA`).
+- Los **reversos** conservan la moneda del evento y netean dentro de ella.
+- El dashboard puede mostrar comisiones en la moneda de reporte solo como analítica.
