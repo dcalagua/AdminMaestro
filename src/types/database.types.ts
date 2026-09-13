@@ -5402,6 +5402,20 @@ export type Database = {
         }
         Relationships: []
       }
+      v_finance_facts: {
+        Row: {
+          amount: number | null
+          currency: string | null
+          detail: string | null
+          fact_date: string | null
+          market_id: string | null
+          metric: string | null
+          organization_id: string | null
+          partner_organization_id: string | null
+          saas_product_id: string | null
+        }
+        Relationships: []
+      }
       v_finance_reconciliation: {
         Row: {
           amount: number | null
@@ -5430,6 +5444,7 @@ export type Database = {
           can_manage_tenants: boolean | null
           can_resell: boolean | null
           channel_mrr: number | null
+          channel_mrr_by_currency: Json | null
           default_deployment_mode:
             | Database["platform"]["Enums"]["deployment_mode"]
             | null
@@ -6426,6 +6441,7 @@ export type Database = {
           environment: Database["platform"]["Enums"]["environment_kind"] | null
           managing_name: string | null
           managing_organization_id: string | null
+          market_code: string | null
           mrr: number | null
           name: string | null
           plan_name: string | null
@@ -6591,6 +6607,47 @@ export type Database = {
       expire_commercial_documents: {
         Args: { p_as_of?: string }
         Returns: number
+      }
+      finance_consolidated: {
+        Args: {
+          p_as_of?: string
+          p_currency?: string
+          p_group_by?: string
+          p_market_code?: string
+          p_organization_id?: string
+          p_period_end?: string
+          p_period_start?: string
+          p_reporting_currency?: string
+          p_saas_product_id?: string
+        }
+        Returns: Json
+      }
+      finance_reporting_rows: {
+        Args: {
+          p_as_of?: string
+          p_currency?: string
+          p_group_by?: string
+          p_market_code?: string
+          p_organization_id?: string
+          p_period_end?: string
+          p_period_start?: string
+          p_reporting_currency?: string
+          p_saas_product_id?: string
+        }
+        Returns: {
+          conversion_status: string
+          fx_is_demo: boolean
+          fx_method: string
+          fx_rate: number
+          fx_rate_date: string
+          group_key: string
+          group_label: string
+          metric: string
+          native_amount: number
+          native_currency: string
+          reporting_amount: number
+          reporting_currency: string
+        }[]
       }
       fx_convert: {
         Args: {

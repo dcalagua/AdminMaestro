@@ -147,3 +147,21 @@ todo reporting: `native_amount/native_currency` intactos, `reporting_amount/repo
 NO_REPORTING_CURRENCY} con la tasa, método, fecha e `is_demo`. Cambiarla exige
 `can_manage_regional_catalog()`. UI: página «Monedas y FX» (persona EBIM) con selector entre
 monedas activas, editable solo por finanzas / super admin.
+
+## DV3-014 · Nativo corregido sin cambiar columnas; consolidado = sumar por moneda y luego convertir (fase 10)
+
+Las vistas nativas del baseline conservan columnas y tipos (`create or replace`), pero las de
+margen pasan a una fila por (entidad, moneda): las claves son la unión de ingresos, costos,
+comisiones y MRR, así un costo USD de un producto que solo cobra PEN ya no desaparece (R-3). Una
+entidad sin actividad conserva una fila con moneda NULL y ceros (antes «USD»). `channel_mrr`
+vale NULL cuando el canal factura en varias monedas y el detalle va en la nueva columna final
+`channel_mrr_by_currency` (R-2). En `dashboard_summary`, `commission_pending/paid` son NULL con
+varias monedas y se añaden los mapas `*_by_currency` (R-1). `v_tenant_overview` toma la moneda
+del MRR o del contrato, nunca `USD` por defecto, y añade `market_code` al final (G-32).
+El consolidado se apoya en `v_finance_facts` (hechos nativos con producto, mercado, organización,
+canal y fecha) y en `finance_reporting_rows`, que suma DENTRO de cada moneda y convierte cada
+total con `to_reporting_amount` a la fecha `p_as_of` (tasa de cierre del reporte, tolerancia
+configurada). `finance_consolidated` agrega por grupo (TOTAL/MARKET/PRODUCT/PARTNER): una
+métrica consolidada es NULL si falta cualquier conversión, el margen consolidado solo existe si
+COLLECTED, COST y COMMISSION están completos, y `completeness.missing_fx_count` lo expone. El
+periodo filtra cobros, costos y comisiones; el MRR es foto a hoy.

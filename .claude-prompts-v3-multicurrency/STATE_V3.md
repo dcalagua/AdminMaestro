@@ -1,7 +1,7 @@
 # STATE V3
 
 Status: IN_PROGRESS
-Current phase: 10
+Current phase: 11
 
 HEAD inicial V3: `1c6b5ce chore: checkpoint before V3 multicurrency`
 Checksums baseline: `docs/nightly-v3/BASELINE_MIGRATIONS.sha256` (23 migraciones)
@@ -17,7 +17,7 @@ Checksums baseline: `docs/nightly-v3/BASELINE_MIGRATIONS.sha256` (23 migraciones
 | 07 Payment Routing | COMPLETE | Migración 28 `20260913000500_v3_regional_payment_routing.sql`: `payment_provider_accounts.market_id`/`routing_priority`, `payment_provider_account_currencies`, `provider_kind_supports_method`, `provider_account_candidates` (elegibilidad con motivo), guard de perfil por elegibilidad, `set_subscription_collection_profile(p_route_provider)`, `upsert_payment_provider_account` con mercado/monedas (defecto V2 DV3-011 corregido), `v_provider_account_routes`. UI: sin selector de cuenta, ruta del servidor visible. Webhook exige `?account=`. pgTAP `10_v3_payment_routing` 22 tests; suite 231/231; unit 66/66; typecheck/lint PASS; E2E R3 + J7–J9 PASS. `deno check` del webhook NO ejecutable localmente (resolución npm de supabase-js) |
 | 08 FX Engine | COMPLETE | Migración 29 `20260913000600_v3_fx_engine.sql`: `exchange_rates` (MANUAL, ACTIVE/SUPERSEDED/VOIDED, `is_demo`, inmutable, única ACTIVE por fecha/par/fuente), `fx_rate_lookup` (IDENTITY/DIRECT/RECIPROCAL/MISSING, ventana explícita, sin triangulación), `fx_convert` (NULL si falta), `set_exchange_rate`, `void_exchange_rate` (DV3-012). pgTAP `11_v3_fx_engine` 24 tests; suite 255/255; typecheck PASS |
 | 09 Reporting Currency | COMPLETE | Migración 30 `20260913000700_v3_reporting_currency.sql`: `control_plane_settings` (USD/31 días como configuración), `reporting_settings()`, `set_reporting_settings` (finanzas/super admin, moneda activa), `to_reporting_amount` (native_* + reporting_* + `conversion_status`, DV3-013). UI: página `/regional` «Monedas y FX» con pestaña Moneda de reporte. pgTAP `12_v3_reporting_currency` 16 tests; suite 271/271; unit 67/67; typecheck/lint PASS; E2E R4 (2) PASS |
-| 10 Consolidated Finance | PENDING | |
+| 10 Consolidated Finance | COMPLETE | Migración 31 `20260913000800_v3_consolidated_finance.sql`: R-1 `dashboard_summary` por moneda, R-2 `channel_mrr` + `channel_mrr_by_currency`, R-3 márgenes por (entidad, moneda), G-32 `v_tenant_overview` sin USD por defecto (+`market_code`), `v_finance_facts`, `finance_reporting_rows`, `finance_consolidated` con completitud FX (DV3-014). Totales del seed verificados contra el dashboard nativo. pgTAP `13_v3_consolidated_finance` 20 tests (PEN, BOB, USD, FX faltante y totales con FX); suite 291/291; typecheck PASS |
 | 11 Commissions | PENDING | |
 | 12 UI | PENDING | |
 | 13 Dashboard | PENDING | |
