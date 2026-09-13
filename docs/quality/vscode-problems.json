@@ -1,0 +1,28 @@
+{
+  "generatedAt": "2026-09-13T04:50:29.266Z",
+  "workspace": "/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin",
+  "generator": "OLT VS Code Diagnostics Exporter 1.0.0",
+  "vscodeVersion": "1.137.0",
+  "reason": "export automatico de arranque",
+  "diagnosticsKnownByVSCode": 0,
+  "excludedGeneratedDirs": 0,
+  "outsideWorkspace": 0,
+  "coverageDisclaimer": "vscode.languages.getDiagnostics() devuelve unicamente los diagnostics que VS Code y sus extensiones conocen EN ESTE INSTANTE. Las extensiones (Java LS, SonarLint, ESLint) suelen analizar bajo demanda: sobre todo los archivos abiertos o ya indexados. Por tanto este reporte NO es una afirmacion de que estos sean todos los problemas del workspace, sino una foto de lo que el IDE tenia publicado al exportar. Para ampliar la cobertura hay que abrir mas archivos o dejar que los language servers terminen de indexar, y volver a exportar.",
+  "sonarDetected": false,
+  "sonarSources": [],
+  "summary": {
+    "bySeverity": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "INFORMATION": 0,
+      "HINT": 0,
+      "total": 0
+    },
+    "byRepository": {},
+    "bySource": {},
+    "byLanguage": {},
+    "byRule": {}
+  },
+  "repositories": [],
+  "diagnostics": []
+}
