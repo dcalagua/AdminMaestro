@@ -224,3 +224,14 @@ que es el comportamiento correcto: los E2E fijan la fecha de las tasas. El plan 
 tarifa en BO para mantener un caso determinista «sin tarifa regional». Tres tests (08, 13 y dos
 E2E de R5) se ajustaron porque dependían de que el seed fuese solo USD; ahora comprueban el
 comportamiento multimoneda sin depender de totales absolutos del seed.
+
+## DV3-019 · Grants mínimos: funciones de trigger sin EXECUTE y devengo solo por trigger (fase 16)
+
+La reauditoría encontró `generate_commission_events` ejecutable por `authenticated` (H-1), funciones
+de trigger con EXECUTE para `authenticated` (H-2) y dos funciones de trigger del baseline para
+PUBLIC (H-3). La migración 33 retira esos privilegios sin tocar migraciones previas. Se comprobó
+en la base local que PostgreSQL no exige EXECUTE para disparar un trigger (rol sin privilegio →
+el trigger modifica la fila igual), así que el cambio no altera ningún flujo. Las lecturas de
+tarifa, FX, routing y reporting son SECURITY INVOKER a propósito: la autorización de datos la da
+RLS del llamante; las escrituras son SECURITY DEFINER con autorización explícita en la primera
+línea. Detalle en `docs/security/V3_MULTICURRENCY_SECURITY_AUDIT.md`.
