@@ -12,6 +12,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { formatMoney, formatPercent, formatNumber, formatDate } from '@/lib/format';
 import { DEPLOYMENT_MODE_LABEL, TENANT_TYPE_LABEL } from '@/types/domain';
 import { ProductFormDialog } from './ProductFormDialog';
+import { RegionalPriceList } from './RegionalPriceList';
 import { PlanFormDialog, PlanPriceDialog } from './PlanDialogs';
 import type { PlanDraft } from './PlanDialogs';
 
@@ -188,25 +189,7 @@ export function ProductDetailPage() {
                         </td>
                         <td className="ebim-td tabular-nums">{pl.included_companies}</td>
                         <td className="ebim-td">
-                          <div className="space-y-0.5">
-                            {((pl.plan_prices ?? []) as Array<Record<string, unknown>>)
-                              .filter((pr) => !pr.valid_to)
-                              .map((pr) => (
-                                <div key={pr.id as string} className="text-xs">
-                                  <span className="text-muted">{pr.charge_kind as string}:</span>{' '}
-                                  <span className="font-semibold tabular-nums">
-                                    {formatMoney(Number(pr.amount), pr.currency as string)}
-                                  </span>
-                                  <span className="text-muted">
-                                    {' '}
-                                    / {pr.billing_interval as string}
-                                  </span>
-                                </div>
-                              ))}
-                            {((pl.plan_prices ?? []) as unknown[]).length === 0 ? (
-                              <span className="text-xs text-muted">Sin precios</span>
-                            ) : null}
-                          </div>
+                          <RegionalPriceList prices={pl.plan_prices as Array<Record<string, unknown>>} />
                         </td>
                         <td className="ebim-td">
                           {perms.canManagePlatform ? (

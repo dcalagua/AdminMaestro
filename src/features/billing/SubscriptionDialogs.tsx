@@ -5,7 +5,13 @@ import { z } from 'zod';
 import { FormDialog } from '@/components/ui/FormDialog';
 import { TextField, SelectField, NumberField, TextAreaField, FieldRow } from '@/components/ui/fields';
 import { useToast } from '@/components/ui/toast-context';
-import { useOrganizations, useProducts, usePlans, useTenantOverview } from '@/services/queries';
+import {
+  useOrganizations, useProducts, usePlans, useTenantOverview, useMarkets, usePlanPriceCatalog,
+} from '@/services/queries';
+import { MarketSelectField, CurrencySelectField } from '@/components/ui/regional-fields';
+import {
+  allowedCurrenciesFor, currencyForMarket, findMarket, planHasRegionalPrice, suggestedMarketForCountry,
+} from '@/lib/regional';
 import {
   useCreateSubscription, useSetSubscriptionStatus, useUpsertSubscriptionItem,
 } from '@/services/mutations';
@@ -21,7 +27,9 @@ const subSchema = z.object({
   plan_id: z.string().uuid('Elige el plan'),
   tenant_id: z.string().optional(),
   billing_interval: z.enum(['MONTHLY', 'QUARTERLY', 'YEARLY', 'ONE_TIME']),
-  currency: z.string().trim().regex(/^[A-Z]{3}$/, 'Código ISO de 3 letras'),
+  // V3: mercado + moneda admitida, ambos del catálogo. La moneda es contractual.
+  market_code: z.string().min(1, 'Elige el mercado'),
+  currency: z.string().regex(/^[A-Z]{3}$/, 'Elige la moneda'),
   quantity: z.coerce.number().int().min(1, 'Mínimo 1'),
   started_on: z.string().min(1, 'Obligatorio'),
   ends_on: z.string().optional(),
@@ -44,13 +52,16 @@ export function SubscriptionFormDialog({ open, onClose }: { open: boolean; onClo
   const products = useProducts();
   const plans = usePlans();
   const tenants = useTenantOverview();
+  const markets = useMarkets();
+  const prices = usePlanPriceCatalog();
   const create = useCreateSubscription();
+  const marketList = markets.data ?? [];
 
   const form = useForm<SubValues>({
     resolver: zodResolver(subSchema),
     defaultValues: {
       billed_organization_id: '', saas_product_id: '', plan_id: '', tenant_id: '',
-      billing_interval: 'MONTHLY', currency: 'USD', quantity: 1,
+      billing_interval: 'MONTHLY', market_code: '', currency: '', quantity: 1,
       started_on: new Date().toISOString().slice(0, 10), ends_on: '',
       channel_margin_pct: 0, notes: '',
     },
@@ -65,6 +76,30 @@ export function SubscriptionFormDialog({ open, onClose }: { open: boolean; onClo
   // Plan y tenant se acotan al producto elegido: la base rechaza las combinaciones
   // cruzadas (PLAN_INCOMPATIBLE / TENANT_INCOMPATIBLE) y aquí ni se ofrecen.
   const productId = form.watch('saas_product_id');
+  const billedOrgId = form.watch('billed_organization_id');
+  const marketCode = form.watch('market_code');
+  const currency = form.watch('currency');
+  const planId = form.watch('plan_id');
+  const startedOn = form.watch('started_on');
+
+  // Mercado sugerido por el país de quien paga (solo si es inequívoco).
+  useEffect(() => {
+    if (form.getValues('market_code')) return;
+    const org = (orgs.data ?? []).find((o) => o.id === billedOrgId);
+    const suggested = suggestedMarketForCountry(marketList, org?.country_code);
+    if (suggested) form.setValue('market_code', suggested);
+  }, [billedOrgId, marketList]);
+
+  // La moneda siempre es una que el mercado admite; por defecto, la sugerida.
+  useEffect(() => {
+    const next = currencyForMarket(marketList, marketCode, currency);
+    if (next !== currency) form.setValue('currency', next);
+  }, [marketCode, marketList]);
+
+  const hasRegionalPrice =
+    !planId || !marketCode || !currency ||
+    planHasRegionalPrice(prices.data ?? [], planId, marketCode, currency, startedOn);
+
   const planOptions = (plans.data ?? [])
     .filter((p) => !productId || p.saas_product_id === productId)
     .map((p) => ({ value: p.id, label: p.name }));
@@ -80,6 +115,7 @@ export function SubscriptionFormDialog({ open, onClose }: { open: boolean; onClo
         p_saas_product_id: parsed.saas_product_id,
         p_plan_id: parsed.plan_id,
         p_billing_interval: parsed.billing_interval,
+        p_market_code: parsed.market_code,
         p_currency: parsed.currency,
         p_tenant_id: parsed.tenant_id || undefined,
         p_quantity: parsed.quantity,
@@ -130,11 +166,25 @@ export function SubscriptionFormDialog({ open, onClose }: { open: boolean; onClo
       </FieldRow>
 
       <FieldRow>
-        <SelectField label="Periodicidad" options={INTERVALS}
-          error={form.formState.errors.billing_interval} {...form.register('billing_interval')} />
-        <TextField label="Moneda" required placeholder="USD"
+        <MarketSelectField markets={marketList} required
+          hint="Donde se vende el contrato. Se sugiere por el país de quien paga."
+          error={form.formState.errors.market_code} {...form.register('market_code')} />
+        <CurrencySelectField required
+          currencies={allowedCurrenciesFor(marketList, marketCode)}
+          suggested={findMarket(marketList, marketCode)?.defaultCurrency}
+          hint="Moneda contractual: líneas, facturas y cobros la heredan."
           error={form.formState.errors.currency} {...form.register('currency')} />
       </FieldRow>
+
+      {!hasRegionalPrice ? (
+        <p className="rounded-lg bg-warn-soft px-3 py-2 text-xs text-warn" role="alert">
+          Este plan no tiene tarifa vigente en {marketCode}/{currency}. La base rechazará el
+          contrato (TARIFA_REGIONAL_NO_DEFINIDA): publica antes la tarifa regional del plan.
+        </p>
+      ) : null}
+
+      <SelectField label="Periodicidad" options={INTERVALS}
+        error={form.formState.errors.billing_interval} {...form.register('billing_interval')} />
 
       <FieldRow>
         <NumberField label="Cantidad" required min={1} step={1}

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import type { DashboardSummary, Enums } from '@/types/domain';
+import { toMarketOptions, type MarketRow } from '@/lib/regional';
 
 /**
  * Capa de acceso a datos.
@@ -197,8 +198,58 @@ export function usePlans() {
       unwrap(
         await supabase
           .from('plans')
-          .select('*, saas_products(code, short_name), plan_prices(*)')
+          .select('*, saas_products(code, short_name), plan_prices(*, markets(code, name))')
           .order('sort_order'),
+      ),
+  });
+}
+
+/* ==========================================================================
+   Catálogo regional (V3): mercados, monedas y tarifas por mercado
+   ========================================================================== */
+
+/**
+ * Mercados con sus monedas admitidas. Lectura amplia por RLS: los selectores
+ * de cualquier formulario la necesitan. Se normaliza con `toMarketOptions`.
+ */
+export function useMarkets() {
+  return useQuery({
+    queryKey: ['markets'],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const rows = unwrap(
+        await supabase
+          .from('markets')
+          .select('*, market_currencies(currency_code, status, currencies(status, name))')
+          .order('sort_order'),
+      );
+      return toMarketOptions(rows as unknown as MarketRow[]);
+    },
+  });
+}
+
+/** Catálogo ISO de monedas (incluidas las INACTIVE que sostienen historia). */
+export function useCurrencies() {
+  return useQuery({
+    queryKey: ['currencies'],
+    staleTime: 5 * 60_000,
+    queryFn: async () =>
+      unwrap(await supabase.from('currencies').select('*').order('code')),
+  });
+}
+
+/** Tarifas con su mercado. RLS de `plan_prices` decide qué filas ve cada rol. */
+export function usePlanPriceCatalog() {
+  return useQuery({
+    queryKey: ['plans', 'price-catalog'],
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('v_plan_price_catalog')
+          .select('*')
+          .order('plan_code')
+          .order('market_code')
+          .order('valid_from', { ascending: false }),
       ),
   });
 }

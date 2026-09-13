@@ -5,8 +5,10 @@ import { z } from 'zod';
 import { FormDialog } from '@/components/ui/FormDialog';
 import { TextField, SelectField, NumberField, CheckboxField, TextAreaField, FieldRow } from '@/components/ui/fields';
 import { useToast } from '@/components/ui/toast-context';
-import { useProducts } from '@/services/queries';
+import { useProducts, useMarkets } from '@/services/queries';
 import { useUpsertPlan, useSetPlanPrice } from '@/services/mutations';
+import { MarketSelectField, CurrencySelectField } from '@/components/ui/regional-fields';
+import { allowedCurrenciesFor, currencyForMarket, findMarket } from '@/lib/regional';
 
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
@@ -192,7 +194,9 @@ const priceSchema = z.object({
   ]),
   billing_interval: z.enum(['MONTHLY', 'QUARTERLY', 'YEARLY', 'ONE_TIME']),
   amount: z.coerce.number().min(0, 'No puede ser negativo'),
-  currency: z.string().trim().regex(/^[A-Z]{3}$/, 'Código ISO de 3 letras'),
+  // V3: la tarifa pertenece a un mercado y su moneda sale del catálogo, no de un textbox.
+  market_code: z.string().min(1, 'Elige el mercado'),
+  currency: z.string().regex(/^[A-Z]{3}$/, 'Elige la moneda'),
   valid_from: z.string().min(1, 'Obligatorio'),
 });
 
@@ -230,11 +234,13 @@ export function PlanPriceDialog({
 }) {
   const toast = useToast();
   const setPrice = useSetPlanPrice();
+  const markets = useMarkets();
+  const marketList = markets.data ?? [];
 
   const form = useForm<PriceValues>({
     resolver: zodResolver(priceSchema),
     defaultValues: {
-      charge_kind: 'LICENSE', billing_interval: 'MONTHLY', amount: 0, currency: 'USD',
+      charge_kind: 'LICENSE', billing_interval: 'MONTHLY', amount: 0, market_code: '', currency: '',
       valid_from: new Date().toISOString().slice(0, 10),
     },
   });
@@ -245,6 +251,14 @@ export function PlanPriceDialog({
     form.reset();
   }, [open]);
 
+  // Al cambiar de mercado, la moneda se ajusta a una que ese mercado admita.
+  const marketCode = form.watch('market_code');
+  const currency = form.watch('currency');
+  useEffect(() => {
+    const next = currencyForMarket(marketList, marketCode, currency);
+    if (next !== currency) form.setValue('currency', next, { shouldValidate: Boolean(marketCode) });
+  }, [marketCode, marketList]);
+
   const submit = form.handleSubmit(async (values) => {
     if (!planId) return;
     const parsed = priceSchema.parse(values);
@@ -254,10 +268,14 @@ export function PlanPriceDialog({
         p_charge_kind: parsed.charge_kind,
         p_billing_interval: parsed.billing_interval,
         p_amount: parsed.amount,
+        p_market_code: parsed.market_code,
         p_currency: parsed.currency,
         p_valid_from: parsed.valid_from,
       });
-      toast.success('Tarifa versionada', `${planName}: la anterior queda cerrada, no borrada.`);
+      toast.success(
+        'Tarifa versionada',
+        `${planName} · ${parsed.market_code}/${parsed.currency}: la anterior queda cerrada, no borrada.`,
+      );
       onClose();
     } catch {
       /* visible en el diálogo */
@@ -268,7 +286,7 @@ export function PlanPriceDialog({
     <FormDialog
       open={open}
       title={`Fijar precio · ${planName}`}
-      description="Se cierra la tarifa vigente y se abre una nueva desde la fecha indicada. Una tarifa histórica nunca se edita: las facturas ya emitidas se calcularon con ella."
+      description="La tarifa es de UN mercado: Perú y Ecuador pueden tener precios distintos aunque ambos cobren en USD. Se cierra la vigente de esa combinación y se abre una nueva; una tarifa histórica nunca se edita."
       submitLabel="Versionar tarifa"
       busy={setPrice.isPending}
       error={setPrice.error}
@@ -284,11 +302,19 @@ export function PlanPriceDialog({
       </FieldRow>
 
       <FieldRow>
-        <NumberField label="Importe" required min={0} step="0.01"
-          error={form.formState.errors.amount} {...form.register('amount')} />
-        <TextField label="Moneda" required placeholder="USD"
+        <MarketSelectField markets={marketList} required
+          hint="Solo mercados activos del catálogo regional."
+          error={form.formState.errors.market_code} {...form.register('market_code')} />
+        <CurrencySelectField required
+          currencies={allowedCurrenciesFor(marketList, marketCode)}
+          suggested={findMarket(marketList, marketCode)?.defaultCurrency}
+          hint="Solo monedas que el mercado admite."
           error={form.formState.errors.currency} {...form.register('currency')} />
       </FieldRow>
+
+      <NumberField label="Importe" required min={0} step="0.01"
+        hint={currency ? `En ${currency}. No se convierte desde otra moneda.` : undefined}
+        error={form.formState.errors.amount} {...form.register('amount')} />
 
       <TextField label="Vigente desde" type="date" required
         hint="Debe ser posterior al inicio de la tarifa que sustituye."

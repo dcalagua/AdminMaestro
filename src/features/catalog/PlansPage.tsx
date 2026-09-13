@@ -5,8 +5,8 @@ import { usePermissions } from '@/hooks/usePermissions';
 import {
   PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge,
 } from '@/components/ui/primitives';
-import { formatMoney } from '@/lib/format';
 import { DEPLOYMENT_MODE_LABEL } from '@/types/domain';
+import { RegionalPriceList } from './RegionalPriceList';
 import { PlanFormDialog, PlanPriceDialog } from './PlanDialogs';
 import type { PlanDraft } from './PlanDialogs';
 
@@ -80,22 +80,7 @@ export function PlansPage() {
                 </td>
                 <td className="ebim-td tabular-nums">{p.included_companies}</td>
                 <td className="ebim-td">
-                  <div className="space-y-0.5">
-                    {((p.plan_prices ?? []) as Array<Record<string, unknown>>)
-                      .filter((pr) => !pr.valid_to)
-                      .map((pr) => (
-                        <div key={pr.id as string} className="whitespace-nowrap text-xs">
-                          <span className="text-muted">{pr.charge_kind as string}</span>{' '}
-                          <span className="font-semibold tabular-nums">
-                            {formatMoney(Number(pr.amount), pr.currency as string)}
-                          </span>
-                          <span className="text-muted"> / {pr.billing_interval as string}</span>
-                        </div>
-                      ))}
-                    {((p.plan_prices ?? []) as unknown[]).length === 0 ? (
-                      <span className="text-xs text-muted">Sin precios</span>
-                    ) : null}
-                  </div>
+                  <RegionalPriceList prices={p.plan_prices as Array<Record<string, unknown>>} />
                 </td>
                 <td className="ebim-td">
                   {perms.canManagePlatform ? (

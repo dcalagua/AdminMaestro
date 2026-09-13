@@ -99,8 +99,11 @@ test.describe('J2 · Alta transaccional de cliente con fee de implementación', 
     await page.getByLabel('Correo del administrador del cliente').fill(`admin-${RUN}@alpha-e2e.com`);
     await page.getByRole('button', { name: 'Continuar' }).click();
 
-    // Paso 3 · plan y licencia
-    await page.getByLabel('Plan').selectOption({ index: 1 });
+    // Paso 3 · plan y precio regional. V3: Alpha es peruana, así que el mercado
+    // sugerido es PE y la moneda sugerida PEN; este journey contrata en USD, que
+    // Perú admite, con la tarifa PE/USD del plan.
+    await page.getByLabel('Moneda').selectOption('USD');
+    await page.getByLabel('Plan').selectOption({ label: 'eSupplier Shared Standard' });
     await page.getByRole('button', { name: 'Continuar' }).click();
 
     // Paso 4 · implementación

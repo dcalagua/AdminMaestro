@@ -1,12 +1,17 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   useProducts, useOrganizations, usePlans, usePartnerAgreements, useSalesAgents,
-  useCommissionPlans, useDeploymentTargets,
+  useCommissionPlans, useDeploymentTargets, useMarkets, usePlanPriceCatalog,
 } from '@/services/queries';
+import { MarketSelectField, CurrencySelectField } from '@/components/ui/regional-fields';
+import {
+  allowedCurrenciesFor, currencyForMarket, findMarket, planHasRegionalPrice,
+  resolveRegionalPrice, suggestedMarketForCountry,
+} from '@/lib/regional';
 import { useOnboardCustomer } from '@/services/mutations';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/components/ui/toast-context';
@@ -32,14 +37,19 @@ import { DEPLOYMENT_MODE_LABEL } from '@/types/domain';
  * Los pasos son de UX. La validación de verdad —correo de administrador, dominio
  * operador, acuerdo del canal, DEMO sin recurrente, fee de infraestructura sobre
  * un tenant compartido— la hace PostgreSQL, y el error se muestra tal cual.
+ *
+ * V3 · la venta es regional: cliente -> mercado -> moneda sugerida (o otra que
+ * el mercado admita) -> plan -> tarifa DEL MERCADO -> suscripción. No hay
+ * textbox de moneda ni USD por defecto, y sin tarifa regional no se avanza.
  */
 
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 const schema = z
   .object({
-    // 1 · Cliente
+    // 1 · Cliente y mercado
     customer_organization_id: z.string().uuid('Elige el cliente'),
+    market_code: z.string().min(1, 'Elige el mercado'),
     // 2 · Producto
     saas_product_code: z.string().min(1, 'Elige el producto'),
     // 3 · Canal
@@ -55,7 +65,7 @@ const schema = z
     // 5 · Plan y licencia
     plan_id: z.string().uuid('Elige el plan'),
     billing_interval: z.enum(['MONTHLY', 'QUARTERLY', 'YEARLY', 'ONE_TIME']),
-    currency: z.string().trim().regex(/^[A-Z]{3}$/, 'Código ISO de 3 letras'),
+    currency: z.string().regex(/^[A-Z]{3}$/, 'Elige la moneda'),
     quantity: z.coerce.number().int().min(1),
     started_on: z.string().min(1, 'Obligatorio'),
     license_amount: z.string().trim().optional(),
@@ -88,9 +98,9 @@ const schema = z
 type FormValues = z.input<typeof schema>;
 
 const STEPS = [
-  { id: 1, label: 'Cliente y producto' },
+  { id: 1, label: 'Cliente, mercado y producto' },
   { id: 2, label: 'Canal y modelo' },
-  { id: 3, label: 'Plan y licencia' },
+  { id: 3, label: 'Plan y precio regional' },
   { id: 4, label: 'Implementación y comercial' },
   { id: 5, label: 'Resumen' },
 ] as const;
@@ -125,7 +135,7 @@ const SOURCES = [
 
 /** Campos que deben estar limpios antes de dejar avanzar cada paso. */
 const STEP_FIELDS: Record<number, Array<keyof FormValues>> = {
-  1: ['customer_organization_id', 'saas_product_code'],
+  1: ['customer_organization_id', 'market_code', 'saas_product_code'],
   2: ['deployment_mode', 'tenant_type', 'tenant_slug', 'tenant_name', 'admin_email', 'managing_organization_id'],
   3: ['plan_id', 'billing_interval', 'currency', 'quantity', 'started_on'],
   4: ['implementation_fee', 'infrastructure_fee', 'support_fee', 'attribution_pct'],
@@ -145,6 +155,9 @@ export function OnboardingPage() {
   const agents = useSalesAgents();
   const commissionPlans = useCommissionPlans();
   const targets = useDeploymentTargets();
+  const markets = useMarkets();
+  const priceCatalog = usePlanPriceCatalog();
+  const marketList = useMemo(() => markets.data ?? [], [markets.data]);
 
   const [step, setStep] = useState(1);
 
@@ -156,7 +169,8 @@ export function OnboardingPage() {
       managing_organization_id: '', channel_margin_pct: 0,
       deployment_mode: 'SHARED', tenant_type: 'PRODUCTION',
       tenant_slug: '', tenant_name: '', admin_email: '', deployment_target_id: '',
-      plan_id: '', billing_interval: 'MONTHLY', currency: 'USD', quantity: 1,
+      market_code: '',
+      plan_id: '', billing_interval: 'MONTHLY', currency: '', quantity: 1,
       started_on: new Date().toISOString().slice(0, 10), license_amount: '',
       implementation_fee: '', infrastructure_fee: '', support_fee: '',
       sales_agent_id: '', commission_plan_id: '', attribution_pct: 100,
@@ -171,6 +185,24 @@ export function OnboardingPage() {
   const customer = (orgs.data ?? []).find((o) => o.id === values.customer_organization_id);
   const manager = (orgs.data ?? []).find((o) => o.id === values.managing_organization_id);
   const plan = (plans.data ?? []).find((p) => p.id === values.plan_id);
+  const market = findMarket(marketList, values.market_code);
+
+  // Mercado sugerido por el país del cliente, solo si es inequívoco y el usuario
+  // aún no eligió otro. Cambiar de cliente no pisa una elección explícita.
+  useEffect(() => {
+    if (form.getFieldState('market_code').isDirty) return;
+    const suggested = suggestedMarketForCountry(marketList, customer?.country_code);
+    if (suggested && suggested !== form.getValues('market_code')) {
+      form.setValue('market_code', suggested);
+    }
+  }, [customer?.country_code, marketList]);
+
+  // La moneda es siempre una admitida por el mercado; por defecto, la sugerida.
+  useEffect(() => {
+    const current = form.getValues('currency');
+    const next = currencyForMarket(marketList, values.market_code, current);
+    if (next !== current) form.setValue('currency', next);
+  }, [values.market_code, marketList]);
 
   /** Acuerdo vigente del canal para ESTE producto: acota los modos ofrecidos. */
   const agreement = useMemo(
@@ -192,38 +224,77 @@ export function OnboardingPage() {
     return MODES.filter((m) => allowed.includes(m.value));
   }, [agreement, values.managing_organization_id]);
 
+  const priceRows = priceCatalog.data ?? [];
   const planOptions = (plans.data ?? [])
     .filter((p) => !product || p.saas_product_id === product.id)
     .filter((p) => !p.deployment_mode || p.deployment_mode === values.deployment_mode)
     .filter((p) => !p.is_partner_base)
-    .map((p) => ({ value: p.id, label: p.name }));
+    .map((p) => ({
+      value: p.id,
+      label:
+        values.market_code && values.currency &&
+        !planHasRegionalPrice(priceRows, p.id, values.market_code, values.currency, values.started_on)
+          ? `${p.name} — sin tarifa ${values.market_code}/${values.currency}`
+          : p.name,
+    }));
 
   const targetOptions = (targets.data ?? [])
     .filter((t) => t.deployment_mode === values.deployment_mode)
     .filter((t) => !product || t.saas_product_id === product.id || t.saas_product_id === null)
     .map((t) => ({ value: t.id, label: `${t.code} · ${t.name}` }));
 
-  /** Tarifa vigente del plan elegido, para poder mostrar el importe sin inventarlo. */
-  const listedPrice = useMemo(() => {
-    if (!plan) return null;
-    const prices = (plan.plan_prices ?? []) as Array<Record<string, unknown>>;
-    const match = prices.find(
-      (pr) =>
-        !pr.valid_to &&
-        pr.billing_interval === values.billing_interval &&
-        pr.currency === values.currency &&
-        (pr.charge_kind === 'LICENSE' || pr.charge_kind === 'TENANT_LICENSE'),
-    );
-    return match ? Number(match.amount) : null;
-  }, [plan, values.billing_interval, values.currency]);
+  /**
+   * Tarifa regional vigente: plan + mercado + moneda + periodicidad a la fecha
+   * de inicio. Misma resolución que `current_plan_price` en la base.
+   */
+  const listedPrice = useMemo(
+    () =>
+      resolveRegionalPrice(priceRows, {
+        planId: values.plan_id,
+        marketCode: values.market_code,
+        currency: values.currency,
+        billingInterval: values.billing_interval,
+        chargeKinds: ['LICENSE', 'TENANT_LICENSE'],
+        asOf: values.started_on,
+      }),
+    [priceRows, values.plan_id, values.market_code, values.currency, values.billing_interval, values.started_on],
+  );
+
+  /** Fee de implementación de lista en la MISMA moneda contractual (sugerencia, no obligación). */
+  const listedImplementationFee = useMemo(
+    () =>
+      resolveRegionalPrice(priceRows, {
+        planId: values.plan_id,
+        marketCode: values.market_code,
+        currency: values.currency,
+        billingInterval: 'ONE_TIME',
+        chargeKinds: ['IMPLEMENTATION_FEE'],
+        asOf: values.started_on,
+      }),
+    [priceRows, values.plan_id, values.market_code, values.currency, values.started_on],
+  );
 
   const isDemo = values.tenant_type === 'DEMO';
+  const isRecurringSale = !isDemo && values.billing_interval !== 'ONE_TIME';
   const effectiveLicense = values.license_amount ? Number(values.license_amount) : listedPrice;
+  const regionalPriceMissing = Boolean(
+    values.plan_id && values.market_code && values.currency && isRecurringSale && listedPrice === null,
+  );
 
   async function nextStep() {
     const fields = STEP_FIELDS[step] ?? [];
     const ok = await form.trigger(fields as never);
-    if (ok) setStep((s) => Math.min(s + 1, STEPS.length));
+    if (!ok) return;
+    // Sin tarifa regional no hay venta recurrente: la base lo rechazaría con
+    // TARIFA_REGIONAL_NO_DEFINIDA. Se corta aquí para no llegar al resumen.
+    if (step === 3 && regionalPriceMissing) {
+      form.setError('plan_id', {
+        type: 'regional-price',
+        message: `El plan no tiene tarifa vigente en ${values.market_code}/${values.currency} para esa periodicidad. Publícala en el catálogo o elige otra moneda.`,
+      });
+      return;
+    }
+    setStep((s) => Math.min(s + 1, STEPS.length));
   }
 
   const submit = form.handleSubmit(async (raw) => {
@@ -237,6 +308,7 @@ export function OnboardingPage() {
         p_admin_email: v.admin_email,
         p_plan_id: v.plan_id,
         p_billing_interval: v.billing_interval,
+        p_market_code: v.market_code,
         p_currency: v.currency,
         p_tenant_type: v.tenant_type,
         p_deployment_mode: v.deployment_mode,
@@ -320,6 +392,16 @@ export function OnboardingPage() {
                 hint="Quien recibe el servicio. Puede facturarse a ella o al canal según el acuerdo."
                 error={form.formState.errors.customer_organization_id}
                 {...form.register('customer_organization_id')}
+              />
+              <MarketSelectField
+                markets={marketList} required label="País / mercado de la venta"
+                hint={
+                  market
+                    ? `Moneda sugerida: ${market.defaultCurrency}. Admitidas: ${market.allowedCurrencies.join(', ')}.`
+                    : 'Se sugiere por el país del cliente. Decide la tarifa y las monedas admitidas.'
+                }
+                error={form.formState.errors.market_code}
+                {...form.register('market_code')}
               />
               <SelectField
                 label="Producto SaaS" required placeholder="Elige el producto…"
@@ -431,8 +513,11 @@ export function OnboardingPage() {
                   error={form.formState.errors.billing_interval}
                   {...form.register('billing_interval')}
                 />
-                <TextField
-                  label="Moneda" required placeholder="USD"
+                <CurrencySelectField
+                  required
+                  currencies={allowedCurrenciesFor(marketList, values.market_code)}
+                  suggested={market?.defaultCurrency}
+                  hint={`Moneda contractual en ${market?.name ?? 'el mercado'}: licencia, fees, facturas y cobros la heredan.`}
                   error={form.formState.errors.currency} {...form.register('currency')}
                 />
               </FieldRow>
@@ -450,15 +535,26 @@ export function OnboardingPage() {
 
               <TextField
                 label="Importe de la licencia" type="number" min={0} step="0.01"
-                placeholder={listedPrice !== null ? String(listedPrice) : 'Sin tarifa vigente'}
+                placeholder={listedPrice !== null ? String(listedPrice) : 'Sin tarifa regional'}
+                disabled={listedPrice === null}
                 hint={
                   listedPrice !== null
-                    ? `Vacío = tarifa vigente del plan (${formatMoney(listedPrice, values.currency)}).`
-                    : 'Este plan no tiene tarifa vigente para esa periodicidad y moneda: indica el importe.'
+                    ? `Tarifa ${values.market_code}/${values.currency}: ${formatMoney(listedPrice, values.currency)}. Vacío = tarifa; un importe = precio negociado sobre esa tarifa.`
+                    : isRecurringSale
+                      ? 'Sin tarifa regional no se puede fijar un importe: la base no crea contratos sin tarifa.'
+                      : 'Una venta sin recurrente no usa licencia.'
                 }
                 error={form.formState.errors.license_amount}
                 {...form.register('license_amount')}
               />
+
+              {regionalPriceMissing ? (
+                <p className="rounded-lg bg-warn-soft px-3 py-2 text-xs text-warn" role="alert">
+                  {plan?.name} no tiene tarifa vigente en {values.market_code}/{values.currency} (
+                  {values.billing_interval}). No se puede continuar: la base rechazaría la venta con
+                  TARIFA_REGIONAL_NO_DEFINIDA.
+                </p>
+              ) : null}
 
               {isDemo ? (
                 <p className="rounded-lg bg-info-soft px-3 py-2 text-xs text-info">
@@ -473,9 +569,14 @@ export function OnboardingPage() {
             <div className="grid gap-4">
               <FieldRow>
                 <TextField
-                  label="Fee de implementación" type="number" min={0} step="0.01"
-                  placeholder="0"
-                  hint="Siempre de pago único: no infla el MRR."
+                  label={`Fee de implementación${values.currency ? ` (${values.currency})` : ''}`}
+                  type="number" min={0} step="0.01"
+                  placeholder={listedImplementationFee !== null ? String(listedImplementationFee) : '0'}
+                  hint={
+                    listedImplementationFee !== null
+                      ? `Tarifa ${values.market_code}/${values.currency}: ${formatMoney(listedImplementationFee, values.currency)}. Pago único, misma moneda del contrato.`
+                      : 'Pago único en la moneda del contrato: no infla el MRR.'
+                  }
                   error={form.formState.errors.implementation_fee}
                   {...form.register('implementation_fee')}
                 />
@@ -569,6 +670,8 @@ export function OnboardingPage() {
                     ['Administrador del cliente', values.admin_email],
                     ['Tipo', values.tenant_type],
                     ['Canal', manager?.display_name ?? 'Venta directa EBIM'],
+                    ['Mercado', market ? `${market.name} (${market.code})` : '—'],
+                    ['Moneda contractual', values.currency || '—'],
                     ['Plan', plan?.name ?? '—'],
                     [
                       'Licencia',

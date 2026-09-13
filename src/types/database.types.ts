@@ -2366,6 +2366,7 @@ export type Database = {
           created_at: string
           currency: string
           id: string
+          market_id: string | null
           plan_id: string
           updated_at: string
           valid_from: string
@@ -2378,6 +2379,7 @@ export type Database = {
           created_at?: string
           currency?: string
           id?: string
+          market_id?: string | null
           plan_id: string
           updated_at?: string
           valid_from?: string
@@ -2390,6 +2392,7 @@ export type Database = {
           created_at?: string
           currency?: string
           id?: string
+          market_id?: string | null
           plan_id?: string
           updated_at?: string
           valid_from?: string
@@ -2402,6 +2405,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "currencies"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "plan_prices_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "plan_prices_plan_id_fkey"
@@ -4014,6 +4024,7 @@ export type Database = {
           currency: string
           ends_on: string | null
           id: string
+          market_id: string | null
           metadata: Json
           notes: string | null
           plan_id: string
@@ -4034,6 +4045,7 @@ export type Database = {
           currency?: string
           ends_on?: string | null
           id?: string
+          market_id?: string | null
           metadata?: Json
           notes?: string | null
           plan_id: string
@@ -4054,6 +4066,7 @@ export type Database = {
           currency?: string
           ends_on?: string | null
           id?: string
+          market_id?: string | null
           metadata?: Json
           notes?: string | null
           plan_id?: string
@@ -4113,6 +4126,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "currencies"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "subscriptions_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "subscriptions_plan_id_fkey"
@@ -5285,6 +5305,83 @@ export type Database = {
         }
         Relationships: []
       }
+      v_plan_price_catalog: {
+        Row: {
+          amount: number | null
+          billing_interval:
+            | Database["platform"]["Enums"]["billing_interval"]
+            | null
+          charge_kind: Database["platform"]["Enums"]["charge_kind"] | null
+          currency: string | null
+          deployment_mode:
+            | Database["platform"]["Enums"]["deployment_mode"]
+            | null
+          is_current: boolean | null
+          is_legacy: boolean | null
+          is_scheduled: boolean | null
+          market_code: string | null
+          market_id: string | null
+          market_name: string | null
+          plan_code: string | null
+          plan_id: string | null
+          plan_name: string | null
+          price_id: string | null
+          saas_product_id: string | null
+          valid_from: string | null
+          valid_to: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_prices_currency_fk"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "plan_prices_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_prices_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plans_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plans_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "plans_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "plans_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+        ]
+      }
       v_product_finance: {
         Row: {
           active_subscriptions: number | null
@@ -6075,8 +6172,9 @@ export type Database = {
           p_billing_interval: Database["platform"]["Enums"]["billing_interval"]
           p_channel_margin_rate?: number
           p_code?: string
-          p_currency: string
+          p_currency?: string
           p_ends_on?: string
+          p_market_code: string
           p_metadata?: Json
           p_notes?: string
           p_plan_id: string
@@ -6109,6 +6207,7 @@ export type Database = {
           p_billing_interval: Database["platform"]["Enums"]["billing_interval"]
           p_charge_kind: Database["platform"]["Enums"]["charge_kind"]
           p_currency: string
+          p_market_id: string
           p_plan_id: string
         }
         Returns: number
@@ -6219,6 +6318,7 @@ export type Database = {
           p_infrastructure_fee?: number
           p_license_amount?: number
           p_managing_organization_id?: string
+          p_market_code: string
           p_notes?: string
           p_plan_id: string
           p_provisioning_mode?: string
@@ -6232,6 +6332,15 @@ export type Database = {
           p_tenant_type?: Database["platform"]["Enums"]["tenant_type"]
         }
         Returns: Json
+      }
+      plan_has_regional_price: {
+        Args: {
+          p_as_of?: string
+          p_currency: string
+          p_market_id: string
+          p_plan_id: string
+        }
+        Returns: boolean
       }
       receive_commercial_document: {
         Args: {
@@ -6296,6 +6405,30 @@ export type Database = {
         Args: { p_mode?: string; p_reason: string; p_tenant_id: string }
         Returns: Json
       }
+      require_active_market: {
+        Args: { p_market_code: string }
+        Returns: {
+          code: string
+          country_code: string
+          created_at: string
+          default_currency_code: string
+          id: string
+          name: string
+          sort_order: number
+          status: Database["platform"]["Enums"]["entity_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "markets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      resolve_market_currency: {
+        Args: { p_currency: string; p_market_id: string }
+        Returns: string
+      }
       retry_provisioning_request: {
         Args: { p_request_id: string }
         Returns: string
@@ -6330,6 +6463,7 @@ export type Database = {
           p_billing_interval: Database["platform"]["Enums"]["billing_interval"]
           p_charge_kind: Database["platform"]["Enums"]["charge_kind"]
           p_currency: string
+          p_market_code: string
           p_plan_id: string
           p_valid_from?: string
         }

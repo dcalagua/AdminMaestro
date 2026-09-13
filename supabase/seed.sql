@@ -412,7 +412,12 @@ insert into platform.plans (id, code, name, saas_product_id, deployment_mode, in
   ('60000000-0000-4000-a000-000000000009', 'esupplier-demo', 'eSupplier Demo', '20000000-0000-4000-a000-000000000001', 'SHARED', 1, false, false, 'Demo sin cobro recurrente (regla §2.2).')
 on conflict (code) do nothing;
 
-insert into platform.plan_prices (plan_id, charge_kind, billing_interval, amount, currency) values
+-- V3 (fase 04): toda tarifa pertenece a un mercado. Los clientes de estos
+-- escenarios son peruanos y contratan en USD, que Perú admite: tarifas PE/USD.
+-- Las tarifas BO/EC se añaden en la sección regional V3 al final del seed.
+insert into platform.plan_prices (plan_id, market_id, charge_kind, billing_interval, amount, currency)
+select v.plan_id::uuid, m.id, v.charge_kind::platform.charge_kind, v.billing_interval::platform.billing_interval, v.amount, v.currency
+  from (values
   ('60000000-0000-4000-a000-000000000001', 'LICENSE',              'MONTHLY',  850.00,  'USD'),
   ('60000000-0000-4000-a000-000000000001', 'IMPLEMENTATION_FEE',   'ONE_TIME', 3500.00, 'USD'),
   ('60000000-0000-4000-a000-000000000002', 'PARTNER_BASE_LICENSE', 'MONTHLY',  2200.00, 'USD'),
@@ -432,6 +437,8 @@ insert into platform.plan_prices (plan_id, charge_kind, billing_interval, amount
   ('60000000-0000-4000-a000-000000000008', 'INFRASTRUCTURE_FEE',   'MONTHLY',  1400.00, 'USD'),
   ('60000000-0000-4000-a000-000000000008', 'IMPLEMENTATION_FEE',   'ONE_TIME', 15000.00,'USD'),
   ('60000000-0000-4000-a000-000000000009', 'LICENSE',              'MONTHLY',  0.00,    'USD')
+  ) as v (plan_id, charge_kind, billing_interval, amount, currency)
+  join platform.markets m on m.code = 'PE'
 on conflict do nothing;
 
 -- ---------------------------------------------------------------------------
