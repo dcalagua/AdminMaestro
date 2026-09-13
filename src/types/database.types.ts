@@ -6998,7 +6998,7 @@ export type Database = {
       }
       settle_commissions: {
         Args: {
-          p_currency?: string
+          p_currency: string
           p_period_end: string
           p_period_start: string
           p_sales_agent_id: string

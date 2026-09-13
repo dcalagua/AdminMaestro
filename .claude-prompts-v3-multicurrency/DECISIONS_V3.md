@@ -165,3 +165,19 @@ configurada). `finance_consolidated` agrega por grupo (TOTAL/MARKET/PRODUCT/PART
 métrica consolidada es NULL si falta cualquier conversión, el margen consolidado solo existe si
 COLLECTED, COST y COMMISSION están completos, y `completeness.missing_fx_count` lo expone. El
 periodo filtra cobros, costos y comisiones; el MRR es foto a hoy.
+
+## DV3-015 · Comisiones: porcentaje agnóstico de moneda; importes fijos y topes solo en la moneda de la regla (fase 11)
+
+Un evento de comisión está en la moneda de su cobro (guard de la fase 06) y el porcentaje se
+aplica sobre el importe original cobrado. `commission_rules.currency` pasa a significar «moneda
+de `fixed_amount` y `max_total_amount`», obligatoria en `upsert_commission_rule` y término
+económico inmutable si la regla ya devengó. Una regla FIXED_AMOUNT o con tope NO devenga sobre un
+cobro en otra moneda: comparar el tope exigiría un tipo de cambio y el FX no toca documentos (se
+prefiere no pagar a pagar un importe mal expresado; la solución es una regla por moneda). El tope
+suma solo eventos en la moneda de la regla. `settle_commissions` exige moneda (sin
+`default 'USD'`), genera el código `STL-<agente>-<YYYYMM>-<MON>` —liquidar BOB y PEN el mismo mes
+ya no reutiliza la misma liquidación (R-4)— y no añade eventos a una liquidación APPROVED/PAID
+(V2 la reabría vía `on conflict`). Un trigger impide que un evento quede en una liquidación de
+otra moneda (`LIQUIDACION_MULTIMONEDA`) y la moneda de una liquidación con eventos es inmutable.
+Los reversos conservan la moneda y netean dentro de ella. Las liquidaciones históricas conservan
+su código sin moneda.
