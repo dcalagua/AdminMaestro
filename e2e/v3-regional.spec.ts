@@ -228,18 +228,26 @@ test.describe('R5 · UI regional: FX, tarifas por mercado e importes con ISO (fa
     await page.goto('/regional#prices');
     await page.getByRole('tab', { name: 'Tarifas por mercado' }).click();
     await page.getByRole('searchbox').fill('esupplier-shared-standard');
-    const row = page.getByRole('row').filter({ hasText: 'LICENSE' }).filter({ hasText: 'MONTHLY' }).first();
-    await expect(row).toContainText('PE');
-    await expect(row).toContainText(/USD\s850\.00/);
-    await expect(row.getByRole('button', { name: 'Versionar tarifa' })).toBeVisible();
+    const licenses = page.getByRole('row').filter({ hasText: 'LICENSE' }).filter({ hasText: 'MONTHLY' });
+    // Misma moneda, distinto mercado, distinto precio (PE/USD ≠ EC/USD).
+    const market = (code: string) => page.getByRole('cell', { name: code, exact: true });
+    const peUsd = licenses.filter({ hasText: /USD\s850\.00/ }).filter({ has: market('PE') });
+    const ecUsd = licenses.filter({ hasText: /USD\s700\.00/ }).filter({ has: market('EC') });
+    await expect(peUsd).toHaveCount(1);
+    await expect(ecUsd).toHaveCount(1);
+    await expect(licenses.filter({ hasText: /BOB\s5,900\.00/ })).toHaveCount(1);
+    await expect(licenses.filter({ hasText: /PEN\s3,150\.00/ })).toHaveCount(1);
+    await expect(peUsd.getByRole('button', { name: 'Versionar tarifa' })).toBeVisible();
   });
 
   test('el dashboard muestra importes con código ISO, nunca un símbolo ambiguo', async ({ page }) => {
     await login(page, USERS.superAdmin);
     await expect(page.getByText(/MRR/).first()).toBeVisible();
     const kpi = page.locator('.ebim-card').filter({ hasText: 'Comisión pendiente' }).first();
-    await expect(kpi).toContainText(/USD\s1,593\.60/);
+    // Seed regional: comisiones en tres monedas, cada una con su código y por separado.
+    await expect(kpi).toContainText(/BOB\s[\d,]+\.\d{2} · PEN\s[\d,]+\.\d{2} · USD\s[\d,]+\.\d{2}/);
     await expect(page.locator('main')).not.toContainText('US$');
+    await expect(page.locator('main')).not.toContainText('S/');
   });
 });
 

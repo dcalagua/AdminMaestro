@@ -34,6 +34,8 @@ create or replace function pg_temp.cons() returns jsonb language sql as
 -- ---------------------------------------------------------------------------
 select set_config('ebim.invoices_total_before',
   (select coalesce(sum(total), 0)::text from platform.invoices), true);
+select set_config('ebim.bob_pending_before',
+  coalesce((platform.dashboard_summary() -> 'commission_pending_by_currency' ->> 'BOB'), '0'), true);
 
 insert into platform.invoices (id, number, customer_organization_id, status, currency, issue_date)
 values ('7e000000-0000-4000-a000-000000000001', 'INV-QA-GMAO-PEN', '30000000-0000-4000-a000-000000000004', 'ISSUED', 'PEN', '2031-05-10'),
@@ -88,9 +90,10 @@ select is(
 );
 
 select is(
-  (select (platform.dashboard_summary() -> 'commission_pending_by_currency' ->> 'BOB')::numeric),
+  (select (platform.dashboard_summary() -> 'commission_pending_by_currency' ->> 'BOB')::numeric)
+    - current_setting('ebim.bob_pending_before')::numeric,
   25.00::numeric,
-  'El detalle por moneda conserva BOB 25'
+  'El detalle por moneda suma el BOB 25 nuevo solo a BOB'
 );
 
 select is(
@@ -203,8 +206,8 @@ select is(
 select is(
   (select string_agg(g ->> 'key', ',' order by g ->> 'key')
      from jsonb_array_elements(platform.finance_consolidated(p_group_by => 'MARKET') -> 'groups') g),
-  'BO,PE,SIN_MERCADO',
-  'Agrupado por mercado: BO, PE y los contratos fuera del modelo regional por separado'
+  'BO,EC,PE,SIN_MERCADO',
+  'Agrupado por mercado: BO, EC, PE y los contratos fuera del modelo regional por separado'
 );
 
 select pg_temp.act_as_postgres();

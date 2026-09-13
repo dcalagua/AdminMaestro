@@ -62,8 +62,9 @@ select is(
   'La tarifa EC/USD es 700: misma moneda, distinto mercado, distinto precio'
 );
 
+-- EWM Shared Standard: tarifas USD en PE y EC, ninguna en BO (seed regional).
 select is(
-  platform.current_plan_price(pg_temp.plan(), platform.market_id_by_code('BO'), 'LICENSE', 'MONTHLY', 'USD'),
+  platform.current_plan_price('60000000-0000-4000-a000-000000000005', platform.market_id_by_code('BO'), 'LICENSE', 'MONTHLY', 'USD'),
   null,
   'Bolivia no hereda la tarifa USD de Perú ni la de Ecuador: sin tarifa, NULL'
 );
@@ -194,8 +195,8 @@ select is(
 
 select throws_like(
   $$ select platform.onboard_customer_subscription(
-       'esupplier', '30000000-0000-4000-a000-000000000004', 'v3-bo-alpha', 'Alpha Bolivia',
-       'admin@alpha-bo.example.com', pg_temp.plan(), 'BO', 'MONTHLY', 'USD',
+       'ewm', '30000000-0000-4000-a000-000000000004', 'v3-bo-alpha', 'Alpha Bolivia',
+       'admin@alpha-bo.example.com', '60000000-0000-4000-a000-000000000005', 'BO', 'MONTHLY', 'USD',
        p_license_amount => 500) $$,
   'TARIFA_REGIONAL_NO_DEFINIDA%',
   'Sin tarifa BO/USD la venta se rechaza AUNQUE se teclee un importe (G-07)'

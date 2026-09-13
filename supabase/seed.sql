@@ -1339,3 +1339,339 @@ update platform.organizations
        billing_phone      = '51987654321',
        billing_email      = coalesce(billing_email, 'facturacion@' || slug || '.ebim.test')
  where slug in ('grupasa', 'empresa-directa-alpha');
+
+-- ===========================================================================
+-- SEED V3 · ESCENARIOS REGIONALES PERÚ / BOLIVIA / ECUADOR (fase 14)
+-- ---------------------------------------------------------------------------
+-- Datos ficticios y deterministas (UUID fijos, fechas relativas a hoy salvo
+-- las tasas DEMO). Escenarios:
+--   R1. PE · cliente PEN · Shared directo         (Textiles Arequipa)
+--   R2. PE · cliente USD · Shared directo         (Empresa Directa Alpha, V2)
+--   R3. BO · cliente BOB · Shared vía partner     (Minera Illimani ← Andina)
+--   R4. BO · cliente USD · Partner Dedicated      (Comercial Santa Cruz ← Andina)
+--   R5. EC · cliente USD · Shared directo         (Exportadora Guayas)
+--   R6. Partner multi-SaaS con clientes en PE y BO (Consultora Andina)
+--   R7. Costos USD sobre ingresos en moneda local (infra regional de Bolivia)
+--   R8. Comisiones en PEN (Carla), BOB (Beto) y USD (equipo EBIM)
+-- Tipos de cambio MANUAL marcados DEMO, con fecha fija y valores redondos
+-- deliberadamente irreales: NO son cotizaciones.
+-- ===========================================================================
+
+-- ---- Tarifas regionales. PE/USD (850) y EC/USD (700) difieren a propósito.
+-- El plan Demo NO recibe tarifa en BO: el E2E del selector lo usa como caso
+-- «sin tarifa regional».
+insert into platform.plan_prices (plan_id, market_id, charge_kind, billing_interval, amount, currency, valid_from)
+select v.plan_id::uuid, m.id, v.charge_kind::platform.charge_kind, v.billing_interval::platform.billing_interval,
+       v.amount, v.currency, (current_date - interval '1 year')::date
+  from (values
+    -- eSupplier Shared Standard
+    ('60000000-0000-4000-a000-000000000001', 'PE', 'LICENSE',            'MONTHLY',  3150.00,  'PEN'),
+    ('60000000-0000-4000-a000-000000000001', 'PE', 'IMPLEMENTATION_FEE', 'ONE_TIME', 12950.00, 'PEN'),
+    ('60000000-0000-4000-a000-000000000001', 'BO', 'LICENSE',            'MONTHLY',  5900.00,  'BOB'),
+    ('60000000-0000-4000-a000-000000000001', 'BO', 'IMPLEMENTATION_FEE', 'ONE_TIME', 24000.00, 'BOB'),
+    ('60000000-0000-4000-a000-000000000001', 'BO', 'LICENSE',            'MONTHLY',  850.00,   'USD'),
+    ('60000000-0000-4000-a000-000000000001', 'EC', 'LICENSE',            'MONTHLY',  700.00,   'USD'),
+    ('60000000-0000-4000-a000-000000000001', 'EC', 'IMPLEMENTATION_FEE', 'ONE_TIME', 2800.00,  'USD'),
+    -- eSupplier Partner · Tenant (Partner Dedicated)
+    ('60000000-0000-4000-a000-000000000003', 'BO', 'TENANT_LICENSE',     'MONTHLY',  480.00,   'USD'),
+    ('60000000-0000-4000-a000-000000000003', 'BO', 'TENANT_LICENSE',     'MONTHLY',  3300.00,  'BOB'),
+    -- EWM Shared Standard
+    ('60000000-0000-4000-a000-000000000005', 'PE', 'LICENSE',            'MONTHLY',  2600.00,  'PEN'),
+    ('60000000-0000-4000-a000-000000000005', 'EC', 'LICENSE',            'MONTHLY',  650.00,   'USD')
+  ) as v (plan_id, market_code, charge_kind, billing_interval, amount, currency)
+  join platform.markets m on m.code = v.market_code
+on conflict do nothing;
+
+-- ---- Organizaciones cliente regionales.
+insert into platform.organizations (id, slug, legal_name, display_name, kind, country_code, tax_id, billing_email) values
+  ('30000000-0000-4000-a000-00000000000c', 'textiles-arequipa', 'Textiles Arequipa S.A.C.', 'Textiles Arequipa', 'COMPANY', 'PE', '20600000012', 'pagos@arequipa.ebim.test'),
+  ('30000000-0000-4000-a000-00000000000d', 'minera-illimani', 'Minera Illimani S.A.', 'Minera Illimani', 'COMPANY', 'BO', '1020300013', 'pagos@illimani.ebim.test'),
+  ('30000000-0000-4000-a000-00000000000e', 'comercial-santa-cruz', 'Comercial Santa Cruz S.R.L.', 'Comercial Santa Cruz', 'COMPANY', 'BO', '1020300014', 'pagos@santacruz.ebim.test'),
+  ('30000000-0000-4000-a000-00000000000f', 'exportadora-guayas', 'Exportadora Guayas S.A.', 'Exportadora Guayas', 'COMPANY', 'EC', '0990000015001', 'pagos@guayas.ebim.test')
+on conflict (slug) do nothing;
+
+insert into platform.organization_capabilities (organization_id, capability) values
+  ('30000000-0000-4000-a000-00000000000c', 'CUSTOMER'),
+  ('30000000-0000-4000-a000-00000000000d', 'CUSTOMER'),
+  ('30000000-0000-4000-a000-00000000000e', 'CUSTOMER'),
+  ('30000000-0000-4000-a000-00000000000f', 'CUSTOMER')
+on conflict do nothing;
+
+-- Escenario R6: el partner peruano Andina atiende también clientes de Bolivia.
+insert into platform.organization_relationships (parent_organization_id, child_organization_id, relationship_type) values
+  ('30000000-0000-4000-a000-000000000002', '30000000-0000-4000-a000-00000000000d', 'MANAGES'),
+  ('30000000-0000-4000-a000-000000000002', '30000000-0000-4000-a000-00000000000e', 'MANAGES')
+on conflict do nothing;
+
+-- Sociedades: el mercado lo asigna el guard por país (un único mercado activo).
+insert into platform.companies (id, organization_id, name, country_code, currency, tax_id, is_default) values
+  ('31000000-0000-4000-a000-0000000000c1', '30000000-0000-4000-a000-00000000000c', 'Textiles Arequipa', 'PE', 'PEN', '20600000012', true),
+  ('31000000-0000-4000-a000-0000000000c2', '30000000-0000-4000-a000-00000000000d', 'Minera Illimani', 'BO', 'BOB', '1020300013', true),
+  ('31000000-0000-4000-a000-0000000000c3', '30000000-0000-4000-a000-00000000000e', 'Comercial Santa Cruz', 'BO', 'BOB', '1020300014', true),
+  ('31000000-0000-4000-a000-0000000000c4', '30000000-0000-4000-a000-00000000000f', 'Exportadora Guayas', 'EC', 'USD', '0990000015001', true)
+on conflict do nothing;
+
+insert into platform.workspace_apps (organization_id, saas_product_id, status, activated_at) values
+  ('30000000-0000-4000-a000-00000000000c', '20000000-0000-4000-a000-000000000001', 'active', now()),
+  ('30000000-0000-4000-a000-00000000000d', '20000000-0000-4000-a000-000000000001', 'active', now()),
+  ('30000000-0000-4000-a000-00000000000e', '20000000-0000-4000-a000-000000000001', 'active', now()),
+  ('30000000-0000-4000-a000-00000000000f', '20000000-0000-4000-a000-000000000001', 'active', now())
+on conflict do nothing;
+
+-- ---- Tenants.
+insert into platform.tenants
+  (id, slug, name, saas_product_id, customer_organization_id, managing_organization_id, company_id,
+   tenant_type, status, deployment_mode, environment, admin_email, activated_at) values
+  ('50000000-0000-4000-a000-0000000000c1', 'arequipa-esupplier', 'Textiles Arequipa · eSupplier',
+   '20000000-0000-4000-a000-000000000001', '30000000-0000-4000-a000-00000000000c', null,
+   '31000000-0000-4000-a000-0000000000c1', 'PRODUCTION', 'ACTIVE', 'SHARED', 'PRODUCTION',
+   'admin@arequipa.ebim.test', now() - interval '3 months'),
+  ('50000000-0000-4000-a000-0000000000c2', 'illimani-esupplier', 'Minera Illimani · eSupplier',
+   '20000000-0000-4000-a000-000000000001', '30000000-0000-4000-a000-00000000000d', '30000000-0000-4000-a000-000000000002',
+   '31000000-0000-4000-a000-0000000000c2', 'PRODUCTION', 'ACTIVE', 'SHARED', 'PRODUCTION',
+   'admin@illimani.ebim.test', now() - interval '3 months'),
+  ('50000000-0000-4000-a000-0000000000c3', 'santacruz-pd-esupplier', 'Comercial Santa Cruz · eSupplier PD',
+   '20000000-0000-4000-a000-000000000001', '30000000-0000-4000-a000-00000000000e', '30000000-0000-4000-a000-000000000002',
+   '31000000-0000-4000-a000-0000000000c3', 'PRODUCTION', 'ACTIVE', 'PARTNER_DEDICATED', 'PRODUCTION',
+   'admin@santacruz.ebim.test', now() - interval '3 months'),
+  ('50000000-0000-4000-a000-0000000000c4', 'guayas-esupplier', 'Exportadora Guayas · eSupplier',
+   '20000000-0000-4000-a000-000000000001', '30000000-0000-4000-a000-00000000000f', null,
+   '31000000-0000-4000-a000-0000000000c4', 'PRODUCTION', 'ACTIVE', 'SHARED', 'PRODUCTION',
+   'admin@guayas.ebim.test', now() - interval '3 months')
+on conflict do nothing;
+
+insert into platform.tenant_deployments (tenant_id, deployment_target_id, deployed_at) values
+  ('50000000-0000-4000-a000-0000000000c1', '40000000-0000-4000-a000-000000000001', now() - interval '3 months'),
+  ('50000000-0000-4000-a000-0000000000c2', '40000000-0000-4000-a000-000000000001', now() - interval '3 months'),
+  ('50000000-0000-4000-a000-0000000000c3', '40000000-0000-4000-a000-000000000003', now() - interval '3 months'),
+  ('50000000-0000-4000-a000-0000000000c4', '40000000-0000-4000-a000-000000000001', now() - interval '3 months')
+on conflict do nothing;
+
+-- ---- Contratos: mercado explícito, moneda admitida, importes de la tarifa regional.
+insert into platform.subscriptions
+  (id, code, billed_organization_id, saas_product_id, tenant_id, plan_id, market_id, status,
+   billing_interval, currency, started_on, channel_margin_rate, notes)
+select v.id::uuid, v.code, v.billed::uuid, '20000000-0000-4000-a000-000000000001', v.tenant::uuid, v.plan::uuid,
+       m.id, 'ACTIVE', 'MONTHLY', v.currency, (current_date - interval '3 months')::date, v.margin, v.notes
+  from (values
+    ('70000000-0000-4000-a000-0000000000c1', 'SUB-V3-PE-PEN-AREQUIPA', '30000000-0000-4000-a000-00000000000c',
+     '50000000-0000-4000-a000-0000000000c1', '60000000-0000-4000-a000-000000000001', 'PE', 'PEN', null::numeric,
+     'R1 · Perú en soles, venta directa'),
+    ('70000000-0000-4000-a000-0000000000c2', 'SUB-V3-BO-BOB-ILLIMANI', '30000000-0000-4000-a000-000000000002',
+     '50000000-0000-4000-a000-0000000000c2', '60000000-0000-4000-a000-000000000001', 'BO', 'BOB', 0.2500,
+     'R3 · Bolivia en bolivianos, facturado al partner Andina'),
+    ('70000000-0000-4000-a000-0000000000c3', 'SUB-V3-BO-USD-SANTACRUZ', '30000000-0000-4000-a000-000000000002',
+     '50000000-0000-4000-a000-0000000000c3', '60000000-0000-4000-a000-000000000003', 'BO', 'USD', 0.2500,
+     'R4 · Bolivia en dólares, Partner Dedicated de Andina'),
+    ('70000000-0000-4000-a000-0000000000c4', 'SUB-V3-EC-USD-GUAYAS', '30000000-0000-4000-a000-00000000000f',
+     '50000000-0000-4000-a000-0000000000c4', '60000000-0000-4000-a000-000000000001', 'EC', 'USD', null::numeric,
+     'R5 · Ecuador en dólares, tarifa EC (700) distinta de PE (850)')
+  ) as v (id, code, billed, tenant, plan, market_code, currency, margin, notes)
+  join platform.markets m on m.code = v.market_code
+on conflict (code) do nothing;
+
+-- Las líneas no declaran moneda: la heredan del contrato (guard de la fase 06).
+insert into platform.subscription_items (subscription_id, charge_kind, description, quantity, unit_amount, billing_interval, tenant_id, valid_from) values
+  ('70000000-0000-4000-a000-0000000000c1', 'LICENSE', 'Licencia eSupplier Shared · PE', 1, 3150.00, 'MONTHLY', '50000000-0000-4000-a000-0000000000c1', current_date - interval '3 months'),
+  ('70000000-0000-4000-a000-0000000000c1', 'IMPLEMENTATION_FEE', 'Implementación eSupplier · PE', 1, 12950.00, 'ONE_TIME', '50000000-0000-4000-a000-0000000000c1', current_date - interval '3 months'),
+  ('70000000-0000-4000-a000-0000000000c2', 'LICENSE', 'Licencia eSupplier Shared · BO', 1, 5900.00, 'MONTHLY', '50000000-0000-4000-a000-0000000000c2', current_date - interval '3 months'),
+  ('70000000-0000-4000-a000-0000000000c3', 'TENANT_LICENSE', 'Licencia por tenant · Andina PD · BO', 1, 480.00, 'MONTHLY', '50000000-0000-4000-a000-0000000000c3', current_date - interval '3 months'),
+  ('70000000-0000-4000-a000-0000000000c4', 'LICENSE', 'Licencia eSupplier Shared · EC', 1, 700.00, 'MONTHLY', '50000000-0000-4000-a000-0000000000c4', current_date - interval '3 months'),
+  ('70000000-0000-4000-a000-0000000000c4', 'IMPLEMENTATION_FEE', 'Implementación eSupplier · EC', 1, 2800.00, 'ONE_TIME', '50000000-0000-4000-a000-0000000000c4', current_date - interval '3 months');
+
+-- ---- Cuentas de cobro regionales (sin secretos). Culqi sigue siendo solo de Perú.
+insert into platform.payment_provider_accounts (code, name, provider_kind, environment, market_id, country_code, currency, status, metadata)
+select v.code, v.name, 'BANK', 'TEST', m.id, m.country_code, v.currency, 'ACTIVE',
+       jsonb_build_object('note', 'Cuenta bancaria DEMO: transferencias conciliadas por finanzas')
+  from (values ('banco-bo-demo', 'Banco Bolivia (DEMO)', 'BO', 'BOB'),
+               ('banco-ec-demo', 'Banco Ecuador (DEMO)', 'EC', 'USD')) as v (code, name, market_code, currency)
+  join platform.markets m on m.code = v.market_code
+on conflict (code) do nothing;
+
+insert into platform.payment_provider_account_currencies (provider_account_id, currency_code)
+select a.id, 'USD' from platform.payment_provider_accounts a where a.code = 'banco-bo-demo'
+on conflict do nothing;
+
+-- ---- Perfiles de cobro: tarjeta solo en Perú; transferencia en Bolivia y Ecuador.
+insert into platform.subscription_collection_profiles (
+  subscription_id, collection_method, provider_account_id, auto_charge,
+  invoice_lead_days, renewal_notice_days, payment_due_days, grace_period_days,
+  document_lead_days, auto_suspend, status, effective_from, notes
+) values
+  ('70000000-0000-4000-a000-0000000000c1', 'CULQI_CARD', (select id from platform.payment_provider_accounts where code = 'culqi-pe-test'),
+   true, 0, 30, 15, 10, 45, false, 'ACTIVE', current_date - 90, 'R1 · tarjeta Culqi Perú (MOCK), PEN'),
+  ('70000000-0000-4000-a000-0000000000c2', 'BANK_TRANSFER', (select id from platform.payment_provider_accounts where code = 'banco-bo-demo'),
+   false, 0, 30, 15, 10, 45, false, 'ACTIVE', current_date - 90, 'R3 · transferencia en BOB'),
+  ('70000000-0000-4000-a000-0000000000c3', 'MANUAL', null,
+   false, 0, 30, 30, 10, 45, false, 'ACTIVE', current_date - 90, 'R4 · facturación consolidada al partner'),
+  ('70000000-0000-4000-a000-0000000000c4', 'BANK_TRANSFER', (select id from platform.payment_provider_accounts where code = 'banco-ec-demo'),
+   false, 0, 30, 15, 10, 45, false, 'ACTIVE', current_date - 90, 'R5 · transferencia en USD');
+
+update platform.organizations
+   set billing_first_name = 'Contacto', billing_last_name = 'Facturacion',
+       billing_address = 'Calle Demostracion 45', billing_city = 'Arequipa', billing_phone = '51954000000'
+ where slug = 'textiles-arequipa';
+
+-- ---- Atribuciones ANTES de los cobros: el cobro confirmado devenga la comisión.
+insert into platform.sales_attributions
+  (id, sales_agent_id, saas_product_id, tenant_id, subscription_id, customer_organization_id,
+   channel_organization_id, attribution_pct, source, commission_plan_id, valid_from) values
+  -- R8 · PEN: Carla vende Arequipa (10% licencia, 5% implementación).
+  ('a0000000-0000-4000-a000-0000000000c1', '80000000-0000-4000-a000-000000000001', '20000000-0000-4000-a000-000000000001',
+   '50000000-0000-4000-a000-0000000000c1', '70000000-0000-4000-a000-0000000000c1', '30000000-0000-4000-a000-00000000000c',
+   null, 1.0000, 'DIRECT', '90000000-0000-4000-a000-000000000001', current_date - interval '3 months'),
+  -- R8 · BOB: Beto (comercial de Andina) capta Illimani por el canal.
+  ('a0000000-0000-4000-a000-0000000000c2', '80000000-0000-4000-a000-000000000002', '20000000-0000-4000-a000-000000000001',
+   '50000000-0000-4000-a000-0000000000c2', '70000000-0000-4000-a000-0000000000c2', '30000000-0000-4000-a000-00000000000d',
+   '30000000-0000-4000-a000-000000000002', 1.0000, 'PARTNER', '90000000-0000-4000-a000-000000000002', current_date - interval '3 months'),
+  -- R8 · USD: el equipo EBIM cierra Guayas en Ecuador.
+  ('a0000000-0000-4000-a000-0000000000c3', '80000000-0000-4000-a000-000000000003', '20000000-0000-4000-a000-000000000001',
+   '50000000-0000-4000-a000-0000000000c4', '70000000-0000-4000-a000-0000000000c4', '30000000-0000-4000-a000-00000000000f',
+   null, 1.0000, 'DIRECT', '90000000-0000-4000-a000-000000000003', current_date - interval '3 months')
+on conflict (id) do nothing;
+
+-- ---- Facturas y cobros de los contratos regionales: dos meses cobrados y el
+-- mes en curso emitido sin cobrar. Cada documento en la moneda de su contrato.
+do $$
+declare
+  v_sub record;
+  v_item record;
+  v_month integer;
+  v_period_start date;
+  v_invoice_id uuid;
+  v_number text;
+begin
+  for v_month in reverse 2 .. 0 loop
+    v_period_start := date_trunc('month', current_date - (v_month || ' months')::interval)::date;
+
+    for v_sub in
+      select s.* from platform.subscriptions s where s.code like 'SUB-V3-%' order by s.code
+    loop
+      v_number := 'INV-' || to_char(v_period_start, 'YYYYMM') || '-' || substr(v_sub.code, 5);
+
+      insert into platform.invoices (
+        number, customer_organization_id, subscription_id, status,
+        issue_date, due_date, period_start, period_end
+      ) values (
+        v_number, v_sub.billed_organization_id, v_sub.id, 'ISSUED',
+        v_period_start, v_period_start + 15,
+        v_period_start, (v_period_start + interval '1 month' - interval '1 day')::date
+      )
+      on conflict (number) do nothing
+      returning id into v_invoice_id;
+
+      continue when v_invoice_id is null;
+
+      for v_item in
+        select si.* from platform.subscription_items si
+         where si.subscription_id = v_sub.id
+           and (si.billing_interval <> 'ONE_TIME' or v_month = 2)
+      loop
+        insert into platform.invoice_lines (
+          invoice_id, charge_kind, description, saas_product_id, tenant_id,
+          subscription_item_id, quantity, unit_amount, is_recurring
+        ) values (
+          v_invoice_id, v_item.charge_kind, v_item.description, v_sub.saas_product_id,
+          coalesce(v_item.tenant_id, v_sub.tenant_id), v_item.id, v_item.quantity, v_item.unit_amount,
+          v_item.billing_interval <> 'ONE_TIME'
+        );
+      end loop;
+
+      if v_month > 0 then
+        insert into platform.payments (invoice_id, reference, status, amount, paid_at, method)
+        select v_invoice_id, 'PAY-' || v_number, 'CONFIRMED', i.total, (v_period_start + 12)::timestamptz,
+               case when v_sub.code like '%AREQUIPA' then 'CULQI_CARD' else 'TRANSFER' end
+          from platform.invoices i where i.id = v_invoice_id and i.total > 0;
+      end if;
+    end loop;
+  end loop;
+end;
+$$;
+
+-- ---- R7 · Costos en USD imputados a clientes que pagan en BOB y PEN.
+do $$
+declare
+  v_month integer;
+  v_ps date;
+  v_pe date;
+  v_cost uuid;
+begin
+  for v_month in reverse 2 .. 0 loop
+    v_ps := date_trunc('month', current_date - (v_month || ' months')::interval)::date;
+    v_pe := (v_ps + interval '1 month' - interval '1 day')::date;
+
+    insert into platform.cost_entries (category, description, vendor, amount, currency, period_start, period_end)
+    values ('SUPPORT', 'Soporte regional Bolivia (USD) · Illimani', 'EBIM', 240.00, 'USD', v_ps, v_pe)
+    returning id into v_cost;
+    insert into platform.cost_allocations (cost_entry_id, scope, tenant_id, weight, allocation_rule)
+    values (v_cost, 'TENANT', '50000000-0000-4000-a000-0000000000c2', 1, 'SEED_V3');
+
+    insert into platform.cost_entries (category, description, vendor, amount, currency, period_start, period_end)
+    values ('MESSAGING', 'Mensajería transaccional Perú (USD) · Arequipa', 'Twilio', 60.00, 'USD', v_ps, v_pe)
+    returning id into v_cost;
+    insert into platform.cost_allocations (cost_entry_id, scope, tenant_id, weight, allocation_rule)
+    values (v_cost, 'TENANT', '50000000-0000-4000-a000-0000000000c1', 1, 'SEED_V3');
+  end loop;
+end;
+$$;
+
+-- ---- Tipos de cambio DEMO. Fecha fija y valores redondos deliberadamente
+-- irreales: sirven para ver el consolidado, NO son cotizaciones del mercado.
+insert into platform.exchange_rates (rate_date, base_currency, quote_currency, rate, source, is_demo, notes) values
+  ('2026-09-01', 'USD', 'PEN', 3.5000000000, 'MANUAL', true, 'DEMO · valor ficticio para pruebas locales; no es una cotización real'),
+  ('2026-09-01', 'USD', 'BOB', 7.0000000000, 'MANUAL', true, 'DEMO · valor ficticio para pruebas locales; no es una cotización real')
+on conflict do nothing;
+
+-- ---- Verificación del seed V3: si falta un escenario, el reset FALLA.
+do $$
+declare
+  v_markets    text;
+  v_sub_cur    text;
+  v_com_cur    text;
+  v_demo_fx    integer;
+  v_integrity  integer;
+  v_pe_usd     numeric;
+  v_ec_usd     numeric;
+  v_cost_usd   integer;
+begin
+  select string_agg(distinct m.code, ',' order by m.code) into v_markets
+    from platform.subscriptions s join platform.markets m on m.id = s.market_id where s.status = 'ACTIVE';
+  select string_agg(distinct s.currency, ',' order by s.currency) into v_sub_cur
+    from platform.subscriptions s where s.status = 'ACTIVE' and s.market_id is not null;
+  select string_agg(distinct e.currency, ',' order by e.currency) into v_com_cur
+    from platform.commission_events e where e.status <> 'VOID';
+  select count(*) into v_demo_fx from platform.exchange_rates where is_demo and status = 'ACTIVE';
+  select count(*) into v_integrity from platform.v_currency_integrity_issues;
+  select count(*) into v_cost_usd
+    from platform.cost_allocations a join platform.cost_entries ce on ce.id = a.cost_entry_id
+   where a.allocation_rule = 'SEED_V3' and ce.currency = 'USD';
+
+  v_pe_usd := platform.current_plan_price('60000000-0000-4000-a000-000000000001', platform.market_id_by_code('PE'), 'LICENSE', 'MONTHLY', 'USD');
+  v_ec_usd := platform.current_plan_price('60000000-0000-4000-a000-000000000001', platform.market_id_by_code('EC'), 'LICENSE', 'MONTHLY', 'USD');
+
+  if v_markets is distinct from 'BO,EC,PE' then
+    raise exception 'SEED_V3_INCOMPLETO: contratos activos por mercado = %, se esperaba BO,EC,PE', v_markets;
+  end if;
+  if v_sub_cur is distinct from 'BOB,PEN,USD' then
+    raise exception 'SEED_V3_INCOMPLETO: monedas contractuales = %, se esperaba BOB,PEN,USD', v_sub_cur;
+  end if;
+  if v_com_cur is distinct from 'BOB,PEN,USD' then
+    raise exception 'SEED_V3_INCOMPLETO: comisiones por moneda = %, se esperaba BOB,PEN,USD', v_com_cur;
+  end if;
+  if v_demo_fx < 2 then
+    raise exception 'SEED_V3_INCOMPLETO: faltan las tasas DEMO (%)', v_demo_fx;
+  end if;
+  if v_integrity > 0 then
+    raise exception 'SEED_V3_INCOHERENTE: % filas con moneda distinta a la de su padre', v_integrity;
+  end if;
+  if v_pe_usd is null or v_ec_usd is null or v_pe_usd = v_ec_usd then
+    raise exception 'SEED_V3_INCOMPLETO: PE/USD (%) y EC/USD (%) deben existir y diferir', v_pe_usd, v_ec_usd;
+  end if;
+  if v_cost_usd < 6 then
+    raise exception 'SEED_V3_INCOMPLETO: faltan costos USD sobre clientes en moneda local (%)', v_cost_usd;
+  end if;
+
+  raise notice 'SEED V3 OK · mercados=% monedas=% comisiones=% fx_demo=% PE/USD=% EC/USD=%',
+    v_markets, v_sub_cur, v_com_cur, v_demo_fx, v_pe_usd, v_ec_usd;
+end;
+$$;

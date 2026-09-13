@@ -210,3 +210,17 @@ parcial nunca se presenta como total. La presentación vive en `src/lib/consolid
 probada). Defecto corregido de paso: `formatDate('YYYY-MM-DD')` pintaba el día anterior en UTC−5
 porque `new Date()` interpreta la fecha sin hora como medianoche UTC; ahora se construye en hora
 local (afectaba a toda fecha de calendario de la consola, incluida la fecha de las tasas).
+
+## DV3-018 · Seed regional: escenarios verificados, FX DEMO con fecha fija (fase 14)
+
+La sección `SEED V3` añade cuatro clientes regionales, tarifas por mercado, contratos con mercado
+explícito, facturas y cobros en la moneda de cada contrato, costos USD sobre ingresos locales,
+comisiones PEN/BOB/USD y cuentas bancarias DEMO de Bolivia y Ecuador. Un bloque final verifica
+mercados, monedas contractuales y de comisión, tasas DEMO, integridad de la cadena de moneda y
+PE/USD ≠ EC/USD: si algo falta, `db reset` falla. Las tasas DEMO usan fecha fija (2026-09-01) y
+valores redondos (3.50 PEN, 7.00 BOB por USD) deliberadamente irreales, `is_demo = true`; con
+tolerancia de 31 días el consolidado por defecto se volverá «incompleto» pasado octubre de 2026,
+que es el comportamiento correcto: los E2E fijan la fecha de las tasas. El plan Demo no recibe
+tarifa en BO para mantener un caso determinista «sin tarifa regional». Tres tests (08, 13 y dos
+E2E de R5) se ajustaron porque dependían de que el seed fuese solo USD; ahora comprueban el
+comportamiento multimoneda sin depender de totales absolutos del seed.
