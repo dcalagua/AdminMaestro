@@ -52,6 +52,7 @@ export const NAV_ITEMS: NavItem[] = [
 
   // ---- Gobierno -----------------------------------------------------------
   { to: '/costs', label: 'Costos y margen', group: 'Gobierno', personas: ['EBIM'] },
+  { to: '/regional', label: 'Monedas y FX', group: 'Gobierno', personas: ['EBIM'] },
   { to: '/audit', label: 'Auditoría', group: 'Gobierno', personas: ['EBIM', 'PARTNER'] },
   { to: '/settings', label: 'Configuración', group: 'Gobierno' },
 ];

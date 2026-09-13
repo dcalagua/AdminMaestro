@@ -238,6 +238,18 @@ export function useCurrencies() {
   });
 }
 
+/** Moneda de reporte y tolerancia FX (singleton de configuración). */
+export function useReportingSettings() {
+  return useQuery({
+    queryKey: ['reporting-settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('reporting_settings');
+      if (error) throw new Error(error.message);
+      return (data ?? [])[0] ?? null;
+    },
+  });
+}
+
 /** Tarifas con su mercado. RLS de `plan_prices` decide qué filas ve cada rol. */
 export function usePlanPriceCatalog() {
   return useQuery({

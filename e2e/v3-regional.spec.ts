@@ -152,3 +152,36 @@ test.describe('R3 · Routing regional de cobro (fase 07)', () => {
     await dialog.getByRole('button', { name: 'Cancelar' }).click();
   });
 });
+
+test.describe('R4 · Moneda de reporte (fase 09)', () => {
+  test('finanzas cambia la moneda de reporte entre monedas activas y la restaura', async ({ page }) => {
+    await login(page, USERS.finance);
+    await page.getByRole('link', { name: 'Monedas y FX', exact: true }).click();
+    await page.waitForURL('**/regional');
+
+    // El panel de la pestaña también se rotula «Moneda de reporte»: se busca el <select>.
+    const select = page.getByRole('combobox', { name: 'Moneda de reporte' });
+    await expect(select).toHaveValue('USD');
+    // Solo monedas ACTIVAS: las inactivas del catálogo (COP, CLP) no se ofrecen.
+    const options = await select.locator('option').allTextContents();
+    expect(options.some((o) => o.startsWith('COP'))).toBe(false);
+    expect(options.some((o) => o.startsWith('PEN'))).toBe(true);
+
+    await select.selectOption('PEN');
+    await page.getByRole('button', { name: 'Guardar' }).click();
+    await expect(page.getByText('Moneda de reporte actualizada')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('Actual: PEN')).toBeVisible();
+
+    // Restaura el estado del seed para que la suite sea repetible.
+    await select.selectOption('USD');
+    await page.getByRole('button', { name: 'Guardar' }).click();
+    await expect(page.getByText('Actual: USD')).toBeVisible({ timeout: 15_000 });
+  });
+
+  test('un partner no tiene acceso a la administración de monedas', async ({ page }) => {
+    await login(page, USERS.partnerAdmin);
+    await expect(page.getByRole('link', { name: 'Monedas y FX', exact: true })).toHaveCount(0);
+    await page.goto('/regional');
+    await expect(page.getByRole('heading', { name: 'Monedas y FX' })).toHaveCount(0);
+  });
+});

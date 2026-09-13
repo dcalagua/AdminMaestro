@@ -303,6 +303,15 @@ export function useConfirmManualPayment() {
 }
 
 /* ==========================================================================
+   Monedas, FX y moneda de reporte (V3)
+   ========================================================================== */
+
+/** Cambia la LENTE del consolidado. No toca ningún importe nativo. */
+export function useSetReportingSettings() {
+  return useRpc('set_reporting_settings', ['reporting-settings', 'finance-consolidated']);
+}
+
+/* ==========================================================================
    Infraestructura
    ========================================================================== */
 

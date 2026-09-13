@@ -877,6 +877,48 @@ export type Database = {
           },
         ]
       }
+      control_plane_settings: {
+        Row: {
+          created_at: string
+          fx_max_rate_age_days: number
+          id: boolean
+          reporting_currency_code: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          fx_max_rate_age_days?: number
+          id?: boolean
+          reporting_currency_code: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          fx_max_rate_age_days?: number
+          id?: boolean
+          reporting_currency_code?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "control_plane_settings_reporting_currency_code_fkey"
+            columns: ["reporting_currency_code"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "control_plane_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cost_allocations: {
         Row: {
           allocation_rule: string
@@ -6743,6 +6785,13 @@ export type Database = {
         Args: { p_document_id: string; p_reason: string }
         Returns: undefined
       }
+      reporting_settings: {
+        Args: never
+        Returns: {
+          fx_max_rate_age_days: number
+          reporting_currency: string
+        }[]
+      }
       request_commercial_document: {
         Args: {
           p_amount?: number
@@ -6839,6 +6888,10 @@ export type Database = {
         }
         Returns: string
       }
+      set_reporting_settings: {
+        Args: { p_fx_max_rate_age_days?: number; p_reporting_currency: string }
+        Returns: undefined
+      }
       set_subscription_collection_profile: {
         Args: {
           p_auto_charge?: boolean
@@ -6894,6 +6947,27 @@ export type Database = {
           p_sales_agent_id: string
         }
         Returns: string
+      }
+      to_reporting_amount: {
+        Args: {
+          p_amount: number
+          p_as_of: string
+          p_currency: string
+          p_max_age_days?: number
+          p_reporting_currency?: string
+        }
+        Returns: {
+          conversion_status: string
+          fx_is_demo: boolean
+          fx_method: string
+          fx_rate: number
+          fx_rate_date: string
+          fx_rate_id: string
+          native_amount: number
+          native_currency: string
+          reporting_amount: number
+          reporting_currency: string
+        }[]
       }
       update_tenant: {
         Args: {

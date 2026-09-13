@@ -33,6 +33,7 @@ import { DeploymentsPage } from '@/features/deployments/DeploymentsPage';
 import { ProvisioningPage } from '@/features/deployments/ProvisioningPage';
 import { AuditPage } from '@/features/settings/AuditPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
+import { RegionalPage } from '@/features/regional/RegionalPage';
 import { NotFoundPage } from '@/features/settings/NotFoundPage';
 
 /**
@@ -204,6 +205,14 @@ export function App() {
                     element={
                       <RequirePersona personas={['EBIM', 'PARTNER']}>
                         <AuditPage />
+                      </RequirePersona>
+                    }
+                  />
+                  <Route
+                    path="regional"
+                    element={
+                      <RequirePersona personas={['EBIM']}>
+                        <RegionalPage />
                       </RequirePersona>
                     }
                   />

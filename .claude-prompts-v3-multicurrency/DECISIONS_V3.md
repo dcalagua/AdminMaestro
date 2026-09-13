@@ -133,3 +133,17 @@ toma de su setting, fase 09). `fx_convert` redondea a los decimales ISO destino 
 devuelve NULL, nunca 0. Las funciones son SECURITY INVOKER: quien no puede leer tasas (partner,
 tenant) obtiene MISSING, no una conversión. Lectura de tasas: plataforma o finanzas; escritura:
 `can_manage_regional_catalog()` (EBIM_FINANCE / super admin).
+
+## DV3-013 · Moneda de reporte = fila de configuración; contrato de respuesta nativo/reporte (fase 09)
+
+`control_plane_settings` es un singleton (`id boolean` con CHECK) con `reporting_currency_code`
+(FK a monedas) y `fx_max_rate_age_days`. El USD inicial se siembra como FILA de configuración en
+la migración (debe existir en QAS/PRD igual que el catálogo de mercados); ninguna función lo
+asume: todas leen `reporting_settings()` y, si la fila falta, responden
+`NO_REPORTING_CURRENCY`. Tolerancia inicial 31 días, pensada para una tasa gerencial MANUAL
+mensual; la fecha de la tasa usada se devuelve siempre. `to_reporting_amount` es el contrato de
+todo reporting: `native_amount/native_currency` intactos, `reporting_amount/reporting_currency`
+(NULL si falta tasa) y `conversion_status` ∈ {SAME_CURRENCY, CONVERTED, MISSING_FX,
+NO_REPORTING_CURRENCY} con la tasa, método, fecha e `is_demo`. Cambiarla exige
+`can_manage_regional_catalog()`. UI: página «Monedas y FX» (persona EBIM) con selector entre
+monedas activas, editable solo por finanzas / super admin.

@@ -62,6 +62,13 @@ describe('navegación por perfil', () => {
     expect(navItemsFor('SALES_AGENT').map((i) => i.to)).not.toContain('/onboarding');
   });
 
+  it('monedas, FX y moneda de reporte son administración de EBIM', () => {
+    // V3: `set_reporting_settings` y `set_exchange_rate` exigen EBIM_FINANCE o super admin.
+    expect(navItemsFor('EBIM').map((i) => i.to)).toContain('/regional');
+    expect(navItemsFor('PARTNER').map((i) => i.to)).not.toContain('/regional');
+    expect(navItemsFor('TENANT').map((i) => i.to)).not.toContain('/regional');
+  });
+
   it('un partner sí ve las renovaciones de su cartera', () => {
     expect(navItemsFor('PARTNER').map((i) => i.to)).toContain('/renewals');
   });
