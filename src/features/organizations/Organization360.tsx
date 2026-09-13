@@ -5,7 +5,7 @@ import {
   useProvisioningRequests, usePartnerAgreements,
 } from '@/services/queries';
 import { Card, DataTable, StatCard, EmptyState, Badge, LoadingState } from '@/components/ui/primitives';
-import { formatMoney, formatDate, formatNumber, formatPercent } from '@/lib/format';
+import { formatMoney, formatCurrencyMap, sumByCurrency, formatNumber, formatPercent, formatDate } from '@/lib/format';
 import { DEPLOYMENT_MODE_LABEL } from '@/types/domain';
 
 /**
@@ -81,12 +81,14 @@ export function Organization360({
   );
   const finance = (partnerFinance.data ?? []).filter((f) => f.organization_id === organizationId);
 
-  const confirmedCollected = orgInvoices.reduce((sum, i) => {
-    const payments = (i.payments ?? []) as Array<Record<string, unknown>>;
-    return sum + payments
+  // V3 · por moneda: la organización puede pagar un SaaS en PEN y otro en USD.
+  const confirmedCollected = sumByCurrency(
+    orgInvoices.flatMap((i) => ((i.payments ?? []) as Array<Record<string, unknown>>)
       .filter((p) => p.status === 'CONFIRMED')
-      .reduce((a, p) => a + Number(p.amount ?? 0), 0);
-  }, 0);
+      .map((p) => ({ amount: Number(p.amount ?? 0), currency: (p.currency as string | null) ?? (i.currency as string) }))),
+    (p) => p.amount,
+    (p) => p.currency,
+  );
 
   const distinctMethods = new Set(
     orgSubs.filter((s) => s.collection_method).map((s) => s.collection_method as string),
@@ -106,7 +108,7 @@ export function Organization360({
           hint={distinctMethods.size > 1 ? 'Cada SaaS puede pagarse de otra forma' : undefined}
           tone={distinctMethods.size > 1 ? 'ok' : 'neutral'}
         />
-        <StatCard label="Cobrado confirmado" value={formatMoney(confirmedCollected)} tone="ok" />
+        <StatCard label="Cobrado confirmado" value={formatCurrencyMap(confirmedCollected)} tone="ok" hint="Por moneda" />
       </div>
 
       <Card
@@ -279,7 +281,7 @@ export function Organization360({
                   <td
                     className={`ebim-td tabular-nums ${Number(c.amount) < 0 ? 'text-danger' : ''}`}
                   >
-                    {formatMoney(Number(c.amount), c.currency ?? 'USD')}
+                    {formatMoney(Number(c.amount), c.currency)}
                   </td>
                   <td className="ebim-td text-muted">{c.status}</td>
                 </tr>
@@ -296,20 +298,20 @@ export function Organization360({
         >
           <div className="space-y-4 p-4">
             {finance.map((f) => (
-              <div key={(f.currency as string) ?? 'USD'}>
+              <div key={f.currency as string | null}>
                 <p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted">
                   Moneda {f.currency}
                 </p>
                 <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
-                  <StatCard label="MRR" value={formatMoney(Number(f.mrr), f.currency ?? 'USD')} />
+                  <StatCard label="MRR" value={formatMoney(Number(f.mrr), f.currency)} />
                   <StatCard
                     label="Cobrado"
-                    value={formatMoney(Number(f.collected_revenue), f.currency ?? 'USD')}
+                    value={formatMoney(Number(f.collected_revenue), f.currency)}
                     tone="ok"
                   />
                   <StatCard
                     label="Costo directo"
-                    value={formatMoney(Number(f.direct_cost), f.currency ?? 'USD')}
+                    value={formatMoney(Number(f.direct_cost), f.currency)}
                     tone="warn"
                   />
                   <StatCard
@@ -323,7 +325,7 @@ export function Organization360({
                   />
                   <StatCard
                     label="Margen bruto"
-                    value={formatMoney(Number(f.gross_margin), f.currency ?? 'USD')}
+                    value={formatMoney(Number(f.gross_margin), f.currency)}
                     tone={Number(f.gross_margin) >= 0 ? 'ok' : 'danger'}
                   />
                 </div>

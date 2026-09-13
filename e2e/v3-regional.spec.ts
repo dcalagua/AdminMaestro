@@ -185,3 +185,60 @@ test.describe('R4 · Moneda de reporte (fase 09)', () => {
     await expect(page.getByRole('heading', { name: 'Monedas y FX' })).toHaveCount(0);
   });
 });
+
+test.describe('R5 · UI regional: FX, tarifas por mercado e importes con ISO (fase 12)', () => {
+  test('finanzas publica una tasa, la prueba y la anula; nada se edita', async ({ page }) => {
+    await login(page, USERS.finance);
+    await page.goto('/regional#fx');
+    await page.getByRole('tab', { name: 'Tipos de cambio' }).click();
+
+    await page.getByRole('button', { name: 'Publicar tasa' }).click();
+    const dialog = page.getByRole('dialog');
+    await dialog.getByLabel(/Fecha de la tasa/).fill('2099-12-31');
+    await field(dialog, 'Moneda base').selectOption('USD');
+    await field(dialog, 'Moneda cotizada').selectOption('BOB');
+    await field(dialog, 'Tasa').fill('6.96');
+    await dialog.getByLabel('Notas').fill(`E2E ${RUN}`);
+    await dialog.getByRole('button', { name: 'Publicar' }).click();
+    await expect(page.getByText('Tasa publicada')).toBeVisible({ timeout: 15_000 });
+
+    const row = page.getByRole('row').filter({ hasText: `E2E ${RUN}` });
+    await expect(row).toContainText('1 USD = 6.96');
+    await expect(row).toContainText('BOB');
+
+    // Probar la conversión con la misma regla del consolidado (recíproca BOB→USD).
+    const tester = page.locator('section').filter({ hasText: 'Probar una conversión' });
+    await field(tester, 'Importe').fill('696');
+    await field(tester, 'De').selectOption('BOB');
+    await field(tester, 'A').selectOption('USD');
+    await field(tester, 'Fecha').fill('2099-12-31');
+    await tester.getByRole('button', { name: 'Probar' }).click();
+    await expect(page.getByTestId('fx-test-result')).toContainText(/USD\s100\.00/);
+    await expect(page.getByTestId('fx-test-result')).toContainText('recíproca');
+
+    await row.getByRole('button', { name: 'Anular' }).click();
+    const voidDialog = page.getByRole('dialog');
+    await voidDialog.getByLabel(/Motivo/).fill('Limpieza E2E');
+    await voidDialog.getByRole('button', { name: 'Anular tasa' }).click();
+    await expect(page.getByText('Tasa anulada')).toBeVisible({ timeout: 15_000 });
+  });
+
+  test('las tarifas se listan por mercado y todo importe lleva su código ISO', async ({ page }) => {
+    await login(page, USERS.productAdmin);
+    await page.goto('/regional#prices');
+    await page.getByRole('tab', { name: 'Tarifas por mercado' }).click();
+    await page.getByRole('searchbox').fill('esupplier-shared-standard');
+    const row = page.getByRole('row').filter({ hasText: 'LICENSE' }).filter({ hasText: 'MONTHLY' }).first();
+    await expect(row).toContainText('PE');
+    await expect(row).toContainText(/USD\s850\.00/);
+    await expect(row.getByRole('button', { name: 'Versionar tarifa' })).toBeVisible();
+  });
+
+  test('el dashboard muestra importes con código ISO, nunca un símbolo ambiguo', async ({ page }) => {
+    await login(page, USERS.superAdmin);
+    await expect(page.getByText(/MRR/).first()).toBeVisible();
+    const kpi = page.locator('.ebim-card').filter({ hasText: 'Comisión pendiente' }).first();
+    await expect(kpi).toContainText(/USD\s1,593\.60/);
+    await expect(page.locator('main')).not.toContainText('US$');
+  });
+});

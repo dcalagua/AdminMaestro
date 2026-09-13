@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   toMarketOptions, allowedCurrenciesFor, isCurrencyAllowed, currencyForMarket,
-  suggestedMarketForCountry, resolveRegionalPrice, planHasRegionalPrice,
+  suggestedMarketForCountry, resolveRegionalPrice, planHasRegionalPrice, currencySymbolHint,
   type MarketRow, type RegionalPriceRow,
 } from './regional';
 
@@ -127,5 +127,28 @@ describe('tarifa regional', () => {
   it('sin mercado o sin moneda no resuelve nada', () => {
     expect(resolveRegionalPrice(prices, { ...q, marketCode: '', currency: 'USD' })).toBeNull();
     expect(resolveRegionalPrice(prices, { ...q, marketCode: 'PE', currency: '' })).toBeNull();
+  });
+});
+
+describe('ayuda de símbolo de moneda', () => {
+  const currencies = [
+    { code: 'PEN', name: 'Sol peruano', symbol: 'S/', status: 'ACTIVE' },
+    { code: 'USD', name: 'Dólar estadounidense', symbol: '$', status: 'ACTIVE' },
+    { code: 'CLP', name: 'Peso chileno', symbol: '$', status: 'INACTIVE' },
+    { code: 'BOB', name: 'Boliviano', symbol: 'Bs', status: 'ACTIVE' },
+  ];
+
+  it('muestra el símbolo solo cuando es inequívoco', () => {
+    expect(currencySymbolHint(currencies, 'PEN')).toBe('Sol peruano · S/');
+    expect(currencySymbolHint(currencies, 'BOB')).toBe('Boliviano · Bs');
+  });
+
+  it('omite «$» porque lo comparten varias monedas', () => {
+    expect(currencySymbolHint(currencies, 'USD')).toBe('Dólar estadounidense');
+    expect(currencySymbolHint(currencies, 'CLP')).toBe('Peso chileno');
+  });
+
+  it('sin moneda no hay ayuda', () => {
+    expect(currencySymbolHint(currencies, null)).toBeNull();
   });
 });

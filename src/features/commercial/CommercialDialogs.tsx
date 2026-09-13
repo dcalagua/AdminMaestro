@@ -6,7 +6,7 @@ import { FormDialog } from '@/components/ui/FormDialog';
 import { TextField, SelectField, NumberField, CheckboxField, TextAreaField, FieldRow } from '@/components/ui/fields';
 import { useToast } from '@/components/ui/toast-context';
 import {
-  useOrganizations, useProducts, useSalesAgents, useCommissionPlans, useTenantOverview,
+  useOrganizations, useProducts, useSalesAgents, useCommissionPlans, useTenantOverview, useCurrencies,
 } from '@/services/queries';
 import {
   useUpsertSalesAgent, useCreateAttribution, useUpsertCommissionPlan, useUpsertCommissionRule,
@@ -441,7 +441,8 @@ const ruleSchema = z
     basis: z.enum(['COLLECTED_LICENSE', 'COLLECTED_IMPLEMENTATION', 'COLLECTED_ANY', 'FIXED_AMOUNT']),
     rate_pct: z.coerce.number().min(0).max(100).optional(),
     fixed_amount: z.coerce.number().min(0).optional(),
-    currency: z.string().trim().regex(/^[A-Z]{3}$/, 'Código ISO de 3 letras'),
+    // V3: moneda del catálogo (sin USD por defecto). Expresa el monto fijo y el tope.
+    currency: z.string().regex(/^[A-Z]{3}$/, 'Elige la moneda'),
     is_recurring: z.boolean(),
     max_months: z.coerce.number().int().min(0).optional(),
     max_total_amount: z.coerce.number().min(0).optional(),
@@ -480,12 +481,16 @@ export function CommissionRuleFormDialog({
 }) {
   const toast = useToast();
   const upsert = useUpsertCommissionRule();
+  const currencies = useCurrencies();
+  const currencyOptions = (currencies.data ?? [])
+    .filter((c) => c.status === 'ACTIVE')
+    .map((c) => ({ value: c.code, label: `${c.code} · ${c.name}` }));
 
   const form = useForm<RuleValues>({
     resolver: zodResolver(ruleSchema),
     defaultValues: {
       name: '', basis: 'COLLECTED_LICENSE', rate_pct: 10, fixed_amount: 0,
-      currency: 'USD', is_recurring: true, priority: 100,
+      currency: '', is_recurring: true, priority: 100,
       valid_from: new Date().toISOString().slice(0, 10), valid_to: '',
     },
   });
@@ -553,7 +558,10 @@ export function CommissionRuleFormDialog({
       </FieldRow>
 
       <FieldRow>
-        <TextField label="Moneda" required placeholder="USD"
+        <SelectField label="Moneda" required placeholder="Elige la moneda…" options={currencyOptions}
+          hint={isFixed
+            ? 'El monto fijo solo se paga sobre cobros en esta moneda.'
+            : 'Moneda del tope. El porcentaje se aplica sobre el cobro en su moneda original.'}
           error={form.formState.errors.currency} {...form.register('currency')} />
         <NumberField label="Prioridad" min={0} step={1}
           hint="Menor número = se evalúa antes."

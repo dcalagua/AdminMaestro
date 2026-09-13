@@ -83,7 +83,8 @@ export function TenantDetailPage() {
 
   const t = tenant.data;
   const tenantSubs = (subscriptions.data ?? []).filter((s) => s.tenant_id === tenantId);
-  const margin = (margins.data ?? []).find((m) => m.tenant_id === tenantId);
+  // V3 · una fila por moneda: un tenant con costo USD y cobro PEN tiene dos.
+  const tenantMargins = (margins.data ?? []).filter((m) => m.tenant_id === tenantId && m.currency);
   const tenantProvisioning = (provisioning.data ?? []).filter((p) => p.tenant_id === tenantId);
   const tenantAudit = (audit.data ?? []).filter((a) => a.tenant_id === tenantId);
 
@@ -125,7 +126,7 @@ export function TenantDetailPage() {
       }
     >
       <div className="mb-5 grid gap-3 sm:grid-cols-4">
-        <StatCard label="MRR" value={formatMoney(Number(t.mrr), (t.currency as string) ?? 'USD')} tone="ok" />
+        <StatCard label="MRR" value={formatMoney(Number(t.mrr), t.currency as string | null)} tone="ok" />
         <StatCard label="Plan" value={(t.plan_name as string) ?? 'Sin plan'} />
         <StatCard label="Infraestructura" value={(t.deployment_target_code as string) ?? 'Sin asignar'} hint={(t.deployment_region as string) ?? undefined} />
         <StatCard
@@ -327,18 +328,20 @@ export function TenantDetailPage() {
             hidden: !showFinance,
             content: (
               <Card title="Rentabilidad del tenant">
-                {margin ? (
-                  <div className="grid gap-3 p-4 sm:grid-cols-4">
-                    <StatCard label="MRR" value={formatMoney(Number(margin.mrr), margin.currency ?? 'USD')} />
-                    <StatCard label="Ingreso cobrado" value={formatMoney(Number(margin.collected_revenue), margin.currency ?? 'USD')} />
-                    <StatCard label="Costo directo" value={formatMoney(Number(margin.direct_cost), margin.currency ?? 'USD')} tone="warn" />
-                    <StatCard
-                      label="Margen bruto"
-                      value={formatMoney(Number(margin.gross_margin), margin.currency ?? 'USD')}
-                      tone={Number(margin.gross_margin) >= 0 ? 'ok' : 'danger'}
-                      hint="cobrado − costo − comisión"
-                    />
-                  </div>
+                {tenantMargins.length > 0 ? (
+                  tenantMargins.map((margin) => (
+                    <div key={margin.currency} className="grid gap-3 p-4 sm:grid-cols-4">
+                      <StatCard label={`MRR · ${margin.currency}`} value={formatMoney(Number(margin.mrr), margin.currency)} />
+                      <StatCard label="Ingreso cobrado" value={formatMoney(Number(margin.collected_revenue), margin.currency)} />
+                      <StatCard label="Costo directo" value={formatMoney(Number(margin.direct_cost), margin.currency)} tone="warn" />
+                      <StatCard
+                        label="Margen bruto"
+                        value={formatMoney(Number(margin.gross_margin), margin.currency)}
+                        tone={Number(margin.gross_margin) >= 0 ? 'ok' : 'danger'}
+                        hint="cobrado − costo − comisión, en la misma moneda"
+                      />
+                    </div>
+                  ))
                 ) : (
                   <EmptyState title="Sin datos de margen para este tenant" />
                 )}

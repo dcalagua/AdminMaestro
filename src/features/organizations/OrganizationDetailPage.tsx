@@ -84,7 +84,8 @@ export function OrganizationDetailPage() {
 
   const asCustomer = (tenants.data ?? []).filter((t) => t.customer_organization_id === o.id);
   const asManager = (tenants.data ?? []).filter((t) => t.managing_organization_id === o.id);
-  const orgMargin = (margin.data ?? []).find((m) => m.organization_id === o.id);
+  // V3 · una fila por moneda del canal; nunca un margen mezclado.
+  const orgMargins = (margin.data ?? []).filter((m) => m.organization_id === o.id && m.currency);
   const orgAgents = (agents.data ?? []).filter((a) => a.organization_id === o.id);
 
   return (
@@ -355,17 +356,19 @@ export function OrganizationDetailPage() {
             hidden: !isFinance(roles) && roles?.platformRole !== 'EBIM_PRODUCT_ADMIN',
             content: (
               <Card title="Margen de la organización">
-                {orgMargin ? (
-                  <div className="grid gap-3 p-4 sm:grid-cols-4">
-                    <StatCard label="MRR" value={formatMoney(Number(orgMargin.mrr), orgMargin.currency ?? 'USD')} />
-                    <StatCard label="Cobrado" value={formatMoney(Number(orgMargin.collected_revenue), orgMargin.currency ?? 'USD')} />
-                    <StatCard label="Costo directo" value={formatMoney(Number(orgMargin.direct_cost), orgMargin.currency ?? 'USD')} tone="warn" />
-                    <StatCard
-                      label="Margen bruto"
-                      value={formatMoney(Number(orgMargin.gross_margin), orgMargin.currency ?? 'USD')}
-                      tone={Number(orgMargin.gross_margin) >= 0 ? 'ok' : 'danger'}
-                    />
-                  </div>
+                {orgMargins.length > 0 ? (
+                  orgMargins.map((orgMargin) => (
+                    <div key={orgMargin.currency} className="grid gap-3 p-4 sm:grid-cols-4">
+                      <StatCard label={`MRR · ${orgMargin.currency}`} value={formatMoney(Number(orgMargin.mrr), orgMargin.currency)} />
+                      <StatCard label="Cobrado" value={formatMoney(Number(orgMargin.collected_revenue), orgMargin.currency)} />
+                      <StatCard label="Costo directo" value={formatMoney(Number(orgMargin.direct_cost), orgMargin.currency)} tone="warn" />
+                      <StatCard
+                        label="Margen bruto"
+                        value={formatMoney(Number(orgMargin.gross_margin), orgMargin.currency)}
+                        tone={Number(orgMargin.gross_margin) >= 0 ? 'ok' : 'danger'}
+                      />
+                    </div>
+                  ))
                 ) : (
                   <EmptyState
                     title="Sin margen calculable"
@@ -421,7 +424,7 @@ function TenantTable({ title, rows }: { title: string; rows: Array<Record<string
                   {DEPLOYMENT_MODE_LABEL[t.deployment_mode as keyof typeof DEPLOYMENT_MODE_LABEL]}
                 </Badge>
               </td>
-              <td className="ebim-td tabular-nums">{formatMoney(Number(t.mrr), (t.currency as string) ?? 'USD')}</td>
+              <td className="ebim-td tabular-nums">{formatMoney(Number(t.mrr), t.currency as string | null)}</td>
               <td className="ebim-td text-muted">{t.status as string}</td>
             </tr>
           ))}

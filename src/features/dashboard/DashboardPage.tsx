@@ -10,7 +10,7 @@ import {
   EmptyState,
   Badge,
 } from '@/components/ui/primitives';
-import { formatMoney, formatNumber, formatCurrencyMap, formatDate } from '@/lib/format';
+import { formatMoney, formatCurrencyMap, sumByCurrency, formatNumber, formatDate } from '@/lib/format';
 import { COMMISSION_STATUS_LABEL } from '@/types/domain';
 
 /**
@@ -61,8 +61,8 @@ function EbimDashboard() {
         <StatCard label="Ingreso cobrado" value={formatCurrencyMap(s.collected_by_currency)} hint="Excluye DRAFT y VOID" />
         <StatCard label="Costo de infraestructura" value={formatCurrencyMap(s.cost_by_currency)} tone="warn" />
 
-        <StatCard label="Comisión pendiente" value={formatMoney(Number(s.commission_pending))} tone="warn" hint="Elegible + devengada" />
-        <StatCard label="Comisión pagada" value={formatMoney(Number(s.commission_paid))} />
+        <StatCard label="Comisión pendiente" value={formatCurrencyMap(s.commission_pending_by_currency)} tone="warn" hint="Elegible + devengada · por moneda" />
+        <StatCard label="Comisión pagada" value={formatCurrencyMap(s.commission_paid_by_currency)} />
         <StatCard
           label="Provisioning fallido"
           value={formatNumber(s.provisioning_failures)}
@@ -89,13 +89,13 @@ function EbimDashboard() {
               {margin.data.map((row) => (
                 <tr key={row.saas_product_id as string}>
                   <td className="ebim-td font-semibold">{row.short_name}</td>
-                  <td className="ebim-td tabular-nums">{formatMoney(Number(row.mrr), row.currency ?? 'USD')}</td>
-                  <td className="ebim-td tabular-nums">{formatMoney(Number(row.arr), row.currency ?? 'USD')}</td>
-                  <td className="ebim-td tabular-nums">{formatMoney(Number(row.collected_revenue), row.currency ?? 'USD')}</td>
-                  <td className="ebim-td tabular-nums text-warn">{formatMoney(Number(row.direct_cost), row.currency ?? 'USD')}</td>
-                  <td className="ebim-td tabular-nums">{formatMoney(Number(row.commission_total), row.currency ?? 'USD')}</td>
+                  <td className="ebim-td tabular-nums">{formatMoney(Number(row.mrr), row.currency)}</td>
+                  <td className="ebim-td tabular-nums">{formatMoney(Number(row.arr), row.currency)}</td>
+                  <td className="ebim-td tabular-nums">{formatMoney(Number(row.collected_revenue), row.currency)}</td>
+                  <td className="ebim-td tabular-nums text-warn">{formatMoney(Number(row.direct_cost), row.currency)}</td>
+                  <td className="ebim-td tabular-nums">{formatMoney(Number(row.commission_total), row.currency)}</td>
                   <td className={`ebim-td tabular-nums font-semibold ${Number(row.gross_margin) >= 0 ? 'text-ok' : 'text-danger'}`}>
-                    {formatMoney(Number(row.gross_margin), row.currency ?? 'USD')}
+                    {formatMoney(Number(row.gross_margin), row.currency)}
                   </td>
                 </tr>
               ))}
@@ -143,10 +143,10 @@ function PartnerDashboard({ orgName }: { orgName?: string }) {
                 <tr key={row.organization_id as string}>
                   <td className="ebim-td font-semibold">{row.display_name}</td>
                   <td className="ebim-td tabular-nums">{formatNumber(Number(row.managed_tenants))}</td>
-                  <td className="ebim-td tabular-nums">{formatMoney(Number(row.mrr), row.currency ?? 'USD')}</td>
-                  <td className="ebim-td tabular-nums">{formatMoney(Number(row.collected_revenue), row.currency ?? 'USD')}</td>
-                  <td className="ebim-td tabular-nums">{formatMoney(Number(row.commission_total), row.currency ?? 'USD')}</td>
-                  <td className="ebim-td tabular-nums font-semibold">{formatMoney(Number(row.gross_margin), row.currency ?? 'USD')}</td>
+                  <td className="ebim-td tabular-nums">{formatMoney(Number(row.mrr), row.currency)}</td>
+                  <td className="ebim-td tabular-nums">{formatMoney(Number(row.collected_revenue), row.currency)}</td>
+                  <td className="ebim-td tabular-nums">{formatMoney(Number(row.commission_total), row.currency)}</td>
+                  <td className="ebim-td tabular-nums font-semibold">{formatMoney(Number(row.gross_margin), row.currency)}</td>
                 </tr>
               ))}
             </DataTable>
@@ -168,15 +168,13 @@ function CommercialDashboard() {
   const attributions = useAttributions();
   const events = useCommissionEvents();
 
-  const totals = (events.data ?? []).reduce(
-    (acc, e) => {
-      const amount = Number(e.amount);
-      if (e.status === 'PAID') acc.paid += amount;
-      else if (e.status !== 'VOID') acc.pending += amount;
-      return acc;
-    },
-    { paid: 0, pending: 0 },
-  );
+  const totals = {
+    pending: sumByCurrency(
+      (events.data ?? []).filter((e) => e.status !== 'PAID' && e.status !== 'VOID'),
+      (e) => e.amount, (e) => e.currency,
+    ),
+    paid: sumByCurrency((events.data ?? []).filter((e) => e.status === 'PAID'), (e) => e.amount, (e) => e.currency),
+  };
 
   return (
     <PageContainer
@@ -185,8 +183,8 @@ function CommercialDashboard() {
     >
       <div className="grid gap-3 sm:grid-cols-3">
         <StatCard label="Ventas atribuidas" value={formatNumber(attributions.data?.length ?? 0)} />
-        <StatCard label="Comisión pendiente" value={formatMoney(totals.pending)} tone="warn" />
-        <StatCard label="Comisión pagada" value={formatMoney(totals.paid)} tone="ok" />
+        <StatCard label="Comisión pendiente" value={formatCurrencyMap(totals.pending)} tone="warn" hint="Por moneda" />
+        <StatCard label="Comisión pagada" value={formatCurrencyMap(totals.paid)} tone="ok" hint="Por moneda" />
       </div>
 
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
@@ -219,7 +217,7 @@ function CommercialDashboard() {
                 <tr key={e.id as string}>
                   <td className="ebim-td text-muted">{formatDate(e.earned_on as string)}</td>
                   <td className="ebim-td">{(e.saas_products as { short_name: string } | null)?.short_name}</td>
-                  <td className="ebim-td tabular-nums font-semibold">{formatMoney(Number(e.amount), e.currency ?? 'USD')}</td>
+                  <td className="ebim-td tabular-nums font-semibold">{formatMoney(Number(e.amount), e.currency)}</td>
                   <td className="ebim-td">
                     <Badge tone={e.status === 'PAID' ? 'ok' : e.status === 'VOID' ? 'danger' : 'warn'}>
                       {COMMISSION_STATUS_LABEL[e.status as keyof typeof COMMISSION_STATUS_LABEL]}

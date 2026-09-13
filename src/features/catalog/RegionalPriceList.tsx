@@ -1,4 +1,4 @@
-import { formatMoney } from '@/lib/format';
+import { Money } from '@/components/ui/Money';
 
 /**
  * Tarifas abiertas de un plan agrupadas por mercado (V3).
@@ -37,9 +37,7 @@ export function RegionalPriceList({ prices }: { prices: Array<Record<string, unk
               {market === 'LEGACY' ? 'Sin mercado' : market}
             </span>
             <span className="text-muted">{pr.charge_kind as string}</span>{' '}
-            <span className="font-semibold tabular-nums">
-              {formatMoney(Number(pr.amount), pr.currency as string)}
-            </span>
+            <Money className="font-semibold" amount={pr.amount as number} currency={pr.currency as string} />
             <span className="text-muted"> / {pr.billing_interval as string}</span>
             {scheduled ? <span className="text-muted"> · desde {String(pr.valid_from)}</span> : null}
           </div>

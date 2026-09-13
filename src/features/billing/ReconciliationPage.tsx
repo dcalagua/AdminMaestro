@@ -118,7 +118,7 @@ export function ReconciliationPage() {
                         <td className="ebim-td text-xs text-muted">{f.detail}</td>
                         <td className="ebim-td tabular-nums">
                           {f.amount !== null
-                            ? formatMoney(Number(f.amount), (f.currency as string) ?? 'USD')
+                            ? formatMoney(Number(f.amount), f.currency as string | null)
                             : '—'}
                         </td>
                         <td className="ebim-td text-right">
@@ -164,29 +164,29 @@ export function ReconciliationPage() {
                           <td className="ebim-td font-semibold">{p.short_name}</td>
                           <td className="ebim-td text-muted">{p.currency}</td>
                           <td className="ebim-td tabular-nums">
-                            {formatMoney(Number(p.mrr), p.currency ?? 'USD')}
+                            {formatMoney(Number(p.mrr), p.currency)}
                           </td>
                           <td className="ebim-td tabular-nums">
-                            {formatMoney(Number(p.collected_license), p.currency ?? 'USD')}
+                            {formatMoney(Number(p.collected_license), p.currency)}
                           </td>
                           <td className="ebim-td tabular-nums">
-                            {formatMoney(Number(p.collected_implementation), p.currency ?? 'USD')}
+                            {formatMoney(Number(p.collected_implementation), p.currency)}
                           </td>
                           <td className="ebim-td tabular-nums">
-                            {formatMoney(Number(p.collected_infrastructure), p.currency ?? 'USD')}
+                            {formatMoney(Number(p.collected_infrastructure), p.currency)}
                           </td>
                           <td className="ebim-td tabular-nums text-warn">
-                            {formatMoney(Number(p.direct_cost), p.currency ?? 'USD')}
+                            {formatMoney(Number(p.direct_cost), p.currency)}
                           </td>
                           <td className="ebim-td tabular-nums text-warn">
-                            {formatMoney(Number(p.commission_total), p.currency ?? 'USD')}
+                            {formatMoney(Number(p.commission_total), p.currency)}
                           </td>
                           <td
                             className={`ebim-td tabular-nums font-semibold ${
                               Number(p.gross_margin) >= 0 ? 'text-ok' : 'text-danger'
                             }`}
                           >
-                            {formatMoney(Number(p.gross_margin), p.currency ?? 'USD')}
+                            {formatMoney(Number(p.gross_margin), p.currency)}
                           </td>
                           <td className="ebim-td tabular-nums text-muted">
                             {p.margin_rate !== null ? formatPercent(Number(p.margin_rate)) : '—'}
@@ -226,20 +226,20 @@ export function ReconciliationPage() {
                         </td>
                         <td className="ebim-td text-muted">{p.currency}</td>
                         <td className="ebim-td tabular-nums">
-                          {formatMoney(Number(p.mrr), p.currency ?? 'USD')}
+                          {formatMoney(Number(p.mrr), p.currency)}
                         </td>
                         <td className="ebim-td tabular-nums">
-                          {formatMoney(Number(p.collected_revenue), p.currency ?? 'USD')}
+                          {formatMoney(Number(p.collected_revenue), p.currency)}
                         </td>
                         <td className="ebim-td tabular-nums text-warn">
-                          {formatMoney(Number(p.direct_cost), p.currency ?? 'USD')}
+                          {formatMoney(Number(p.direct_cost), p.currency)}
                         </td>
                         <td
                           className={`ebim-td tabular-nums font-semibold ${
                             Number(p.gross_margin) >= 0 ? 'text-ok' : 'text-danger'
                           }`}
                         >
-                          {formatMoney(Number(p.gross_margin), p.currency ?? 'USD')}
+                          {formatMoney(Number(p.gross_margin), p.currency)}
                         </td>
                         <td className="ebim-td tabular-nums">
                           {p.weighted_channel_margin_rate !== null
@@ -247,7 +247,7 @@ export function ReconciliationPage() {
                             : '—'}
                         </td>
                         <td className="ebim-td tabular-nums">
-                          {formatMoney(Number(p.agent_commissions), p.currency ?? 'USD')}
+                          {formatMoney(Number(p.agent_commissions), p.currency)}
                         </td>
                         <td className="ebim-td tabular-nums">{formatNumber(Number(p.managed_tenants))}</td>
                       </tr>

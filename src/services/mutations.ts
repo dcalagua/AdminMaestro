@@ -306,6 +306,16 @@ export function useConfirmManualPayment() {
    Monedas, FX y moneda de reporte (V3)
    ========================================================================== */
 
+/** Publica 1 base = tasa cotizada para una fecha. Si ya había una, queda SUSTITUIDA. */
+export function usePublishExchangeRate() {
+  return useRpc('set_exchange_rate', ['exchange-rates', 'finance-consolidated']);
+}
+
+/** Anula una tasa con motivo. No se edita ni se borra. */
+export function useVoidExchangeRate() {
+  return useRpc('void_exchange_rate', ['exchange-rates', 'finance-consolidated']);
+}
+
 /** Cambia la LENTE del consolidado. No toca ningún importe nativo. */
 export function useSetReportingSettings() {
   return useRpc('set_reporting_settings', ['reporting-settings', 'finance-consolidated']);

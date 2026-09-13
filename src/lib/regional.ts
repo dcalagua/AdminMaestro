@@ -175,3 +175,28 @@ export function planHasRegionalPrice(
       (p.valid_to === null || p.valid_to >= asOf),
   );
 }
+
+/** Fila mínima de `currencies` para describir una moneda. */
+export interface CurrencyRow {
+  code: string;
+  name: string;
+  symbol: string | null;
+  status: string;
+}
+
+/**
+ * Ayuda legible de una moneda: «Sol peruano · S/». El símbolo se omite cuando
+ * lo comparte con otra moneda del catálogo o es un «$» genérico: mostrarlo
+ * sugeriría una equivalencia que no existe.
+ */
+export function currencySymbolHint(currencies: CurrencyRow[], code: string | null | undefined): string | null {
+  if (!code) return null;
+  const row = currencies.find((c) => c.code.trim() === code);
+  if (!row) return code;
+  const symbol = row.symbol?.trim() ?? '';
+  const ambiguous =
+    !symbol ||
+    symbol === '$' ||
+    currencies.some((c) => c.code.trim() !== code && (c.symbol?.trim() ?? '') === symbol);
+  return ambiguous ? row.name : `${row.name} · ${symbol}`;
+}

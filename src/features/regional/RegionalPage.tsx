@@ -1,6 +1,9 @@
 import { PageContainer } from '@/components/ui/primitives';
 import { SectionTabs } from '@/components/ui/SectionTabs';
 import { ReportingCurrencyPanel } from './ReportingCurrencyPanel';
+import { ExchangeRatesPanel } from './ExchangeRatesPanel';
+import { RegionalPricesPanel } from './RegionalPricesPanel';
+import { MarketsPanel } from './MarketsPanel';
 
 /**
  * Monedas y FX (V3).
@@ -18,6 +21,9 @@ export function RegionalPage() {
       <SectionTabs
         tabs={[
           { id: 'reporting', label: 'Moneda de reporte', content: <ReportingCurrencyPanel /> },
+          { id: 'fx', label: 'Tipos de cambio', content: <ExchangeRatesPanel /> },
+          { id: 'prices', label: 'Tarifas por mercado', content: <RegionalPricesPanel /> },
+          { id: 'markets', label: 'Mercados y rutas de cobro', content: <MarketsPanel /> },
         ]}
       />
     </PageContainer>

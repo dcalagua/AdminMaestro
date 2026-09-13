@@ -6,7 +6,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import {
   PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge,
 } from '@/components/ui/primitives';
-import { formatMoney, formatDate, formatPercent } from '@/lib/format';
+import { formatCurrencyMap, sumByCurrency, formatPercent, formatDate } from '@/lib/format';
 import { DEPLOYMENT_MODE_LABEL } from '@/types/domain';
 import {
   SubscriptionFormDialog, SubscriptionStatusDialog, SubscriptionItemDialog,
@@ -121,14 +121,14 @@ export function SubscriptionsPage() {
       </Card>
       <p className="mt-3 px-1 text-xs text-muted">
         Total de líneas recurrentes:{' '}
-        {formatMoney(
-          (filtered ?? []).reduce(
-            (sum, s) =>
-              sum +
+        {formatCurrencyMap(
+          sumByCurrency(
+            (filtered ?? []).flatMap((s) =>
               ((s.subscription_items ?? []) as Array<Record<string, unknown>>)
-                .filter((i) => i.billing_interval === 'MONTHLY')
-                .reduce((a, i) => a + Number(i.amount), 0),
-            0,
+                .filter((i) => i.billing_interval === 'MONTHLY'),
+            ),
+            (i) => i.amount as number,
+            (i) => i.currency as string,
           ),
         )}{' '}
         mensuales entre las suscripciones listadas.

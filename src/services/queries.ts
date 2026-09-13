@@ -250,6 +250,23 @@ export function useReportingSettings() {
   });
 }
 
+/** Tipos de cambio MANUAL (los últimos 300). Lectura: plataforma o finanzas (RLS). */
+export function useExchangeRates() {
+  return useQuery({
+    queryKey: ['exchange-rates'],
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('exchange_rates')
+          .select('*')
+          .order('rate_date', { ascending: false })
+          .order('base_currency')
+          .order('quote_currency')
+          .limit(300),
+      ),
+  });
+}
+
 /** Tarifas con su mercado. RLS de `plan_prices` decide qué filas ve cada rol. */
 export function usePlanPriceCatalog() {
   return useQuery({

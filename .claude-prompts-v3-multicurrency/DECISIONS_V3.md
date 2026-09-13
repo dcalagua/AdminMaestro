@@ -181,3 +181,17 @@ ya no reutiliza la misma liquidación (R-4)— y no añade eventos a una liquida
 otra moneda (`LIQUIDACION_MULTIMONEDA`) y la moneda de una liquidación con eventos es inmutable.
 Los reversos conservan la moneda y netean dentro de ella. Las liquidaciones históricas conservan
 su código sin moneda.
+
+## DV3-016 · UI: código ISO siempre, totales por moneda, catálogo en vez de texto libre (fase 12)
+
+`formatMoney(amount, currency)` ya no tiene moneda por defecto y usa `currencyDisplay: 'code'`
+(`PEN 1,250.00`): es-PE pintaba PEN como «S/» pero USD como «USD», y «$» es ambiguo. Sin moneda,
+un 0 es «—» y cualquier otro importe se rotula «(sin moneda)». El símbolo solo aparece como ayuda
+(`Money` + `currencySymbolHint`) cuando ninguna otra moneda del catálogo lo comparte. Todo total
+de cabecera usa `sumByCurrency` + `formatCurrencyMap` (R-7); el «margen sobre cobrado» solo se
+calcula con una moneda. Las vistas de detalle muestran un bloque por moneda. El último textbox de
+moneda (regla de comisión) pasa a selector de monedas activas. «Monedas y FX» agrupa moneda de
+reporte, tipos de cambio (publicar, anular con motivo, probar conversión con `fx_convert`),
+tarifas por mercado (vigentes/programadas/historial/legacy, versionar) y mercados con rutas de
+cobro. El país de una organización sigue siendo texto: no existe catálogo de países y organizaciones
+fuera de PE/BO/EC son legítimas.

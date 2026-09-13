@@ -7,7 +7,7 @@ import {
   PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge, StatCard,
 } from '@/components/ui/primitives';
 import { usePermissions } from '@/hooks/usePermissions';
-import { formatMoney, formatNumber } from '@/lib/format';
+import { formatMoney, formatCurrencyMap, sumByCurrency, formatNumber } from '@/lib/format';
 import { DEPLOYMENT_MODE_LABEL, TENANT_TYPE_LABEL, TENANT_STATUS_LABEL } from '@/types/domain';
 import { TenantFormDialog, TenantStatusDialog } from './TenantDialogs';
 
@@ -46,7 +46,8 @@ export function TenantsPage() {
   });
 
   const all = tenants.data ?? [];
-  const totalMrr = all.reduce((sum, t) => sum + Number(t.mrr ?? 0), 0);
+  // V3 · por moneda: el MRR de un tenant BOB no se suma al de uno USD (R-7).
+  const totalMrr = sumByCurrency(all, (t) => t.mrr, (t) => t.currency);
 
   return (
     <PageContainer
@@ -68,7 +69,7 @@ export function TenantsPage() {
           value={formatNumber(all.filter((t) => t.tenant_type === 'DEMO' || t.tenant_type === 'TRIAL').length)}
           hint="No generan recurrente"
         />
-        <StatCard label="MRR agregado" value={formatMoney(totalMrr)} tone="ok" />
+        <StatCard label="MRR agregado" value={formatCurrencyMap(totalMrr)} tone="ok" hint="Por moneda" />
       </div>
 
       <Card>
@@ -123,7 +124,7 @@ export function TenantsPage() {
                   </Badge>
                 </td>
                 <td className="ebim-td font-mono text-xs text-muted">{t.deployment_target_code ?? '—'}</td>
-                <td className="ebim-td tabular-nums">{formatMoney(Number(t.mrr), (t.currency as string) ?? 'USD')}</td>
+                <td className="ebim-td tabular-nums">{formatMoney(Number(t.mrr), t.currency as string | null)}</td>
                 <td className="ebim-td">
                   <Badge tone={t.status === 'ACTIVE' ? 'ok' : t.status === 'PENDING' ? 'warn' : 'neutral'}>
                     {TENANT_STATUS_LABEL[t.status as keyof typeof TENANT_STATUS_LABEL]}

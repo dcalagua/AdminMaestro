@@ -60,8 +60,12 @@ export interface DashboardSummary {
   mrr_by_currency: Record<string, number>;
   collected_by_currency: Record<string, number>;
   cost_by_currency: Record<string, number>;
-  commission_pending: number;
-  commission_paid: number;
+  commission_pending_by_currency: Record<string, number>;
+  commission_paid_by_currency: Record<string, number>;
+  /** V3: NULL cuando hay comisiones en más de una moneda. Usar los mapas por moneda. */
+  commission_pending: number | null;
+  commission_paid: number | null;
+  reporting_currency: string | null;
   provisioning_by_status: Record<string, number>;
   provisioning_failures: number;
 }

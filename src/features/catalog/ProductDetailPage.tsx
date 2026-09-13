@@ -65,7 +65,8 @@ export function ProductDetailPage() {
   );
   const productSubs = (subs.data ?? []).filter((s) => s.saas_product_id === p.id);
   // El margen viene agrupado por moneda: no se suman PEN y USD sin FX explícito.
-  const productMargins = (margins.data ?? []).filter((m) => m.saas_product_id === p.id);
+  // V3 · una fila por moneda; la fila sin moneda es «sin actividad», no «USD 0».
+  const productMargins = (margins.data ?? []).filter((m) => m.saas_product_id === p.id && m.currency);
 
   return (
     <PageContainer
@@ -328,7 +329,7 @@ export function ProductDetailPage() {
                           </Badge>
                         </td>
                         <td className="ebim-td tabular-nums">
-                          {formatMoney(Number(t.mrr), (t.currency as string) ?? 'USD')}
+                          {formatMoney(Number(t.mrr), t.currency as string | null)}
                         </td>
                         <td className="ebim-td text-muted">{t.status}</td>
                       </tr>
@@ -355,40 +356,40 @@ export function ProductDetailPage() {
                 ) : (
                   <div className="space-y-4 p-4">
                     {productMargins.map((m) => (
-                      <div key={(m.currency as string) ?? 'USD'}>
+                      <div key={m.currency as string | null}>
                         <p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted">
                           Moneda {m.currency}
                         </p>
                         <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
                           <StatCard
                             label="MRR"
-                            value={formatMoney(Number(m.mrr), m.currency ?? 'USD')}
+                            value={formatMoney(Number(m.mrr), m.currency)}
                             hint="Solo lo recurrente"
                           />
                           <StatCard
                             label="Cobrado total"
-                            value={formatMoney(Number(m.collected_revenue), m.currency ?? 'USD')}
+                            value={formatMoney(Number(m.collected_revenue), m.currency)}
                             tone="ok"
                           />
                           <StatCard
                             label="One-time cobrado"
-                            value={formatMoney(Number(m.collected_one_time), m.currency ?? 'USD')}
+                            value={formatMoney(Number(m.collected_one_time), m.currency)}
                             hint="Implementación y servicios"
                           />
                           <StatCard
                             label="Costo directo"
-                            value={formatMoney(Number(m.direct_cost), m.currency ?? 'USD')}
+                            value={formatMoney(Number(m.direct_cost), m.currency)}
                             tone="warn"
                           />
                           <StatCard
                             label="Comisiones"
-                            value={formatMoney(Number(m.commission_total), m.currency ?? 'USD')}
-                            hint={`${formatMoney(Number(m.commission_pending), m.currency ?? 'USD')} pendiente`}
+                            value={formatMoney(Number(m.commission_total), m.currency)}
+                            hint={`${formatMoney(Number(m.commission_pending), m.currency)} pendiente`}
                             tone="warn"
                           />
                           <StatCard
                             label="Margen bruto"
-                            value={formatMoney(Number(m.gross_margin), m.currency ?? 'USD')}
+                            value={formatMoney(Number(m.gross_margin), m.currency)}
                             tone={Number(m.gross_margin) >= 0 ? 'ok' : 'danger'}
                           />
                         </div>

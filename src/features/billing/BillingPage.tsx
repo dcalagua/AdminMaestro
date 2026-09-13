@@ -5,7 +5,7 @@ import { StatusTabs } from '@/components/ui/SectionTabs';
 import {
   PageContainer, Card, DataTable, SearchBar, StatCard, LoadingState, ErrorState, EmptyState, Badge,
 } from '@/components/ui/primitives';
-import { formatMoney, formatDate } from '@/lib/format';
+import { formatMoney, formatCurrencyMap, sumByCurrency, subtractByCurrency, formatDate } from '@/lib/format';
 import { INVOICE_STATUS_LABEL } from '@/types/domain';
 
 type InvoiceFilter = 'ALL' | 'OPEN' | 'PAID' | 'EXCLUDED';
@@ -35,15 +35,17 @@ export function BillingPage() {
 
   const all = invoices.data ?? [];
   const countable = all.filter((i) => !['DRAFT', 'VOID'].includes(i.status));
-  const invoiced = countable.reduce((sum, i) => sum + Number(i.total), 0);
-  const collected = all.reduce(
-    (sum, i) =>
-      sum +
-      ((i.payments ?? []) as Array<Record<string, unknown>>)
-        .filter((p) => p.status === 'CONFIRMED')
-        .reduce((a, p) => a + Number(p.amount), 0),
-    0,
+  // V3 · totales POR MONEDA: PEN y USD emitidos no son una sola cifra (R-7).
+  const invoiced = sumByCurrency(countable, (i) => i.total, (i) => i.currency);
+  const collected = sumByCurrency(
+    all.flatMap((i) => ((i.payments ?? []) as Array<Record<string, unknown>>)
+      .filter((p) => p.status === 'CONFIRMED')
+      .map((p) => ({ amount: Number(p.amount), currency: (p.currency as string | null) ?? i.currency }))),
+    (p) => p.amount,
+    (p) => p.currency,
   );
+  const outstanding = subtractByCurrency(invoiced, collected);
+  const hasOutstanding = Object.values(outstanding).some((v) => v > 0);
 
   return (
     <PageContainer
@@ -51,12 +53,13 @@ export function BillingPage() {
       description="Control gerencial, no contabilidad. Las facturas en borrador o anuladas nunca cuentan como ingreso."
     >
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <StatCard label="Facturado (emitido)" value={formatMoney(invoiced)} hint="Excluye borrador y anuladas" />
-        <StatCard label="Cobrado" value={formatMoney(collected)} tone="ok" hint="Sólo pagos confirmados" />
+        <StatCard label="Facturado (emitido)" value={formatCurrencyMap(invoiced)} hint="Excluye borrador y anuladas · por moneda" />
+        <StatCard label="Cobrado" value={formatCurrencyMap(collected)} tone="ok" hint="Sólo pagos confirmados · por moneda" />
         <StatCard
           label="Pendiente de cobro"
-          value={formatMoney(invoiced - collected)}
-          tone={invoiced - collected > 0 ? 'warn' : 'ok'}
+          value={formatCurrencyMap(outstanding)}
+          tone={hasOutstanding ? 'warn' : 'ok'}
+          hint="Por moneda: no se suman monedas distintas"
         />
       </div>
 

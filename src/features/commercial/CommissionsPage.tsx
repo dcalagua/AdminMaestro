@@ -5,7 +5,7 @@ import { SectionTabs, StatusTabs } from '@/components/ui/SectionTabs';
 import {
   PageContainer, Card, DataTable, SearchBar, StatCard, LoadingState, ErrorState, EmptyState, Badge,
 } from '@/components/ui/primitives';
-import { formatMoney, formatDate, formatPercent } from '@/lib/format';
+import { formatMoney, formatCurrencyMap, sumByCurrency, formatPercent, formatDate } from '@/lib/format';
 import { COMMISSION_STATUS_LABEL } from '@/types/domain';
 
 type EventFilter = 'ALL' | 'PENDING' | 'PAID';
@@ -33,15 +33,14 @@ export function CommissionsPage() {
     return true;
   });
 
-  const totals = (events.data ?? []).reduce(
-    (acc, e) => {
-      const amount = Number(e.amount);
-      if (e.status === 'PAID') acc.paid += amount;
-      else if (e.status !== 'VOID') acc.pending += amount;
-      return acc;
-    },
-    { paid: 0, pending: 0 },
-  );
+  // V3 · por moneda: una comisión PEN y otra USD no son un solo pendiente (R-7).
+  const totals = {
+    pending: sumByCurrency(
+      (events.data ?? []).filter((e) => e.status !== 'PAID' && e.status !== 'VOID'),
+      (e) => e.amount, (e) => e.currency,
+    ),
+    paid: sumByCurrency((events.data ?? []).filter((e) => e.status === 'PAID'), (e) => e.amount, (e) => e.currency),
+  };
 
   return (
     <PageContainer
@@ -49,8 +48,8 @@ export function CommissionsPage() {
       description="Cada comisión nace de un cobro confirmado. Una factura emitida pero impaga no devenga nada."
     >
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <StatCard label="Comisión pendiente" value={formatMoney(totals.pending)} tone="warn" hint="Elegible + devengada" />
-        <StatCard label="Comisión pagada" value={formatMoney(totals.paid)} tone="ok" />
+        <StatCard label="Comisión pendiente" value={formatCurrencyMap(totals.pending)} tone="warn" hint="Elegible + devengada · por moneda" />
+        <StatCard label="Comisión pagada" value={formatCurrencyMap(totals.paid)} tone="ok" hint="Cada liquidación es de una sola moneda" />
         <StatCard label="Liquidaciones" value={String(settlements.data?.length ?? 0)} />
       </div>
 

@@ -4,7 +4,7 @@ import { SectionTabs } from '@/components/ui/SectionTabs';
 import {
   PageContainer, Card, DataTable, SearchBar, StatCard, LoadingState, ErrorState, EmptyState, Badge,
 } from '@/components/ui/primitives';
-import { formatMoney, formatDate, formatPercent } from '@/lib/format';
+import { formatMoney, formatCurrencyMap, sumByCurrency, formatPercent, formatDate } from '@/lib/format';
 import { DEPLOYMENT_MODE_LABEL } from '@/types/domain';
 
 /**
@@ -24,9 +24,14 @@ export function CostsPage() {
     c.description, c.vendor, c.category,
   ]);
 
-  const totalCost = (costs.data ?? []).reduce((s, c) => s + Number(c.amount), 0);
-  const totalMargin = (byProduct.data ?? []).reduce((s, p) => s + Number(p.gross_margin), 0);
-  const totalRevenue = (byProduct.data ?? []).reduce((s, p) => s + Number(p.collected_revenue), 0);
+  // V3 · por moneda (R-7). El margen sobre cobrado solo tiene sentido dentro de
+  // UNA moneda: con varias se muestra por moneda, nunca un porcentaje mezclado.
+  const totalCost = sumByCurrency(costs.data, (c) => c.amount, (c) => c.currency);
+  const totalMargin = sumByCurrency(byProduct.data, (p) => p.gross_margin, (p) => p.currency);
+  const totalRevenue = sumByCurrency(byProduct.data, (p) => p.collected_revenue, (p) => p.currency);
+  const revenueCurrencies = Object.keys(totalRevenue);
+  const singleCurrency = revenueCurrencies.length === 1 ? revenueCurrencies[0] : null;
+  const marginNegative = Object.values(totalMargin).some((v) => v < 0);
 
   return (
     <PageContainer
@@ -34,13 +39,18 @@ export function CostsPage() {
       description="margen bruto = ingreso cobrado − costo directo − comisión. Los agregados van por moneda: no se convierte con un tipo de cambio implícito."
     >
       <div className="mb-4 grid gap-3 sm:grid-cols-4">
-        <StatCard label="Costo registrado" value={formatMoney(totalCost)} tone="warn" />
-        <StatCard label="Ingreso cobrado" value={formatMoney(totalRevenue)} />
-        <StatCard label="Margen bruto" value={formatMoney(totalMargin)} tone={totalMargin >= 0 ? 'ok' : 'danger'} />
+        <StatCard label="Costo registrado" value={formatCurrencyMap(totalCost)} tone="warn" />
+        <StatCard label="Ingreso cobrado" value={formatCurrencyMap(totalRevenue)} />
+        <StatCard label="Margen bruto" value={formatCurrencyMap(totalMargin)} tone={marginNegative ? 'danger' : 'ok'} />
         <StatCard
           label="Margen sobre cobrado"
-          value={totalRevenue > 0 ? formatPercent(totalMargin / totalRevenue) : '—'}
-          tone={totalMargin >= 0 ? 'ok' : 'danger'}
+          value={
+            singleCurrency && totalRevenue[singleCurrency] > 0
+              ? formatPercent((totalMargin[singleCurrency] ?? 0) / totalRevenue[singleCurrency])
+              : '—'
+          }
+          hint={revenueCurrencies.length > 1 ? 'Varias monedas: ver margen por moneda' : undefined}
+          tone={marginNegative ? 'danger' : 'ok'}
         />
       </div>
 
@@ -60,14 +70,14 @@ export function CostsPage() {
                     {(byProduct.data ?? []).map((r) => (
                       <tr key={r.saas_product_id as string}>
                         <td className="ebim-td font-semibold">{r.short_name}</td>
-                        <td className="ebim-td tabular-nums">{formatMoney(Number(r.mrr), r.currency ?? 'USD')}</td>
-                        <td className="ebim-td tabular-nums">{formatMoney(Number(r.arr), r.currency ?? 'USD')}</td>
-                        <td className="ebim-td tabular-nums">{formatMoney(Number(r.collected_recurring), r.currency ?? 'USD')}</td>
-                        <td className="ebim-td tabular-nums text-muted">{formatMoney(Number(r.collected_one_time), r.currency ?? 'USD')}</td>
-                        <td className="ebim-td tabular-nums text-warn">{formatMoney(Number(r.direct_cost), r.currency ?? 'USD')}</td>
-                        <td className="ebim-td tabular-nums">{formatMoney(Number(r.commission_total), r.currency ?? 'USD')}</td>
+                        <td className="ebim-td tabular-nums">{formatMoney(Number(r.mrr), r.currency)}</td>
+                        <td className="ebim-td tabular-nums">{formatMoney(Number(r.arr), r.currency)}</td>
+                        <td className="ebim-td tabular-nums">{formatMoney(Number(r.collected_recurring), r.currency)}</td>
+                        <td className="ebim-td tabular-nums text-muted">{formatMoney(Number(r.collected_one_time), r.currency)}</td>
+                        <td className="ebim-td tabular-nums text-warn">{formatMoney(Number(r.direct_cost), r.currency)}</td>
+                        <td className="ebim-td tabular-nums">{formatMoney(Number(r.commission_total), r.currency)}</td>
                         <td className={`ebim-td tabular-nums font-semibold ${Number(r.gross_margin) >= 0 ? 'text-ok' : 'text-danger'}`}>
-                          {formatMoney(Number(r.gross_margin), r.currency ?? 'USD')}
+                          {formatMoney(Number(r.gross_margin), r.currency)}
                         </td>
                       </tr>
                     ))}
@@ -89,12 +99,12 @@ export function CostsPage() {
                       <tr key={r.organization_id as string}>
                         <td className="ebim-td font-semibold">{r.display_name}</td>
                         <td className="ebim-td tabular-nums">{Number(r.managed_tenants)}</td>
-                        <td className="ebim-td tabular-nums">{formatMoney(Number(r.mrr), r.currency ?? 'USD')}</td>
-                        <td className="ebim-td tabular-nums">{formatMoney(Number(r.collected_revenue), r.currency ?? 'USD')}</td>
-                        <td className="ebim-td tabular-nums text-warn">{formatMoney(Number(r.direct_cost), r.currency ?? 'USD')}</td>
-                        <td className="ebim-td tabular-nums">{formatMoney(Number(r.commission_total), r.currency ?? 'USD')}</td>
+                        <td className="ebim-td tabular-nums">{formatMoney(Number(r.mrr), r.currency)}</td>
+                        <td className="ebim-td tabular-nums">{formatMoney(Number(r.collected_revenue), r.currency)}</td>
+                        <td className="ebim-td tabular-nums text-warn">{formatMoney(Number(r.direct_cost), r.currency)}</td>
+                        <td className="ebim-td tabular-nums">{formatMoney(Number(r.commission_total), r.currency)}</td>
                         <td className={`ebim-td tabular-nums font-semibold ${Number(r.gross_margin) >= 0 ? 'text-ok' : 'text-danger'}`}>
-                          {formatMoney(Number(r.gross_margin), r.currency ?? 'USD')}
+                          {formatMoney(Number(r.gross_margin), r.currency)}
                         </td>
                       </tr>
                     ))}
@@ -121,12 +131,12 @@ export function CostsPage() {
                             {DEPLOYMENT_MODE_LABEL[r.deployment_mode as keyof typeof DEPLOYMENT_MODE_LABEL]}
                           </Badge>
                         </td>
-                        <td className="ebim-td tabular-nums">{formatMoney(Number(r.mrr), r.currency ?? 'USD')}</td>
-                        <td className="ebim-td tabular-nums">{formatMoney(Number(r.collected_revenue), r.currency ?? 'USD')}</td>
-                        <td className="ebim-td tabular-nums text-warn">{formatMoney(Number(r.direct_cost), r.currency ?? 'USD')}</td>
-                        <td className="ebim-td tabular-nums">{formatMoney(Number(r.commission_total), r.currency ?? 'USD')}</td>
+                        <td className="ebim-td tabular-nums">{formatMoney(Number(r.mrr), r.currency)}</td>
+                        <td className="ebim-td tabular-nums">{formatMoney(Number(r.collected_revenue), r.currency)}</td>
+                        <td className="ebim-td tabular-nums text-warn">{formatMoney(Number(r.direct_cost), r.currency)}</td>
+                        <td className="ebim-td tabular-nums">{formatMoney(Number(r.commission_total), r.currency)}</td>
                         <td className={`ebim-td tabular-nums font-semibold ${Number(r.gross_margin) >= 0 ? 'text-ok' : 'text-danger'}`}>
-                          {formatMoney(Number(r.gross_margin), r.currency ?? 'USD')}
+                          {formatMoney(Number(r.gross_margin), r.currency)}
                         </td>
                       </tr>
                     ))}
