@@ -1,7 +1,7 @@
 # STATE V3
 
 Status: IN_PROGRESS
-Current phase: 15
+Current phase: 16
 
 HEAD inicial V3: `1c6b5ce chore: checkpoint before V3 multicurrency`
 Checksums baseline: `docs/nightly-v3/BASELINE_MIGRATIONS.sha256` (23 migraciones)
@@ -22,7 +22,7 @@ Checksums baseline: `docs/nightly-v3/BASELINE_MIGRATIONS.sha256` (23 migraciones
 | 12 UI | COMPLETE | `formatMoney` sin default y con código ISO, `sumByCurrency`/`subtractByCurrency`, `Money` + `currencySymbolHint`; totales R-7 por moneda en Facturación, Costos, Suscripciones, Comisiones, Dashboard (EBIM y comercial), Tenants y 360; márgenes de detalle por moneda; selector de moneda en reglas de comisión; «Monedas y FX» con pestañas Moneda de reporte, Tipos de cambio (publicar/anular/probar), Tarifas por mercado y Mercados/rutas (DV3-016). Unit 75/75; typecheck/lint PASS; E2E suite completa 53/53 PASS, 0 skips |
 | 13 Dashboard | COMPLETE | `RegionalFinancePanel` en el dashboard EBIM: modos Nativo/Consolidado, filtros mercado/moneda/producto/organización, contexto de moneda de reporte y tasas (DEMO rotulado), aviso de FX faltante, «Incompleto»/«No calculable», desglose por mercado (DV3-017). `useFinanceConsolidated`, tipos `FinanceConsolidated`, helper `consolidated.ts` (8 tests). Corregido `formatDate` de fechas sin hora (día anterior en UTC−5). Unit 84/84; typecheck/lint PASS; E2E suite completa 55/55 PASS (R6 2 nuevos), 0 skips; captura visual revisada |
 | 14 Seeds | COMPLETE | Sección `SEED V3` en `supabase/seed.sql`: R1 PE/PEN, R2 PE/USD, R3 BO/BOB vía Andina, R4 BO/USD Partner Dedicated, R5 EC/USD, R6 partner en PE+BO, R7 costos USD, R8 comisiones PEN/BOB/USD, tarifas por mercado, cuentas bancarias DEMO BO/EC, FX MANUAL DEMO 2026-09-01; verificación que aborta el reset (DV3-018). `docs/demo/DEMO_SCENARIOS_V3.md`. db reset OK; pgTAP 311/311 (08 y 13 desacoplados del seed USD); E2E 55/55 (R5 actualizado) |
-| 15 Domain Tests | PENDING | |
+| 15 Domain Tests | COMPLETE | `15_v3_domain_regressions.test.sql` (16 tests, un test por cada regla mínima con su nombre literal, sobre el seed regional; totales consolidados recalculados de forma independiente desde tablas base con las tasas DEMO) y `src/lib/multicurrency.regression.test.ts` (7 tests espejo de UI). pgTAP 327/327; unit 91/91; typecheck/lint PASS |
 | 16 Security/RLS | PENDING | |
 | 17 E2E Regional | PENDING | |
 | 18 Documentation | PENDING | |
