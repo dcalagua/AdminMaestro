@@ -1,0 +1,98 @@
+# Fase 1 · E2E contra payment-setup ANTES del fix (HEAD 1985f14 + mock determinista por suscripción)
+# 2026-09-14T01:59:55Z
+
+Running 7 tests using 1 worker
+
+  ✘  1 [chromium] › e2e/v3-2-payment-setup.spec.ts:158:3 › V3.2 · payment-setup · identidad del Plan del proveedor › mismo importe reutiliza el Plan; distinto importe crea otro y no reescribe el original (278ms)
+  ✓  2 [chromium] › e2e/v3-2-payment-setup.spec.ts:188:3 › V3.2 · payment-setup · identidad del Plan del proveedor › precio negociado: el Plan usa el importe del contrato, no la tarifa pública (77ms)
+  ✓  3 [chromium] › e2e/v3-2-payment-setup.spec.ts:199:3 › V3.2 · payment-setup · identidad del Plan del proveedor › aislamiento por moneda y por intervalo con el mismo importe numérico (169ms)
+  ✘  4 [chromium] › e2e/v3-2-payment-setup.spec.ts:213:3 › V3.2 · payment-setup · contrato recurrente futuro › MONTHLY vigente + YEARLY futuro: cadencia mixta, no se domicilia (52ms)
+  ✘  5 [chromium] › e2e/v3-2-payment-setup.spec.ts:225:3 › V3.2 · payment-setup · contrato recurrente futuro › MONTHLY + addon MONTHLY que empieza en 3 meses: importe variable, no se domicilia (67ms)
+  ✓  6 [chromium] › e2e/v3-2-payment-setup.spec.ts:237:3 › V3.2 · payment-setup · contrato recurrente futuro › sustitución MONTHLY por otra del mismo importe: estable, se domicilia (83ms)
+  ✓  7 [chromium] › e2e/v3-2-payment-setup.spec.ts:252:3 › V3.2 · payment-setup · seguridad › sin JWT, con un rol sin acceso o con otra cuenta de proveedor, no se domicilia (106ms)
+
+
+  1) [chromium] › e2e/v3-2-payment-setup.spec.ts:158:3 › V3.2 · payment-setup · identidad del Plan del proveedor › mismo importe reutiliza el Plan; distinto importe crea otro y no reescribe el original 
+
+    Error: B no puede colgarse del Plan de A
+
+    expect(received).not.toBe(expected) // Object.is equality
+
+    Expected: not "pln_mock_48fe3937"
+
+      168 |     const planB = await providerPlanOf(b);
+      169 |     expect(planB.amount, 'el Plan de B cobra el importe de B').toBe(BASE + 250);
+    > 170 |     expect(planB.externalPlanId, 'B no puede colgarse del Plan de A').not.toBe(planA.externalPlanId);
+          |                                                                           ^
+      171 |
+      172 |     // El mapeo de A sigue diciendo lo que Culqi tiene: importe de A.
+      173 |     expect((await providerPlanOf(a)).amount).toBe(BASE);
+        at /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/e2e/v3-2-payment-setup.spec.ts:170:75
+
+    Error Context: test-results/v3-2-payment-setup-V3-2-·--a075f--y-no-reescribe-el-original-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/v3-2-payment-setup-V3-2-·--a075f--y-no-reescribe-el-original-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/v3-2-payment-setup-V3-2-·--a075f--y-no-reescribe-el-original-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › e2e/v3-2-payment-setup.spec.ts:213:3 › V3.2 · payment-setup · contrato recurrente futuro › MONTHLY vigente + YEARLY futuro: cadencia mixta, no se domicilia 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 409
+    Received: 200
+
+      217 |     ]);
+      218 |     const res = await setup(sub);
+    > 219 |     expect(res.status).toBe(409);
+          |                        ^
+      220 |     expect(String(res.body.error)).toBe('CADENCIA_MIXTA_NO_DOMICILIABLE');
+      221 |     expect(String(res.body.message)).toContain('distintas periodicidades');
+      222 |     await noProviderLink(sub);
+        at /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/e2e/v3-2-payment-setup.spec.ts:219:24
+
+    Error Context: test-results/v3-2-payment-setup-V3-2-·--97d99-encia-mixta-no-se-domicilia-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/v3-2-payment-setup-V3-2-·--97d99-encia-mixta-no-se-domicilia-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/v3-2-payment-setup-V3-2-·--97d99-encia-mixta-no-se-domicilia-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › e2e/v3-2-payment-setup.spec.ts:225:3 › V3.2 · payment-setup · contrato recurrente futuro › MONTHLY + addon MONTHLY que empieza en 3 meses: importe variable, no se domicilia 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 409
+    Received: 200
+
+      229 |     ]);
+      230 |     const res = await setup(sub);
+    > 231 |     expect(res.status).toBe(409);
+          |                        ^
+      232 |     expect(String(res.body.error)).toBe('MONTO_RECURRENTE_FUTURO_VARIABLE');
+      233 |     expect(String(res.body.message)).toContain('cambiará durante la vigencia');
+      234 |     await noProviderLink(sub);
+        at /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/e2e/v3-2-payment-setup.spec.ts:231:24
+
+    Error Context: test-results/v3-2-payment-setup-V3-2-·--bf499-te-variable-no-se-domicilia-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/v3-2-payment-setup-V3-2-·--bf499-te-variable-no-se-domicilia-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/v3-2-payment-setup-V3-2-·--bf499-te-variable-no-se-domicilia-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    [chromium] › e2e/v3-2-payment-setup.spec.ts:158:3 › V3.2 · payment-setup · identidad del Plan del proveedor › mismo importe reutiliza el Plan; distinto importe crea otro y no reescribe el original 
+    [chromium] › e2e/v3-2-payment-setup.spec.ts:213:3 › V3.2 · payment-setup · contrato recurrente futuro › MONTHLY vigente + YEARLY futuro: cadencia mixta, no se domicilia 
+    [chromium] › e2e/v3-2-payment-setup.spec.ts:225:3 › V3.2 · payment-setup · contrato recurrente futuro › MONTHLY + addon MONTHLY que empieza en 3 meses: importe variable, no se domicilia 
+  4 passed (2.4s)

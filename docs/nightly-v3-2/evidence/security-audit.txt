@@ -1,0 +1,120 @@
+# Auditoría de seguridad V3.2 · 2026-09-14T02:15:49Z · HEAD 92433a6a5f0d27bc9b2b6872761f765a33558319
+# Base local tras db:reset + db:test + e2e
+## 1. Funciones nuevas: SECURITY DEFINER, search_path y EXECUTE
+                                                 funcion                                                  | security_definer |                config                | anon | authenticated | service_role 
+----------------------------------------------------------------------------------------------------------+------------------+--------------------------------------+------+---------------+--------------
+ platform.upsert_provider_subscription(uuid,uuid,text,text,text,text,text,timestamp with time zone,jsonb) | t                | {"search_path=platform, pg_catalog"} | f    | f             | t
+ platform.is_service_context()                                                                            | f                | {search_path=pg_catalog}             | f    | t             | t
+ platform.guard_provider_plan_identity()                                                                  | f                | {"search_path=platform, pg_catalog"} | f    | f             | f
+ platform.find_reusable_provider_plan(uuid,uuid,platform.billing_interval,character,numeric)              | f                | {"search_path=platform, pg_catalog"} | f    | f             | t
+ platform.register_provider_plan(uuid,uuid,platform.billing_interval,character,numeric,text,jsonb)        | t                | {"search_path=platform, pg_catalog"} | f    | f             | t
+(5 rows)
+
+## 2. Globales: funciones de platform ejecutables por anon / DEFINER sin search_path
+ funciones_platform_ejecutables_por_anon 
+-----------------------------------------
+                                       0
+(1 row)
+
+ definer_sin_search_path 
+-------------------------
+                       0
+(1 row)
+
+## 3. provider_plans: RLS, políticas, grants, constraints, índices y triggers
+ rls | rls_forzada 
+-----+-------------
+ t   | t
+(1 row)
+
+        polname        | polcmd |                                using_expr                                
+-----------------------+--------+--------------------------------------------------------------------------
+ provider_plans_select | r      | (platform.can_read_finance() OR platform.can_manage_platform_entities())
+(1 row)
+
+    grantee    |                       privilegios                       
+---------------+---------------------------------------------------------
+ authenticated | SELECT
+ postgres      | DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+ service_role  | DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+(3 rows)
+
+                 conname                 |                                               definicion                                               | convalidated 
+-----------------------------------------+--------------------------------------------------------------------------------------------------------+--------------
+ provider_plans_amount_ck                | CHECK ((amount >= (0)::numeric))                                                                       | t
+ provider_plans_amount_positive_ck       | CHECK ((amount > (0)::numeric)) NOT VALID                                                              | f
+ provider_plans_currency_ck              | CHECK ((currency ~ '^[A-Z]{3}$'::text))                                                                | t
+ provider_plans_currency_fk              | FOREIGN KEY (currency) REFERENCES platform.currencies(code) ON DELETE RESTRICT                         | t
+ provider_plans_external_uk              | UNIQUE (provider_account_id, external_plan_id)                                                         | t
+ provider_plans_pkey                     | PRIMARY KEY (id)                                                                                       | t
+ provider_plans_plan_id_fkey             | FOREIGN KEY (plan_id) REFERENCES platform.plans(id) ON DELETE CASCADE                                  | t
+ provider_plans_provider_account_id_fkey | FOREIGN KEY (provider_account_id) REFERENCES platform.payment_provider_accounts(id) ON DELETE RESTRICT | t
+ provider_plans_recurring_ck             | CHECK ((billing_interval <> 'ONE_TIME'::platform.billing_interval)) NOT VALID                          | f
+(9 rows)
+
+         indexname          |                                                                                                       indexdef                                                                                                       
+----------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ provider_plans_account_idx | CREATE INDEX provider_plans_account_idx ON platform.provider_plans USING btree (provider_account_id)
+ provider_plans_currency_ix | CREATE INDEX provider_plans_currency_ix ON platform.provider_plans USING btree (currency)
+ provider_plans_external_uk | CREATE UNIQUE INDEX provider_plans_external_uk ON platform.provider_plans USING btree (provider_account_id, external_plan_id)
+ provider_plans_identity_uk | CREATE UNIQUE INDEX provider_plans_identity_uk ON platform.provider_plans USING btree (provider_account_id, plan_id, billing_interval, currency, amount) WHERE (status = 'ACTIVE'::platform.provider_mapping_status)
+ provider_plans_pkey        | CREATE UNIQUE INDEX provider_plans_pkey ON platform.provider_plans USING btree (id)
+ provider_plans_plan_idx    | CREATE INDEX provider_plans_plan_idx ON platform.provider_plans USING btree (plan_id)
+(6 rows)
+
+            tgname             
+-------------------------------
+ provider_plans_guard_identity
+ provider_plans_no_secrets
+ provider_plans_set_updated_at
+(3 rows)
+
+## 4. Datos: identidad de los Planes creados por el E2E (un Plan ACTIVE por contrato económico)
+ cuenta_ebim | billing_interval | currency | amount | activos | filas 
+-------------+------------------+----------+--------+---------+-------
+(0 rows)
+
+(0 filas = ningún contrato económico con dos Planes ACTIVE)
+NOTICE:  identifier "provider_subscriptions_cuyo_plan_no_coincide_con_el_importe_registrado" will be truncated to "provider_subscriptions_cuyo_plan_no_coincide_con_el_importe_reg"
+NOTICE:  identifier "provider_subscriptions_cuyo_plan_no_coincide_con_el_importe_registrado" will be truncated to "provider_subscriptions_cuyo_plan_no_coincide_con_el_importe_reg"
+ provider_subscriptions_cuyo_plan_no_coincide_con_el_importe_reg 
+-----------------------------------------------------------------
+                                                               0
+(1 row)
+
+## 5. V3.1: funciones del motor de facturación (no usan FX; ver 5b)
+               proname               | usa_fx 
+-------------------------------------+--------
+ get_subscription_billing_status     | f
+ is_subscription_item_due_for_period | f
+ issue_subscription_invoice          | f
+ subscription_due_items              | f
+(4 rows)
+
+## 6. GRUPASA EWM tras el reset: estado de facturación del período en curso
+                                                                                                                                                  get_subscription_billing_status                                                                                                                                                   
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"currency": "USD", "can_issue": true, "period_end": "2026-09-30", "period_start": "2026-09-01", "has_due_items": true, "due_item_count": 1, "estimated_total": 12000.00, "subscription_id": "70000000-0000-4000-a000-00000000000f", "existing_invoice": null, "next_billing_period": "2026-09-01", "subscription_billable": true}
+(1 row)
+
+
+## 7. PostgREST con JWT reales (no se imprime ningún token)
+FINANCE: find=42501 register=42501 insert=42501 update=42501
+PARTNER_ADMIN: find=42501 register=42501 insert=42501 update=42501
+TENANT_ADMIN: find=42501 register=42501 insert=42501 update=42501
+SALES_AGENT: find=42501 register=42501 insert=42501 update=42501
+
+## 5b. La migración 37 no referencia el motor de facturación ni invoices
+$ grep -nE 'issue_subscription_invoice|subscription_due_items|is_subscription_item_due_for_period|get_subscription_billing_status|invoice' supabase/migrations/20260913001400_v3_2_provider_plan_identity.sql
+(sin coincidencias, exit 1)
+
+## 8. Sin cambios remotos
+$ git log --oneline origin/dev..HEAD | wc -l  (commits locales sin push)
+      29
+$ git branch -vv
+* dev 92433a6 [origin/dev: ahead 29] docs(payments): document recurring provider constraints
+$ test -f supabase/.temp/project-ref  (proyecto remoto enlazado)
+no existe: sin supabase link
+$ variables CULQI_* en el edge runtime local (solo nombres)
+0
+(0 = adapter MOCK; no hubo llamadas a Culqi TEST ni LIVE)

@@ -1,0 +1,18 @@
+# Fase 1 · la base, antes del fix, no puede guardar el mismo plan/MONTHLY/USD a 1000 y a 1250 en la misma cuenta · 2026-09-14T02:03:38Z
+# Plan local sin filas previas: 60000000-0000-4000-a000-000000000004 (eSupplier Enterprise)
+## A) Plan A USD 1000 y Plan B USD 1250 como filas distintas
+BEGIN
+INSERT 0 1
+ERROR:  duplicate key value violates unique constraint "provider_plans_uk"
+DETAIL:  Key (provider_account_id, plan_id, billing_interval, currency)=(81fdee5d-4541-4d26-8af8-95846bc6c849, 60000000-0000-4000-a000-000000000004, MONTHLY, USD) already exists.
+ROLLBACK
+## B) El upsert que hacía payment-setup para el cliente B (onConflict sin amount, reutilizando el id de A)
+BEGIN
+INSERT 0 1
+INSERT 0 1
+ external_plan_id | amount_en_base_para_un_plan_que_en_el_psp_cobra_1000 
+------------------+------------------------------------------------------
+ pln_repro_a_1000 |                                              1250.00
+(1 row)
+
+ROLLBACK

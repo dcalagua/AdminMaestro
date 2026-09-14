@@ -1,0 +1,54 @@
+# Integridad de migraciones V3.2 · 2026-09-14T02:15:17Z · HEAD 92433a6a5f0d27bc9b2b6872761f765a33558319
+
+## Conteo
+antes (1985f14): 36
+después (working tree): 37
+
+## Las 36 migraciones previas contra BASELINE_MIGRATIONS_PRE_V3_2.sha256 (tomado antes de modificar código)
+supabase/migrations/20260902000100_platform_schema_and_enums.sql: OK
+supabase/migrations/20260902000200_identity_and_organizations.sql: OK
+supabase/migrations/20260902000300_products_and_tenancy.sql: OK
+supabase/migrations/20260902000400_plans_and_subscriptions.sql: OK
+supabase/migrations/20260902000500_billing_and_costs.sql: OK
+supabase/migrations/20260902000600_sales_and_commissions.sql: OK
+supabase/migrations/20260902000700_deployments_and_provisioning.sql: OK
+supabase/migrations/20260902000800_rls_helpers.sql: OK
+supabase/migrations/20260902000900_rls_policies.sql: OK
+supabase/migrations/20260902001000_business_functions.sql: OK
+supabase/migrations/20260902001100_metrics_views.sql: OK
+supabase/migrations/20260902001200_pgtap.sql: OK
+supabase/migrations/20260902001300_fk_indexes.sql: OK
+supabase/migrations/20260907000100_admin_write_rpcs.sql: OK
+supabase/migrations/20260907000200_channel_agreements_v2.sql: OK
+supabase/migrations/20260907000300_onboarding_rpc.sql: OK
+supabase/migrations/20260907000400_collection_profiles.sql: OK
+supabase/migrations/20260907000500_commercial_documents.sql: OK
+supabase/migrations/20260907000600_payment_provider_mappings.sql: OK
+supabase/migrations/20260907000700_billing_alerts_and_renewals.sql: OK
+supabase/migrations/20260907000800_commissions_and_finance.sql: OK
+supabase/migrations/20260908000100_v2_1_provider_server_only.sql: OK
+supabase/migrations/20260908000200_billing_contact.sql: OK
+supabase/migrations/20260913000100_v3_currencies_markets.sql: OK
+supabase/migrations/20260913000200_v3_regional_companies.sql: OK
+supabase/migrations/20260913000300_v3_regional_pricing.sql: OK
+supabase/migrations/20260913000400_v3_transaction_currency.sql: OK
+supabase/migrations/20260913000500_v3_regional_payment_routing.sql: OK
+supabase/migrations/20260913000600_v3_fx_engine.sql: OK
+supabase/migrations/20260913000700_v3_reporting_currency.sql: OK
+supabase/migrations/20260913000800_v3_consolidated_finance.sql: OK
+supabase/migrations/20260913000900_v3_multicurrency_commissions.sql: OK
+supabase/migrations/20260913001000_v3_security_hardening.sql: OK
+supabase/migrations/20260913001100_v3_subscription_invoicing.sql: OK
+supabase/migrations/20260913001200_v3_organization_country_required.sql: OK
+supabase/migrations/20260913001300_v3_1_billing_cadence.sql: OK
+resultado: 36/36 OK
+
+## Manifest V3.1 sin modificar (35 migraciones previas a V3.1)
+(git diff vacío = manifest intacto)
+resultado: 35/35 OK
+
+## git diff --name-status 1985f14..HEAD -- supabase/migrations
+A	supabase/migrations/20260913001400_v3_2_provider_plan_identity.sql
+
+## Migración nueva
+3b6c37cfb1aad834eaa4cbf995cae4fa9ec27b83ba4003dde30cb5dc0f183fa0  supabase/migrations/20260913001400_v3_2_provider_plan_identity.sql

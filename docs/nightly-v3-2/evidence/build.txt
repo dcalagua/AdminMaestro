@@ -1,0 +1,41 @@
+# comando: npm run build
+# HEAD: 92433a6a5f0d27bc9b2b6872761f765a33558319
+# inicio: 2026-09-14T02:13:36Z
+
+
+> ebim-control-plane@0.1.0 build
+> npm run typecheck && vite build
+
+
+> ebim-control-plane@0.1.0 typecheck
+> tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit
+
+vite v7.3.6 building client environment for production...
+transforming...
+node_modules/zod/v4/core/util.js (330:0): A comment
+
+"// Wrapped in a `@__PURE__` IIFE: esbuild never tree-shakes a top-level initializer that contains a member access on `Number`, so the bare object literal survived into every bundle."
+
+in "node_modules/zod/v4/core/util.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+node_modules/zod/v4/core/regexes.js (70:0): A comment
+
+"/** Anchors a pattern source. The interpolation lives here rather than at the call site because
+ * esbuild will not drop a `@__PURE__` call whose own argument interpolates a variable, but it
+ * will drop `anchor(dateSource)`. Keeping it inline pinned `date` into every bundle. */"
+
+in "node_modules/zod/v4/core/regexes.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+✓ 306 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.60 kB │ gzip:   0.37 kB
+dist/assets/index-DmiDK0Dk.css   24.16 kB │ gzip:   5.65 kB
+dist/assets/index-BdflFDZh.js   904.15 kB │ gzip: 252.90 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 1.02s
+
+# fin: 2026-09-14T02:13:40Z
+# exit: 0

@@ -1,0 +1,514 @@
+# Fase 1/8 · unit tests de recurring-amount contra el módulo V3.1 (antes del fix) · 2026-09-14T02:03:07Z
+
+ RUN  v3.2.7 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin
+
+ ❯ supabase/functions/_shared/payments/recurring-amount.test.ts (24 tests | 22 failed) 8ms
+   × recurringCardAmount · V3.1 > suma solo las líneas recurrentes vigentes de la cadencia del contrato 3ms
+     → expected { ok: true, amount: 1000.5 } to deeply equal { ok: true, amountMinor: 100050, …(1) }
+   ✓ recurringCardAmount · V3.1 > rechaza cadencias mixtas: una licencia MONTHLY y un soporte YEARLY no caben en un solo plan 0ms
+   ✓ recurringCardAmount · V3.1 > sin importe recurrente no hay nada que domiciliar 0ms
+   × recurringCardAmount · V3.1 > YEARLY puro se domicilia por su importe anual 0ms
+     → expected { ok: true, amount: 24000 } to deeply equal { Object (ok, amountMinor, ...) }
+   × recurringCardAmount · V3.1 > QUARTERLY puro se domicilia por su importe trimestral 0ms
+     → expected { ok: true, amount: 3000 } to deeply equal { ok: true, amountMinor: 300000, …(1) }
+   × recurringCardAmount · V3.2 cadencia futura > MONTHLY vigente + YEARLY que empieza en 3 meses: cadencia mixta 1ms
+     → expected { ok: true, amount: 1000 } to match object { ok: false, …(1) }
+(1 matching property omitted from actual)
+   × recurringCardAmount · V3.2 cadencia futura > MONTHLY futuro + YEARLY futuro, nada vigente hoy: cadencia mixta 0ms
+     → expected { ok: false, …(1) } to match object { ok: false, …(1) }
+   × recurringCardAmount · V3.2 cadencia futura > MONTHLY vigente + QUARTERLY futuro: cadencia mixta 0ms
+     → expected { ok: true, amount: 500 } to match object { ok: false, …(1) }
+(1 matching property omitted from actual)
+   × recurringCardAmount · V3.2 cadencia futura > QUARTERLY vigente + YEARLY futuro: cadencia mixta 0ms
+     → expected { ok: true, amount: 500 } to match object { ok: false, …(1) }
+(1 matching property omitted from actual)
+   × recurringCardAmount · V3.2 cadencia futura > YEARLY vigente + MONTHLY futuro: cadencia mixta 0ms
+     → expected { ok: true, amount: 500 } to match object { ok: false, …(1) }
+(1 matching property omitted from actual)
+   × recurringCardAmount · V3.2 cadencia futura > una línea YEARLY ya vencida no convierte el contrato en mixto 0ms
+     → expected { ok: true, amount: 900 } to deeply equal { ok: true, amountMinor: 90000, …(1) }
+   × recurringCardAmount · V3.2 cadencia futura > una línea que termina justo el día anterior a hoy se ignora 0ms
+     → expected { ok: true, amount: 900 } to deeply equal { ok: true, amountMinor: 90000, …(1) }
+   × recurringCardAmount · V3.2 cadencia futura > ONE_TIME futuro no cuenta como cadencia ni cambia el importe recurrente 0ms
+     → expected { ok: true, amount: 900 } to deeply equal { ok: true, amountMinor: 90000, …(1) }
+   × recurringCardAmount · V3.2 cadencia futura > una línea de otra cadencia que empieza después del fin del contrato no cuenta 0ms
+     → expected { ok: true, amount: 900 } to deeply equal { ok: true, amountMinor: 90000, …(1) }
+   × recurringCardAmount · V3.2 importe futuro > addon MONTHLY que empieza en 3 meses: el importe sube y se rechaza 0ms
+     → expected { ok: true, amount: 1000 } to deeply equal { ok: false, …(2) }
+   × recurringCardAmount · V3.2 importe futuro > una línea MONTHLY que termina antes que el contrato: el importe baja y se rechaza 0ms
+     → expected { ok: true, amount: 1200 } to deeply equal { ok: false, …(2) }
+   × recurringCardAmount · V3.2 importe futuro > nada vigente hoy pero una línea futura: el importe pasa de 0 a X y se rechaza 0ms
+     → expected { ok: false, …(1) } to deeply equal { ok: false, …(2) }
+   × recurringCardAmount · V3.2 importe futuro > sustitución contigua por el mismo importe: estable, se permite 0ms
+     → expected { ok: true, amount: 1000 } to deeply equal { ok: true, amountMinor: 100000, …(1) }
+   × recurringCardAmount · V3.2 importe futuro > sustitución con un día sin cobertura: el importe cae a 0 ese día y se rechaza 0ms
+     → expected { ok: true, amount: 1000 } to match object { ok: false, …(2) }
+(1 matching property omitted from actual)
+   × recurringCardAmount · V3.2 importe futuro > cambios después del fin del contrato no cuentan 0ms
+     → expected { ok: true, amount: 1000 } to deeply equal { ok: true, amountMinor: 100000, …(1) }
+   × recurringCardAmount · V3.2 importe futuro > dos cambios que se compensan el mismo día: el importe no cambia 0ms
+     → expected { ok: true, amount: 1000 } to deeply equal { ok: true, amountMinor: 100000, …(1) }
+   × recurringCardAmount · V3.2 importe futuro > suma en céntimos exactos: 0.10 + 0.20 son 30 céntimos, no 30.000000000000004 0ms
+     → expected { ok: true, amount: 0.3 } to deeply equal { ok: true, amountMinor: 30, …(1) }
+   × recurringCardAmount · V3.2 importe futuro > un importe con más de dos decimales no se redondea en silencio 0ms
+     → expected [Function] to throw an error
+   × mensajes al usuario > explican el motivo sin detalles del proveedor 0ms
+     → Cannot read properties of undefined (reading 'CADENCIA_MIXTA_NO_DOMICILIABLE')
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 22 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  supabase/functions/_shared/payments/recurring-amount.test.ts > recurringCardAmount · V3.1 > suma solo las líneas recurrentes vigentes de la cadencia del contrato
+AssertionError: expected { ok: true, amount: 1000.5 } to deeply equal { ok: true, amountMinor: 100050, …(1) }
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "amount": "1000.50",[39m
+[32m-   "amountMinor": 100050,[39m
+[31m+   "amount": 1000.5,[39m
+[2m    "ok": true,[22m
+[2m  }[22m
+
+ ❯ supabase/functions/_shared/payments/recurring-amount.test.ts:21:27
+     19|       { billing_interval: 'MONTHLY', amount: 150.5, valid_from: '2026-…
+     20|       { billing_interval: 'ONE_TIME', amount: 3500, valid_from: '2026-…
+     21|     ], 'MONTHLY', AS_OF)).toEqual({ ok: true, amountMinor: 100050, amo…
+       |                           ^
+     22|   });
+     23| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/22]⎯
+
+ FAIL  supabase/functions/_shared/payments/recurring-amount.test.ts > recurringCardAmount · V3.1 > YEARLY puro se domicilia por su importe anual
+AssertionError: expected { ok: true, amount: 24000 } to deeply equal { Object (ok, amountMinor, ...) }
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "amount": "24000.00",[39m
+[32m-   "amountMinor": 2400000,[39m
+[31m+   "amount": 24000,[39m
+[2m    "ok": true,[22m
+[2m  }[22m
+
+ ❯ supabase/functions/_shared/payments/recurring-amount.test.ts:41:26
+     39|       { billing_interval: 'YEARLY', amount: 24000, valid_from: '2026-0…
+     40|       { billing_interval: 'ONE_TIME', amount: 12000, valid_from: '2026…
+     41|     ], 'YEARLY', AS_OF)).toEqual({ ok: true, amountMinor: 2400000, amo…
+       |                          ^
+     42|   });
+     43| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/22]⎯
+
+ FAIL  supabase/functions/_shared/payments/recurring-amount.test.ts > recurringCardAmount · V3.1 > QUARTERLY puro se domicilia por su importe trimestral
+AssertionError: expected { ok: true, amount: 3000 } to deeply equal { ok: true, amountMinor: 300000, …(1) }
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "amount": "3000.00",[39m
+[32m-   "amountMinor": 300000,[39m
+[31m+   "amount": 3000,[39m
+[2m    "ok": true,[22m
+[2m  }[22m
+
+ ❯ supabase/functions/_shared/payments/recurring-amount.test.ts:47:29
+     45|     expect(recurringCardAmount([
+     46|       { billing_interval: 'QUARTERLY', amount: '3000.00', valid_from: …
+     47|     ], 'QUARTERLY', AS_OF)).toEqual({ ok: true, amountMinor: 300000, a…
+       |                             ^
+     48|   });
+     49| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/22]⎯
+
+ FAIL  supabase/functions/_shared/payments/recurring-amount.test.ts > recurringCardAmount · V3.2 cadencia futura > MONTHLY vigente + YEARLY que empieza en 3 meses: cadencia mixta
+AssertionError: expected { ok: true, amount: 1000 } to match object { ok: false, …(1) }
+(1 matching property omitted from actual)
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "error": "CADENCIA_MIXTA_NO_DOMICILIABLE",[39m
+[32m-   "ok": false,[39m
+[31m+   "ok": true,[39m
+[2m  }[22m
+
+ ❯ supabase/functions/_shared/payments/recurring-amount.test.ts:56:27
+     54|       { billing_interval: 'MONTHLY', amount: 1000, valid_from: '2026-0…
+     55|       { billing_interval: 'YEARLY', amount: 2400, valid_from: '2026-12…
+     56|     ], 'MONTHLY', AS_OF)).toMatchObject({ ok: false, error: 'CADENCIA_…
+       |                           ^
+     57|   });
+     58| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/22]⎯
+
+ FAIL  supabase/functions/_shared/payments/recurring-amount.test.ts > recurringCardAmount · V3.2 cadencia futura > MONTHLY futuro + YEARLY futuro, nada vigente hoy: cadencia mixta
+AssertionError: expected { ok: false, …(1) } to match object { ok: false, …(1) }
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "error": "CADENCIA_MIXTA_NO_DOMICILIABLE",[39m
+[31m+   "error": "SIN_IMPORTE_RECURRENTE",[39m
+[2m    "ok": false,[22m
+[2m  }[22m
+
+ ❯ supabase/functions/_shared/payments/recurring-amount.test.ts:63:27
+     61|       { billing_interval: 'MONTHLY', amount: 1000, valid_from: '2026-1…
+     62|       { billing_interval: 'YEARLY', amount: 2400, valid_from: '2027-01…
+     63|     ], 'MONTHLY', AS_OF)).toMatchObject({ ok: false, error: 'CADENCIA_…
+       |                           ^
+     64|   });
+     65| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/22]⎯
+
+ FAIL  supabase/functions/_shared/payments/recurring-amount.test.ts > recurringCardAmount · V3.2 cadencia futura > MONTHLY vigente + QUARTERLY futuro: cadencia mixta
+ FAIL  supabase/functions/_shared/payments/recurring-amount.test.ts > recurringCardAmount · V3.2 cadencia futura > QUARTERLY vigente + YEARLY futuro: cadencia mixta
+ FAIL  supabase/functions/_shared/payments/recurring-amount.test.ts > recurringCardAmount · V3.2 cadencia futura > YEARLY vigente + MONTHLY futuro: cadencia mixta
+AssertionError: expected { ok: true, amount: 500 } to match object { ok: false, …(1) }
+(1 matching property omitted from actual)
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "error": "CADENCIA_MIXTA_NO_DOMICILIABLE",[39m
+[32m-   "ok": false,[39m
+[31m+   "ok": true,[39m
+[2m  }[22m
+
+ ❯ supabase/functions/_shared/payments/recurring-amount.test.ts:74:25
+     72|       { billing_interval: current, amount: 500, valid_from: '2026-01-0…
+     73|       { billing_interval: future, amount: 500, valid_from: '2027-06-01…
+     74|     ], current, AS_OF)).toMatchObject({ ok: false, error: 'CADENCIA_MI…
+       |                         ^
+     75|   });
+     76| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/22]⎯
+
+ FAIL  supabase/functions/_shared/payments/recurring-amount.test.ts > recurringCardAmount · V3.2 cadencia futura > una línea YEARLY ya vencida no convierte el contrato en mixto
+AssertionError: expected { ok: true, amount: 900 } to deeply equal { ok: true, amountMinor: 90000, …(1) }
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "amount": "900.00",[39m
+[32m-   "amountMinor": 90000,[39m
+[31m+   "amount": 900,[39m
+[2m    "ok": true,[22m
+[2m  }[22m
+
+ ❯ supabase/functions/_shared/payments/recurring-amount.test.ts:81:27
+     79|       { billing_interval: 'YEARLY', amount: 99, valid_from: '2025-01-0…
+     80|       { billing_interval: 'MONTHLY', amount: 900, valid_from: '2026-07…
+     81|     ], 'MONTHLY', AS_OF)).toEqual({ ok: true, amountMinor: 90000, amou…
+       |                           ^
+     82|   });
+     83| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/22]⎯
+
+ FAIL  supabase/functions/_shared/payments/recurring-amount.test.ts > recurringCardAmount · V3.2 cadencia futura > una línea que termina justo el día anterior a hoy se ignora
+AssertionError: expected { ok: true, amount: 900 } to deeply equal { ok: true, amountMinor: 90000, …(1) }
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "amount": "900.00",[39m
+[32m-   "amountMinor": 90000,[39m
+[31m+   "amount": 900,[39m
+[2m    "ok": true,[22m
+[2m  }[22m
+
+ ❯ supabase/functions/_shared/payments/recurring-amount.test.ts:88:27
+     86|       { billing_interval: 'QUARTERLY', amount: 99, valid_from: '2025-0…
+     87|       { billing_interval: 'MONTHLY', amount: 900, valid_from: '2026-07…
+     88|     ], 'MONTHLY', AS_OF)).toEqual({ ok: true, amountMinor: 90000, amou…
+       |                           ^
+     89|   });
+     90| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/22]⎯
+
+ FAIL  supabase/functions/_shared/payments/recurring-amount.test.ts > recurringCardAmount · V3.2 cadencia futura > ONE_TIME futuro no cuenta como cadencia ni cambia el importe recurrente
+AssertionError: expected { ok: true, amount: 900 } to deeply equal { ok: true, amountMinor: 90000, …(1) }
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "amount": "900.00",[39m
+[32m-   "amountMinor": 90000,[39m
+[31m+   "amount": 900,[39m
+[2m    "ok": true,[22m
+[2m  }[22m
+
+ ❯ supabase/functions/_shared/payments/recurring-amount.test.ts:95:27
+     93|       { billing_interval: 'MONTHLY', amount: 900, valid_from: '2026-07…
+     94|       { billing_interval: 'ONE_TIME', amount: 5000, valid_from: '2027-…
+     95|     ], 'MONTHLY', AS_OF)).toEqual({ ok: true, amountMinor: 90000, amou…
+       |                           ^
+     96|   });
+     97| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/22]⎯
+
+ FAIL  supabase/functions/_shared/payments/recurring-amount.test.ts > recurringCardAmount · V3.2 cadencia futura > una línea de otra cadencia que empieza después del fin del contrato no cuenta
+AssertionError: expected { ok: true, amount: 900 } to deeply equal { ok: true, amountMinor: 90000, …(1) }
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "amount": "900.00",[39m
+[32m-   "amountMinor": 90000,[39m
+[31m+   "amount": 900,[39m
+[2m    "ok": true,[22m
+[2m  }[22m
+
+ ❯ supabase/functions/_shared/payments/recurring-amount.test.ts:102:41
+    100|       { billing_interval: 'MONTHLY', amount: 900, valid_from: '2026-07…
+    101|       { billing_interval: 'YEARLY', amount: 2400, valid_from: '2027-07…
+    102|     ], 'MONTHLY', AS_OF, '2027-06-30')).toEqual({ ok: true, amountMino…
+       |                                         ^
+    103|   });
+    104| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/22]⎯
+
+ FAIL  supabase/functions/_shared/payments/recurring-amount.test.ts > recurringCardAmount · V3.2 importe futuro > addon MONTHLY que empieza en 3 meses: el importe sube y se rechaza
+AssertionError: expected { ok: true, amount: 1000 } to deeply equal { ok: false, …(2) }
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "changesOn": "2026-12-01",[39m
+[32m-   "error": "MONTO_RECURRENTE_FUTURO_VARIABLE",[39m
+[32m-   "ok": false,[39m
+[31m+   "amount": 1000,[39m
+[31m+   "ok": true,[39m
+[2m  }[22m
+
+ ❯ supabase/functions/_shared/payments/recurring-amount.test.ts:111:27
+    109|       { billing_interval: 'MONTHLY', amount: 1000, valid_from: '2026-0…
+    110|       { billing_interval: 'MONTHLY', amount: 150, valid_from: '2026-12…
+    111|     ], 'MONTHLY', AS_OF)).toEqual({
+       |                           ^
+    112|       ok: false, error: 'MONTO_RECURRENTE_FUTURO_VARIABLE', changesOn:…
+    113|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/22]⎯
+
+ FAIL  supabase/functions/_shared/payments/recurring-amount.test.ts > recurringCardAmount · V3.2 importe futuro > una línea MONTHLY que termina antes que el contrato: el importe baja y se rechaza
+AssertionError: expected { ok: true, amount: 1200 } to deeply equal { ok: false, …(2) }
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "changesOn": "2027-03-01",[39m
+[32m-   "error": "MONTO_RECURRENTE_FUTURO_VARIABLE",[39m
+[32m-   "ok": false,[39m
+[31m+   "amount": 1200,[39m
+[31m+   "ok": true,[39m
+[2m  }[22m
+
+ ❯ supabase/functions/_shared/payments/recurring-amount.test.ts:120:27
+    118|       { billing_interval: 'MONTHLY', amount: 1000, valid_from: '2026-0…
+    119|       { billing_interval: 'MONTHLY', amount: 200, valid_from: '2026-09…
+    120|     ], 'MONTHLY', AS_OF)).toEqual({
+       |                           ^
+    121|       ok: false, error: 'MONTO_RECURRENTE_FUTURO_VARIABLE', changesOn:…
+    122|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/22]⎯
+
+ FAIL  supabase/functions/_shared/payments/recurring-amount.test.ts > recurringCardAmount · V3.2 importe futuro > nada vigente hoy pero una línea futura: el importe pasa de 0 a X y se rechaza
+AssertionError: expected { ok: false, …(1) } to deeply equal { ok: false, …(2) }
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "changesOn": "2026-12-01",[39m
+[32m-   "error": "MONTO_RECURRENTE_FUTURO_VARIABLE",[39m
+[31m+   "error": "SIN_IMPORTE_RECURRENTE",[39m
+[2m    "ok": false,[22m
+[2m  }[22m
+
+ ❯ supabase/functions/_shared/payments/recurring-amount.test.ts:128:27
+    126|     expect(recurringCardAmount([
+    127|       { billing_interval: 'MONTHLY', amount: 1000, valid_from: '2026-1…
+    128|     ], 'MONTHLY', AS_OF)).toEqual({
+       |                           ^
+    129|       ok: false, error: 'MONTO_RECURRENTE_FUTURO_VARIABLE', changesOn:…
+    130|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/22]⎯
+
+ FAIL  supabase/functions/_shared/payments/recurring-amount.test.ts > recurringCardAmount · V3.2 importe futuro > sustitución contigua por el mismo importe: estable, se permite
+AssertionError: expected { ok: true, amount: 1000 } to deeply equal { ok: true, amountMinor: 100000, …(1) }
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "amount": "1000.00",[39m
+[32m-   "amountMinor": 100000,[39m
+[31m+   "amount": 1000,[39m
+[2m    "ok": true,[22m
+[2m  }[22m
+
+ ❯ supabase/functions/_shared/payments/recurring-amount.test.ts:137:27
+    135|       { billing_interval: 'MONTHLY', amount: 1000, valid_from: '2026-0…
+    136|       { billing_interval: 'MONTHLY', amount: '1000.00', valid_from: '2…
+    137|     ], 'MONTHLY', AS_OF)).toEqual({ ok: true, amountMinor: 100000, amo…
+       |                           ^
+    138|   });
+    139| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/22]⎯
+
+ FAIL  supabase/functions/_shared/payments/recurring-amount.test.ts > recurringCardAmount · V3.2 importe futuro > sustitución con un día sin cobertura: el importe cae a 0 ese día y se rechaza
+AssertionError: expected { ok: true, amount: 1000 } to match object { ok: false, …(2) }
+(1 matching property omitted from actual)
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "changesOn": "2026-11-30",[39m
+[32m-   "error": "MONTO_RECURRENTE_FUTURO_VARIABLE",[39m
+[32m-   "ok": false,[39m
+[31m+   "ok": true,[39m
+[2m  }[22m
+
+ ❯ supabase/functions/_shared/payments/recurring-amount.test.ts:144:27
+    142|       { billing_interval: 'MONTHLY', amount: 1000, valid_from: '2026-0…
+    143|       { billing_interval: 'MONTHLY', amount: 1000, valid_from: '2026-1…
+    144|     ], 'MONTHLY', AS_OF)).toMatchObject({ ok: false, error: 'MONTO_REC…
+       |                           ^
+    145|   });
+    146| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/22]⎯
+
+ FAIL  supabase/functions/_shared/payments/recurring-amount.test.ts > recurringCardAmount · V3.2 importe futuro > cambios después del fin del contrato no cuentan
+AssertionError: expected { ok: true, amount: 1000 } to deeply equal { ok: true, amountMinor: 100000, …(1) }
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "amount": "1000.00",[39m
+[32m-   "amountMinor": 100000,[39m
+[31m+   "amount": 1000,[39m
+[2m    "ok": true,[22m
+[2m  }[22m
+
+ ❯ supabase/functions/_shared/payments/recurring-amount.test.ts:151:41
+    149|       { billing_interval: 'MONTHLY', amount: 1000, valid_from: '2026-0…
+    150|       { billing_interval: 'MONTHLY', amount: 150, valid_from: '2027-07…
+    151|     ], 'MONTHLY', AS_OF, '2027-06-30')).toEqual({ ok: true, amountMino…
+       |                                         ^
+    152|   });
+    153| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/22]⎯
+
+ FAIL  supabase/functions/_shared/payments/recurring-amount.test.ts > recurringCardAmount · V3.2 importe futuro > dos cambios que se compensan el mismo día: el importe no cambia
+AssertionError: expected { ok: true, amount: 1000 } to deeply equal { ok: true, amountMinor: 100000, …(1) }
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "amount": "1000.00",[39m
+[32m-   "amountMinor": 100000,[39m
+[31m+   "amount": 1000,[39m
+[2m    "ok": true,[22m
+[2m  }[22m
+
+ ❯ supabase/functions/_shared/payments/recurring-amount.test.ts:159:27
+    157|       { billing_interval: 'MONTHLY', amount: 300, valid_from: '2026-01…
+    158|       { billing_interval: 'MONTHLY', amount: 700, valid_from: '2027-01…
+    159|     ], 'MONTHLY', AS_OF)).toEqual({ ok: true, amountMinor: 100000, amo…
+       |                           ^
+    160|   });
+    161| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/22]⎯
+
+ FAIL  supabase/functions/_shared/payments/recurring-amount.test.ts > recurringCardAmount · V3.2 importe futuro > suma en céntimos exactos: 0.10 + 0.20 son 30 céntimos, no 30.000000000000004
+AssertionError: expected { ok: true, amount: 0.3 } to deeply equal { ok: true, amountMinor: 30, …(1) }
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "amount": "0.30",[39m
+[32m-   "amountMinor": 30,[39m
+[31m+   "amount": 0.3,[39m
+[2m    "ok": true,[22m
+[2m  }[22m
+
+ ❯ supabase/functions/_shared/payments/recurring-amount.test.ts:166:27
+    164|       { billing_interval: 'MONTHLY', amount: 0.1, valid_from: '2026-01…
+    165|       { billing_interval: 'MONTHLY', amount: '0.20', valid_from: '2026…
+    166|     ], 'MONTHLY', AS_OF)).toEqual({ ok: true, amountMinor: 30, amount:…
+       |                           ^
+    167|   });
+    168| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/22]⎯
+
+ FAIL  supabase/functions/_shared/payments/recurring-amount.test.ts > recurringCardAmount · V3.2 importe futuro > un importe con más de dos decimales no se redondea en silencio
+AssertionError: expected [Function] to throw an error
+
+[32m- Expected:[39m 
+null
+
+[31m+ Received:[39m 
+undefined
+
+ ❯ supabase/functions/_shared/payments/recurring-amount.test.ts:172:27
+    170|     expect(() => recurringCardAmount([
+    171|       { billing_interval: 'MONTHLY', amount: '12.345', valid_from: '20…
+    172|     ], 'MONTHLY', AS_OF)).toThrow(/IMPORTE_NO_REPRESENTABLE/);
+       |                           ^
+    173|   });
+    174| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/22]⎯
+
+ FAIL  supabase/functions/_shared/payments/recurring-amount.test.ts > mensajes al usuario > explican el motivo sin detalles del proveedor
+TypeError: Cannot read properties of undefined (reading 'CADENCIA_MIXTA_NO_DOMICILIABLE')
+ ❯ supabase/functions/_shared/payments/recurring-amount.test.ts:178:37
+    176| describe('mensajes al usuario', () => {
+    177|   it('explican el motivo sin detalles del proveedor', () => {
+    178|     expect(RECURRING_ERROR_MESSAGES.CADENCIA_MIXTA_NO_DOMICILIABLE).to…
+       |                                     ^
+    179|       'La suscripción contiene cargos recurrentes con distintas period…
+    180|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/22]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  22 failed | 2 passed (24)
+   Start at  21:03:07
+   Duration  571ms (transform 22ms, setup 45ms, collect 11ms, tests 8ms, environment 282ms, prepare 33ms)
+

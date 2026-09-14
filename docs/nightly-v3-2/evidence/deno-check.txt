@@ -1,0 +1,16 @@
+# deno check de las Edge Functions de pago · HEAD 92433a6a5f0d27bc9b2b6872761f765a33558319 · 2026-09-14T02:19:14Z
+# deno 2.9.6 (stable, release, aarch64-apple-darwin)
+# Copia de supabase/functions del HEAD (git archive) con deno.json vacío y --node-modules-dir=none.
+# En el árbol del repo, deno check falla por la resolución npm de supabase-js (limitación conocida desde V3).
+$ deno check --node-modules-dir=none payment-setup/index.ts
+exit 0
+$ deno check --node-modules-dir=none culqi-webhook/index.ts
+exit 0
+$ deno check --node-modules-dir=none payment-reconcile/index.ts
+exit 0
+$ deno check --node-modules-dir=none _shared/payments/money.ts
+exit 0
+$ deno check --node-modules-dir=none _shared/payments/provider-plan.ts
+exit 0
+$ deno check --node-modules-dir=none _shared/payments/recurring-amount.ts
+exit 0

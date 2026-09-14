@@ -1,0 +1,30 @@
+# Fase 1 · estado de la base tras el E2E previo al fix
+# provider_subscriptions V3.2 vs provider_plans (join por external_plan_id)
+       code       | currency | billing_interval | external_plan_id  | provider_plans_amount | contract_recurring 
+------------------+----------+------------------+-------------------+-----------------------+--------------------
+ SUB-V32-0li3pi-1 | USD      | MONTHLY          | pln_mock_48fe3937 |               1128.00 |            1450.00
+ SUB-V32-0li3pi-2 | USD      | MONTHLY          | pln_mock_48fe3937 |               1128.00 |            1700.00
+ SUB-V32-0li44n-1 | USD      | MONTHLY          | pln_mock_48fe3937 |               1128.00 |             970.50
+ SUB-V32-0li44n-2 | USD      | MONTHLY          | pln_mock_48fe3937 |               1128.00 |            1102.00
+ SUB-V32-0li44n-3 | PEN      | MONTHLY          | pln_mock_0999338e |               1102.00 |            1102.00
+ SUB-V32-0li44n-4 | USD      | YEARLY           | pln_mock_30e80258 |               1102.00 |            1102.00
+ SUB-V32-0li44n-5 | USD      | MONTHLY          | pln_mock_48fe3937 |               1128.00 |            3495.00
+ SUB-V32-0li4l5-1 | USD      | MONTHLY          | pln_mock_48fe3937 |               1128.00 |            1839.00
+ SUB-V32-0li4u9-1 | USD      | MONTHLY          | pln_mock_48fe3937 |               1128.00 |            2355.00
+(9 rows)
+
+# provider_plans
+ external_plan_id  | amount  | currency | billing_interval | status 
+-------------------+---------+----------+------------------+--------
+ pln_mock_48fe3937 | 1128.00 | USD      | MONTHLY          | ACTIVE
+ pln_mock_0999338e | 1102.00 | PEN      | MONTHLY          | ACTIVE
+ pln_mock_30e80258 | 1102.00 | USD      | YEARLY           | ACTIVE
+(3 rows)
+
+# constraint
+          conname           |                       pg_get_constraintdef                        
+----------------------------+-------------------------------------------------------------------
+ provider_plans_external_uk | UNIQUE (provider_account_id, external_plan_id)
+ provider_plans_uk          | UNIQUE (provider_account_id, plan_id, billing_interval, currency)
+(2 rows)
+
