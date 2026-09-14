@@ -1,0 +1,78 @@
+BEGIN
+    charge_kind     | unit_amount | currency | billing_interval | valid_from | valid_to 
+--------------------+-------------+----------+------------------+------------+----------
+ LICENSE            |    24000.00 | USD      | YEARLY           | 2026-03-13 | 
+ IMPLEMENTATION_FEE |    12000.00 | USD      | ONE_TIME         | 2026-03-13 | 
+(2 rows)
+
+      code       | status | billing_interval | currency | started_on 
+-----------------+--------+------------------+----------+------------
+ SUB-GRUPASA-EWM | ACTIVE | YEARLY           | USD      | 2026-03-13
+(1 row)
+
+ existing_invoices 
+-------------------
+                 0
+(1 row)
+
+SET
+                                 set_config                                 
+----------------------------------------------------------------------------
+ {"sub" : "10000000-0000-4000-a000-000000000003", "role" : "authenticated"}
+(1 row)
+
+     p     |                                                                        issue_subscription_invoice                                                                         
+-----------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ M0 anchor | {"total": 36000.00, "number": "INV-202603-SUB-GRUPASA-EWM", "status": "ISSUED", "created": true, "currency": "USD", "invoice_id": "6b63c233-56a5-44a9-ae27-5ad1da9577ff"}
+(1 row)
+
+  p  |                                                                        issue_subscription_invoice                                                                         
+-----+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ M+1 | {"total": 24000.00, "number": "INV-202604-SUB-GRUPASA-EWM", "status": "ISSUED", "created": true, "currency": "USD", "invoice_id": "79e24bcb-fc2c-49bd-9683-1fab5d7ff437"}
+(1 row)
+
+  p  |                                                                        issue_subscription_invoice                                                                         
+-----+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ M+6 | {"total": 24000.00, "number": "INV-202609-SUB-GRUPASA-EWM", "status": "ISSUED", "created": true, "currency": "USD", "invoice_id": "57f459c7-462e-4033-8b26-281db0b80f1f"}
+(1 row)
+
+ROLLBACK
+
+# VOID -> re-emisión antes del fix
+
+# VOID -> re-emisión del mismo periodo, ANTES del fix
+BEGIN
+SET
+                                 set_config                                 
+----------------------------------------------------------------------------
+ {"sub" : "10000000-0000-4000-a000-000000000003", "role" : "authenticated"}
+(1 row)
+
+SELECT 1
+                                                                                     j                                                                                     
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"total": 36000.00, "number": "INV-202603-SUB-GRUPASA-EWM", "status": "ISSUED", "created": true, "currency": "USD", "invoice_id": "835c9177-5605-4db2-8c20-fcd4831bcd24"}
+(1 row)
+
+RESET
+      proname       
+--------------------
+ void_exchange_rate
+(1 row)
+
+UPDATE 1
+SET
+ERROR:  duplicate key value violates unique constraint "invoices_number_uk"
+DETAIL:  Key (number)=(INV-202603-SUB-GRUPASA-EWM) already exists.
+CONTEXT:  SQL statement "insert into platform.invoices (
+    number, customer_organization_id, subscription_id, status, issue_date, due_date,
+    period_start, period_end, notes, metadata
+  ) values (
+    v_number, v_sub.billed_organization_id, v_sub.id, 'ISSUED', current_date,
+    current_date + coalesce(v_due_days, 15), v_period_start, v_period_end,
+    'Factura gerencial del periodo emitida desde la consola',
+    jsonb_build_object('origin', 'console', 'market', v_sub.market_code)
+  )
+  returning id"
+PL/pgSQL function issue_subscription_invoice(uuid,date) line 51 at SQL statement
+ROLLBACK

@@ -1,0 +1,80 @@
+# pgTAP 18_v3_1_billing_cadence ANTES del fix (HEAD 133f118; migración 34 vigente, sin migración V3.1)
+# Ejecutado: 2026-09-14T01:20:11Z
+Connecting to local database...
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/supabase/tests/18_v3_1_billing_cadence.test.sql .. 
+# Failed test 10: "04 quarterly month +1 not due"
+#     no exception thrown
+# Failed test 11: "05 quarterly month +2 not due"
+#     no exception thrown
+# Failed test 12: "14 no due items creates no invoice (QUARTERLY +1/+2)"
+#         have: 2
+#         want: 0
+# Failed test 14: "06b quarterly month +4 not due"
+#     no exception thrown
+# Failed test 15: "06c quarterly month +5 not due"
+#     no exception thrown
+# Failed test 18: "06e quarterly: 3 facturas en ENE-JUL (ene, abr, jul) y ninguna más"
+#         have: 7
+#         want: 3
+# Failed test 21: "08 yearly month +1 not due"
+#     no exception thrown
+# Failed test 22: "09 yearly month +6 not due"
+#     no exception thrown
+# Failed test 23: "09b yearly month +11 not due"
+#     no exception thrown
+# Failed test 24: "14b no due items creates no invoice (YEARLY +1, +6, +11)"
+#         have: 4
+#         want: 1
+# Failed test 32: "13c mixed items · febrero: solo MONTHLY"
+#         have: 1300.00
+#         want: 100.00
+# Failed test 33: "13d mixed items · febrero: YEARLY y ONE_TIME no entran"
+#         have: USD 1300.00 [LICENSE,SUPPORT_FEE]
+#         want: USD 100.00 [LICENSE]
+# Failed test 45: "14c no invoice with total 0: cargos debidos que suman 0 no emiten factura"
+#     no exception thrown
+# Failed test 46: "14d no invoice with total 0: ninguna factura persistida"
+#         have: 1
+#         want: 0
+# Failed test 49: "19c GRUPASA EWM · mes siguiente: la licencia anual NO se refactura"
+#     no exception thrown
+# Failed test 52: "10b VOID: re-emitir un periodo cuya factura se anuló no choca con el número de la anulada"
+#     died: 23505: duplicate key value violates unique constraint "invoices_number_uk"
+#         DETAIL:     Key (number)=(INV-202603-SUB-QA-CAD-YR-USD) already exists.
+#         SCHEMA:     platform
+#         TABLE:      invoices
+#         CONSTRAINT: invoices_number_uk
+#         CONTEXT:
+#             SQL statement "insert into platform.invoices (
+#                 number, customer_organization_id, subscription_id, status, issue_date, due_date,
+#                 period_start, period_end, notes, metadata
+#               ) values (
+#                 v_number, v_sub.billed_organization_id, v_sub.id, 'ISSUED', current_date,
+#                 current_date + coalesce(v_due_days, 15), v_period_start, v_period_end,
+#                 'Factura gerencial del periodo emitida desde la consola',
+#                 jsonb_build_object('origin', 'console', 'market', v_sub.market_code)
+#               )
+#               returning id"
+#             PL/pgSQL function issue_subscription_invoice(uuid,date) line 51 at SQL statement
+#             SQL statement " select pg_temp.issue('SUB-QA-CAD-YR-USD', '2026-03-01') "
+#             PL/pgSQL function lives_ok(text,text) line 14 at EXECUTE
+# Failed test 53: "10c VOID: la re-emisión vuelve a incluir el ONE_TIME (la línea anulada no cuenta como facturada)"
+#         have: NULL
+#         want: USD 36000.00 [IMPLEMENTATION_FEE,LICENSE]
+# Failed test 54: "10d VOID: la anulada se conserva y hay una sola vigente"
+#         have: VOID
+#         want: VOID,ISSUED
+# Failed test 55: "10e VOID: la re-emisión usa un número distinto"
+#         have: 1
+#         want: 2
+# Looks like you failed 19 tests of 64
+Failed 19/64 subtests 
+
+Test Summary Report
+-------------------
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/supabase/tests/18_v3_1_billing_cadence.test.sql (Wstat: 0 Tests: 64 Failed: 19)
+  Failed tests:  10-12, 14-15, 18, 21-24, 32-33, 45-46, 49
+                52-55
+Files=1, Tests=64,  0 wallclock secs ( 0.01 usr +  0.00 sys =  0.01 CPU)
+Result: FAIL
+error running container: exit 1
