@@ -15,6 +15,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import {
   json, resolvePaymentProvider, toAccountConfig, ProviderError,
 } from '../_shared/payments/index.ts';
+import { recurringCardAmount, type RecurringItem } from '../_shared/payments/recurring-amount.ts';
 
 interface SetupBody {
   subscription_id: string;
@@ -180,23 +181,32 @@ Deno.serve(async (req: Request) => {
   // Datos del plan local para crear/reutilizar el Plan del proveedor.
   const { data: subscription } = await admin
     .from('subscriptions')
-    .select('*, plans(name, code), subscription_items(charge_kind, amount, billing_interval)')
+    .select('*, plans(name, code), subscription_items(charge_kind, amount, billing_interval, valid_from, valid_to)')
     .eq('id', body.subscription_id)
     .maybeSingle();
 
   if (!subscription) return json({ error: 'SUSCRIPCION_NO_ENCONTRADA' }, 404);
 
-  const items = (subscription.subscription_items ?? []) as Array<Record<string, unknown>>;
-  // El cargo recurrente es lo único domiciliable: los ONE_TIME se cobran aparte.
-  const recurring = items.filter((i) => i.billing_interval !== 'ONE_TIME');
-  const amount = recurring.reduce((sum, i) => sum + Number(i.amount ?? 0), 0);
+  // El cargo recurrente VIGENTE de la cadencia del contrato es lo único
+  // domiciliable: los ONE_TIME se cobran aparte, y un plan del proveedor no
+  // admite mezclar cadencias (V3.1, ver recurring-amount.ts).
+  const recurring = recurringCardAmount(
+    (subscription.subscription_items ?? []) as RecurringItem[],
+    subscription.billing_interval,
+    new Date().toISOString().slice(0, 10),
+  );
 
-  if (amount <= 0) {
+  if (!recurring.ok) {
     return json(
-      { error: 'SIN_IMPORTE_RECURRENTE: la suscripción no tiene cargos recurrentes que domiciliar' },
+      {
+        error: recurring.error === 'CADENCIA_MIXTA_NO_DOMICILIABLE'
+          ? 'CADENCIA_MIXTA_NO_DOMICILIABLE: la suscripción tiene cargos recurrentes vigentes con periodicidades distintas; no caben en un único plan de tarjeta'
+          : 'SIN_IMPORTE_RECURRENTE: la suscripción no tiene cargos recurrentes que domiciliar',
+      },
       409,
     );
   }
+  const amount = recurring.amount;
 
   // Mapeos previos: reutilizarlos evita duplicar Customer y Plan en el proveedor.
   const { data: existingCustomer } = await admin

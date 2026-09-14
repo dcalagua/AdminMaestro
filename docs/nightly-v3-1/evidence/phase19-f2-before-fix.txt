@@ -1,0 +1,20 @@
+# Reproducción F2 (payment-setup suma cadencias mixtas) ANTES del fix: el módulo no existe; la lógica vigente es la de payment-setup/index.ts:189-191
+# 2026-09-14T01:30:44Z
+ ❯ TransformPluginContext.error node_modules/vite/dist/node/chunks/config.js:29076:14
+ ❯ normalizeUrl node_modules/vite/dist/node/chunks/config.js:27199:18
+ ❯ node_modules/vite/dist/node/chunks/config.js:27257:32
+ ❯ TransformPluginContext.transform node_modules/vite/dist/node/chunks/config.js:27225:4
+ ❯ EnvironmentPluginContainer.transform node_modules/vite/dist/node/chunks/config.js:28877:14
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/config.js:22746:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  20:30:45
+   Duration  510ms (transform 13ms, setup 42ms, collect 0ms, tests 0ms, environment 251ms, prepare 30ms)
+
+
+# Lógica vigente evaluada con el caso mixto (MONTHLY 100 + YEARLY 1200 + ONE_TIME 5000):
+importe domiciliado en plan MONTHLY = 1300
