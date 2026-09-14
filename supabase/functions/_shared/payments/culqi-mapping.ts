@@ -1,3 +1,5 @@
+import { toMinorUnits } from './money.ts';
+
 /**
  * Traducciones entre el dominio EBIM y el contrato de Culqi.
  *
@@ -102,13 +104,33 @@ export function toCulqiInterval(interval: EbimInterval): CulqiIntervalSpec {
  * Se mide en TEST que el rango admitido para un plan es 300 a 500000, es decir
  * de 3,00 a 5.000,00. Se valida aquí para dar un mensaje del dominio en vez de
  * un `parameter_error` del proveedor.
+ *
+ * V3.2 · La conversión es la de `money.ts`, la única del proyecto: sin
+ * `Math.round(amount * 100)`, que redondeaba en silencio un 12.345 a 1235.
  */
-export function toCulqiAmount(amount: number): number {
-  const centimos = Math.round(amount * 100);
-  if (!Number.isFinite(centimos) || centimos <= 0) {
+export function toCulqiAmount(amount: number | string): number {
+  const centimos = toMinorUnits(amount);
+  if (centimos <= 0) {
     throw new Error(`IMPORTE_INVALIDO: ${amount}`);
   }
   return centimos;
+}
+
+/**
+ * Monedas que cobra la cuenta Culqi Perú (evidencia V2.1). Ambas con 2
+ * decimales: ahí «unidad mínima» y céntimo son lo mismo.
+ */
+export const CULQI_CURRENCIES: readonly string[] = ['PEN', 'USD'];
+
+/** Importe de un Plan ya en céntimos (`recurringCardAmount`), validado para Culqi. */
+export function toCulqiPlanAmount(amountMinor: number, currency: string): number {
+  if (!CULQI_CURRENCIES.includes(currency)) {
+    throw new Error(`MONEDA_NO_SOPORTADA: Culqi no cobra ${currency}`);
+  }
+  if (!Number.isSafeInteger(amountMinor) || amountMinor <= 0) {
+    throw new Error(`IMPORTE_INVALIDO: ${amountMinor}`);
+  }
+  return amountMinor;
 }
 
 export function fromCulqiAmount(centimos: number): number {

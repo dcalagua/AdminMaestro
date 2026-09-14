@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   CULQI_INTERVAL_UNIT, CULQI_INTERVAL_DAYS,
-  toCulqiInterval, toCulqiAmount, fromCulqiAmount, toCulqiText,
+  toCulqiInterval, toCulqiAmount, toCulqiPlanAmount, fromCulqiAmount, toCulqiText,
   normalizeCulqiTimestamp, fromCulqiSubscriptionStatus, classifyCulqiEvent,
 } from './culqi-mapping.ts';
 
@@ -49,9 +49,21 @@ describe('importes', () => {
   it('convierte a céntimos sin arrastrar el error del binario', () => {
     expect(toCulqiAmount(25)).toBe(2500);
     expect(toCulqiAmount(19.99)).toBe(1999);
-    // 0.1 + 0.2 en coma flotante es 0.30000000000000004: sin redondeo se
-    // enviarían 30.000000000000004 céntimos.
-    expect(toCulqiAmount(0.1 + 0.2)).toBe(30);
+    expect(toCulqiAmount('1250.00')).toBe(125000);
+    // V3.2: 0.1 + 0.2 en coma flotante es 0.30000000000000004. Antes se
+    // redondeaba a 30; ahora se rechaza, porque ningún importe de la base
+    // tiene esa forma y redondearlo escondería aritmética flotante aguas
+    // arriba. Las sumas se hacen en céntimos (`recurringCardAmount`).
+    expect(() => toCulqiAmount(0.1 + 0.2)).toThrow(/IMPORTE_NO_REPRESENTABLE/);
+    expect(() => toCulqiAmount(12.345)).toThrow(/IMPORTE_NO_REPRESENTABLE/);
+  });
+
+  it('el importe de un Plan ya viene en céntimos y solo en monedas que Culqi cobra', () => {
+    expect(toCulqiPlanAmount(125000, 'USD')).toBe(125000);
+    expect(toCulqiPlanAmount(125000, 'PEN')).toBe(125000);
+    expect(() => toCulqiPlanAmount(125000, 'BOB')).toThrow(/MONEDA_NO_SOPORTADA/);
+    expect(() => toCulqiPlanAmount(1250.5, 'USD')).toThrow(/IMPORTE_INVALIDO/);
+    expect(() => toCulqiPlanAmount(0, 'USD')).toThrow(/IMPORTE_INVALIDO/);
   });
 
   it('rechaza importes que no cobran nada', () => {

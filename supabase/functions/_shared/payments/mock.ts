@@ -56,12 +56,20 @@ export class MockPaymentProvider implements PaymentProvider {
     const seed = `${this.account.code}:${input.customer.organizationId}:${input.plan.localPlanId}`;
     const days = INTERVAL_DAYS[input.plan.interval] ?? 30;
     const next = days > 0 ? new Date(Date.now() + days * 86_400_000).toISOString() : null;
+    /*
+     * V3.2 · Plan y Subscription se derivan también de la suscripción LOCAL.
+     * Un PSP real crea un objeto nuevo en cada alta; si el mock devolviera el
+     * mismo `pln_`/`sxn_` para dos contratos de la misma organización, un Plan
+     * reutilizado por error sería indistinguible de uno creado.
+     */
+    const contract = `${seed}:${input.metadata?.subscription_id ?? ''}`;
 
     return Promise.resolve({
       externalCustomerId: input.customer.externalCustomerId ?? mockId('cus', seed),
       externalPaymentMethodId: mockId('crd', `${seed}:${input.token}`),
-      externalPlanId: input.plan.externalPlanId ?? mockId('pln', `${seed}:${input.plan.amount}`),
-      externalSubscriptionId: mockId('sxn', `${seed}:sub`),
+      externalPlanId: input.plan.externalPlanId ??
+        mockId('pln', `${contract}:${input.plan.interval}:${input.plan.currency}:${input.plan.amountMinor}`),
+      externalSubscriptionId: mockId('sxn', `${contract}:sub`),
       providerStatus: 'active',
       nextBillingAt: next,
       // Valores obviamente de prueba: nadie los confunde con una tarjeta real.

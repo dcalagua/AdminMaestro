@@ -1,5 +1,5 @@
 import {
-  toCulqiInterval, toCulqiAmount, fromCulqiAmount, toCulqiText,
+  toCulqiInterval, toCulqiPlanAmount, fromCulqiAmount, toCulqiText,
   fromCulqiSubscriptionStatus,
   normalizeCulqiTimestamp, classifyCulqiEvent,
 } from './culqi-mapping.ts';
@@ -165,6 +165,16 @@ export class CulqiPaymentProvider implements PaymentProvider {
     let externalPlanId = input.plan.externalPlanId ?? null;
     if (!externalPlanId) {
       const cadencia = toCulqiInterval(input.plan.interval);
+      let importe: number;
+      try {
+        importe = toCulqiPlanAmount(input.plan.amountMinor, input.plan.currency);
+      } catch (error) {
+        throw new ProviderError(
+          'IMPORTE_PLAN_INVALIDO',
+          error instanceof Error ? error.message : 'Importe o moneda no válidos para el plan',
+          409,
+        );
+      }
       // Nombre único por reintento: Culqi rechaza nombres repetidos.
       const sufijo = Date.now().toString(36).slice(-6);
       const plan = await this.call<{ id?: string; data?: { id?: string } }>(
@@ -176,7 +186,7 @@ export class CulqiPaymentProvider implements PaymentProvider {
           name: toCulqiText(`${input.plan.name} ${input.plan.currency} ${sufijo}`, 50),
           short_name: toCulqiText(`ebim${sufijo}`, 20),
           description: toCulqiText(`Plan EBIM ${input.plan.name}`, 100),
-          amount: toCulqiAmount(input.plan.amount),
+          amount: importe,
           currency: input.plan.currency,
           ...cadencia,
           // Culqi lo exige. Sin ciclos iniciales ni cargo de entrada: el

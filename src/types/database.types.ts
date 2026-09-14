@@ -6649,6 +6649,16 @@ export type Database = {
           reporting_currency: string
         }[]
       }
+      find_reusable_provider_plan: {
+        Args: {
+          p_amount: number
+          p_billing_interval: Database["platform"]["Enums"]["billing_interval"]
+          p_currency: string
+          p_plan_id: string
+          p_provider_account_id: string
+        }
+        Returns: string
+      }
       fx_convert: {
         Args: {
           p_amount: number
@@ -6852,6 +6862,18 @@ export type Database = {
           p_external_event_key: string
           p_external_subscription_id: string
           p_payload?: Json
+          p_provider_account_id: string
+        }
+        Returns: Json
+      }
+      register_provider_plan: {
+        Args: {
+          p_amount: number
+          p_billing_interval: Database["platform"]["Enums"]["billing_interval"]
+          p_currency: string
+          p_external_plan_id: string
+          p_metadata?: Json
+          p_plan_id: string
           p_provider_account_id: string
         }
         Returns: Json

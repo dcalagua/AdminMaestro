@@ -15,7 +15,10 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import {
   json, resolvePaymentProvider, toAccountConfig, ProviderError,
 } from '../_shared/payments/index.ts';
-import { recurringCardAmount, type RecurringItem } from '../_shared/payments/recurring-amount.ts';
+import {
+  recurringCardAmount, RECURRING_ERROR_MESSAGES, type RecurringItem,
+} from '../_shared/payments/recurring-amount.ts';
+import { providerPlanIdentity, providerPlanRpcArgs } from '../_shared/payments/provider-plan.ts';
 
 interface SetupBody {
   subscription_id: string;
@@ -142,7 +145,7 @@ Deno.serve(async (req: Request) => {
     return json({ error: 'PROVEEDOR_REQUERIDO: la suscripción no tiene cuenta de proveedor configurada' }, 409);
   }
 
-  const cuentaSolicitada = (body as Record<string, unknown>).provider_account_id;
+  const cuentaSolicitada = (body as unknown as Record<string, unknown>).provider_account_id;
   if (typeof cuentaSolicitada === 'string' && cuentaSolicitada !== accountId) {
     return json(
       {
@@ -187,26 +190,37 @@ Deno.serve(async (req: Request) => {
 
   if (!subscription) return json({ error: 'SUSCRIPCION_NO_ENCONTRADA' }, 404);
 
-  // El cargo recurrente VIGENTE de la cadencia del contrato es lo único
-  // domiciliable: los ONE_TIME se cobran aparte, y un plan del proveedor no
-  // admite mezclar cadencias (V3.1, ver recurring-amount.ts).
-  const recurring = recurringCardAmount(
-    (subscription.subscription_items ?? []) as RecurringItem[],
-    subscription.billing_interval,
-    new Date().toISOString().slice(0, 10),
-  );
+  /*
+   * El importe sale del CONTRATO (`subscription_items`), no de `plan_prices`:
+   * un precio negociado se domicilia por lo negociado. Los ONE_TIME se cobran
+   * aparte, y un plan del proveedor no admite mezclar cadencias (V3.1).
+   *
+   * V3.2 · Cuentan también las líneas que el contrato ya sabe que entrarán o
+   * saldrán de vigencia: el Plan se crea hoy con un importe fijo y no se
+   * reprovisiona solo. Si la cadencia o el importe van a cambiar, se rechaza.
+   */
+  let recurring;
+  try {
+    recurring = recurringCardAmount(
+      (subscription.subscription_items ?? []) as RecurringItem[],
+      subscription.billing_interval,
+      new Date().toISOString().slice(0, 10),
+      subscription.ends_on ?? null,
+    );
+  } catch {
+    return json({ error: 'IMPORTE_NO_REPRESENTABLE', message: 'Un cargo del contrato no tiene un importe válido.' }, 409);
+  }
 
   if (!recurring.ok) {
     return json(
       {
-        error: recurring.error === 'CADENCIA_MIXTA_NO_DOMICILIABLE'
-          ? 'CADENCIA_MIXTA_NO_DOMICILIABLE: la suscripción tiene cargos recurrentes vigentes con periodicidades distintas; no caben en un único plan de tarjeta'
-          : 'SIN_IMPORTE_RECURRENTE: la suscripción no tiene cargos recurrentes que domiciliar',
+        error: recurring.error,
+        message: RECURRING_ERROR_MESSAGES[recurring.error],
+        ...(recurring.changesOn ? { changes_on: recurring.changesOn } : {}),
       },
       409,
     );
   }
-  const amount = recurring.amount;
 
   // Mapeos previos: reutilizarlos evita duplicar Customer y Plan en el proveedor.
   const { data: existingCustomer } = await admin
@@ -216,14 +230,24 @@ Deno.serve(async (req: Request) => {
     .eq('organization_id', subscription.billed_organization_id)
     .maybeSingle();
 
-  const { data: existingPlan } = await admin
-    .from('provider_plans')
-    .select('external_plan_id')
-    .eq('provider_account_id', account.id)
-    .eq('plan_id', subscription.plan_id)
-    .eq('billing_interval', subscription.billing_interval)
-    .eq('currency', subscription.currency)
-    .maybeSingle();
+  /*
+   * V3.2 · Plan del proveedor reutilizable: EXACTAMENTE esta cuenta, plan,
+   * intervalo, moneda e importe. Antes se buscaba sin importe y el cliente de
+   * USD 1250 heredaba el Plan de USD 1000 de otro cliente.
+   */
+  const planIdentity = providerPlanIdentity({
+    providerAccountId: account.id,
+    planId: subscription.plan_id,
+    billingInterval: subscription.billing_interval,
+    currency: subscription.currency,
+    amountMinor: recurring.amountMinor,
+  });
+  const planArgs = providerPlanRpcArgs(planIdentity);
+
+  const { data: reusablePlanId, error: planLookupError } = await admin.rpc('find_reusable_provider_plan', planArgs);
+  if (planLookupError) {
+    return json({ error: 'PROVIDER_PLAN_NO_VERIFICABLE', message: 'No se pudo verificar el plan de cobro.' }, 500);
+  }
 
   /*
    * Datos de facturación del titular.
@@ -274,10 +298,10 @@ Deno.serve(async (req: Request) => {
       plan: {
         localPlanId: subscription.plan_id,
         name: (subscription.plans as { name: string } | null)?.name ?? subscription.code,
-        amount,
-        currency: subscription.currency,
-        interval: subscription.billing_interval,
-        externalPlanId: existingPlan?.external_plan_id ?? null,
+        amountMinor: planIdentity.amountMinor,
+        currency: planIdentity.currency,
+        interval: planIdentity.billingInterval,
+        externalPlanId: (reusablePlanId as string | null) ?? null,
       },
       acceptedTerms: true,
       metadata: { subscription_code: subscription.code, subscription_id: subscription.id },
@@ -326,20 +350,6 @@ Deno.serve(async (req: Request) => {
     { onConflict: 'provider_account_id,external_payment_method_id' },
   );
 
-  await admin.from('provider_plans').upsert(
-    {
-      provider_account_id: account.id,
-      plan_id: subscription.plan_id,
-      external_plan_id: result.externalPlanId,
-      amount,
-      currency: subscription.currency,
-      billing_interval: subscription.billing_interval,
-      status: 'ACTIVE',
-      synced_at: new Date().toISOString(),
-    },
-    { onConflict: 'provider_account_id,plan_id,billing_interval,currency' },
-  );
-
   const { error: linkError } = await admin.rpc('upsert_provider_subscription', {
     p_provider_account_id: account.id,
     p_subscription_id: subscription.id,
@@ -353,6 +363,27 @@ Deno.serve(async (req: Request) => {
   });
 
   if (linkError) return json({ error: linkError.message }, 500);
+
+  /*
+   * V3.2 · El Plan se registra con la identidad con la que se creó o reutilizó
+   * en el proveedor. `register_provider_plan` nunca reescribe una fila: si el
+   * `external_plan_id` ya describe otro importe, falla en vez de fingir que el
+   * Plan del proveedor cambió de precio. Va después de enlazar la suscripción,
+   * que ya existe en el proveedor y tiene que quedar registrada igualmente.
+   */
+  const { error: planRegisterError } = await admin.rpc('register_provider_plan', {
+    ...planArgs,
+    p_external_plan_id: result.externalPlanId,
+  });
+  if (planRegisterError) {
+    return json(
+      {
+        error: 'PROVIDER_PLAN_INCONSISTENTE',
+        message: 'La domiciliación se creó, pero el plan de cobro no coincide con el contrato. Requiere revisión de finanzas.',
+      },
+      500,
+    );
+  }
 
   return json({
     ok: true,

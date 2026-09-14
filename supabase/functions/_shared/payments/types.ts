@@ -51,9 +51,17 @@ export interface SetupInput {
   plan: {
     localPlanId: string;
     name: string;
-    amount: number;
+    /**
+     * V3.2 · Importe contractual en UNIDADES MÍNIMAS (céntimos), ya calculado
+     * de forma exacta por `recurringCardAmount`. El adapter no convierte nada.
+     */
+    amountMinor: number;
     currency: string;
     interval: 'MONTHLY' | 'QUARTERLY' | 'YEARLY' | 'ONE_TIME';
+    /**
+     * Plan ya existente en el proveedor para ESTE contrato económico (cuenta,
+     * plan, intervalo, moneda e importe). Si llega, no se crea otro.
+     */
     externalPlanId?: string | null;
   };
   /** Aceptación explícita de términos: Culqi la exige como `tyc` en la suscripción. */
