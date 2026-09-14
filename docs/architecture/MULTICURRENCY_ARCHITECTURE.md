@@ -34,7 +34,7 @@
 | Reporte | `control_plane_settings`, `reporting_settings`, `to_reporting_amount` | Moneda de reporte configurable; nativo intacto + equivalente + estado |
 | Consolidado | `v_finance_facts`, `finance_reporting_rows`, `finance_consolidated` | Sumar por moneda, convertir cada total, declarar faltantes |
 | Comisiones | `settle_commissions(..., p_currency)`, `enforce_settlement_currency` | Devengo en moneda del cobro; liquidación mono-moneda |
-| Facturación | `issue_subscription_invoice` | Factura gerencial del periodo en la moneda del contrato |
+| Facturación | `issue_subscription_invoice`, `subscription_due_items`, `get_subscription_billing_status` | Factura gerencial del periodo en la moneda del contrato, solo con las líneas que tocan según su billing cadence (V3.1, `docs/finance/BILLING_CADENCE.md`) |
 
 ## 3. Reglas de enforcement (todas en la base)
 
