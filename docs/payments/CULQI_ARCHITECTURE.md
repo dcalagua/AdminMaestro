@@ -40,7 +40,7 @@ Culqi crea los objetos **en este orden**: Plan → Customer → Card → Subscri
 |---|---|---|---|
 | `organizations` (cliente que paga) | `provider_customers` | Customer | `cus_(test\|live)_…` ¹ |
 | Método de pago del cliente | `provider_payment_methods` | Card | `crd_(test\|live)_…` |
-| `plans` + `plan_prices` | `provider_plans` | Plan | `pln_(test\|live)_…` |
+| `plans` + importe contractual de `subscription_items` (V3.2) | `provider_plans` | Plan | `pln_(test\|live)_…` |
 | `subscriptions` | `provider_subscriptions` | Subscription | `sxn_(test\|live)_…` |
 | `payments` | (referencia directa) | Charge | `chr_(test\|live)_…` |
 
@@ -169,6 +169,20 @@ Reglas que impone el diseño:
    contra la base. No basta con que la UI haya ocultado el botón.
 3. **`sk_` se lee de `Deno.env`.** No se acepta por parámetro, no se registra en
    ningún log, no aparece en la respuesta.
+4. **V3.2 · Un Plan del proveedor es un contrato económico.** Se reutiliza solo
+   si coinciden cuenta de cobro, plan local, intervalo, moneda **e importe**
+   (`platform.find_reusable_provider_plan`). Un precio distinto es un Plan nuevo
+   en Culqi y una fila nueva en `provider_plans`. La fila se registra con
+   `platform.register_provider_plan` (solo servidor) y nunca se reescribe: un
+   trigger impide cambiar su importe, moneda, intervalo, plan, cuenta o
+   `external_plan_id`. El importe sale de `subscription_items` (precio
+   negociado), nunca de `plan_prices`.
+5. **V3.2 · Solo se domicilia un contrato recurrente estable.** El Plan se crea
+   con un importe fijo y no se reprovisiona solo. Si las líneas conocidas del
+   contrato (también las de `valid_from` futuro) mezclan periodicidades →
+   `CADENCIA_MIXTA_NO_DOMICILIABLE`; si el total recurrente cambia en una fecha
+   futura dentro del contrato → `MONTO_RECURRENTE_FUTURO_VARIABLE`. Ambos 409.
+   Detalle: `docs/nightly-v3-2/FUTURE_RECURRING_CONTRACT.md`.
 
 ---
 

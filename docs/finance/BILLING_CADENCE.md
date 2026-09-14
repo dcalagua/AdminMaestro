@@ -86,9 +86,13 @@ En Suscripción → Facturación y cobros, finanzas elige el período, ve el est
   ancla o su cadencia hacia adelante. Las facturas ya emitidas no cambian.
 - `next_renewal_date` (renovaciones y alertas) es otra regla: cuenta meses completos por día
   exacto a nivel de contrato. No se usa para facturar.
-- La domiciliación con tarjeta (`payment-setup`) cobra un único importe por intervalo. Si la
-  suscripción tiene líneas recurrentes vigentes de otra cadencia, se rechaza con
-  `CADENCIA_MIXTA_NO_DOMICILIABLE`.
+- La domiciliación con tarjeta (`payment-setup`) cobra un único importe fijo por intervalo, con
+  un Plan del proveedor que no se reprovisiona solo. V3.2: se evalúan todas las líneas
+  recurrentes conocidas del contrato, también las que empiezan en el futuro (se ignoran ONE_TIME,
+  líneas ya terminadas y líneas que empiezan después de `ends_on`). Otra cadencia →
+  `CADENCIA_MIXTA_NO_DOMICILIABLE`; un total recurrente que cambia en una fecha futura →
+  `MONTO_RECURRENTE_FUTURO_VARIABLE`. Esos contratos se cobran por factura hasta que exista un
+  esquema de reprovisioning. La facturación del período (esta regla) no cambia.
 
 ## 6. Pruebas
 
