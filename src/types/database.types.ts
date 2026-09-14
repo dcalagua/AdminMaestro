@@ -6686,6 +6686,10 @@ export type Database = {
         Args: { p_payment_id: string }
         Returns: number
       }
+      get_subscription_billing_status: {
+        Args: { p_period_start?: string; p_subscription_id: string }
+        Returns: Json
+      }
       has_org_commercial_access: { Args: { p_org: string }; Returns: boolean }
       has_platform_role: {
         Args: { p_role: Database["platform"]["Enums"]["platform_role"] }
@@ -6702,6 +6706,16 @@ export type Database = {
       is_sales_agent: { Args: never; Returns: boolean }
       is_service_context: { Args: never; Returns: boolean }
       is_slug: { Args: { p_value: string }; Returns: boolean }
+      is_subscription_item_due_for_period: {
+        Args: {
+          p_already_invoiced?: boolean
+          p_billing_anchor: string
+          p_billing_interval: Database["platform"]["Enums"]["billing_interval"]
+          p_period_start: string
+          p_valid_to: string
+        }
+        Returns: boolean
+      }
       is_super_admin: { Args: never; Returns: boolean }
       issue_subscription_invoice: {
         Args: { p_period_start?: string; p_subscription_id: string }
@@ -7008,6 +7022,22 @@ export type Database = {
           p_sales_agent_id: string
         }
         Returns: string
+      }
+      subscription_due_items: {
+        Args: { p_period_start: string; p_subscription_id: string }
+        Returns: {
+          amount: number
+          billing_anchor: string
+          billing_interval: Database["platform"]["Enums"]["billing_interval"]
+          charge_kind: Database["platform"]["Enums"]["charge_kind"]
+          currency: string
+          description: string
+          quantity: number
+          subscription_item_id: string
+          tenant_id: string
+          unit_amount: number
+          valid_to: string
+        }[]
       }
       to_reporting_amount: {
         Args: {

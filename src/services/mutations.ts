@@ -294,10 +294,14 @@ export function useReversePayment() {
   ]);
 }
 
-/** Factura gerencial del mes en la moneda del contrato. Idempotente por periodo. */
+/**
+ * Factura gerencial del PERIODO en la moneda del contrato, solo con las líneas que
+ * tocan según su billing cadence (la decide la base). Idempotente por periodo.
+ */
 export function useIssueSubscriptionInvoice() {
   return useRpc('issue_subscription_invoice', [
-    'invoices', 'subscription', 'subscriptions', 'finance-reconciliation', 'finance-consolidated', ...ALERT_KEYS,
+    'invoices', 'subscription', 'subscriptions', 'subscription-billing-status',
+    'finance-reconciliation', 'finance-consolidated', ...ALERT_KEYS,
   ]);
 }
 

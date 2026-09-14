@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import type { DashboardSummary, Enums, FinanceConsolidated } from '@/types/domain';
 import { toMarketOptions, type MarketRow } from '@/lib/regional';
+import type { SubscriptionBillingStatus } from '@/lib/billing';
 
 /**
  * Capa de acceso a datos.
@@ -478,6 +479,30 @@ export function useSubscription(subscriptionId: string | undefined) {
         .maybeSingle();
       if (error) throw new Error(error.message);
       return data;
+    },
+  });
+}
+
+/**
+ * V3.1 · Estado de facturación de un periodo: cargos debidos, total estimado,
+ * factura vigente y próxima facturación. Lo calcula la base con el mismo motor
+ * que emite; la UI no recalcula periodicidades ni fechas.
+ */
+export function useSubscriptionBillingStatus(
+  subscriptionId: string | undefined,
+  periodStart: string | null,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: ['subscription-billing-status', subscriptionId, periodStart],
+    enabled: enabled && Boolean(subscriptionId) && Boolean(periodStart),
+    queryFn: async (): Promise<SubscriptionBillingStatus> => {
+      const { data, error } = await supabase.rpc('get_subscription_billing_status', {
+        p_subscription_id: subscriptionId!,
+        p_period_start: periodStart!,
+      });
+      if (error) throw new Error(error.message);
+      return data as unknown as SubscriptionBillingStatus;
     },
   });
 }
