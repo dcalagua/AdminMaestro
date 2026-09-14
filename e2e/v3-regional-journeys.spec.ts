@@ -5,7 +5,7 @@ import { login, USERS } from './fixtures';
  * Journeys V3 — Fase 17: Perú PEN, Bolivia BOB, Ecuador USD.
  *
  * Recorridos reales contra la app y el Supabase local con el seed regional:
- * venta regional → contrato → factura del mes → cobro manual → comisión →
+ * venta regional → contrato → factura del período → cobro manual → comisión →
  * dashboard nativo y consolidado. Sin Culqi LIVE ni integraciones externas: el
  * cobro es manual (transferencia). Cada ejecución usa slugs y referencias
  * únicas, así que la suite se repite sin `db:reset`.
@@ -73,10 +73,10 @@ async function sellRegional(page: Page, sale: RegionalSale) {
   return page.url();
 }
 
-/** Emite la factura del mes y registra su cobro manual completo. */
+/** Emite la factura del período en curso y registra su cobro manual completo. */
 async function invoiceAndCollect(page: Page, currency: string, total: RegExp, reference: string) {
   await page.getByRole('tab', { name: 'Facturación y cobros' }).click();
-  await page.getByRole('button', { name: `Emitir factura del mes (${currency})` }).click();
+  await page.getByRole('button', { name: `Emitir factura del período (${currency})` }).click();
   await expect(page.getByText('Factura emitida')).toBeVisible({ timeout: 15_000 });
 
   const row = page.getByRole('row').filter({ hasText: 'INV-' }).first();

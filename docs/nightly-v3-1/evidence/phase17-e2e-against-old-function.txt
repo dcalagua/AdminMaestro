@@ -1,0 +1,24 @@
+# E2E v3-1-billing-cadence contra la función ANTERIOR (migración 34 re-aplicada solo en la BD local, temporalmente)
+# 2026-09-14T01:29:20Z
+CREATE FUNCTION
+COMMENT
+REVOKE
+GRANT
+  ✓  1 [chromium] › e2e/v3-1-billing-cadence.spec.ts:143:3 › V3.1 · Billing cadence › MONTHLY · PEN: el período y el siguiente facturan, en PEN (1.3s)
+  ✘  2 [chromium] › e2e/v3-1-billing-cadence.spec.ts:161:3 › V3.1 · Billing cadence › YEARLY · USD: factura el período ancla y NO vuelve a facturar el mes siguiente (2.2s)
+  ✘  3 [chromium] › e2e/v3-1-billing-cadence.spec.ts:180:3 › V3.1 · Billing cadence › QUARTERLY · BOB: período ancla, sin cargo en +1 y +2, cargo en el trimestre siguiente (1.2s)
+  ✘  4 [chromium] › e2e/v3-1-billing-cadence.spec.ts:197:3 › V3.1 · Billing cadence › MIXED · MONTHLY + YEARLY + ONE_TIME: cada factura lleva solo lo que toca (1.3s)
+  ✓  5 [chromium] › e2e/v3-1-billing-cadence.spec.ts:222:3 › V3.1 · Billing cadence › IDEMPOTENCIA · reintentar la emisión del mismo período devuelve la misma factura (979ms)
+    Error: expect(received).toMatch(expected)
+    Expected pattern: /^SIN_LINEAS_FACTURABLES/
+    Received string:  "sin error: la RPC facturó un período sin cargos"
+    > 134 |   expect(error?.message ?? 'sin error: la RPC facturó un período sin cargos').toMatch(/^SIN_LINEAS_FACTURABLES/);
+    Error: expect(received).toMatch(expected)
+    Expected pattern: /^SIN_LINEAS_FACTURABLES/
+    Received string:  "sin error: la RPC facturó un período sin cargos"
+    > 134 |   expect(error?.message ?? 'sin error: la RPC facturó un período sin cargos').toMatch(/^SIN_LINEAS_FACTURABLES/);
+    Error: expect(received).toEqual(expected) // deep equality
+    - Expected  - 2
+    + Received  + 2
+  3 failed
+  2 passed (9.2s)
