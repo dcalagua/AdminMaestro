@@ -1,0 +1,31 @@
+# V3.1 quality gate: unit
+# HEAD: 3394945  branch: dev
+# command: npm test
+# started: 2026-09-14T01:33:13Z
+
+
+> ebim-control-plane@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin
+
+ ✓ supabase/functions/_shared/payments/recurring-amount.test.ts (5 tests) 2ms
+ ✓ src/app/navigation.test.ts (10 tests) 3ms
+ ✓ supabase/functions/_shared/payments/culqi-mapping.test.ts (22 tests) 3ms
+ ✓ src/lib/billing.test.ts (6 tests) 2ms
+ ✓ src/lib/regional.test.ts (15 tests) 8ms
+ ✓ src/lib/multicurrency.regression.test.ts (7 tests) 11ms
+ ✓ src/lib/consolidated.test.ts (8 tests) 12ms
+ ✓ src/lib/format.test.ts (17 tests) 15ms
+ ✓ src/features/auth/session.test.ts (12 tests) 2ms
+ ✓ src/features/billing/PeriodInvoiceAction.test.tsx (13 tests) 324ms
+
+ Test Files  10 passed (10)
+      Tests  115 passed (115)
+   Start at  20:33:13
+   Duration  1.34s (transform 264ms, setup 749ms, collect 476ms, tests 382ms, environment 5.46s, prepare 507ms)
+
+
+# finished: 2026-09-14T01:33:14Z
+# exit code: 0

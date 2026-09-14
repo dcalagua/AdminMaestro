@@ -1,0 +1,99 @@
+## Funciones V3.1: SECURITY DEFINER, volatilidad, search_path, EXECUTE
+                                            function                                            | security_definer | volatility |              config              | anon_exec | public_exec | authenticated_exec | service_role_exec 
+------------------------------------------------------------------------------------------------+------------------+------------+----------------------------------+-----------+-------------+--------------------+-------------------
+ platform.issue_subscription_invoice(uuid,date)                                                 | t                | v          | search_path=platform, pg_catalog | f         | f           | t                  | t
+ platform.is_subscription_item_due_for_period(platform.billing_interval,date,date,date,boolean) | f                | i          | search_path=platform, pg_catalog | f         | f           | t                  | t
+ platform.subscription_due_items(uuid,date)                                                     | f                | s          | search_path=platform, pg_catalog | f         | f           | t                  | t
+ platform.get_subscription_billing_status(uuid,date)                                            | f                | s          | search_path=platform, pg_catalog | f         | f           | t                  | t
+(4 rows)
+
+## ACL
+               proname               |                                 proacl                                 
+-------------------------------------+------------------------------------------------------------------------
+ issue_subscription_invoice          | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+ is_subscription_item_due_for_period | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+ subscription_due_items              | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+ get_subscription_billing_status     | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+(4 rows)
+
+## Primera sentencia de issue_subscription_invoice (autorización antes de leer/escribir)
+                            first_statement                             
+------------------------------------------------------------------------
+ if not (platform.can_read_finance() or platform.is_super_admin()) then
+(1 row)
+
+## FX / reporting en emisión y motor (debe ser 0)
+ count 
+-------
+     0
+(1 row)
+
+## Globales: funciones platform ejecutables por anon (0) · DEFINER sin search_path (0)
+ anon_exec_any | definer_without_search_path 
+---------------+-----------------------------
+             0 |                           0
+(1 row)
+
+## Tablas de facturación: RLS y escritura directa de authenticated/anon (debe ser vacío)
+      relname       | relrowsecurity | relforcerowsecurity 
+--------------------+----------------+---------------------
+ invoice_lines      | t              | t
+ invoices           | t              | t
+ subscription_items | t              | t
+ subscriptions      | t              | t
+(4 rows)
+
+ table_name | grantee | privilege_type 
+------------+---------+----------------
+(0 rows)
+
+## Autorización efectiva por rol (en transacción con rollback)
+BEGIN
+CREATE TABLE
+GRANT
+DO
+        role        |          outcome           
+--------------------+----------------------------
+ EBIM_SUPER_ADMIN   | ALLOWED true
+ EBIM_FINANCE       | ALLOWED false
+ EBIM_PRODUCT_ADMIN | DENIED 42501 NO_AUTORIZADO
+ PARTNER_ADMIN      | DENIED 42501 NO_AUTORIZADO
+ TENANT_ADMIN       | DENIED 42501 NO_AUTORIZADO
+ SALES_AGENT        | DENIED 42501 NO_AUTORIZADO
+(6 rows)
+
+ROLLBACK
+## SUB-GRUPASA-EWM en el mes en curso tras db:reset (transacción con rollback)
+BEGIN
+   today    |   anchor   
+------------+------------
+ 2026-09-14 | 2026-03-14
+(1 row)
+
+SET
+ as_finance 
+------------
+ t
+(1 row)
+
+                                                                                                                               status_now                                                                                                                                
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"currency": "USD", "can_issue": true, "period_end": "2026-09-30", "period_start": "2026-09-01", "has_due_items": true, "due_item_count": 1, "estimated_total": 12000.00, "existing_invoice": null, "next_billing_period": "2026-09-01", "subscription_billable": true}
+(1 row)
+
+    charge_kind     | billing_interval |  amount  
+--------------------+------------------+----------
+ IMPLEMENTATION_FEE | ONE_TIME         | 12000.00
+(1 row)
+
+                                                                                        issued_now                                                                                         
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"lines": 1, "total": 12000.00, "number": "INV-202609-SUB-GRUPASA-EWM", "status": "ISSUED", "created": true, "currency": "USD", "period_end": "2026-09-30", "period_start": "2026-09-01"}
+(1 row)
+
+ next_after_now 
+----------------
+ 2027-03-01
+(1 row)
+
+ROLLBACK

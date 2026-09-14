@@ -1,0 +1,12 @@
+# V3.1 quality gate: typecheck
+# HEAD: 3394945  branch: dev
+# command: npm run typecheck
+# started: 2026-09-14T01:33:14Z
+
+
+> ebim-control-plane@0.1.0 typecheck
+> tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit
+
+
+# finished: 2026-09-14T01:33:17Z
+# exit code: 0
