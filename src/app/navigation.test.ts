@@ -73,3 +73,41 @@ describe('navegación por perfil', () => {
     expect(navItemsFor('PARTNER').map((i) => i.to)).toContain('/renewals');
   });
 });
+
+/*
+ * V4 · Plano de provisioning.
+ *
+ * Ocultar una entrada es UX, no seguridad: cada ruta está además protegida por
+ * RLS y por el gate de permiso del orquestador. Pero la configuración de CÓMO
+ * se integra la suite no es asunto de un partner, y el menú tampoco debe
+ * sugerírselo.
+ */
+describe('navegación del plano de provisioning', () => {
+  it('EBIM ve integraciones y provisioning SaaS', () => {
+    const rutas = navItemsFor('EBIM').map((i) => i.to);
+    expect(rutas).toContain('/integrations');
+    expect(rutas).toContain('/saas-provisioning');
+  });
+
+  it('un partner NO ve la configuración de integraciones', () => {
+    const rutas = navItemsFor('PARTNER').map((i) => i.to);
+    expect(rutas).not.toContain('/integrations');
+  });
+
+  it.each(['SALES_AGENT', 'TENANT'] as const)(
+    'un %s no ve nada del plano de provisioning',
+    (persona) => {
+      const rutas = navItemsFor(persona).map((i) => i.to);
+      expect(rutas).not.toContain('/integrations');
+      expect(rutas).not.toContain('/saas-provisioning');
+    },
+  );
+
+  it('los dos ejes de provisioning conviven con nombres distinguibles', () => {
+    const infra = NAV_ITEMS.find((i) => i.to === '/provisioning');
+    const saas = NAV_ITEMS.find((i) => i.to === '/saas-provisioning');
+    expect(infra?.label).toBe('Provisioning de infraestructura');
+    expect(saas?.label).toBe('Provisioning SaaS');
+    expect(infra?.group).toBe(saas?.group);
+  });
+});

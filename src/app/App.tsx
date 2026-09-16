@@ -31,6 +31,9 @@ import { RenewalsPage } from '@/features/billing/RenewalsPage';
 import { ReconciliationPage } from '@/features/billing/ReconciliationPage';
 import { DeploymentsPage } from '@/features/deployments/DeploymentsPage';
 import { ProvisioningPage } from '@/features/deployments/ProvisioningPage';
+import { SaasProvisioningPage } from '@/features/deployments/SaasProvisioningPage';
+import { IntegrationsPage } from '@/features/platform/IntegrationsPage';
+import { IntegrationDetailPage } from '@/features/platform/IntegrationDetailPage';
 import { AuditPage } from '@/features/settings/AuditPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { RegionalPage } from '@/features/regional/RegionalPage';
@@ -196,6 +199,35 @@ export function App() {
                     element={
                       <RequirePersona personas={['EBIM', 'PARTNER']}>
                         <ProvisioningPage />
+                      </RequirePersona>
+                    }
+                  />
+                  {/*
+                    Provisioning SaaS: eje de APLICACIÓN, separado del de
+                    infraestructura de arriba. Protegido además por RLS y por el
+                    gate de permiso del orquestador; `RequirePersona` es UX.
+                  */}
+                  <Route
+                    path="saas-provisioning"
+                    element={
+                      <RequirePersona personas={['EBIM', 'PARTNER']}>
+                        <SaasProvisioningPage />
+                      </RequirePersona>
+                    }
+                  />
+                  <Route
+                    path="integrations"
+                    element={
+                      <RequirePersona personas={['EBIM']}>
+                        <IntegrationsPage />
+                      </RequirePersona>
+                    }
+                  />
+                  <Route
+                    path="integrations/:integrationId"
+                    element={
+                      <RequirePersona personas={['EBIM']}>
+                        <IntegrationDetailPage />
                       </RequirePersona>
                     }
                   />

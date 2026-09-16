@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -705,7 +705,11 @@ export function OnboardingPage() {
                         ? `${(agents.data ?? []).find((a) => a.id === values.sales_agent_id)?.full_name} · ${values.attribution_pct}%`
                         : 'Sin atribución',
                     ],
-                    ['Provisioning', 'Solicitud DRY_RUN encolada'],
+                    ['Provisioning de infraestructura', 'Solicitud DRY_RUN encolada'],
+                    [
+                      'Alta en el producto SaaS',
+                      'No se realiza aquí (política por defecto: manual)',
+                    ],
                   ].map(([k, v]) => (
                     <div key={k} className="flex justify-between gap-4 px-4 py-2.5 text-sm">
                       <dt className="text-muted">{k}</dt>
@@ -713,6 +717,32 @@ export function OnboardingPage() {
                     </div>
                   ))}
                 </dl>
+              </Card>
+
+              {/*
+                Aviso explícito y deliberado. Cerrar una venta NO crea el tenant
+                dentro del producto: son dos decisiones distintas y la segunda
+                tiene su propia política (manual, al activar la suscripción, o al
+                confirmarse el pago), configurable por integración y por destino.
+                Provisionar al cotizar sería regalar el producto.
+              */}
+              <Card title="Qué NO hace este alta">
+                <div className="px-4 py-3 text-sm text-muted">
+                  <p>
+                    Este formulario crea el <strong>contrato comercial</strong>: tenant,
+                    suscripción, líneas y atribución. <strong>No</strong> da de alta al cliente
+                    dentro del SaaS.
+                  </p>
+                  <p className="mt-2">
+                    Esa alta se decide en{' '}
+                    <Link to="/saas-provisioning" className="ebim-link">
+                      Infraestructura → Provisioning SaaS
+                    </Link>
+                    , según la política configurada en la integración del producto. El valor por
+                    defecto es <strong>manual</strong> hasta que el contrato de cada producto esté
+                    certificado.
+                  </p>
+                </div>
               </Card>
 
               <CheckboxField

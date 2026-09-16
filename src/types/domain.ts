@@ -124,6 +124,10 @@ export interface SessionRoles {
   organizations: Array<{ organizationId: string; role: OrgRole; displayName: string }>;
   tenantRoles: Array<{ tenantId: string; role: TenantRole }>;
   salesAgentId: string | null;
+  /** V4: roles TRANSVERSALES del plano de provisioning (sin PRODUCT_OWNER). */
+  provisioningRoles: Enums<'provisioning_role'>[];
+  /** V4: productos de los que el usuario es propietario técnico. */
+  ownedProductIds: string[];
 }
 
 /** Etiquetas en español de los enums, para no repetirlas por toda la UI. */

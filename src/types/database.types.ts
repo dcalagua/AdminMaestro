@@ -968,6 +968,13 @@ export type Database = {
             foreignKeyName: "cost_alloc_deployment_target_fk"
             columns: ["deployment_target_id"]
             isOneToOne: false
+            referencedRelation: "v_provisioning_targets"
+            referencedColumns: ["deployment_target_id"]
+          },
+          {
+            foreignKeyName: "cost_alloc_deployment_target_fk"
+            columns: ["deployment_target_id"]
+            isOneToOne: false
             referencedRelation: "v_tenant_overview"
             referencedColumns: ["deployment_target_id"]
           },
@@ -1124,6 +1131,92 @@ export type Database = {
           },
         ]
       }
+      credential_profiles: {
+        Row: {
+          algorithm: Database["platform"]["Enums"]["m2m_algorithm"] | null
+          audience: string | null
+          code: string
+          created_at: string
+          enabled: boolean
+          environment: Database["platform"]["Enums"]["provisioning_environment"]
+          id: string
+          issuer: string | null
+          name: string
+          public_key_ref: string | null
+          saas_product_id: string | null
+          secret_configured: boolean | null
+          secret_ref: string | null
+          token_ttl_seconds: number | null
+          type: Database["platform"]["Enums"]["credential_profile_type"]
+          updated_at: string
+        }
+        Insert: {
+          algorithm?: Database["platform"]["Enums"]["m2m_algorithm"] | null
+          audience?: string | null
+          code: string
+          created_at?: string
+          enabled?: boolean
+          environment: Database["platform"]["Enums"]["provisioning_environment"]
+          id?: string
+          issuer?: string | null
+          name: string
+          public_key_ref?: string | null
+          saas_product_id?: string | null
+          secret_configured?: boolean | null
+          secret_ref?: string | null
+          token_ttl_seconds?: number | null
+          type: Database["platform"]["Enums"]["credential_profile_type"]
+          updated_at?: string
+        }
+        Update: {
+          algorithm?: Database["platform"]["Enums"]["m2m_algorithm"] | null
+          audience?: string | null
+          code?: string
+          created_at?: string
+          enabled?: boolean
+          environment?: Database["platform"]["Enums"]["provisioning_environment"]
+          id?: string
+          issuer?: string | null
+          name?: string
+          public_key_ref?: string | null
+          saas_product_id?: string | null
+          secret_configured?: boolean | null
+          secret_ref?: string | null
+          token_ttl_seconds?: number | null
+          type?: Database["platform"]["Enums"]["credential_profile_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credential_profiles_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credential_profiles_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "credential_profiles_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "credential_profiles_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+        ]
+      }
       currencies: {
         Row: {
           code: string
@@ -1156,57 +1249,112 @@ export type Database = {
       }
       deployment_targets: {
         Row: {
+          base_url: string | null
           code: string
           cost_center: string | null
           created_at: string
+          credential_profile_id: string | null
           deployment_mode: Database["platform"]["Enums"]["deployment_mode"]
           environment: Database["platform"]["Enums"]["environment_kind"]
+          health_checked_at: string | null
+          health_detail: string | null
+          health_status: Database["platform"]["Enums"]["deployment_health"]
           id: string
           metadata: Json
           name: string
           owner_organization_id: string | null
+          product_integration_id: string | null
           provider: Database["platform"]["Enums"]["infra_provider"]
           provider_project_ref: string | null
+          provisioning_enabled: boolean
+          provisioning_environment:
+            | Database["platform"]["Enums"]["provisioning_environment"]
+            | null
+          provisioning_policy:
+            | Database["platform"]["Enums"]["provisioning_policy"]
+            | null
+          provisioning_status: Database["platform"]["Enums"]["deployment_target_status"]
           region: string | null
+          retry_count: number
           saas_product_id: string | null
           status: Database["platform"]["Enums"]["entity_status"]
+          timeout_ms: number
           updated_at: string
         }
         Insert: {
+          base_url?: string | null
           code: string
           cost_center?: string | null
           created_at?: string
+          credential_profile_id?: string | null
           deployment_mode: Database["platform"]["Enums"]["deployment_mode"]
           environment?: Database["platform"]["Enums"]["environment_kind"]
+          health_checked_at?: string | null
+          health_detail?: string | null
+          health_status?: Database["platform"]["Enums"]["deployment_health"]
           id?: string
           metadata?: Json
           name: string
           owner_organization_id?: string | null
+          product_integration_id?: string | null
           provider?: Database["platform"]["Enums"]["infra_provider"]
           provider_project_ref?: string | null
+          provisioning_enabled?: boolean
+          provisioning_environment?:
+            | Database["platform"]["Enums"]["provisioning_environment"]
+            | null
+          provisioning_policy?:
+            | Database["platform"]["Enums"]["provisioning_policy"]
+            | null
+          provisioning_status?: Database["platform"]["Enums"]["deployment_target_status"]
           region?: string | null
+          retry_count?: number
           saas_product_id?: string | null
           status?: Database["platform"]["Enums"]["entity_status"]
+          timeout_ms?: number
           updated_at?: string
         }
         Update: {
+          base_url?: string | null
           code?: string
           cost_center?: string | null
           created_at?: string
+          credential_profile_id?: string | null
           deployment_mode?: Database["platform"]["Enums"]["deployment_mode"]
           environment?: Database["platform"]["Enums"]["environment_kind"]
+          health_checked_at?: string | null
+          health_detail?: string | null
+          health_status?: Database["platform"]["Enums"]["deployment_health"]
           id?: string
           metadata?: Json
           name?: string
           owner_organization_id?: string | null
+          product_integration_id?: string | null
           provider?: Database["platform"]["Enums"]["infra_provider"]
           provider_project_ref?: string | null
+          provisioning_enabled?: boolean
+          provisioning_environment?:
+            | Database["platform"]["Enums"]["provisioning_environment"]
+            | null
+          provisioning_policy?:
+            | Database["platform"]["Enums"]["provisioning_policy"]
+            | null
+          provisioning_status?: Database["platform"]["Enums"]["deployment_target_status"]
           region?: string | null
+          retry_count?: number
           saas_product_id?: string | null
           status?: Database["platform"]["Enums"]["entity_status"]
+          timeout_ms?: number
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "deployment_targets_credential_profile_id_fkey"
+            columns: ["credential_profile_id"]
+            isOneToOne: false
+            referencedRelation: "credential_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "deployment_targets_owner_organization_id_fkey"
             columns: ["owner_organization_id"]
@@ -1248,6 +1396,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_tenant_overview"
             referencedColumns: ["managing_organization_id"]
+          },
+          {
+            foreignKeyName: "deployment_targets_product_integration_id_fkey"
+            columns: ["product_integration_id"]
+            isOneToOne: false
+            referencedRelation: "product_integrations"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "deployment_targets_saas_product_id_fkey"
@@ -2762,6 +2917,235 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_permissions: {
+        Row: {
+          code: string
+          created_at: string
+          description: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string
+        }
+        Relationships: []
+      }
+      product_integrations: {
+        Row: {
+          additional_scopes: string[]
+          algorithm: Database["platform"]["Enums"]["m2m_algorithm"] | null
+          allowed_hosts: string[]
+          audience: string | null
+          code: string
+          contract_version: string
+          create_path_template: string | null
+          create_scope: string | null
+          created_at: string
+          enabled: boolean
+          health_path_template: string | null
+          id: string
+          integration_type: Database["platform"]["Enums"]["integration_type"]
+          issuer: string
+          metadata: Json
+          name: string
+          owner_name: string | null
+          owner_user_id: string | null
+          provisioning_policy: Database["platform"]["Enums"]["provisioning_policy"]
+          read_scope: string | null
+          saas_product_id: string
+          status: Database["platform"]["Enums"]["integration_status"]
+          status_path_template: string | null
+          subject: string
+          token_ttl_seconds: number | null
+          updated_at: string
+        }
+        Insert: {
+          additional_scopes?: string[]
+          algorithm?: Database["platform"]["Enums"]["m2m_algorithm"] | null
+          allowed_hosts?: string[]
+          audience?: string | null
+          code: string
+          contract_version?: string
+          create_path_template?: string | null
+          create_scope?: string | null
+          created_at?: string
+          enabled?: boolean
+          health_path_template?: string | null
+          id?: string
+          integration_type: Database["platform"]["Enums"]["integration_type"]
+          issuer?: string
+          metadata?: Json
+          name: string
+          owner_name?: string | null
+          owner_user_id?: string | null
+          provisioning_policy?: Database["platform"]["Enums"]["provisioning_policy"]
+          read_scope?: string | null
+          saas_product_id: string
+          status?: Database["platform"]["Enums"]["integration_status"]
+          status_path_template?: string | null
+          subject?: string
+          token_ttl_seconds?: number | null
+          updated_at?: string
+        }
+        Update: {
+          additional_scopes?: string[]
+          algorithm?: Database["platform"]["Enums"]["m2m_algorithm"] | null
+          allowed_hosts?: string[]
+          audience?: string | null
+          code?: string
+          contract_version?: string
+          create_path_template?: string | null
+          create_scope?: string | null
+          created_at?: string
+          enabled?: boolean
+          health_path_template?: string | null
+          id?: string
+          integration_type?: Database["platform"]["Enums"]["integration_type"]
+          issuer?: string
+          metadata?: Json
+          name?: string
+          owner_name?: string | null
+          owner_user_id?: string | null
+          provisioning_policy?: Database["platform"]["Enums"]["provisioning_policy"]
+          read_scope?: string | null
+          saas_product_id?: string
+          status?: Database["platform"]["Enums"]["integration_status"]
+          status_path_template?: string | null
+          subject?: string
+          token_ttl_seconds?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_integrations_owner_user_id_fkey"
+            columns: ["owner_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_integrations_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_integrations_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "product_integrations_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "product_integrations_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+        ]
+      }
+      product_owners: {
+        Row: {
+          created_at: string
+          environment_scope:
+            | Database["platform"]["Enums"]["provisioning_environment"][]
+            | null
+          granted_at: string
+          granted_by: string | null
+          id: string
+          is_active: boolean
+          role: Database["platform"]["Enums"]["product_owner_role"]
+          saas_product_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          environment_scope?:
+            | Database["platform"]["Enums"]["provisioning_environment"][]
+            | null
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          is_active?: boolean
+          role?: Database["platform"]["Enums"]["product_owner_role"]
+          saas_product_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          environment_scope?:
+            | Database["platform"]["Enums"]["provisioning_environment"][]
+            | null
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          is_active?: boolean
+          role?: Database["platform"]["Enums"]["product_owner_role"]
+          saas_product_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_owners_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_owners_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_owners_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "product_owners_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "product_owners_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "product_owners_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -3411,6 +3795,13 @@ export type Database = {
             foreignKeyName: "provisioning_requests_deployment_target_id_fkey"
             columns: ["deployment_target_id"]
             isOneToOne: false
+            referencedRelation: "v_provisioning_targets"
+            referencedColumns: ["deployment_target_id"]
+          },
+          {
+            foreignKeyName: "provisioning_requests_deployment_target_id_fkey"
+            columns: ["deployment_target_id"]
+            isOneToOne: false
             referencedRelation: "v_tenant_overview"
             referencedColumns: ["deployment_target_id"]
           },
@@ -3472,6 +3863,80 @@ export type Database = {
           },
         ]
       }
+      provisioning_role_members: {
+        Row: {
+          created_at: string
+          granted_at: string
+          granted_by: string | null
+          id: string
+          is_active: boolean
+          notes: string | null
+          role: Database["platform"]["Enums"]["provisioning_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          role: Database["platform"]["Enums"]["provisioning_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          role?: Database["platform"]["Enums"]["provisioning_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provisioning_role_members_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provisioning_role_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provisioning_role_permissions: {
+        Row: {
+          permission_code: string
+          role: Database["platform"]["Enums"]["provisioning_role"]
+        }
+        Insert: {
+          permission_code: string
+          role: Database["platform"]["Enums"]["provisioning_role"]
+        }
+        Update: {
+          permission_code?: string
+          role?: Database["platform"]["Enums"]["provisioning_role"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provisioning_role_permissions_permission_code_fkey"
+            columns: ["permission_code"]
+            isOneToOne: false
+            referencedRelation: "platform_permissions"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       saas_products: {
         Row: {
           accent_color: string | null
@@ -3522,6 +3987,287 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      saas_provisioning_events: {
+        Row: {
+          action: string
+          actor_role: string | null
+          actor_user_id: string | null
+          attempt: number | null
+          correlation_id: string | null
+          detail: Json
+          id: number
+          message: string
+          occurred_at: string
+          provider_http_status: number | null
+          saas_provisioning_request_id: string
+          status: Database["platform"]["Enums"]["saas_provisioning_status"]
+        }
+        Insert: {
+          action: string
+          actor_role?: string | null
+          actor_user_id?: string | null
+          attempt?: number | null
+          correlation_id?: string | null
+          detail?: Json
+          id?: never
+          message: string
+          occurred_at?: string
+          provider_http_status?: number | null
+          saas_provisioning_request_id: string
+          status: Database["platform"]["Enums"]["saas_provisioning_status"]
+        }
+        Update: {
+          action?: string
+          actor_role?: string | null
+          actor_user_id?: string | null
+          attempt?: number | null
+          correlation_id?: string | null
+          detail?: Json
+          id?: never
+          message?: string
+          occurred_at?: string
+          provider_http_status?: number | null
+          saas_provisioning_request_id?: string
+          status?: Database["platform"]["Enums"]["saas_provisioning_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saas_provisioning_events_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_events_saas_provisioning_request_id_fkey"
+            columns: ["saas_provisioning_request_id"]
+            isOneToOne: false
+            referencedRelation: "saas_provisioning_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_events_saas_provisioning_request_id_fkey"
+            columns: ["saas_provisioning_request_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_provisioning"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saas_provisioning_requests: {
+        Row: {
+          attempt_count: number
+          cancel_reason: string | null
+          cancelled_at: string | null
+          completed_at: string | null
+          correlation_id: string
+          created_at: string
+          deployment_target_id: string | null
+          external_reference: string | null
+          id: string
+          idempotency_key: string
+          last_error_code: string | null
+          last_error_message: string | null
+          max_attempts: number
+          product_integration_id: string | null
+          provider_http_status: number | null
+          provisioning_environment: Database["platform"]["Enums"]["provisioning_environment"]
+          provisioning_policy: Database["platform"]["Enums"]["provisioning_policy"]
+          request_version: number
+          requested_at: string
+          requested_by: string | null
+          saas_product_id: string
+          started_at: string | null
+          status: Database["platform"]["Enums"]["saas_provisioning_status"]
+          subscription_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          completed_at?: string | null
+          correlation_id?: string
+          created_at?: string
+          deployment_target_id?: string | null
+          external_reference?: string | null
+          id?: string
+          idempotency_key: string
+          last_error_code?: string | null
+          last_error_message?: string | null
+          max_attempts?: number
+          product_integration_id?: string | null
+          provider_http_status?: number | null
+          provisioning_environment: Database["platform"]["Enums"]["provisioning_environment"]
+          provisioning_policy?: Database["platform"]["Enums"]["provisioning_policy"]
+          request_version?: number
+          requested_at?: string
+          requested_by?: string | null
+          saas_product_id: string
+          started_at?: string | null
+          status?: Database["platform"]["Enums"]["saas_provisioning_status"]
+          subscription_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          completed_at?: string | null
+          correlation_id?: string
+          created_at?: string
+          deployment_target_id?: string | null
+          external_reference?: string | null
+          id?: string
+          idempotency_key?: string
+          last_error_code?: string | null
+          last_error_message?: string | null
+          max_attempts?: number
+          product_integration_id?: string | null
+          provider_http_status?: number | null
+          provisioning_environment?: Database["platform"]["Enums"]["provisioning_environment"]
+          provisioning_policy?: Database["platform"]["Enums"]["provisioning_policy"]
+          request_version?: number
+          requested_at?: string
+          requested_by?: string | null
+          saas_product_id?: string
+          started_at?: string | null
+          status?: Database["platform"]["Enums"]["saas_provisioning_status"]
+          subscription_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saas_provisioning_requests_deployment_target_id_fkey"
+            columns: ["deployment_target_id"]
+            isOneToOne: false
+            referencedRelation: "deployment_targets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_deployment_target_id_fkey"
+            columns: ["deployment_target_id"]
+            isOneToOne: false
+            referencedRelation: "v_provisioning_targets"
+            referencedColumns: ["deployment_target_id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_deployment_target_id_fkey"
+            columns: ["deployment_target_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["deployment_target_id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_product_integration_id_fkey"
+            columns: ["product_integration_id"]
+            isOneToOne: false
+            referencedRelation: "product_integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_renewal_dashboard"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_collection"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_documents"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_mrr"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_margin"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
       }
       sales_agents: {
         Row: {
@@ -4530,6 +5276,13 @@ export type Database = {
             foreignKeyName: "tenant_deployments_deployment_target_id_fkey"
             columns: ["deployment_target_id"]
             isOneToOne: false
+            referencedRelation: "v_provisioning_targets"
+            referencedColumns: ["deployment_target_id"]
+          },
+          {
+            foreignKeyName: "tenant_deployments_deployment_target_id_fkey"
+            columns: ["deployment_target_id"]
+            isOneToOne: false
             referencedRelation: "v_tenant_overview"
             referencedColumns: ["deployment_target_id"]
           },
@@ -4674,6 +5427,142 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_product_mappings: {
+        Row: {
+          created_at: string
+          deployment_target_id: string | null
+          external_company_id: string | null
+          external_organization_id: string | null
+          external_tenant_id: string | null
+          id: string
+          metadata: Json
+          provisioned_at: string | null
+          registered_manually: boolean
+          saas_product_id: string
+          saas_provisioning_request_id: string | null
+          status: Database["platform"]["Enums"]["tenant_product_mapping_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deployment_target_id?: string | null
+          external_company_id?: string | null
+          external_organization_id?: string | null
+          external_tenant_id?: string | null
+          id?: string
+          metadata?: Json
+          provisioned_at?: string | null
+          registered_manually?: boolean
+          saas_product_id: string
+          saas_provisioning_request_id?: string | null
+          status?: Database["platform"]["Enums"]["tenant_product_mapping_status"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deployment_target_id?: string | null
+          external_company_id?: string | null
+          external_organization_id?: string | null
+          external_tenant_id?: string | null
+          id?: string
+          metadata?: Json
+          provisioned_at?: string | null
+          registered_manually?: boolean
+          saas_product_id?: string
+          saas_provisioning_request_id?: string | null
+          status?: Database["platform"]["Enums"]["tenant_product_mapping_status"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_product_mappings_deployment_target_id_fkey"
+            columns: ["deployment_target_id"]
+            isOneToOne: false
+            referencedRelation: "deployment_targets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_product_mappings_deployment_target_id_fkey"
+            columns: ["deployment_target_id"]
+            isOneToOne: false
+            referencedRelation: "v_provisioning_targets"
+            referencedColumns: ["deployment_target_id"]
+          },
+          {
+            foreignKeyName: "tenant_product_mappings_deployment_target_id_fkey"
+            columns: ["deployment_target_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["deployment_target_id"]
+          },
+          {
+            foreignKeyName: "tenant_product_mappings_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_product_mappings_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "tenant_product_mappings_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "tenant_product_mappings_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "tenant_product_mappings_saas_provisioning_request_id_fkey"
+            columns: ["saas_provisioning_request_id"]
+            isOneToOne: false
+            referencedRelation: "saas_provisioning_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_product_mappings_saas_provisioning_request_id_fkey"
+            columns: ["saas_provisioning_request_id"]
+            isOneToOne: false
+            referencedRelation: "v_saas_provisioning"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_product_mappings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_product_mappings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_margin"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_product_mappings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["tenant_id"]
           },
         ]
       }
@@ -5895,6 +6784,152 @@ export type Database = {
           },
         ]
       }
+      v_provisioning_targets: {
+        Row: {
+          algorithm: Database["platform"]["Enums"]["m2m_algorithm"] | null
+          audience: string | null
+          base_url: string | null
+          code: string | null
+          contract_version: string | null
+          create_path_template: string | null
+          create_scope: string | null
+          credential_profile_code: string | null
+          credential_profile_enabled: boolean | null
+          credential_profile_id: string | null
+          credential_profile_type:
+            | Database["platform"]["Enums"]["credential_profile_type"]
+            | null
+          credential_secret_configured: boolean | null
+          deployment_mode:
+            | Database["platform"]["Enums"]["deployment_mode"]
+            | null
+          deployment_target_id: string | null
+          effective_provisioning_policy:
+            | Database["platform"]["Enums"]["provisioning_policy"]
+            | null
+          health_checked_at: string | null
+          health_detail: string | null
+          health_path_template: string | null
+          health_status:
+            | Database["platform"]["Enums"]["deployment_health"]
+            | null
+          integration_code: string | null
+          integration_enabled: boolean | null
+          integration_status:
+            | Database["platform"]["Enums"]["integration_status"]
+            | null
+          integration_type:
+            | Database["platform"]["Enums"]["integration_type"]
+            | null
+          issuer: string | null
+          name: string | null
+          owner_organization_id: string | null
+          owner_organization_name: string | null
+          product_code: string | null
+          product_integration_id: string | null
+          product_short_name: string | null
+          provisioning_enabled: boolean | null
+          provisioning_environment:
+            | Database["platform"]["Enums"]["provisioning_environment"]
+            | null
+          provisioning_status:
+            | Database["platform"]["Enums"]["deployment_target_status"]
+            | null
+          read_scope: string | null
+          retry_count: number | null
+          saas_product_id: string | null
+          status_path_template: string | null
+          subject: string | null
+          timeout_ms: number | null
+          token_ttl_seconds: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deployment_targets_credential_profile_id_fkey"
+            columns: ["credential_profile_id"]
+            isOneToOne: false
+            referencedRelation: "credential_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deployment_targets_owner_organization_id_fkey"
+            columns: ["owner_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deployment_targets_owner_organization_id_fkey"
+            columns: ["owner_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_billing_contact_readiness"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "deployment_targets_owner_organization_id_fkey"
+            columns: ["owner_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_finance"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "deployment_targets_owner_organization_id_fkey"
+            columns: ["owner_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_margin"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "deployment_targets_owner_organization_id_fkey"
+            columns: ["owner_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["customer_organization_id"]
+          },
+          {
+            foreignKeyName: "deployment_targets_owner_organization_id_fkey"
+            columns: ["owner_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["managing_organization_id"]
+          },
+          {
+            foreignKeyName: "deployment_targets_product_integration_id_fkey"
+            columns: ["product_integration_id"]
+            isOneToOne: false
+            referencedRelation: "product_integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deployment_targets_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deployment_targets_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "deployment_targets_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "deployment_targets_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+        ]
+      }
       v_renewal_dashboard: {
         Row: {
           auto_suspend: boolean | null
@@ -5990,6 +7025,288 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_tenant_overview"
             referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      v_saas_provisioning: {
+        Row: {
+          attempt_count: number | null
+          base_url: string | null
+          cancel_reason: string | null
+          cancelled_at: string | null
+          completed_at: string | null
+          contract_version: string | null
+          correlation_id: string | null
+          created_at: string | null
+          customer_organization_id: string | null
+          customer_organization_name: string | null
+          deployment_code: string | null
+          deployment_health:
+            | Database["platform"]["Enums"]["deployment_health"]
+            | null
+          deployment_mode:
+            | Database["platform"]["Enums"]["deployment_mode"]
+            | null
+          deployment_status:
+            | Database["platform"]["Enums"]["deployment_target_status"]
+            | null
+          deployment_target_id: string | null
+          external_company_id: string | null
+          external_organization_id: string | null
+          external_reference: string | null
+          external_tenant_id: string | null
+          id: string | null
+          idempotency_key: string | null
+          integration_code: string | null
+          integration_type:
+            | Database["platform"]["Enums"]["integration_type"]
+            | null
+          last_error_code: string | null
+          last_error_message: string | null
+          managing_organization_id: string | null
+          managing_organization_name: string | null
+          mapping_id: string | null
+          mapping_metadata: Json | null
+          mapping_status:
+            | Database["platform"]["Enums"]["tenant_product_mapping_status"]
+            | null
+          max_attempts: number | null
+          product_code: string | null
+          product_integration_id: string | null
+          product_short_name: string | null
+          provider_http_status: number | null
+          provisioning_environment:
+            | Database["platform"]["Enums"]["provisioning_environment"]
+            | null
+          provisioning_policy:
+            | Database["platform"]["Enums"]["provisioning_policy"]
+            | null
+          registered_manually: boolean | null
+          request_version: number | null
+          requested_at: string | null
+          requested_by: string | null
+          requested_by_name: string | null
+          saas_product_id: string | null
+          started_at: string | null
+          status:
+            | Database["platform"]["Enums"]["saas_provisioning_status"]
+            | null
+          subscription_id: string | null
+          tenant_id: string | null
+          tenant_name: string | null
+          tenant_slug: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saas_provisioning_requests_deployment_target_id_fkey"
+            columns: ["deployment_target_id"]
+            isOneToOne: false
+            referencedRelation: "deployment_targets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_deployment_target_id_fkey"
+            columns: ["deployment_target_id"]
+            isOneToOne: false
+            referencedRelation: "v_provisioning_targets"
+            referencedColumns: ["deployment_target_id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_deployment_target_id_fkey"
+            columns: ["deployment_target_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["deployment_target_id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_product_integration_id_fkey"
+            columns: ["product_integration_id"]
+            isOneToOne: false
+            referencedRelation: "product_integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_renewal_dashboard"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_collection"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_documents"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_mrr"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_margin"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenants_customer_organization_id_fkey"
+            columns: ["customer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenants_customer_organization_id_fkey"
+            columns: ["customer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_billing_contact_readiness"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "tenants_customer_organization_id_fkey"
+            columns: ["customer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_finance"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "tenants_customer_organization_id_fkey"
+            columns: ["customer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_margin"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "tenants_customer_organization_id_fkey"
+            columns: ["customer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["customer_organization_id"]
+          },
+          {
+            foreignKeyName: "tenants_customer_organization_id_fkey"
+            columns: ["customer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["managing_organization_id"]
+          },
+          {
+            foreignKeyName: "tenants_managing_organization_id_fkey"
+            columns: ["managing_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenants_managing_organization_id_fkey"
+            columns: ["managing_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_billing_contact_readiness"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "tenants_managing_organization_id_fkey"
+            columns: ["managing_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_finance"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "tenants_managing_organization_id_fkey"
+            columns: ["managing_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_margin"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "tenants_managing_organization_id_fkey"
+            columns: ["managing_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["customer_organization_id"]
+          },
+          {
+            foreignKeyName: "tenants_managing_organization_id_fkey"
+            columns: ["managing_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["managing_organization_id"]
           },
         ]
       }
@@ -6480,6 +7797,26 @@ export type Database = {
         }
         Returns: string
       }
+      begin_saas_provisioning: {
+        Args: {
+          p_actor_id?: string
+          p_actor_role?: string
+          p_request_id: string
+        }
+        Returns: Json
+      }
+      build_provisioning_idempotency_key: {
+        Args: { p_product_id: string; p_tenant_id: string; p_version: number }
+        Returns: string
+      }
+      can_check_deployment_health: {
+        Args: { p_deployment_target_id: string }
+        Returns: boolean
+      }
+      can_execute_saas_provisioning: {
+        Args: { p_request_id: string }
+        Returns: boolean
+      }
       can_manage_commercial: { Args: never; Returns: boolean }
       can_manage_platform_entities: { Args: never; Returns: boolean }
       can_manage_regional_catalog: { Args: never; Returns: boolean }
@@ -6495,6 +7832,42 @@ export type Database = {
         Args: { p_document_id: string; p_reason?: string }
         Returns: undefined
       }
+      cancel_saas_provisioning_request: {
+        Args: { p_reason?: string; p_request_id: string }
+        Returns: string
+      }
+      check_provisioning_preconditions: {
+        Args: { p_request_id: string }
+        Returns: Json
+      }
+      complete_saas_provisioning: {
+        Args: {
+          p_actor_id?: string
+          p_actor_role?: string
+          p_external_company_id?: string
+          p_external_organization_id?: string
+          p_external_reference?: string
+          p_external_tenant_id: string
+          p_request_id: string
+          p_resources?: Json
+        }
+        Returns: Json
+      }
+      configure_deployment_provisioning: {
+        Args: {
+          p_base_url?: string
+          p_credential_profile_id?: string
+          p_deployment_target_id: string
+          p_product_integration_id?: string
+          p_provisioning_enabled?: boolean
+          p_provisioning_environment?: Database["platform"]["Enums"]["provisioning_environment"]
+          p_provisioning_policy?: Database["platform"]["Enums"]["provisioning_policy"]
+          p_provisioning_status?: Database["platform"]["Enums"]["deployment_target_status"]
+          p_retry_count?: number
+          p_timeout_ms?: number
+        }
+        Returns: string
+      }
       confirm_manual_payment: {
         Args: {
           p_amount: number
@@ -6505,6 +7878,15 @@ export type Database = {
           p_reference: string
         }
         Returns: Json
+      }
+      create_saas_provisioning_request: {
+        Args: {
+          p_environment: Database["platform"]["Enums"]["provisioning_environment"]
+          p_max_attempts?: number
+          p_subscription_id?: string
+          p_tenant_id: string
+        }
+        Returns: string
       }
       create_sales_attribution: {
         Args: {
@@ -6574,6 +7956,11 @@ export type Database = {
         Args: { p_reason?: string; p_rule_id: string; p_valid_to?: string }
         Returns: undefined
       }
+      deactivate_product_owner: { Args: { p_id: string }; Returns: string }
+      deployment_health_context: {
+        Args: { p_deployment_target_id: string }
+        Returns: Json
+      }
       effective_config: { Args: { p_company: string }; Returns: Json }
       effective_tenant_config: { Args: { p_tenant: string }; Returns: Json }
       end_product_agreement: {
@@ -6604,9 +7991,28 @@ export type Database = {
         }
         Returns: string
       }
+      evaluate_provisioning_policy: {
+        Args: {
+          p_policy: Database["platform"]["Enums"]["provisioning_policy"]
+          p_subscription_id: string
+        }
+        Returns: Json
+      }
       expire_commercial_documents: {
         Args: { p_as_of?: string }
         Returns: number
+      }
+      fail_saas_provisioning: {
+        Args: {
+          p_actor_id?: string
+          p_actor_role?: string
+          p_detail?: Json
+          p_error_code: string
+          p_http_status?: number
+          p_message?: string
+          p_request_id: string
+        }
+        Returns: Json
       }
       finance_consolidated: {
         Args: {
@@ -6700,9 +8106,26 @@ export type Database = {
         Args: { p_period_start?: string; p_subscription_id: string }
         Returns: Json
       }
+      grant_provisioning_role: {
+        Args: {
+          p_notes?: string
+          p_role: Database["platform"]["Enums"]["provisioning_role"]
+          p_user_id: string
+        }
+        Returns: string
+      }
       has_org_commercial_access: { Args: { p_org: string }; Returns: boolean }
+      has_platform_permission: { Args: { p_code: string }; Returns: boolean }
       has_platform_role: {
         Args: { p_role: Database["platform"]["Enums"]["platform_role"] }
+        Returns: boolean
+      }
+      has_product_permission: {
+        Args: { p_code: string; p_product: string }
+        Returns: boolean
+      }
+      is_blocked_provisioning_host: {
+        Args: { p_host: string }
         Returns: boolean
       }
       is_currency_active: { Args: { p_currency: string }; Returns: boolean }
@@ -6713,7 +8136,9 @@ export type Database = {
       is_org_admin: { Args: { p_org: string }; Returns: boolean }
       is_org_member: { Args: { p_org: string }; Returns: boolean }
       is_platform_admin: { Args: never; Returns: boolean }
+      is_safe_url_path: { Args: { p_path: string }; Returns: boolean }
       is_sales_agent: { Args: never; Returns: boolean }
+      is_secret_reference: { Args: { p_value: string }; Returns: boolean }
       is_service_context: { Args: never; Returns: boolean }
       is_slug: { Args: { p_value: string }; Returns: boolean }
       is_subscription_item_due_for_period: {
@@ -6727,6 +8152,13 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: never; Returns: boolean }
+      is_valid_provisioning_base_url: {
+        Args: {
+          p_env: Database["platform"]["Enums"]["provisioning_environment"]
+          p_url: string
+        }
+        Returns: boolean
+      }
       issue_subscription_invoice: {
         Args: { p_period_start?: string; p_subscription_id: string }
         Returns: Json
@@ -6743,11 +8175,25 @@ export type Database = {
         }
         Returns: number
       }
+      log_provisioning_config_change: {
+        Args: {
+          p_action: string
+          p_after: Json
+          p_before: Json
+          p_entity_id: string
+          p_entity_type: string
+          p_product_id?: string
+        }
+        Returns: number
+      }
       market_id_by_code: { Args: { p_code: string }; Returns: string }
       my_attributed_org_ids: { Args: never; Returns: string[] }
       my_attributed_tenant_ids: { Args: never; Returns: string[] }
       my_direct_tenant_ids: { Args: never; Returns: string[] }
       my_org_ids: { Args: never; Returns: string[] }
+      my_provisioning_actor_role: { Args: never; Returns: string }
+      my_provisioning_permissions: { Args: never; Returns: Json }
+      my_provisioning_product_ids: { Args: never; Returns: string[] }
       my_sales_agent_ids: { Args: never; Returns: string[] }
       my_tenant_ids: { Args: never; Returns: string[] }
       next_renewal_date: {
@@ -6827,6 +8273,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      provisioning_execution_context: {
+        Args: { p_request_id: string }
+        Returns: Json
+      }
       receive_commercial_document: {
         Args: {
           p_amount?: number
@@ -6839,7 +8289,29 @@ export type Database = {
         }
         Returns: undefined
       }
+      record_provisioning_event: {
+        Args: {
+          p_action: string
+          p_actor_id?: string
+          p_actor_role?: string
+          p_detail?: Json
+          p_http_status?: number
+          p_message: string
+          p_request_id: string
+        }
+        Returns: number
+      }
       refresh_billing_alerts: { Args: { p_as_of?: string }; Returns: number }
+      register_manual_provisioning: {
+        Args: {
+          p_external_company_id?: string
+          p_external_organization_id?: string
+          p_external_tenant_id: string
+          p_metadata?: Json
+          p_request_id: string
+        }
+        Returns: string
+      }
       register_provider_payment: {
         Args: {
           p_amount: number
@@ -6929,6 +8401,22 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      require_deployment_target: {
+        Args: {
+          p_environment: Database["platform"]["Enums"]["provisioning_environment"]
+          p_product_id: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
+      resolve_deployment_target: {
+        Args: {
+          p_environment: Database["platform"]["Enums"]["provisioning_environment"]
+          p_product_id: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
       resolve_market_currency: {
         Args: { p_currency: string; p_market_id: string }
         Returns: string
@@ -6937,10 +8425,16 @@ export type Database = {
         Args: { p_request_id: string }
         Returns: string
       }
+      retry_saas_provisioning_request: {
+        Args: { p_request_id: string }
+        Returns: string
+      }
+      reveal_credential_secret_ref: { Args: { p_id: string }; Returns: Json }
       reverse_payment: {
         Args: { p_payment_id: string; p_reason: string }
         Returns: Json
       }
+      revoke_provisioning_role: { Args: { p_id: string }; Returns: string }
       set_billing_alert_status: {
         Args: {
           p_alert_id: string
@@ -6960,6 +8454,14 @@ export type Database = {
           p_phone: string
         }
         Returns: string
+      }
+      set_deployment_health: {
+        Args: {
+          p_deployment_target_id: string
+          p_detail?: string
+          p_health: Database["platform"]["Enums"]["deployment_health"]
+        }
+        Returns: Database["platform"]["Enums"]["deployment_health"]
       }
       set_exchange_rate: {
         Args: {
@@ -7157,6 +8659,24 @@ export type Database = {
         }
         Returns: string
       }
+      upsert_credential_profile: {
+        Args: {
+          p_algorithm?: Database["platform"]["Enums"]["m2m_algorithm"]
+          p_audience?: string
+          p_code: string
+          p_enabled?: boolean
+          p_environment: Database["platform"]["Enums"]["provisioning_environment"]
+          p_id?: string
+          p_issuer?: string
+          p_name: string
+          p_public_key_ref?: string
+          p_saas_product_id?: string
+          p_secret_ref?: string
+          p_token_ttl_seconds?: number
+          p_type: Database["platform"]["Enums"]["credential_profile_type"]
+        }
+        Returns: string
+      }
       upsert_currency: {
         Args: {
           p_code: string
@@ -7275,6 +8795,45 @@ export type Database = {
         }
         Returns: string
       }
+      upsert_product_integration: {
+        Args: {
+          p_additional_scopes?: string[]
+          p_algorithm?: Database["platform"]["Enums"]["m2m_algorithm"]
+          p_allowed_hosts?: string[]
+          p_audience?: string
+          p_code: string
+          p_contract_version?: string
+          p_create_path_template?: string
+          p_create_scope?: string
+          p_enabled?: boolean
+          p_health_path_template?: string
+          p_id?: string
+          p_integration_type: Database["platform"]["Enums"]["integration_type"]
+          p_issuer?: string
+          p_metadata?: Json
+          p_name: string
+          p_owner_name?: string
+          p_owner_user_id?: string
+          p_provisioning_policy?: Database["platform"]["Enums"]["provisioning_policy"]
+          p_read_scope?: string
+          p_saas_product_id: string
+          p_status?: Database["platform"]["Enums"]["integration_status"]
+          p_status_path_template?: string
+          p_subject?: string
+          p_token_ttl_seconds?: number
+        }
+        Returns: string
+      }
+      upsert_product_owner: {
+        Args: {
+          p_environment_scope?: Database["platform"]["Enums"]["provisioning_environment"][]
+          p_is_active?: boolean
+          p_role?: Database["platform"]["Enums"]["product_owner_role"]
+          p_saas_product_id: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       upsert_provider_subscription: {
         Args: {
           p_external_customer_id?: string
@@ -7338,6 +8897,9 @@ export type Database = {
         }
         Returns: string
       }
+      url_authority: { Args: { p_url: string }; Returns: string }
+      url_host: { Args: { p_url: string }; Returns: string }
+      url_scheme: { Args: { p_url: string }; Returns: string }
       void_exchange_rate: {
         Args: { p_rate_id: string; p_reason: string }
         Returns: undefined
@@ -7411,12 +8973,17 @@ export type Database = {
         | "ORGANIZATION"
         | "TENANT"
         | "DEPLOYMENT_TARGET"
+      credential_profile_type: "M2M_ASYMMETRIC_JWT" | "NONE"
+      deployment_health: "UNKNOWN" | "HEALTHY" | "DEGRADED" | "UNHEALTHY"
       deployment_mode: "SHARED" | "PARTNER_DEDICATED" | "TENANT_DEDICATED"
+      deployment_target_status: "DRAFT" | "READY" | "MAINTENANCE" | "DISABLED"
       entity_status: "ACTIVE" | "INACTIVE" | "SUSPENDED" | "ARCHIVED"
       environment_kind: "DEMO" | "TRIAL" | "PRODUCTION" | "SANDBOX"
       fx_rate_source: "MANUAL"
       fx_rate_status: "ACTIVE" | "SUPERSEDED" | "VOIDED"
       infra_provider: "SUPABASE" | "AWS" | "AZURE" | "GCP" | "ON_PREMISE"
+      integration_status: "DRAFT" | "READY" | "DEGRADED" | "DISABLED"
+      integration_type: "HTTP_M2M" | "EDGE_FUNCTION" | "MANUAL" | "MOCK"
       invoice_status:
         | "DRAFT"
         | "ISSUED"
@@ -7424,6 +8991,7 @@ export type Database = {
         | "PAID"
         | "VOID"
         | "UNCOLLECTIBLE"
+      m2m_algorithm: "RS256" | "ES256"
       org_capability: "PARTNER" | "RESELLER" | "CONSULTING" | "CUSTOMER"
       org_kind: "PLATFORM" | "COMPANY"
       org_relationship_type: "MANAGES" | "RESELLS_TO" | "SUBCONTRACTS"
@@ -7435,6 +9003,7 @@ export type Database = {
         | "ORG_VIEWER"
       payment_status: "PENDING" | "CONFIRMED" | "REVERSED"
       platform_role: "EBIM_SUPER_ADMIN" | "EBIM_PRODUCT_ADMIN" | "EBIM_FINANCE"
+      product_owner_role: "TECHNICAL_OWNER" | "BACKUP_OWNER" | "VIEWER"
       provider_environment: "TEST" | "LIVE"
       provider_kind: "CULQI" | "MANUAL" | "BANK" | "OTHER"
       provider_mapping_status: "ACTIVE" | "INACTIVE" | "FAILED" | "PENDING"
@@ -7445,11 +9014,29 @@ export type Database = {
         | "SUSPEND_TENANT"
         | "RESUME_TENANT"
         | "DECOMMISSION_TENANT"
+      provisioning_environment: "DEV" | "QAS" | "DEMO" | "PRD"
+      provisioning_policy:
+        | "MANUAL"
+        | "AFTER_SUBSCRIPTION_ACTIVE"
+        | "AFTER_PAYMENT_CONFIRMED"
+      provisioning_role:
+        | "TECH_LEAD"
+        | "PROVISIONING_ADMIN"
+        | "PRODUCT_OWNER"
+        | "PROVISIONING_VIEWER"
       provisioning_status:
         | "PENDING"
         | "VALIDATING"
         | "RUNNING"
         | "SUCCEEDED"
+        | "FAILED"
+        | "CANCELLED"
+      saas_provisioning_status:
+        | "PENDING"
+        | "WAITING_INFRA"
+        | "READY_TO_PROVISION"
+        | "PROVISIONING"
+        | "ACTIVE"
         | "FAILED"
         | "CANCELLED"
       sales_agent_type: "EBIM_INTERNAL" | "INDEPENDENT" | "PARTNER_AGENT"
@@ -7460,6 +9047,11 @@ export type Database = {
         | "PAST_DUE"
         | "PAUSED"
         | "CANCELLED"
+      tenant_product_mapping_status:
+        | "PENDING"
+        | "ACTIVE"
+        | "FAILED"
+        | "SUSPENDED"
       tenant_role: "TENANT_ADMIN" | "TENANT_USER"
       tenant_status: "PENDING" | "ACTIVE" | "SUSPENDED" | "CHURNED" | "ARCHIVED"
       tenant_type: "DEMO" | "TRIAL" | "PRODUCTION" | "SANDBOX"
@@ -7666,12 +9258,17 @@ export const Constants = {
         "TENANT",
         "DEPLOYMENT_TARGET",
       ],
+      credential_profile_type: ["M2M_ASYMMETRIC_JWT", "NONE"],
+      deployment_health: ["UNKNOWN", "HEALTHY", "DEGRADED", "UNHEALTHY"],
       deployment_mode: ["SHARED", "PARTNER_DEDICATED", "TENANT_DEDICATED"],
+      deployment_target_status: ["DRAFT", "READY", "MAINTENANCE", "DISABLED"],
       entity_status: ["ACTIVE", "INACTIVE", "SUSPENDED", "ARCHIVED"],
       environment_kind: ["DEMO", "TRIAL", "PRODUCTION", "SANDBOX"],
       fx_rate_source: ["MANUAL"],
       fx_rate_status: ["ACTIVE", "SUPERSEDED", "VOIDED"],
       infra_provider: ["SUPABASE", "AWS", "AZURE", "GCP", "ON_PREMISE"],
+      integration_status: ["DRAFT", "READY", "DEGRADED", "DISABLED"],
+      integration_type: ["HTTP_M2M", "EDGE_FUNCTION", "MANUAL", "MOCK"],
       invoice_status: [
         "DRAFT",
         "ISSUED",
@@ -7680,6 +9277,7 @@ export const Constants = {
         "VOID",
         "UNCOLLECTIBLE",
       ],
+      m2m_algorithm: ["RS256", "ES256"],
       org_capability: ["PARTNER", "RESELLER", "CONSULTING", "CUSTOMER"],
       org_kind: ["PLATFORM", "COMPANY"],
       org_relationship_type: ["MANAGES", "RESELLS_TO", "SUBCONTRACTS"],
@@ -7692,6 +9290,7 @@ export const Constants = {
       ],
       payment_status: ["PENDING", "CONFIRMED", "REVERSED"],
       platform_role: ["EBIM_SUPER_ADMIN", "EBIM_PRODUCT_ADMIN", "EBIM_FINANCE"],
+      product_owner_role: ["TECHNICAL_OWNER", "BACKUP_OWNER", "VIEWER"],
       provider_environment: ["TEST", "LIVE"],
       provider_kind: ["CULQI", "MANUAL", "BANK", "OTHER"],
       provider_mapping_status: ["ACTIVE", "INACTIVE", "FAILED", "PENDING"],
@@ -7703,11 +9302,32 @@ export const Constants = {
         "RESUME_TENANT",
         "DECOMMISSION_TENANT",
       ],
+      provisioning_environment: ["DEV", "QAS", "DEMO", "PRD"],
+      provisioning_policy: [
+        "MANUAL",
+        "AFTER_SUBSCRIPTION_ACTIVE",
+        "AFTER_PAYMENT_CONFIRMED",
+      ],
+      provisioning_role: [
+        "TECH_LEAD",
+        "PROVISIONING_ADMIN",
+        "PRODUCT_OWNER",
+        "PROVISIONING_VIEWER",
+      ],
       provisioning_status: [
         "PENDING",
         "VALIDATING",
         "RUNNING",
         "SUCCEEDED",
+        "FAILED",
+        "CANCELLED",
+      ],
+      saas_provisioning_status: [
+        "PENDING",
+        "WAITING_INFRA",
+        "READY_TO_PROVISION",
+        "PROVISIONING",
+        "ACTIVE",
         "FAILED",
         "CANCELLED",
       ],
@@ -7719,6 +9339,12 @@ export const Constants = {
         "PAST_DUE",
         "PAUSED",
         "CANCELLED",
+      ],
+      tenant_product_mapping_status: [
+        "PENDING",
+        "ACTIVE",
+        "FAILED",
+        "SUSPENDED",
       ],
       tenant_role: ["TENANT_ADMIN", "TENANT_USER"],
       tenant_status: ["PENDING", "ACTIVE", "SUSPENDED", "CHURNED", "ARCHIVED"],

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   useTenant, useTenantFeatures, useTenantAttributions, useSubscriptions,
-  useTenantMargin, useProvisioningRequests, useAuditLogs,
+  useTenantMargin, useProvisioningRequests, useAuditLogs, useTenantProductMappings,
 } from '@/services/queries';
 import { useRequestTenantSuspension, useRequestTenantResume } from '@/services/mutations';
 import { useAuth } from '@/hooks/useAuth';
@@ -17,6 +17,13 @@ import { useToast } from '@/components/ui/toast-context';
 import { businessErrorMessage } from '@/lib/pgError';
 import { formatMoney, formatDate, formatDateTime } from '@/lib/format';
 import { DEPLOYMENT_MODE_LABEL, TENANT_TYPE_LABEL, TENANT_STATUS_LABEL, PROVISIONING_STATUS_LABEL } from '@/types/domain';
+import {
+  PROVISIONING_ENVIRONMENT_LABEL,
+  SAAS_PROVISIONING_STATUS_LABEL,
+  provisioningStatusTone,
+  type ProvisioningEnvironment,
+  type SaasProvisioningStatus,
+} from '@/lib/provisioning';
 
 /**
  * Detalle de tenant en pestañas administrativas (prompt fase 9).
@@ -33,6 +40,10 @@ export function TenantDetailPage() {
   const attributions = useTenantAttributions(tenantId);
   const subscriptions = useSubscriptions();
   const margins = useTenantMargin();
+  // Alta del tenant DENTRO de cada SaaS de la suite. Es otra pregunta que
+  // «¿dónde vive la base de datos?»: aquí se responde «¿existe ya este tenant
+  // en EWM, en eSupplier, en TMS?».
+  const productProvisioning = useTenantProductMappings(tenantId);
   const provisioning = useProvisioningRequests();
   const audit = useAuditLogs();
   const perms = usePermissions();
@@ -292,6 +303,61 @@ export function TenantDetailPage() {
                   )}
                 </Card>
               </div>
+            ),
+          },
+          {
+            id: 'products',
+            label: 'Productos / Provisioning',
+            content: (
+              <Card
+                title="Alta en los productos de la suite"
+                description="Estado del tenant DENTRO de cada SaaS. MasterAdmin muestra los identificadores que devolvió cada producto; no muestra sus datos operativos ni los interpreta."
+              >
+                {(productProvisioning.data ?? []).length === 0 ? (
+                  <EmptyState
+                    title="Sin altas registradas en ningún producto"
+                    description="Crear una cotización no aprovisiona: la política por defecto es manual hasta certificar el contrato de cada producto."
+                    action={
+                      <Link to="/saas-provisioning" className="ebim-btn-secondary">
+                        Ir a provisioning SaaS
+                      </Link>
+                    }
+                  />
+                ) : (
+                  <DataTable
+                    columns={['Producto', 'Estado', 'Ambiente', 'Destino', 'ID en el producto', 'Provisionado']}
+                  >
+                    {(productProvisioning.data ?? []).map((r) => (
+                      <tr key={r.id as string}>
+                        <td className="ebim-td font-medium">{r.product_short_name as string}</td>
+                        <td className="ebim-td">
+                          <Badge tone={provisioningStatusTone(r.status as SaasProvisioningStatus)}>
+                            {SAAS_PROVISIONING_STATUS_LABEL[r.status as SaasProvisioningStatus]}
+                          </Badge>
+                        </td>
+                        <td className="ebim-td">
+                          {
+                            PROVISIONING_ENVIRONMENT_LABEL[
+                              r.provisioning_environment as ProvisioningEnvironment
+                            ]
+                          }
+                        </td>
+                        <td className="ebim-td font-mono text-xs">
+                          {(r.deployment_code as string) ?? '—'}
+                        </td>
+                        <td className="ebim-td font-mono text-xs">
+                          {(r.external_tenant_id as string) ?? (
+                            <span className="text-muted">todavía sin ID</span>
+                          )}
+                        </td>
+                        <td className="ebim-td text-xs text-muted">
+                          {r.completed_at ? formatDateTime(r.completed_at as string) : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </DataTable>
+                )}
+              </Card>
             ),
           },
           {

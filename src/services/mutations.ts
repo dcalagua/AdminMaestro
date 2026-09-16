@@ -352,3 +352,157 @@ export function useEnqueueProvisioning() {
 export function useRetryProvisioning() {
   return useRpc('retry_provisioning_request', ['provisioning-requests']);
 }
+
+/* ==========================================================================
+   V4 · Plano de provisioning SaaS
+   --------------------------------------------------------------------------
+   Dos caminos, y la diferencia importa:
+
+     · CONFIGURACIÓN (integraciones, credenciales, destinos, propietarios) →
+       RPC directa, igual que el resto del Control Plane.
+
+     · EJECUCIÓN (provisionar, verificar conexión) → Edge Function. React NUNCA
+       llama a EWM, TMS ni a ningún producto. Llama al orquestador, que
+       comprueba el permiso contra la base ANTES de asumir el rol de servidor y
+       resuelve él mismo base_url, issuer, audience, scopes y credencial.
+       Lo único que viaja desde aquí es el identificador de la solicitud.
+   ========================================================================== */
+
+const PROVISIONING_KEYS = [
+  'saas-provisioning',
+  'saas-provisioning-events',
+  'provisioning-preconditions',
+  'tenant-product-mappings',
+  'provisioning-targets',
+];
+
+export function useUpsertProductIntegration() {
+  return useRpc('upsert_product_integration', [
+    'product-integrations',
+    'product-integration',
+    'provisioning-targets',
+    'provisioning-audit',
+  ]);
+}
+
+export function useUpsertCredentialProfile() {
+  return useRpc('upsert_credential_profile', [
+    'credential-profiles',
+    'provisioning-targets',
+    'provisioning-audit',
+  ]);
+}
+
+export function useConfigureDeploymentProvisioning() {
+  return useRpc('configure_deployment_provisioning', [
+    'provisioning-targets',
+    'deployment-targets',
+    'provisioning-audit',
+    ...PROVISIONING_KEYS,
+  ]);
+}
+
+export function useUpsertProductOwner() {
+  return useRpc('upsert_product_owner', ['product-owners', 'provisioning-permissions']);
+}
+
+export function useDeactivateProductOwner() {
+  return useRpc('deactivate_product_owner', ['product-owners', 'provisioning-permissions']);
+}
+
+export function useGrantProvisioningRole() {
+  return useRpc('grant_provisioning_role', ['provisioning-permissions']);
+}
+
+export function useCreateSaasProvisioningRequest() {
+  return useRpc('create_saas_provisioning_request', PROVISIONING_KEYS);
+}
+
+/** Reintenta la MISMA solicitud, con la MISMA clave de idempotencia. */
+export function useRetrySaasProvisioning() {
+  return useRpc('retry_saas_provisioning_request', PROVISIONING_KEYS);
+}
+
+export function useCancelSaasProvisioning() {
+  return useRpc('cancel_saas_provisioning_request', PROVISIONING_KEYS);
+}
+
+/** Alta hecha a mano en el producto, registrada con auditoría. */
+export function useRegisterManualProvisioning() {
+  return useRpc('register_manual_provisioning', PROVISIONING_KEYS);
+}
+
+/* --------------------------------------------------------------------------
+   Ejecución vía Edge Function
+   -------------------------------------------------------------------------- */
+
+export interface OrchestratorResult {
+  request_id?: string;
+  status?: string;
+  error?: string;
+  error_code?: string;
+  message?: string;
+  blockers?: string[];
+  attempts?: number;
+  external_tenant_id?: string;
+  health?: string;
+  detail?: string;
+  provider_http_status?: number | null;
+  retryable?: boolean;
+}
+
+/**
+ * Invoca el orquestador.
+ *
+ * El cuerpo lleva la ACCIÓN y un identificador, y nada más. No lleva base_url,
+ * ni scope, ni issuer, ni audience, ni el tipo de adaptador: todo eso lo
+ * resuelve el servidor (fase 39). Si el cliente pudiera elegirlo, podría
+ * reapuntar la llamada a cualquier sitio y ampliar el alcance del token.
+ */
+async function invokeOrchestrator(body: {
+  action: 'PROVISION' | 'CHECK_HEALTH';
+  request_id?: string;
+  deployment_target_id?: string;
+}): Promise<OrchestratorResult> {
+  const { data, error } = await supabase.functions.invoke<OrchestratorResult>(
+    'provisioning-orchestrator',
+    { body },
+  );
+
+  if (error) {
+    // `FunctionsHttpError` trae el cuerpo real; sin esto, un 403 llegaría como
+    // «Edge Function returned a non-2xx status code» y el operador no sabría
+    // si le falta permiso o si el destino está caído.
+    const context = (error as { context?: Response }).context;
+    if (context && typeof context.json === 'function') {
+      try {
+        const payload = (await context.json()) as OrchestratorResult;
+        throw new Error(payload.message ?? payload.error ?? error.message);
+      } catch (parsed) {
+        if (parsed instanceof Error && parsed.message !== error.message) throw parsed;
+      }
+    }
+    throw new Error(error.message);
+  }
+
+  return data ?? {};
+}
+
+export function useProvisionTenant() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (requestId: string) =>
+      invokeOrchestrator({ action: 'PROVISION', request_id: requestId }),
+    onSuccess: () => invalidate(qc, [...PROVISIONING_KEYS, ...AGGREGATE_KEYS]),
+  });
+}
+
+export function useCheckDeploymentHealth() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (deploymentTargetId: string) =>
+      invokeOrchestrator({ action: 'CHECK_HEALTH', deployment_target_id: deploymentTargetId }),
+    onSuccess: () =>
+      invalidate(qc, ['provisioning-targets', 'deployment-targets', ...PROVISIONING_KEYS]),
+  });
+}

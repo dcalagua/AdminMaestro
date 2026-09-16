@@ -14,7 +14,15 @@ import type { SessionRoles } from '@/types/domain';
  * ocultar un menú no protege nada.
  */
 export async function loadSessionRoles(userId: string, email: string): Promise<SessionRoles> {
-  const [profile, platformAdmin, orgMemberships, tenantMemberships, salesAgent] = await Promise.all([
+  const [
+    profile,
+    platformAdmin,
+    orgMemberships,
+    tenantMemberships,
+    salesAgent,
+    provisioningRoles,
+    productOwnerships,
+  ] = await Promise.all([
     supabase.from('profiles').select('full_name').eq('id', userId).maybeSingle(),
     supabase
       .from('platform_admins')
@@ -38,6 +46,20 @@ export async function loadSessionRoles(userId: string, email: string): Promise<S
       .eq('user_id', userId)
       .eq('status', 'ACTIVE')
       .maybeSingle(),
+    // V4: el plano de provisioning tiene su propia pertenencia a EBIM. Un
+    // PROVISIONING_ADMIN o un propietario técnico de producto es personal de
+    // EBIM aunque NO tenga fila en `platform_admins` — y debe tenerla, porque
+    // `platform_admins` concede la consola entera y su alcance es acotado.
+    supabase
+      .from('provisioning_role_members')
+      .select('role')
+      .eq('user_id', userId)
+      .eq('is_active', true),
+    supabase
+      .from('product_owners')
+      .select('saas_product_id, role')
+      .eq('user_id', userId)
+      .eq('is_active', true),
   ]);
 
   return {
@@ -56,6 +78,8 @@ export async function loadSessionRoles(userId: string, email: string): Promise<S
       role: m.role,
     })),
     salesAgentId: salesAgent.data?.id ?? null,
+    provisioningRoles: (provisioningRoles.data ?? []).map((r) => r.role),
+    ownedProductIds: (productOwnerships.data ?? []).map((o) => o.saas_product_id),
   };
 }
 
@@ -65,6 +89,11 @@ export type PersonaKind = 'EBIM' | 'PARTNER' | 'SALES_AGENT' | 'TENANT' | 'UNKNO
 export function resolvePersona(roles: SessionRoles | null): PersonaKind {
   if (!roles) return 'UNKNOWN';
   if (roles.platformRole) return 'EBIM';
+  // Personal de EBIM con alcance ACOTADO al plano de provisioning. Se resuelve
+  // como EBIM para que el menú y las rutas de infraestructura existan para
+  // ellos; lo que ven dentro lo sigue decidiendo RLS, que a un propietario de
+  // EWM no le devuelve una sola fila de eSupplier.
+  if (roles.provisioningRoles.length > 0 || roles.ownedProductIds.length > 0) return 'EBIM';
   if (roles.organizations.length > 0) return 'PARTNER';
   if (roles.salesAgentId) return 'SALES_AGENT';
   if (roles.tenantRoles.length > 0) return 'TENANT';

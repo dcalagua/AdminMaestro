@@ -11,6 +11,8 @@ function makeRoles(partial: Partial<SessionRoles>): SessionRoles {
     organizations: [],
     tenantRoles: [],
     salesAgentId: null,
+    provisioningRoles: [],
+    ownedProductIds: [],
     ...partial,
   };
 }
@@ -85,5 +87,36 @@ describe('gobernanza de dominio (contrato §13.2)', () => {
   it('los roles de consola no incluyen roles de tenant ni de partner', () => {
     expect(CONSOLE_ROLES).not.toContain('TENANT_ADMIN');
     expect(CONSOLE_ROLES).not.toContain('PARTNER_ADMIN');
+  });
+});
+
+/*
+ * V4 · Pertenencia al plano de provisioning.
+ *
+ * Un propietario técnico de producto es personal de EBIM, pero NO tiene fila en
+ * `platform_admins` a propósito: esa tabla concede la consola entera y su
+ * alcance es acotado. La persona se resuelve como EBIM para que las rutas de
+ * infraestructura existan; lo que ve dentro lo decide RLS.
+ */
+describe('persona del plano de provisioning', () => {
+  it('un propietario técnico de producto es persona EBIM', () => {
+    expect(resolvePersona(makeRoles({ ownedProductIds: ['ewm'] }))).toBe('EBIM');
+  });
+
+  it('un rol transversal de provisioning también', () => {
+    expect(resolvePersona(makeRoles({ provisioningRoles: ['PROVISIONING_ADMIN'] }))).toBe('EBIM');
+  });
+
+  it('pero NO le concede los permisos de plataforma del baseline', () => {
+    const owner = makeRoles({ ownedProductIds: ['ewm'] });
+    expect(canManagePlatform(owner)).toBe(false);
+    expect(isFinance(owner)).toBe(false);
+  });
+
+  it('sin nada de provisioning, la persona se resuelve como antes', () => {
+    expect(resolvePersona(makeRoles({ organizations: [
+      { organizationId: 'o1', role: 'PARTNER_ADMIN', displayName: 'X' },
+    ] }))).toBe('PARTNER');
+    expect(resolvePersona(makeRoles({}))).toBe('UNKNOWN');
   });
 });

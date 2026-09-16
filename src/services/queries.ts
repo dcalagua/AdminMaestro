@@ -3,6 +3,10 @@ import { supabase } from '@/lib/supabase';
 import type { DashboardSummary, Enums, FinanceConsolidated } from '@/types/domain';
 import { toMarketOptions, type MarketRow } from '@/lib/regional';
 import type { SubscriptionBillingStatus } from '@/lib/billing';
+import {
+  EMPTY_PROVISIONING_PERMISSIONS,
+  type ProvisioningPermissions,
+} from '@/lib/provisioning';
 
 /**
  * Capa de acceso a datos.
@@ -749,5 +753,208 @@ export function useTenantAttributions(tenantId: string | undefined) {
           .select('*, sales_agents(full_name, code, agent_type), commission_plans(name)')
           .eq('tenant_id', tenantId!),
       ),
+  });
+}
+
+/* ==========================================================================
+ * V4 · Plano de provisioning SaaS
+ *
+ * Igual que el resto del archivo: sin filtros de seguridad en el cliente. Un
+ * propietario técnico de EWM pide `product_integrations` y la base le devuelve
+ * sólo la de EWM — eso lo decide RLS, no este archivo.
+ *
+ * `credential_profiles` se consulta con la lista EXPLÍCITA de columnas y no con
+ * `*`: `authenticated` no tiene privilegio sobre `secret_ref` ni
+ * `public_key_ref`, y un `select *` fallaría entero. Esa lista es el recordatorio
+ * permanente de dónde está la frontera.
+ * ========================================================================== */
+
+/** Permisos EFECTIVOS del usuario. UX: la autorización sigue en la base. */
+export function useProvisioningPermissions() {
+  return useQuery({
+    queryKey: ['provisioning-permissions'],
+    queryFn: async (): Promise<ProvisioningPermissions> => {
+      const { data, error } = await supabase.rpc('my_provisioning_permissions');
+      if (error) throw new Error(error.message);
+      return (data ?? EMPTY_PROVISIONING_PERMISSIONS) as unknown as ProvisioningPermissions;
+    },
+    staleTime: 60_000,
+  });
+}
+
+export function useProductIntegrations() {
+  return useQuery({
+    queryKey: ['product-integrations'],
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('product_integrations')
+          .select('*, saas_products(code, short_name, accent_color), profiles(full_name, email)')
+          .order('code'),
+      ),
+  });
+}
+
+export function useProductIntegration(integrationId: string | undefined) {
+  return useQuery({
+    queryKey: ['product-integration', integrationId],
+    enabled: Boolean(integrationId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('product_integrations')
+        .select('*, saas_products(id, code, short_name, accent_color), profiles(full_name, email)')
+        .eq('id', integrationId!)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      return data;
+    },
+  });
+}
+
+/** Columnas explícitas: `secret_ref` está fuera por privilegio de COLUMNA. */
+const CREDENTIAL_PROFILE_COLUMNS =
+  'id, code, name, saas_product_id, type, environment, secret_configured, algorithm, issuer, audience, token_ttl_seconds, enabled, created_at, updated_at';
+
+export function useCredentialProfiles() {
+  return useQuery({
+    queryKey: ['credential-profiles'],
+    queryFn: async () =>
+      unwrap(
+        await supabase.from('credential_profiles').select(CREDENTIAL_PROFILE_COLUMNS).order('code'),
+      ),
+  });
+}
+
+export function useProvisioningTargets() {
+  return useQuery({
+    queryKey: ['provisioning-targets'],
+    queryFn: async () =>
+      unwrap(await supabase.from('v_provisioning_targets').select('*').order('code')),
+  });
+}
+
+export function useProductOwners() {
+  return useQuery({
+    queryKey: ['product-owners'],
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('product_owners')
+          .select('*, profiles!product_owners_user_id_fkey(full_name, email), saas_products(code, short_name)')
+          .eq('is_active', true)
+          .order('created_at'),
+      ),
+  });
+}
+
+export function useSaasProvisioningRequests() {
+  return useQuery({
+    queryKey: ['saas-provisioning'],
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('v_saas_provisioning')
+          .select('*')
+          .order('requested_at', { ascending: false }),
+      ),
+  });
+}
+
+export function useSaasProvisioningRequest(requestId: string | undefined) {
+  return useQuery({
+    queryKey: ['saas-provisioning', requestId],
+    enabled: Boolean(requestId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('v_saas_provisioning')
+        .select('*')
+        .eq('id', requestId!)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      return data;
+    },
+  });
+}
+
+export function useSaasProvisioningEvents(requestId: string | undefined) {
+  return useQuery({
+    queryKey: ['saas-provisioning-events', requestId],
+    enabled: Boolean(requestId),
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('saas_provisioning_events')
+          .select('*')
+          .eq('saas_provisioning_request_id', requestId!)
+          .order('occurred_at'),
+      ),
+  });
+}
+
+/** Precondiciones con CÓDIGOS de bloqueo: la UI explica por qué no se puede. */
+export function useProvisioningPreconditions(requestId: string | undefined) {
+  return useQuery({
+    queryKey: ['provisioning-preconditions', requestId],
+    enabled: Boolean(requestId),
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('check_provisioning_preconditions', {
+        p_request_id: requestId!,
+      });
+      if (error) throw new Error(error.message);
+      return data as unknown as {
+        can_execute: boolean;
+        blockers: string[];
+        adapter_type: string;
+        policy: { satisfied: boolean; policy: string; reason: string };
+      };
+    },
+  });
+}
+
+/** Provisioning de un tenant en cada SaaS de la suite (ficha del tenant). */
+export function useTenantProductMappings(tenantId: string | undefined) {
+  return useQuery({
+    queryKey: ['tenant-product-mappings', tenantId],
+    enabled: Boolean(tenantId),
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('v_saas_provisioning')
+          .select('*')
+          .eq('tenant_id', tenantId!)
+          .order('requested_at', { ascending: false }),
+      ),
+  });
+}
+
+/** Bitácora acotada a una entidad del plano de provisioning. */
+export function useProvisioningAudit(entityType: string, entityId: string | undefined) {
+  return useQuery({
+    queryKey: ['provisioning-audit', entityType, entityId],
+    enabled: Boolean(entityId),
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('audit_logs')
+          .select('*')
+          .eq('entity_type', entityType)
+          .eq('entity_id', entityId!)
+          .order('occurred_at', { ascending: false })
+          .limit(50),
+      ),
+  });
+}
+
+/**
+ * Personas visibles para asignar responsabilidades.
+ *
+ * Sin filtro en el cliente: RLS decide a quién ve cada uno (uno mismo, los
+ * compañeros de organización, y todos si es operador EBIM).
+ */
+export function usePlatformPeople() {
+  return useQuery({
+    queryKey: ['platform-people'],
+    queryFn: async () =>
+      unwrap(await supabase.from('profiles').select('id, full_name, email').order('email')),
   });
 }

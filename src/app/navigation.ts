@@ -26,6 +26,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/products', label: 'Suite SaaS', group: 'Plataforma' },
   { to: '/plans', label: 'Planes y licencias', group: 'Plataforma' },
   { to: '/feature-flags', label: 'Feature flags', group: 'Plataforma' },
+  { to: '/integrations', label: 'Integraciones SaaS', group: 'Plataforma', personas: ['EBIM'] },
 
   // ---- Comercial ----------------------------------------------------------
   { to: '/partners', label: 'Partners / Resellers', group: 'Comercial', personas: ['EBIM', 'PARTNER'] },
@@ -48,7 +49,8 @@ export const NAV_ITEMS: NavItem[] = [
 
   // ---- Infraestructura ----------------------------------------------------
   { to: '/deployments', label: 'Deployments', group: 'Infraestructura', personas: ['EBIM', 'PARTNER'] },
-  { to: '/provisioning', label: 'Provisioning', group: 'Infraestructura', personas: ['EBIM', 'PARTNER'] },
+  { to: '/provisioning', label: 'Provisioning de infraestructura', group: 'Infraestructura', personas: ['EBIM', 'PARTNER'] },
+  { to: '/saas-provisioning', label: 'Provisioning SaaS', group: 'Infraestructura', personas: ['EBIM', 'PARTNER'] },
 
   // ---- Gobierno -----------------------------------------------------------
   { to: '/costs', label: 'Costos y margen', group: 'Gobierno', personas: ['EBIM'] },
