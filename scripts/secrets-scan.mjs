@@ -62,6 +62,22 @@ function walk(dir) {
 }
 
 const findings = [];
+const allowances = [];
+
+/**
+ * Excepción EXPLÍCITA y por línea.
+ *
+ * Hay sitios donde la cadena que dispara una regla es justo lo que se está
+ * probando: un test que verifica que un encabezado PEM se REDACTA tiene que
+ * contener ese encabezado, y un test que verifica que la base RECHAZA una clave
+ * privada en `secret_ref` tiene que intentar guardarla.
+ *
+ * Poner esos ficheros en la ALLOWLIST sería abrir un agujero: bastaría con
+ * pegar una clave real en cualquier test. En su lugar, la exención es por LÍNEA
+ * y obliga a escribir el motivo, así que cada una es visible, greppable y
+ * revisable. El resumen final las cuenta para que no crezcan en silencio.
+ */
+const ALLOW_MARKER = /secrets-scan:allow\s+(.+)/;
 
 function scan(files, origin) {
   for (const file of files) {
@@ -72,11 +88,27 @@ function scan(files, origin) {
     } catch {
       continue;
     }
+    const lines = content.split('\n');
+
     for (const { name, re } of PATTERNS) {
-      const match = content.match(re);
-      if (match) {
+      // Copia global: hay que ver TODAS las coincidencias, no sólo la primera.
+      // Con `match()` a secas, un fichero con una exención legítima escondía
+      // cualquier hallazgo posterior del mismo patrón.
+      const all = new RegExp(re.source, re.flags.includes('g') ? re.flags : `${re.flags}g`);
+      let match;
+      while ((match = all.exec(content)) !== null) {
         const line = content.slice(0, match.index).split('\n').length;
-        findings.push({ file, line, name, origin });
+        // La marca puede ir en la misma línea o en la anterior: una coincidencia
+        // multilínea (un bloque PEM) empieza donde está el comentario de arriba.
+        const marked =
+          (lines[line - 1] ?? '').match(ALLOW_MARKER) ?? (lines[line - 2] ?? '').match(ALLOW_MARKER);
+        if (marked) {
+          allowances.push({ file, line, name, reason: marked[1].trim() });
+        } else {
+          findings.push({ file, line, name, origin });
+        }
+        // Un patrón sin `g` no avanza lastIndex y entraría en bucle infinito.
+        if (all.lastIndex === match.index) all.lastIndex += 1;
       }
     }
   }
@@ -99,6 +131,13 @@ if (existsSync('.env.example')) {
         origin: 'configuración',
       });
     }
+  }
+}
+
+if (allowances.length > 0) {
+  console.log(`SECRETS_SCAN: ${allowances.length} exención(es) explícita(s) por línea:`);
+  for (const a of allowances) {
+    console.log(`  ${a.file}:${a.line} — ${a.name} · motivo: ${a.reason}`);
   }
 }
 

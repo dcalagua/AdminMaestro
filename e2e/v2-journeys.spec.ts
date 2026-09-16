@@ -168,7 +168,7 @@ test.describe('J5-J6 · Modelos dedicados', () => {
   });
 
   test('se encola provisioning en DRY_RUN desde la consola', async ({ page }) => {
-    await goToSection(page, 'Provisioning');
+    await goToSection(page, 'Provisioning de infraestructura');
     await expect(page.getByText('Modo por defecto: DRY_RUN')).toBeVisible();
 
     await page.getByRole('button', { name: 'Encolar solicitud' }).click();
@@ -264,7 +264,9 @@ test.describe('J10 · Comercial: comisión sí, acceso operativo no', () => {
 
     // Nada de infraestructura, cobranza ni organizaciones ajenas.
     await expect(page.getByRole('link', { name: 'Deployments' })).toHaveCount(0);
-    await expect(page.getByRole('link', { name: 'Provisioning' })).toHaveCount(0);
+    // Los DOS ejes de provisioning quedan fuera del alcance de un comercial.
+    await expect(page.getByRole('link', { name: 'Provisioning de infraestructura' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Provisioning SaaS' })).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'Renovaciones y alertas' })).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'Nueva venta' })).toHaveCount(0);
   });

@@ -87,7 +87,9 @@ test.describe('Consola EBIM (super admin)', () => {
   });
 
   test('provisioning corre en DRY_RUN y expone su timeline', async ({ page }) => {
-    await page.getByRole('link', { name: 'Provisioning' }).click();
+    // Nombre exacto: desde V4 hay DOS entradas de provisioning en el mismo grupo
+    // —infraestructura y SaaS— y son ejes distintos a propósito.
+    await page.getByRole('link', { name: 'Provisioning de infraestructura' }).click();
     await expect(page.getByText('Modo por defecto: DRY_RUN')).toBeVisible();
     await page.getByRole('button', { name: 'Timeline' }).first().click();
     await expect(page.getByText(/modo DRY_RUN|Solicitud encolada/).first()).toBeVisible();
