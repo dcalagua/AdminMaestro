@@ -1675,3 +1675,262 @@ begin
     v_markets, v_sub_cur, v_com_cur, v_demo_fx, v_pe_usd, v_ec_usd;
 end;
 $$;
+
+-- ============================================================================
+-- V4 · Plano de provisioning SaaS — fixtures
+-- ----------------------------------------------------------------------------
+-- Qué hay aquí y qué NO:
+--   SÍ: usuarios de prueba, roles del plano de provisioning, propiedad técnica
+--       por producto, una integración MOCK local, una integración HTTP_M2M de
+--       EWM en QAS en estado DRAFT y sus destinos.
+--   NO: ninguna clave privada, ningún valor de secreto, ninguna URL productiva
+--       real. `EWM_QAS_M2M_PRIVATE_KEY` es un NOMBRE de secreto; el valor vive
+--       en el almacén del servidor y no existe en esta base ni en este archivo.
+--       El host QAS usa el TLD reservado `.invalid` a propósito: es imposible
+--       que resuelva a nada y deja claro que es un marcador de posición.
+-- ============================================================================
+
+-- ---------------------------------------------------------------------------
+-- V4.0 Usuarios del plano de provisioning
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_users constant jsonb := jsonb_build_array(
+    jsonb_build_object('id', '10000000-0000-4000-a000-00000000000d', 'email', 'provisioning.admin@ebim.test', 'name', 'Pedro Provisioning (Provisioning Admin)'),
+    jsonb_build_object('id', '10000000-0000-4000-a000-00000000000e', 'email', 'ewm.owner@ebim.test',          'name', 'Elena EWM (Product Owner EWM)'),
+    jsonb_build_object('id', '10000000-0000-4000-a000-00000000000f', 'email', 'esupplier.owner@ebim.test',    'name', 'Sergio eSupplier (Product Owner eSupplier)')
+  );
+  v_u jsonb;
+begin
+  for v_u in select * from jsonb_array_elements(v_users) loop
+    insert into auth.users (
+      instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+      raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+      confirmation_token, recovery_token, email_change_token_new, email_change,
+      email_change_token_current, phone_change, phone_change_token, reauthentication_token
+    )
+    values (
+      '00000000-0000-0000-0000-000000000000', (v_u ->> 'id')::uuid,
+      'authenticated', 'authenticated', v_u ->> 'email',
+      extensions.crypt('Ebim.Demo2026!', extensions.gen_salt('bf')), now(),
+      '{"provider":"email","providers":["email"]}'::jsonb,
+      jsonb_build_object('full_name', v_u ->> 'name'),
+      now(), now(), '', '', '', '', '', '', '', ''
+    )
+    on conflict (id) do nothing;
+
+    insert into auth.identities (
+      provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+    values (
+      v_u ->> 'id', (v_u ->> 'id')::uuid,
+      jsonb_build_object('sub', v_u ->> 'id', 'email', v_u ->> 'email', 'email_verified', true),
+      'email', now(), now(), now())
+    on conflict (provider, provider_id) do nothing;
+  end loop;
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- V4.1 Roles transversales del plano de provisioning
+-- ---------------------------------------------------------------------------
+-- El super admin (dcalagua) NO aparece: es transversal por definición del
+-- contrato §13 y `has_platform_permission()` lo resuelve sin membresía.
+-- ---------------------------------------------------------------------------
+insert into platform.provisioning_role_members (user_id, role, notes) values
+  ('10000000-0000-4000-a000-000000000002', 'TECH_LEAD',
+   'Paula Producto ejerce de Tech Lead: visión transversal de toda la suite'),
+  ('10000000-0000-4000-a000-00000000000d', 'PROVISIONING_ADMIN',
+   'Opera provisioning de todos los productos; no reparte propiedad técnica'),
+  ('10000000-0000-4000-a000-000000000003', 'PROVISIONING_VIEWER',
+   'Finanzas mira el estado de las altas; no ejecuta ninguna')
+on conflict do nothing;
+
+-- ---------------------------------------------------------------------------
+-- V4.2 Propiedad técnica por producto
+-- ---------------------------------------------------------------------------
+-- Elena posee EWM y Sergio posee eSupplier. Ninguno de los dos ve el producto
+-- del otro: es el escenario que verifican los tests de aislamiento.
+-- ---------------------------------------------------------------------------
+insert into platform.product_owners (saas_product_id, user_id, role) values
+  ('20000000-0000-4000-a000-000000000002', '10000000-0000-4000-a000-00000000000e', 'TECHNICAL_OWNER'),
+  ('20000000-0000-4000-a000-000000000001', '10000000-0000-4000-a000-00000000000f', 'TECHNICAL_OWNER')
+on conflict do nothing;
+
+-- ---------------------------------------------------------------------------
+-- V4.3 Integraciones
+-- ---------------------------------------------------------------------------
+insert into platform.product_integrations (
+  id, saas_product_id, code, name, integration_type, contract_version,
+  owner_user_id, owner_name, issuer, audience, subject, algorithm, token_ttl_seconds,
+  create_scope, read_scope, create_path_template, status_path_template, health_path_template,
+  allowed_hosts, provisioning_policy, enabled, status
+) values
+  -- MOCK local: es lo que permite ejercitar el flujo completo PENDING →
+  -- PROVISIONING → ACTIVE sin contactar con ningún SaaS. Sólo sirve en DEV; un
+  -- trigger impide asociarlo a un destino de QAS o PRD.
+  ('70000000-0000-4000-a000-000000000001', '20000000-0000-4000-a000-000000000002',
+   'ewm-mock-local', 'EWM · adaptador MOCK (sólo DEV)', 'MOCK', 'v1',
+   '10000000-0000-4000-a000-00000000000e', 'Elena EWM',
+   'masteradmin.ebim', null, 'masteradmin-provisioning', null, null,
+   null, null, null, null, null,
+   '{}'::text[], 'MANUAL', true, 'READY'),
+
+  -- EWM QAS sobre el contrato estándar HTTP_M2M. Queda en DRAFT y deshabilitada
+  -- a propósito: el contrato definitivo de EWM todavía no está confirmado y su
+  -- secreto de firma no está aprovisionado. Cuando llegue, esto se completa
+  -- DESDE LA UI — no hace falta tocar SQL ni desplegar código.
+  ('70000000-0000-4000-a000-000000000002', '20000000-0000-4000-a000-000000000002',
+   'ewm-provisioning-v1', 'EWM · API interna de provisioning v1', 'HTTP_M2M', 'v1',
+   '10000000-0000-4000-a000-00000000000e', 'Elena EWM',
+   'masteradmin.ebim', 'ewm.ebim', 'masteradmin-provisioning', 'RS256', 300,
+   'provisioning:tenant:create', 'provisioning:tenant:read',
+   '/internal/platform/v1/tenants', '/internal/platform/v1/tenants/{externalTenantId}',
+   '/internal/platform/v1/health',
+   '{}'::text[], 'MANUAL', false, 'DRAFT'),
+
+  -- eSupplier todavía sin API: el alta se registra a mano con auditoría.
+  ('70000000-0000-4000-a000-000000000003', '20000000-0000-4000-a000-000000000001',
+   'esupplier-manual', 'eSupplier · alta manual con auditoría', 'MANUAL', 'v1',
+   '10000000-0000-4000-a000-00000000000f', 'Sergio eSupplier',
+   'masteradmin.ebim', null, 'masteradmin-provisioning', null, null,
+   null, null, null, null, null,
+   '{}'::text[], 'MANUAL', true, 'READY')
+on conflict (id) do nothing;
+
+-- ---------------------------------------------------------------------------
+-- V4.4 Perfiles de credencial — REFERENCIAS, nunca valores
+-- ---------------------------------------------------------------------------
+insert into platform.credential_profiles (
+  id, code, name, saas_product_id, type, environment, secret_ref, public_key_ref,
+  algorithm, issuer, audience, token_ttl_seconds, enabled
+) values
+  -- El secreto real NO existe aquí. `EWM_QAS_M2M_PRIVATE_KEY` es el nombre que
+  -- la Edge Function resolverá contra su almacén. Sin ese valor cargado, el
+  -- perfil queda deshabilitado y el destino QAS no puede declararse READY.
+  ('71000000-0000-4000-a000-000000000001', 'ewm-qas-m2m', 'EWM QAS · firma M2M',
+   '20000000-0000-4000-a000-000000000002', 'M2M_ASYMMETRIC_JWT', 'QAS',
+   'EWM_QAS_M2M_PRIVATE_KEY', 'EWM_QAS_M2M_PUBLIC_KEY', 'RS256',
+   'masteradmin.ebim', 'ewm.ebim', 300, false),
+
+  ('71000000-0000-4000-a000-000000000002', 'ewm-dev-none', 'EWM DEV · sin credencial (MOCK)',
+   '20000000-0000-4000-a000-000000000002', 'NONE', 'DEV',
+   null, null, null, null, null, null, true)
+on conflict (id) do nothing;
+
+-- ---------------------------------------------------------------------------
+-- V4.5 Destinos de provisioning
+-- ---------------------------------------------------------------------------
+-- Los seis destinos del baseline se dejan INTACTOS: siguen sin
+-- `provisioning_environment`, así que el resolutor no los considera y ninguna
+-- prueba existente cambia de comportamiento.
+-- ---------------------------------------------------------------------------
+insert into platform.deployment_targets
+  (id, code, name, provider, deployment_mode, environment, region,
+   provider_project_ref, owner_organization_id, saas_product_id, cost_center) values
+  ('40000000-0000-4000-a000-000000000007', 'ewm-shared-dev', 'EWM Compartido · DEV (MOCK)',
+   'SUPABASE', 'SHARED', 'SANDBOX', 'local', null,
+   null, '20000000-0000-4000-a000-000000000002', 'CC-DEV-EWM'),
+  ('40000000-0000-4000-a000-000000000008', 'ewm-shared-qas', 'EWM Compartido · QAS',
+   'SUPABASE', 'SHARED', 'SANDBOX', 'sa-east-1', null,
+   null, '20000000-0000-4000-a000-000000000002', 'CC-QAS-EWM'),
+  ('40000000-0000-4000-a000-000000000009', 'pacifico-ewm-dev', 'Reseller Pacífico · EWM DEV',
+   'SUPABASE', 'PARTNER_DEDICATED', 'SANDBOX', 'local', null,
+   '30000000-0000-4000-a000-000000000003', '20000000-0000-4000-a000-000000000002', 'CC-DEV-PD-PACIFICO'),
+  ('40000000-0000-4000-a000-00000000000a', 'esupplier-shared-dev', 'eSupplier Compartido · DEV',
+   'SUPABASE', 'SHARED', 'SANDBOX', 'local', null,
+   null, '20000000-0000-4000-a000-000000000001', 'CC-DEV-ESUP')
+on conflict (id) do nothing;
+
+-- Configuración de provisioning de esos destinos.
+update platform.deployment_targets set
+  product_integration_id = '70000000-0000-4000-a000-000000000001',
+  credential_profile_id = '71000000-0000-4000-a000-000000000002',
+  provisioning_environment = 'DEV',
+  base_url = null,
+  timeout_ms = 5000, retry_count = 1,
+  provisioning_status = 'READY', provisioning_enabled = true,
+  health_status = 'HEALTHY', health_checked_at = now(),
+  health_detail = 'Adaptador MOCK: no hay servicio remoto que verificar'
+where id = '40000000-0000-4000-a000-000000000007';
+
+update platform.deployment_targets set
+  product_integration_id = '70000000-0000-4000-a000-000000000001',
+  credential_profile_id = '71000000-0000-4000-a000-000000000002',
+  provisioning_environment = 'DEV',
+  timeout_ms = 5000, retry_count = 1,
+  provisioning_status = 'READY', provisioning_enabled = true,
+  health_status = 'HEALTHY', health_checked_at = now()
+where id = '40000000-0000-4000-a000-000000000009';
+
+-- eSupplier DEV usa el adaptador MANUAL: hay destino y hay flujo, pero el alta
+-- la registra una persona.
+update platform.deployment_targets set
+  product_integration_id = '70000000-0000-4000-a000-000000000003',
+  provisioning_environment = 'DEV',
+  provisioning_status = 'READY', provisioning_enabled = true,
+  health_status = 'UNKNOWN'
+where id = '40000000-0000-4000-a000-00000000000a';
+
+-- QAS de EWM: host marcador de posición con TLD reservado `.invalid`, HTTPS
+-- obligatorio, credencial todavía deshabilitada. Queda en DRAFT porque un
+-- destino READY con la credencial apagada sería una mentira.
+update platform.deployment_targets set
+  product_integration_id = '70000000-0000-4000-a000-000000000002',
+  credential_profile_id = '71000000-0000-4000-a000-000000000001',
+  provisioning_environment = 'QAS',
+  base_url = 'https://ewm-qas.example.invalid',
+  timeout_ms = 15000, retry_count = 2,
+  provisioning_status = 'DRAFT', provisioning_enabled = false,
+  health_status = 'UNKNOWN'
+where id = '40000000-0000-4000-a000-000000000008';
+
+-- ---------------------------------------------------------------------------
+-- V4.6 Verificación del seed de provisioning
+-- ---------------------------------------------------------------------------
+-- Un seed que se rompe en silencio produce tests verdes que no prueban nada.
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_secretos  integer;
+  v_dev_mock  integer;
+  v_resuelto  jsonb;
+  v_dedicado  jsonb;
+begin
+  -- Ninguna referencia puede tener pinta de valor. El CHECK ya lo garantiza;
+  -- esto lo comprueba por si alguien relaja el CHECK mañana.
+  select count(*) into v_secretos from platform.credential_profiles
+   where secret_ref is not null and not platform.is_secret_reference(secret_ref);
+  if v_secretos > 0 then
+    raise exception 'SEED_V4_INSEGURO: % referencias de secreto no tienen forma de referencia', v_secretos;
+  end if;
+
+  select count(*) into v_dev_mock from platform.deployment_targets d
+    join platform.product_integrations i on i.id = d.product_integration_id
+   where i.integration_type = 'MOCK' and d.provisioning_environment <> 'DEV';
+  if v_dev_mock > 0 then
+    raise exception 'SEED_V4_INSEGURO: % destinos MOCK fuera de DEV', v_dev_mock;
+  end if;
+
+  -- Alpha EWM es SHARED: en DEV debe resolver a ewm-shared-dev y sólo a ese.
+  v_resuelto := platform.resolve_deployment_target(
+    '50000000-0000-4000-a000-000000000008', '20000000-0000-4000-a000-000000000002', 'DEV');
+  if v_resuelto ->> 'outcome' <> 'RESOLVED'
+     or (v_resuelto ->> 'deployment_target_id')::uuid <> '40000000-0000-4000-a000-000000000007' then
+    raise exception 'SEED_V4_INCOMPLETO: alpha-ewm no resuelve a ewm-shared-dev (%)', v_resuelto;
+  end if;
+
+  -- Titán es TENANT_DEDICATED y NO tiene destino DEV: debe dar
+  -- DEPLOYMENT_NOT_CONFIGURED, que es lo que produce WAITING_INFRA.
+  v_dedicado := platform.resolve_deployment_target(
+    '50000000-0000-4000-a000-00000000000d', '20000000-0000-4000-a000-000000000002', 'DEV');
+  if v_dedicado ->> 'outcome' <> 'DEPLOYMENT_NOT_CONFIGURED' then
+    raise exception 'SEED_V4_INCOMPLETO: titan-ewm debería quedar sin destino DEV (%)', v_dedicado;
+  end if;
+
+  raise notice 'SEED V4 OK · integraciones=% credenciales=% destinos_provisioning=% owners=%',
+    (select count(*) from platform.product_integrations),
+    (select count(*) from platform.credential_profiles),
+    (select count(*) from platform.deployment_targets where provisioning_environment is not null),
+    (select count(*) from platform.product_owners where is_active);
+end;
+$$;
