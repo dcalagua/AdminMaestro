@@ -441,3 +441,15 @@ verify_jwt = false
 # asumir el rol de servidor. Un JWT válido demuestra sesión, no autorización.
 # El canal servidor-a-servidor usa la cabecera `x-provisioning-secret`.
 verify_jwt = true
+
+[functions.provisioning-orchestrator]
+# Exige JWT, pero eso NO basta y la función no lo trata como si bastara: antes
+# de construir el cliente `service_role` comprueba un booleano explícito de la
+# base (`can_execute_saas_provisioning` / `can_check_deployment_health`).
+#
+# Un JWT válido demuestra SESIÓN, no AUTORIZACIÓN. Confundir las dos cosas fue
+# el bug de payments: RLS filtra filas, y una lista vacía se ve igual que una
+# prohibición.
+#
+# El canal servidor-a-servidor usa la cabecera `x-provisioning-secret`.
+verify_jwt = true
