@@ -1,0 +1,32 @@
+
+> ebim-control-plane@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin
+
+ ✓ supabase/functions/_shared/provisioning/retry.test.ts (33 tests) 3ms
+ ✓ supabase/functions/_shared/payments/culqi-mapping.test.ts (23 tests) 5ms
+ ✓ supabase/functions/_shared/provisioning/errors.test.ts (30 tests) 4ms
+ ✓ supabase/functions/_shared/provisioning/url-guard.test.ts (60 tests) 7ms
+ ✓ src/app/navigation.test.ts (15 tests) 3ms
+ ✓ supabase/functions/_shared/payments/money.test.ts (34 tests) 14ms
+ ✓ supabase/functions/_shared/payments/recurring-amount.test.ts (24 tests) 4ms
+ ✓ src/lib/provisioning.test.ts (39 tests) 7ms
+ ✓ supabase/functions/_shared/provisioning/response.test.ts (32 tests) 5ms
+ ✓ src/lib/regional.test.ts (15 tests) 9ms
+ ✓ src/lib/multicurrency.regression.test.ts (7 tests) 12ms
+ ✓ src/lib/consolidated.test.ts (8 tests) 13ms
+ ✓ supabase/functions/_shared/provisioning/m2m.test.ts (30 tests) 23ms
+ ✓ src/lib/format.test.ts (17 tests) 17ms
+ ✓ supabase/functions/_shared/provisioning/registry.test.ts (21 tests) 5ms
+ ✓ supabase/functions/_shared/provisioning/adapters/http-m2m.test.ts (22 tests) 68ms
+ ✓ src/lib/billing.test.ts (6 tests) 1ms
+ ✓ src/features/auth/session.test.ts (16 tests) 2ms
+ ✓ src/features/billing/PeriodInvoiceAction.test.tsx (13 tests) 365ms
+
+ Test Files  19 passed (19)
+      Tests  445 passed (445)
+   Start at  22:37:23
+   Duration  1.44s (transform 561ms, setup 1.25s, collect 1.21s, tests 567ms, environment 9.50s, prepare 1.47s)
+

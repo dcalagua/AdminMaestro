@@ -1,0 +1,33 @@
+
+> ebim-control-plane@0.1.0 db:test
+> supabase test db
+
+Connecting to local database...
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/supabase/tests/00_structure.test.sql ..................... ok
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/supabase/tests/01_rls_isolation.test.sql ................. ok
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/supabase/tests/02_business_rules.test.sql ................ ok
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/supabase/tests/03_v2_security.test.sql ................... ok
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/supabase/tests/04_v2_business.test.sql ................... ok
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/supabase/tests/05_v2_1_hardening.test.sql ................ ok
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/supabase/tests/06_v3_currencies_markets.test.sql ......... ok
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/supabase/tests/07_v3_regional_companies.test.sql ......... ok
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/supabase/tests/08_v3_regional_pricing.test.sql ........... ok
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/supabase/tests/09_v3_transaction_currency.test.sql ....... ok
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/supabase/tests/10_v3_payment_routing.test.sql ............ ok
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/supabase/tests/11_v3_fx_engine.test.sql .................. ok
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/supabase/tests/12_v3_reporting_currency.test.sql ......... ok
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/supabase/tests/13_v3_consolidated_finance.test.sql ....... ok
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/supabase/tests/14_v3_multicurrency_commissions.test.sql .. ok
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/supabase/tests/15_v3_domain_regressions.test.sql ......... ok
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/supabase/tests/16_v3_security_rls.test.sql ............... ok
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/supabase/tests/17_v3_subscription_invoicing.test.sql ..... ok
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/supabase/tests/18_v3_1_billing_cadence.test.sql .......... ok
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/supabase/tests/19_v3_1_billing_cadence_engine.test.sql ... ok
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/supabase/tests/20_v3_2_provider_plan_identity.test.sql ... ok
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/supabase/tests/21_v4_provisioning_model.test.sql ......... ok
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/supabase/tests/22_v4_provisioning_rbac.test.sql .......... ok
+All tests successful.
+Files=23, Tests=719,  2 wallclock secs ( 0.05 usr  0.02 sys +  0.08 cusr  0.04 csys =  0.19 CPU)
+Result: PASS
+A new version of Supabase CLI is available: v2.117.0 (currently installed v2.116.0)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
