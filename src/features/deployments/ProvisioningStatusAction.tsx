@@ -4,6 +4,9 @@ import { useGetProvisioningStatus, type OrchestratorResult } from '@/services/mu
 import { useToast } from '@/components/ui/toast-context';
 import { adminStatusLabel } from './contractAdapters';
 
+/** Estados que el orquestador acepta consultar (el resto responde 409). */
+const READABLE_STATUSES = ['ACTIVE', 'FAILED', 'READY_TO_PROVISION'];
+
 /**
  * «Consultar estado»: pregunta al producto si el tenant existe y si coincide
  * con el mapping de MasterAdmin. Sólo lectura: no cambia la solicitud.
@@ -19,7 +22,13 @@ export function ProvisioningStatusAction({ request }: { request: Record<string, 
 
   const capabilities = (request.capabilities as string[] | null | undefined) ?? [];
   const canRead = access.canForProduct('platform.provisioning.read', request.saas_product_id as string);
-  if (!capabilities.includes('GET_STATUS') || !canRead) return null;
+  if (
+    !capabilities.includes('GET_STATUS') ||
+    !canRead ||
+    !READABLE_STATUSES.includes(request.status as string)
+  ) {
+    return null;
+  }
 
   async function run() {
     try {
@@ -38,11 +47,7 @@ export function ProvisioningStatusAction({ request }: { request: Record<string, 
       </button>
 
       {result ? (
-        <div
-          role="dialog"
-          aria-label="Estado en el producto"
-          className="mt-3 rounded-field border border-border p-3 text-[13px]"
-        >
+        <section aria-label="Estado en el producto" className="mt-3 rounded-field border border-border p-3 text-[13px]">
           {result.found && result.remote ? (
             <dl className="space-y-1">
               <div className="flex justify-between gap-3">
@@ -77,7 +82,7 @@ export function ProvisioningStatusAction({ request }: { request: Record<string, 
               </span>
             </p>
           )}
-        </div>
+        </section>
       ) : null}
     </div>
   );

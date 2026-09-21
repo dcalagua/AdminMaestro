@@ -621,3 +621,34 @@ describe('EWM_V1 · idempotencia y huella', () => {
     expect(await adapter.createBodyFingerprint(ewmContext())).toBe(await sha256Hex(String(calls[0].init.body)));
   });
 });
+
+describe('EWM_V1 · endurecimiento tras revisión', () => {
+  it('una zona con otra capitalización se rechaza (Java ZoneId no la acepta)', () => {
+    expect(EWM_V1_CODEC.validateInput(withPc((c) => (c.organizationTimezone = 'america/lima')))).toEqual([
+      'TIMEZONE_INVALID',
+    ]);
+  });
+
+  it('un admin del dominio del operador se bloquea antes de enviar', () => {
+    const c = ewmContext();
+    c.source!.tenant.admin_email = 'alguien@ebim.pe';
+    expect(EWM_V1_CODEC.validateInput(c)).toEqual(['ADMIN_EMAIL_NOT_ALLOWED']);
+  });
+
+  it('organizationId distinto del enviado → PROVIDER_RESPONSE_INVALID', () => {
+    expect(invalidCode(ewmResponse({ organizationId: '30000000-0000-4000-a000-0000000000ff' }))).toBe(
+      'PROVIDER_RESPONSE_INVALID',
+    );
+  });
+
+  it('si el cuerpo no se puede construir, falla sin firmar ni llamar y sin reintentos', async () => {
+    const { adapter, calls } = ewmAdapter([]);
+    const outcome = await adapter.provision(ewmContext({}));
+    expect(calls).toHaveLength(0);
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) {
+      expect(outcome.failure.code).toBe('PRODUCT_CONFIGURATION_INVALID');
+      expect(outcome.failure.retryable).toBe(false);
+    }
+  });
+});

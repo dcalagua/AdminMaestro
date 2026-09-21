@@ -214,7 +214,7 @@ async function provision(
   const ctx = contextData as Omit<ProvisioningContext, 'actor'>;
   const adapterType = (ctx.integration?.type ?? 'MANUAL') as AdapterType;
   const environment = ctx.request.environment as ProvisioningEnvironment;
-  const context = buildExecutionContext(ctx, { id: actorId, role: actorRole });
+  let context = buildExecutionContext(ctx, { id: actorId, role: actorRole });
 
   // El adaptador se resuelve ANTES de `begin` para que el codec valide los
   // datos sin consumir un intento ni firmar nada. Si la resolución falla, el
@@ -248,6 +248,23 @@ async function provision(
   });
   if (beginError) {
     return json({ error: 'NO_EJECUTABLE', message: beginError.message }, 409);
+  }
+
+  // Contratos con configuración congelada (los que certifican replay): tras
+  // `begin`, attempt_count > 0 y la base ya no admite cambios, así que se relee
+  // el contexto. Lo que se envía es exactamente lo que queda congelado aunque
+  // alguien guardara entre la primera lectura y `begin`. GENERIC no relee: su
+  // flujo queda idéntico.
+  if (adapter?.capabilities.includes('REPLAY_CERTIFICATION')) {
+    const { data: frozen, error: frozenError } = await admin.rpc('provisioning_execution_context', {
+      p_request_id: requestId,
+    });
+    if (!frozenError && frozen) {
+      context = buildExecutionContext(frozen as Omit<ProvisioningContext, 'actor'>, {
+        id: actorId,
+        role: actorRole,
+      });
+    }
   }
 
   let outcome;
@@ -503,6 +520,15 @@ async function certifyReplay(
         error: 'CAPACIDAD_NO_SOPORTADA',
         message: 'La integración de esta solicitud no admite certificación de replay',
       },
+      409,
+    );
+  }
+
+  // Nunca en PRD, sea cual sea el canal: el canal servidor no pasa por
+  // `can_certify_saas_provisioning`, así que la regla se repite aquí.
+  if (ctx.request.environment === 'PRD') {
+    return json(
+      { error: 'AMBIENTE_NO_CERTIFICABLE', message: 'La certificación de replay no se ejecuta en PRD' },
       409,
     );
   }

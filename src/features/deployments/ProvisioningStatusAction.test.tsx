@@ -15,8 +15,8 @@ vi.mock('@/components/ui/toast-context', () => ({ useToast: () => toast }));
 
 import { ProvisioningStatusAction } from './ProvisioningStatusAction';
 
-function request(capabilities: string[]): Record<string, unknown> {
-  return { id: 'req-1', saas_product_id: 'p-ewm', capabilities };
+function request(capabilities: string[], status = 'ACTIVE'): Record<string, unknown> {
+  return { id: 'req-1', saas_product_id: 'p-ewm', capabilities, status };
 }
 
 const REMOTE = {
@@ -39,6 +39,14 @@ describe('ProvisioningStatusAction', () => {
     render(<ProvisioningStatusAction request={request(['PROVISION'])} />);
     expect(screen.queryByRole('button', { name: 'Consultar estado' })).not.toBeInTheDocument();
   });
+
+  it.each(['PENDING', 'WAITING_INFRA', 'PROVISIONING', 'CANCELLED'])(
+    'en %s no hay botón: el orquestador no consulta ese estado',
+    (status) => {
+      render(<ProvisioningStatusAction request={request(['PROVISION', 'GET_STATUS'], status)} />);
+      expect(screen.queryByRole('button', { name: 'Consultar estado' })).not.toBeInTheDocument();
+    },
+  );
 
   it('sin permiso de lectura no hay botón', () => {
     canForProduct.mockReturnValue(false);

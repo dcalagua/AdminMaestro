@@ -24,6 +24,15 @@ function errorAt(errors: FieldErrors, path: string): { message?: string } | unde
   return found && typeof found.message === 'string' ? { message: found.message } : undefined;
 }
 
+/** Los inputs no admiten `null`: los opcionales guardados como null vuelven a ''. */
+function nullsToEmpty(value: unknown): unknown {
+  if (value === null) return '';
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, nullsToEmpty(v)]));
+  }
+  return value;
+}
+
 function display(value: unknown): string {
   if (value === true) return 'Sí';
   if (value === false) return 'No';
@@ -71,7 +80,7 @@ function ConfigurationPanel({ request }: { request: Record<string, unknown> }) {
   const defaults = useMemo(() => {
     if (hasSaved) {
       const { resolvedCurrency: _currency, ...rest } = saved;
-      return rest;
+      return nullsToEmpty(rest) as Record<string, unknown>;
     }
     return descriptor.prefill({
       fullName: (fullName.data as string | null | undefined) ?? null,

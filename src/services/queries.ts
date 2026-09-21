@@ -901,10 +901,13 @@ export function useProfileFullNameByEmail(email: string | null | undefined) {
     queryKey: ['profile-full-name', email?.toLowerCase() ?? null],
     enabled: Boolean(email),
     queryFn: async (): Promise<string | null> => {
+      // `ilike` sin comodines: el correo guardado puede tener otra capitalización.
+      const pattern = email!.trim().replace(/[\\%_]/g, (c) => `\\${c}`);
       const { data, error } = await supabase
         .from('profiles')
         .select('full_name')
-        .eq('email', email!.toLowerCase())
+        .ilike('email', pattern)
+        .limit(1)
         .maybeSingle();
       if (error) return null;
       return (data as { full_name: string | null } | null)?.full_name ?? null;

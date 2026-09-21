@@ -116,6 +116,10 @@ export class HttpM2mAdapter implements ProvisioningAdapter {
         guard,
       );
 
+      // El cuerpo se construye UNA vez y ANTES de firmar: si el codec no puede
+      // armarlo, no se emite ningún token y el fallo no se confunde con uno de red.
+      const bodyText = operation === 'create' ? createBodyText(this.codec, context) : undefined;
+
       const claims = buildM2mClaims({
         integration,
         credential,
@@ -142,7 +146,7 @@ export class HttpM2mAdapter implements ProvisioningAdapter {
 
       for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         attempts = attempt;
-        last = await this.attempt(url, token, context, operation, guard);
+        last = await this.attempt(url, token, context, operation, guard, bodyText);
 
         if (last.status !== null && last.status >= 200 && last.status < 300) {
           return {
@@ -202,6 +206,7 @@ export class HttpM2mAdapter implements ProvisioningAdapter {
     context: ProvisioningContext,
     operation: 'create' | 'read',
     guard: { environment: ProvisioningContext['request']['environment']; allowedHosts: string[] },
+    bodyText: string | undefined,
   ): Promise<AttemptOutcome> {
     const fetchImpl = this.deps.fetchImpl ?? fetch;
     const { deployment, request, integration } = context;
@@ -229,7 +234,7 @@ export class HttpM2mAdapter implements ProvisioningAdapter {
             'idempotency-key': request.idempotency_key,
             'x-masteradmin-contract': integration?.contract_version ?? 'v1',
           },
-          body: operation === 'create' ? createBodyText(this.codec, context) : undefined,
+          body: bodyText,
           // `fetch` sigue redirecciones por defecto, y eso anularía todo el
           // guard SSRF: bastaría un 302 hacia 169.254.169.254. Se siguen a
           // mano, revalidando cada salto.

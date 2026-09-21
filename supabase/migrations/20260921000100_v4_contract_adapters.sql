@@ -442,7 +442,10 @@ declare
   v_conf     jsonb;
   v_currency text;
 begin
-  select * into v_req from platform.saas_provisioning_requests where id = p_request_id;
+  -- FOR UPDATE: serializa con `begin_saas_provisioning`, que es quien sube
+  -- attempt_count. Sin el candado, un guardado concurrente podría colarse
+  -- después del primer envío.
+  select * into v_req from platform.saas_provisioning_requests where id = p_request_id for update;
   if v_req.id is null then
     raise exception 'SOLICITUD_NO_ENCONTRADA' using errcode = 'P0002';
   end if;
@@ -470,7 +473,13 @@ begin
 
   update platform.saas_provisioning_requests
      set product_configuration = v_conf
-   where id = p_request_id;
+   where id = p_request_id
+     and attempt_count = 0
+     and status in ('PENDING', 'READY_TO_PROVISION', 'WAITING_INFRA');
+  if not found then
+    raise exception 'CONFIGURACION_CONGELADA: la configuración de producto sólo se fija antes del primer envío'
+      using errcode = 'P0001';
+  end if;
 
   insert into platform.saas_provisioning_events (
     saas_provisioning_request_id, status, action, message, actor_user_id, actor_role,

@@ -87,11 +87,16 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+/**
+ * Zona IANA admisible para EWM (Java `ZoneId`). `Intl` acepta variantes de
+ * capitalización (`america/lima`) que Java rechaza: si la zona resuelta es la
+ * misma salvo mayúsculas, se exige la forma exacta.
+ */
 function isValidTimezone(value: unknown): value is string {
   if (typeof value !== 'string' || value.trim() === '') return false;
   try {
-    new Intl.DateTimeFormat('en-US', { timeZone: value });
-    return true;
+    const resolved = new Intl.DateTimeFormat('en-US', { timeZone: value }).resolvedOptions().timeZone;
+    return resolved === value || resolved.toLowerCase() !== value.toLowerCase();
   } catch {
     return false;
   }
@@ -225,6 +230,9 @@ function validateSource(source: ProvisioningSource): string[] {
 
   if (typeof tenant.admin_email !== 'string' || !EMAIL_RE.test(tenant.admin_email.trim())) {
     blockers.add('ADMIN_EMAIL_INVALID');
+  } else if (/@ebim\.pe$/i.test(tenant.admin_email.trim())) {
+    // EWM responde 422 ADMIN_EMAIL_NOT_ALLOWED: mejor no gastar un intento.
+    blockers.add('ADMIN_EMAIL_NOT_ALLOWED');
   }
   if (!DEPLOYMENT_MODES.includes(tenant.deployment_mode)) blockers.add('DEPLOYMENT_MODE_INVALID');
 
@@ -364,11 +372,15 @@ export function parseEwmResponse(
   if (!UUID_RE.test(companyId)) invalid('"companyId" no es un UUID');
 
   const sentTenant = context.source?.tenant.id;
+  const sentOrganization = context.source?.organization.id;
   const sentCompany = context.source?.company?.id;
   if (!sameId(sentTenant, String(record.controlPlaneTenantId ?? ''))) {
     invalid('"controlPlaneTenantId" no coincide con el tenant enviado');
   }
   if (!sameId(sentCompany, companyId)) invalid('"companyId" no coincide con la sociedad enviada');
+  if (!sameId(sentOrganization, organizationId)) {
+    invalid('"organizationId" no coincide con la organización enviada');
+  }
 
   return {
     status: 'ACTIVE',
