@@ -16,8 +16,9 @@
  * clave llega con otro contenido, así que un reintento tiene que mandar
  * exactamente los mismos bytes.
  */
-import type { ContractCodec, ProvisioningContext, ProvisioningSource } from '../types.ts';
+import type { AdapterResult, ContractCodec, ProvisioningContext, ProvisioningSource } from '../types.ts';
 import { ProvisioningError } from '../types.ts';
+import { sanitizeResources } from '../response.ts';
 
 export interface EwmCreateBody {
   controlPlaneTenantId: string;
@@ -309,8 +310,80 @@ export function buildEwmCreateBody(context: ProvisioningContext): EwmCreateBody 
   };
 }
 
-function notImplemented(): never {
-  throw new ProvisioningError('ADAPTER_NOT_IMPLEMENTED', 'El codec EWM_V1 todavía no está implementado');
+/** Marcadores de ruta EWM: `{controlPlaneTenantId}` = `tenants.id`. */
+export function ewmPathParams(context: ProvisioningContext): Record<string, string> {
+  const id = context.source?.tenant.id;
+  return typeof id === 'string' && id !== '' ? { controlPlaneTenantId: id } : {};
+}
+
+function invalid(message: string): never {
+  throw new ProvisioningError('PROVIDER_RESPONSE_INVALID', message);
+}
+
+function requiredText(record: Record<string, unknown>, field: string): string {
+  const value = record[field];
+  if (typeof value !== 'string' || value.trim() === '') {
+    invalid(`La respuesta de EWM no trae "${field}"`);
+  }
+  if (value.length > 200) invalid(`El campo "${field}" excede 200 caracteres`);
+  return value.trim();
+}
+
+function sameId(a: string | undefined | null, b: string): boolean {
+  return typeof a === 'string' && a.toLowerCase() === b.toLowerCase();
+}
+
+/**
+ * Normaliza la respuesta de EWM (201, 200 replay o GET) al `AdapterResult`
+ * común. `parseProvisioningResponse` no se toca: EWM tiene su propia lectura.
+ *
+ * EWM declara que `company.id` ES su `tenant_id`, así que el identificador
+ * externo del tenant es `companyId`, y tiene que ser el mismo que se envió.
+ * `provisioningId` es una referencia de operación y va a `rawReference`.
+ * Cualquier respuesta incompleta o incoherente deja la solicitud SIN pasar a
+ * ACTIVE: un reintento con la misma clave recupera el alta con `200 replayed`.
+ */
+export function parseEwmResponse(
+  body: unknown,
+  _operation: 'create' | 'read',
+  context: ProvisioningContext,
+): AdapterResult {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    invalid('La respuesta de EWM no es un objeto JSON');
+  }
+  const record = body as Record<string, unknown>;
+
+  if (record.status !== 'ACTIVE') {
+    invalid(`Estado no contemplado en el contrato EWM: "${String(record.status)}". Sólo ACTIVE`);
+  }
+  if (typeof record.replayed !== 'boolean') invalid('La respuesta de EWM no trae "replayed" booleano');
+
+  const provisioningId = requiredText(record, 'provisioningId');
+  const organizationId = requiredText(record, 'organizationId');
+  const companyId = requiredText(record, 'companyId');
+  if (!UUID_RE.test(companyId)) invalid('"companyId" no es un UUID');
+
+  const sentTenant = context.source?.tenant.id;
+  const sentCompany = context.source?.company?.id;
+  if (!sameId(sentTenant, String(record.controlPlaneTenantId ?? ''))) {
+    invalid('"controlPlaneTenantId" no coincide con el tenant enviado');
+  }
+  if (!sameId(sentCompany, companyId)) invalid('"companyId" no coincide con la sociedad enviada');
+
+  return {
+    status: 'ACTIVE',
+    externalTenantId: companyId,
+    externalOrganizationId: organizationId,
+    externalCompanyId: companyId,
+    resources: sanitizeResources({
+      initialWarehouseId: record.initialWarehouseId,
+      adminAppUserId: record.adminAppUserId,
+      adminProvisioningStatus: record.adminProvisioningStatus,
+      deploymentMode: record.deploymentMode,
+    }),
+    rawReference: provisioningId,
+    replayed: record.replayed,
+  };
 }
 
 export const EWM_V1_CODEC: ContractCodec = {
@@ -318,6 +391,6 @@ export const EWM_V1_CODEC: ContractCodec = {
   capabilities: ['PROVISION'],
   validateInput: validateEwmInput,
   buildCreateBody: buildEwmCreateBody,
-  pathParams: notImplemented,
-  parseResponse: notImplemented,
+  pathParams: ewmPathParams,
+  parseResponse: parseEwmResponse,
 };

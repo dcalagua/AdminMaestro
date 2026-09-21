@@ -360,3 +360,167 @@ describe('EWM_V1 · R1, el cuerpo no deriva', () => {
     expect(JSON.stringify(buildEwmCreateBody(c))).toBe(EWM_BODY_LITERAL);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Normalización de la respuesta (API_CONTRACT §2–§3)
+// ---------------------------------------------------------------------------
+const PROVISIONING_ID = '9a1e0000-0000-4000-a000-0000000000aa';
+const WAREHOUSE_ID = 'c1d2e3f4-0000-4000-a000-0000000000bb';
+const ADMIN_USER_ID = '77aa0000-0000-4000-a000-0000000000cc';
+
+function ewmResponse(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    provisioningId: PROVISIONING_ID,
+    status: 'ACTIVE',
+    replayed: false,
+    controlPlaneTenantId: TENANT_ID,
+    organizationId: ORG_ID,
+    companyId: COMPANY_ID,
+    initialWarehouseId: WAREHOUSE_ID,
+    adminAppUserId: ADMIN_USER_ID,
+    adminProvisioningStatus: 'PREPROVISIONED',
+    deploymentMode: 'SHARED',
+    createdAt: '2026-09-15T21:23:36.264Z',
+    ...overrides,
+  };
+}
+
+function invalidCode(body: unknown, operation: 'create' | 'read' = 'create'): string {
+  try {
+    EWM_V1_CODEC.parseResponse(body, operation, ewmContext());
+  } catch (error) {
+    return (error as { code?: string }).code ?? 'NO_CODE';
+  }
+  return 'NO_THROW';
+}
+
+describe('EWM_V1 · respuesta', () => {
+  const EXPECTED = {
+    status: 'ACTIVE',
+    externalTenantId: COMPANY_ID,
+    externalOrganizationId: ORG_ID,
+    externalCompanyId: COMPANY_ID,
+    resources: {
+      initialWarehouseId: WAREHOUSE_ID,
+      adminAppUserId: ADMIN_USER_ID,
+      adminProvisioningStatus: 'PREPROVISIONED',
+      deploymentMode: 'SHARED',
+    },
+    rawReference: PROVISIONING_ID,
+  };
+
+  it('201 completo → AdapterResult con externalTenantId = companyId', () => {
+    expect(EWM_V1_CODEC.parseResponse(ewmResponse(), 'create', ewmContext())).toEqual({
+      ...EXPECTED,
+      replayed: false,
+    });
+  });
+
+  it('200 replayed:true → mismo resultado con replayed:true', () => {
+    expect(EWM_V1_CODEC.parseResponse(ewmResponse({ replayed: true }), 'create', ewmContext())).toEqual({
+      ...EXPECTED,
+      replayed: true,
+    });
+  });
+
+  it('GET (read) exige igualmente replayed', () => {
+    expect(EWM_V1_CODEC.parseResponse(ewmResponse(), 'read', ewmContext()).replayed).toBe(false);
+    const { replayed: _r, ...sinReplayed } = ewmResponse();
+    expect(invalidCode(sinReplayed, 'read')).toBe('PROVIDER_RESPONSE_INVALID');
+  });
+
+  it.each([
+    ['sin companyId', { companyId: undefined }],
+    ['sin organizationId', { organizationId: undefined }],
+    ['sin provisioningId', { provisioningId: undefined }],
+    ['sin replayed', { replayed: undefined }],
+    ['replayed no booleano', { replayed: 'false' }],
+    ['status PENDING', { status: 'PENDING' }],
+    ['companyId no UUID', { companyId: 'no-uuid' }],
+    ['controlPlaneTenantId distinto', { controlPlaneTenantId: '50000000-0000-4000-a000-0000000000ff' }],
+    ['companyId distinto del enviado', { companyId: '31000000-0000-4000-a000-0000000000ff' }],
+  ])('R5 · %s → PROVIDER_RESPONSE_INVALID', (_name, overrides) => {
+    expect(invalidCode(ewmResponse(overrides))).toBe('PROVIDER_RESPONSE_INVALID');
+  });
+
+  it('R5 · cuerpo null (JSON inválido) → PROVIDER_RESPONSE_INVALID', () => {
+    expect(invalidCode(null)).toBe('PROVIDER_RESPONSE_INVALID');
+  });
+
+  it('campos extra se toleran y no llegan a resources', () => {
+    const result = EWM_V1_CODEC.parseResponse(ewmResponse({ foo: 'bar' }), 'create', ewmContext());
+    expect(Object.keys(result.resources)).not.toContain('foo');
+    expect(Object.keys(result.resources)).not.toContain('createdAt');
+  });
+
+  it('resources pasa por sanitizeResources: un valor de 600 caracteres se descarta', () => {
+    const result = EWM_V1_CODEC.parseResponse(
+      ewmResponse({ adminAppUserId: 'x'.repeat(600) }),
+      'create',
+      ewmContext(),
+    );
+    expect(result.resources).not.toHaveProperty('adminAppUserId');
+  });
+});
+
+async function ecKeyPem(): Promise<string> {
+  const pair = (await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, [
+    'sign',
+    'verify',
+  ])) as CryptoKeyPair;
+  const pkcs8 = await crypto.subtle.exportKey('pkcs8', pair.privateKey);
+  const b64 = btoa(String.fromCharCode(...new Uint8Array(pkcs8)));
+  // secrets-scan:allow plantilla PEM de una clave GENERADA EN MEMORIA en este test
+  return `-----BEGIN PRIVATE KEY-----\n${b64}\n-----END PRIVATE KEY-----`;
+}
+const EC_KEY = await ecKeyPem();
+
+function jsonResponse(status: number, body: unknown): Response {
+  return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+}
+
+type Call = { url: string; init: RequestInit };
+function ewmAdapter(responses: Response[]) {
+  const calls: Call[] = [];
+  const fetchImpl = vi.fn((url: string | URL | Request, init?: RequestInit) => {
+    calls.push({ url: String(url), init: init ?? {} });
+    const next = responses.shift();
+    if (!next) throw new Error('sin respuesta programada');
+    return Promise.resolve(next);
+  }) as unknown as typeof fetch;
+  const adapter = new HttpM2mAdapter(
+    {
+      fetchImpl,
+      secretResolver: (ref) => (ref === 'EWM_QAS_M2M_PRIVATE_KEY' ? EC_KEY : undefined),
+      sleep: () => Promise.resolve(),
+    },
+    EWM_V1_CODEC,
+  );
+  return { adapter, calls };
+}
+
+describe('EWM_V1 · R5 recuperación sin duplicar', () => {
+  it('201 inválido deja fallo y el reintento con la misma clave acepta 200 replayed:true', async () => {
+    const { adapter, calls } = ewmAdapter([
+      jsonResponse(201, ewmResponse({ companyId: undefined })),
+      jsonResponse(200, ewmResponse({ replayed: true })),
+    ]);
+    const first = await adapter.provision(ewmContext());
+    expect(first.ok).toBe(false);
+    if (first.ok) throw new Error('esperaba fallo');
+    expect(first.failure.code).toBe('PROVIDER_RESPONSE_INVALID');
+
+    const second = await adapter.provision(ewmContext());
+    expect(second.ok).toBe(true);
+    if (!second.ok) throw new Error('esperaba éxito');
+    expect(second.result.replayed).toBe(true);
+    expect(second.httpStatus).toBe(200);
+
+    expect(calls).toHaveLength(2);
+    const key = (c: Call) => (c.init.headers as Record<string, string>)['idempotency-key'];
+    expect(key(calls[0])).toBe('ma-prov-v1-ewm');
+    expect(key(calls[1])).toBe(key(calls[0]));
+    expect(calls[0].init.body).toBe(EWM_BODY_LITERAL);
+    expect(calls[1].init.body).toBe(calls[0].init.body);
+  });
+});
