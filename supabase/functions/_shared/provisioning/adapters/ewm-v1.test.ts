@@ -524,3 +524,43 @@ describe('EWM_V1 · R5 recuperación sin duplicar', () => {
     expect(calls[1].init.body).toBe(calls[0].init.body);
   });
 });
+
+describe('EWM_V1 · marcadores de ruta', () => {
+  it('pathParams = { controlPlaneTenantId: source.tenant.id }', () => {
+    expect(EWM_V1_CODEC.pathParams(ewmContext())).toEqual({ controlPlaneTenantId: TENANT_ID });
+  });
+
+  it('getStatus llama a GET /internal/platform/v1/tenants/{tenants.id}', async () => {
+    const { adapter, calls } = ewmAdapter([jsonResponse(200, ewmResponse())]);
+    await adapter.getStatus(ewmContext());
+    expect(calls[0].url).toBe(`https://ewm-rsxs.onrender.com/internal/platform/v1/tenants/${TENANT_ID}`);
+    expect(calls[0].init.method).toBe('GET');
+  });
+
+  it('el valor se codifica: sin inyección de ruta', async () => {
+    const c = ewmContext();
+    c.source!.tenant.id = 'a/b?c';
+    const { adapter, calls } = ewmAdapter([jsonResponse(404, { code: 'RESOURCE_NOT_FOUND' })]);
+    await adapter.getStatus(c);
+    expect(calls[0].url).toBe('https://ewm-rsxs.onrender.com/internal/platform/v1/tenants/a%2Fb%3Fc');
+  });
+
+  it('un marcador desconocido → PATH_TEMPLATE_INVALID sin llamar', async () => {
+    const c = ewmContext();
+    c.integration!.status_path_template = '/internal/platform/v1/tenants/{foo}';
+    const { adapter, calls } = ewmAdapter([]);
+    const outcome = await adapter.getStatus(c);
+    expect(calls).toHaveLength(0);
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) expect(outcome.failure.code).toBe('PATH_TEMPLATE_INVALID');
+  });
+
+  it('los marcadores GENERIC no existen en EWM: {externalTenantId} → PATH_TEMPLATE_INVALID', async () => {
+    const c = ewmContext();
+    c.integration!.status_path_template = '/internal/platform/v1/tenants/{externalTenantId}';
+    const { adapter, calls } = ewmAdapter([]);
+    const outcome = await adapter.getStatus(c);
+    expect(calls).toHaveLength(0);
+    if (!outcome.ok) expect(outcome.failure.code).toBe('PATH_TEMPLATE_INVALID');
+  });
+});
