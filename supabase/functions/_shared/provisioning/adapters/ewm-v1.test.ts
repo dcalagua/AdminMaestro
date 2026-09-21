@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { EWM_V1_CODEC, buildEwmCreateBody, validateEwmProductConfiguration } from './ewm-v1';
 import { HttpM2mAdapter } from './http-m2m';
 import { GENERIC_CODEC } from './generic';
+import { sha256Hex } from '../fingerprint';
 import type { ProvisioningContext } from '../types';
 
 /*
@@ -598,5 +599,25 @@ describe('EWM_V1 · capacidades y scopes', () => {
       alg: 'ES256',
       typ: 'JWT',
     });
+  });
+});
+
+describe('EWM_V1 · idempotencia y huella', () => {
+  it('dos provision() con el mismo contexto: misma clave y mismo texto', async () => {
+    const { adapter, calls } = ewmAdapter([
+      jsonResponse(201, ewmResponse()),
+      jsonResponse(200, ewmResponse({ replayed: true })),
+    ]);
+    await adapter.provision(ewmContext());
+    await adapter.provision(ewmContext());
+    const key = (c: Call) => (c.init.headers as Record<string, string>)['idempotency-key'];
+    expect(key(calls[1])).toBe(key(calls[0]));
+    expect(calls[1].init.body).toBe(calls[0].init.body);
+  });
+
+  it('createBodyFingerprint = sha256 del texto enviado', async () => {
+    const { adapter, calls } = ewmAdapter([jsonResponse(201, ewmResponse())]);
+    await adapter.provision(ewmContext());
+    expect(await adapter.createBodyFingerprint(ewmContext())).toBe(await sha256Hex(String(calls[0].init.body)));
   });
 });

@@ -22,6 +22,7 @@ import { buildM2mClaims, resolvePrivateKey, scopesFor, signM2mToken } from '../m
 import { decideRetry, type NetworkFailureKind } from '../retry.ts';
 import { normalizeProviderFailure, normalizeThrownFailure } from '../errors.ts';
 import { GENERIC_CODEC } from './generic.ts';
+import { createBodyText, sha256Hex } from '../fingerprint.ts';
 
 /** Número máximo de saltos que se sigue, cada uno revalidado. */
 const MAX_REDIRECTS = 3;
@@ -58,6 +59,11 @@ export class HttpM2mAdapter implements ProvisioningAdapter {
 
   validateInput(context: ProvisioningContext): string[] {
     return this.codec.validateInput(context);
+  }
+
+  /** SHA-256 del texto EXACTO que `provision()` enviaría para este contexto. */
+  createBodyFingerprint(context: ProvisioningContext): Promise<string> {
+    return sha256Hex(createBodyText(this.codec, context));
   }
 
   provision(context: ProvisioningContext): Promise<AdapterOutcome> {
@@ -223,7 +229,7 @@ export class HttpM2mAdapter implements ProvisioningAdapter {
             'idempotency-key': request.idempotency_key,
             'x-masteradmin-contract': integration?.contract_version ?? 'v1',
           },
-          body: operation === 'create' ? JSON.stringify(this.codec.buildCreateBody(context)) : undefined,
+          body: operation === 'create' ? createBodyText(this.codec, context) : undefined,
           // `fetch` sigue redirecciones por defecto, y eso anularía todo el
           // guard SSRF: bastaría un 302 hacia 169.254.169.254. Se siguen a
           // mano, revalidando cada salto.

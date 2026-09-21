@@ -613,3 +613,38 @@ left join platform.product_integrations ie
        on ie.id = coalesce(d.product_integration_id, r.product_integration_id);
 
 grant select on platform.v_saas_provisioning to authenticated;
+
+-- ############################################################################
+-- 8. REPLAY_CERTIFICATION — autorización, excluida de PRD
+-- ----------------------------------------------------------------------------
+-- La certificación repite una petición ya aceptada para demostrar que el
+-- producto la reconoce como replay. Es evidencia, no negocio: nunca en PRD.
+-- ############################################################################
+create function platform.can_certify_saas_provisioning(p_request_id uuid)
+returns boolean
+language plpgsql
+stable
+security definer
+set search_path = platform, pg_catalog
+as $$
+declare
+  v_req record;
+begin
+  select saas_product_id, provisioning_environment into v_req
+    from platform.saas_provisioning_requests where id = p_request_id;
+
+  if v_req.saas_product_id is null then
+    return false;
+  end if;
+
+  return v_req.provisioning_environment <> 'PRD'
+     and platform.has_product_permission('platform.provisioning.retry', v_req.saas_product_id);
+end;
+$$;
+
+comment on function platform.can_certify_saas_provisioning(uuid) is
+  'Booleano EXPLÍCITO para el gate de REPLAY_CERTIFICATION. Exige '
+  'platform.provisioning.retry y es FALSE en PRD para cualquier usuario.';
+
+revoke all on function platform.can_certify_saas_provisioning(uuid) from public, anon;
+grant execute on function platform.can_certify_saas_provisioning(uuid) to authenticated, service_role;

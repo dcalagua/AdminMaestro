@@ -10,7 +10,7 @@
 --     acotada por CHECK.
 -- ============================================================================
 begin;
-select plan(72);
+select plan(78);
 
 create or replace function pg_temp.act_as(p_user uuid)
 returns void language plpgsql as $$
@@ -489,6 +489,42 @@ select is((select capabilities from platform.v_saas_provisioning where id = pg_t
   '{PROVISION}'::text[], 'una solicitud GENERIC expone capabilities {PROVISION}');
 select is((select adapter_key::text from platform.v_saas_provisioning where id = pg_temp.req_p1_qas()),
   'EWM_V1', 'la solicitud EWM expone adapter_key EWM_V1');
+select pg_temp.act_as_postgres();
+
+-- ===========================================================================
+-- 11. REPLAY_CERTIFICATION: can_certify_saas_provisioning, nunca en PRD
+-- ===========================================================================
+select ok(not has_function_privilege('anon', 'platform.can_certify_saas_provisioning(uuid)', 'EXECUTE'),
+  'anon no puede ejecutar can_certify_saas_provisioning');
+
+-- Solicitud de PRD insertada como postgres (el alta PRD real no aplica aquí).
+do $$
+declare
+  v_id uuid;
+begin
+  insert into platform.saas_provisioning_requests
+    (tenant_id, saas_product_id, idempotency_key, provisioning_environment)
+  values ('50000000-0000-4000-a000-00000000000b', '20000000-0000-4000-a000-000000000002',
+          'ma-prov-test-prd-certify', 'PRD')
+  returning id into v_id;
+  perform set_config('tests.req_prd', v_id::text, false);
+end;
+$$;
+
+select pg_temp.act_as(pg_temp.tech_lead());
+select is(platform.can_certify_saas_provisioning(pg_temp.req_p1_qas()), true,
+  'tech lead puede certificar una solicitud EWM de QAS');
+select pg_temp.act_as(pg_temp.ewm_owner());
+select is(platform.can_certify_saas_provisioning(pg_temp.req_p1_qas()), true,
+  'owner de EWM puede certificar una solicitud EWM de QAS');
+select pg_temp.act_as(pg_temp.esup_owner());
+select is(platform.can_certify_saas_provisioning(pg_temp.req_p1_qas()), false,
+  'owner de eSupplier NO certifica EWM');
+select pg_temp.act_as(pg_temp.super_admin());
+select is(platform.can_certify_saas_provisioning(current_setting('tests.req_prd')::uuid), false,
+  'nunca en PRD, ni siquiera el super admin');
+select is(platform.can_certify_saas_provisioning('00000000-0000-4000-a000-0000000000ff'), false,
+  'un id inexistente da false');
 select pg_temp.act_as_postgres();
 
 select * from finish();

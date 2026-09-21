@@ -23,6 +23,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import {
   buildExecutionContext,
+  evaluateReplayCertification,
   normalizeThrownFailure,
   parseAllowedOrigins,
   permissionRpcFor,
@@ -169,7 +170,7 @@ Deno.serve(withCors(async (req: Request) => {
     return await getStatus(admin, body.request_id!, actorId, actorRole);
   }
   if (action === 'REPLAY_CERTIFICATION') {
-    return json({ error: 'ACCION_NO_DISPONIBLE' }, 501);
+    return await certifyReplay(admin, body.request_id!, actorId, actorRole);
   }
 
   return await provision(admin, body.request_id!, actorId, actorRole);
@@ -331,6 +332,32 @@ async function provision(
     return json({ request_id: requestId, status: 'FAILED', error_code: 'MAPPING_WRITE_FAILED' }, 200);
   }
 
+  // Evidencia para la certificación de replay. Sólo la escriben los contratos
+  // que declaran REPLAY_CERTIFICATION: una ejecución GENERIC deja exactamente
+  // los mismos eventos que antes. La respuesta de PROVISION no cambia.
+  if (adapter?.capabilities.includes('REPLAY_CERTIFICATION') && adapter.createBodyFingerprint) {
+    await admin.rpc('record_provisioning_event', {
+      p_request_id: requestId,
+      p_action: 'PROVIDER_REQUEST_FINGERPRINT',
+      p_message: 'Huella SHA-256 del cuerpo aceptado por el producto',
+      p_detail: { body_sha256: await adapter.createBodyFingerprint(context) },
+      p_actor_id: actorId,
+      p_actor_role: actorRole,
+      p_http_status: outcome.httpStatus ?? null,
+    });
+    if (outcome.result.replayed === true) {
+      await admin.rpc('record_provisioning_event', {
+        p_request_id: requestId,
+        p_action: 'PROVIDER_REPLAYED',
+        p_message: 'El producto reconoció la petición como repetición: no creó nada nuevo',
+        p_detail: { provider_http_status: outcome.httpStatus ?? null },
+        p_actor_id: actorId,
+        p_actor_role: actorRole,
+        p_http_status: outcome.httpStatus ?? null,
+      });
+    }
+  }
+
   return json({
     request_id: requestId,
     status: 'ACTIVE',
@@ -427,6 +454,131 @@ async function getStatus(
   });
 
   return json({ request_id: requestId, ...summary });
+}
+
+// ---------------------------------------------------------------------------
+// Certificación interna de replay (REPLAY_CERTIFICATION)
+// ---------------------------------------------------------------------------
+// Repite la MISMA petición (mismo cuerpo, misma clave de idempotencia, misma
+// correlación) de una solicitud ACTIVE para demostrar que el producto responde
+// `200 replayed:true` sin crear nada. No aparece en la UI y NUNCA llama a
+// begin/complete/fail: el estado y el mapping no cambian. Si el cuerpo
+// reconstruido no tiene la huella del envío aceptado, no se llama.
+// ---------------------------------------------------------------------------
+async function certifyReplay(
+  admin: AdminClient,
+  requestId: string,
+  actorId: string | null,
+  actorRole: string,
+): Promise<Response> {
+  const { data: contextData, error: contextError } = await admin.rpc(
+    'provisioning_execution_context',
+    { p_request_id: requestId },
+  );
+  if (contextError) {
+    return json({ error: 'CONTEXTO_NO_DISPONIBLE', message: contextError.message }, 500);
+  }
+
+  const ctx = contextData as Omit<ProvisioningContext, 'actor'>;
+  const context = buildExecutionContext(ctx, { id: actorId, role: actorRole });
+
+  let adapter: ProvisioningAdapter | null = null;
+  try {
+    adapter = resolveAdapter(
+      (ctx.integration?.type ?? 'MANUAL') as AdapterType,
+      ctx.request.environment as ProvisioningEnvironment,
+      { secretResolver },
+      ctx.adapter?.key ?? 'GENERIC',
+    );
+  } catch {
+    adapter = null;
+  }
+  if (
+    !ctx.adapter?.capabilities?.includes('REPLAY_CERTIFICATION') ||
+    !adapter?.capabilities.includes('REPLAY_CERTIFICATION') ||
+    !adapter.createBodyFingerprint
+  ) {
+    return json(
+      {
+        error: 'CAPACIDAD_NO_SOPORTADA',
+        message: 'La integración de esta solicitud no admite certificación de replay',
+      },
+      409,
+    );
+  }
+
+  if (ctx.request.status !== 'ACTIVE') {
+    return json(
+      {
+        error: 'ESTADO_NO_CERTIFICABLE',
+        message: `Sólo se certifica el replay de una solicitud ACTIVE (está en ${ctx.request.status})`,
+      },
+      409,
+    );
+  }
+
+  const { data: fingerprintEvent } = await admin
+    .from('saas_provisioning_events')
+    .select('detail')
+    .eq('saas_provisioning_request_id', requestId)
+    .eq('action', 'PROVIDER_REQUEST_FINGERPRINT')
+    .order('occurred_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const expectedFingerprint =
+    ((fingerprintEvent as { detail?: { body_sha256?: unknown } } | null)?.detail?.body_sha256 as
+      | string
+      | undefined) ?? null;
+
+  let actualFingerprint = '';
+  try {
+    actualFingerprint = await adapter.createBodyFingerprint(context);
+  } catch {
+    // Si el cuerpo ya no se puede construir, tampoco es el que se aceptó.
+    actualFingerprint = '';
+  }
+
+  const precheck = evaluateReplayCertification({
+    expectedFingerprint,
+    actualFingerprint,
+    mapping: ctx.source?.mapping ?? null,
+  });
+  if ('call' in precheck && !precheck.call) {
+    return json({ request_id: requestId, error: precheck.error, certified: false }, 409);
+  }
+
+  let outcome;
+  try {
+    outcome = await adapter.provision(context);
+  } catch (error) {
+    outcome = { ok: false as const, attempts: 0, failure: normalizeThrownFailure(error) };
+  }
+
+  const verdict = evaluateReplayCertification({
+    expectedFingerprint,
+    actualFingerprint,
+    mapping: ctx.source?.mapping ?? null,
+    outcome,
+  });
+
+  await admin.rpc('record_provisioning_event', {
+    p_request_id: requestId,
+    p_action: verdict.certified ? 'REPLAY_CERTIFICATION_PASSED' : 'REPLAY_CERTIFICATION_FAILED',
+    p_message: verdict.certified
+      ? 'Certificación de replay superada: el producto reconoció la repetición sin duplicar'
+      : `Certificación de replay fallida: ${verdict.reason ?? 'sin motivo'}`,
+    p_detail: {
+      provider_http_status: verdict.provider_http_status,
+      replayed: verdict.replayed,
+      identifiers_match: verdict.identifiers_match,
+      reason: verdict.reason,
+    },
+    p_actor_id: actorId,
+    p_actor_role: actorRole,
+    p_http_status: verdict.provider_http_status,
+  });
+
+  return json({ request_id: requestId, ...verdict });
 }
 
 // ---------------------------------------------------------------------------
