@@ -627,3 +627,15 @@ autorizado.
 | `admin.fullName` capturado | Campo universal nuevo en `tenants` | No hay fuente fiable y el requisito es no ampliar el modelo universal |
 | Replay por acción interna sin UI | Botón «Reenviar» | No crea una operación de negocio nueva ni reabre `ACTIVE` |
 | Acción desconocida sigue yendo a `PROVISION` | Rechazar con 400 | Preservar el comportamiento actual; el endurecimiento se trata aparte |
+
+## Enmiendas (incorporadas durante la implementación)
+
+| # | Enmienda | Motivo |
+| --- | --- | --- |
+| A1 | `GET_STATUS` también se admite con la solicitud en `READY_TO_PROVISION`, además de `ACTIVE` y `FAILED`. `PROVISIONING` sigue excluido | Única forma, sin crear nada y sin modificar EWM, de demostrar que EWM acepta el JWT ES256: sobre un `controlPlaneTenantId` aún no aprovisionado, `404 RESOURCE_NOT_FOUND` = firma válida; `401` = firma rechazada |
+| A2 | `set_saas_provisioning_configuration` escribe del lado del servidor `resolvedCurrency = companies.currency` de la sociedad del tenant, y el codec la usa para `organization.currency` y `company.currency`. El valor del cliente se descarta | La moneda queda congelada con el resto: un cambio posterior de la sociedad no altera el cuerpo de un reintento (riesgo R1) |
+| A3 | La UI mínima vive sólo en `SaasProvisioningPage` (formulario y «Consultar estado»); la pestaña del tenant no cambia | Menos superficie; §18 permitía ambos lugares |
+| A4 | `set_saas_provisioning_configuration` bloquea la fila (`FOR UPDATE`) y el `UPDATE` vuelve a exigir `attempt_count = 0`; para contratos que certifican replay, el orquestador relee el contexto después de `begin` | Cierra la carrera entre un guardado y el primer envío (revisión independiente) |
+| A5 | `REPLAY_CERTIFICATION` se niega en PRD también en el orquestador, para cualquier canal | El canal servidor no pasa por `can_certify_saas_provisioning` |
+| A6 | El codec EWM bloquea zonas con otra capitalización (`america/lima`), correos `@ebim.pe` (`ADMIN_EMAIL_NOT_ALLOWED`) y valida `organizationId` de la respuesta | Evita gastar un intento en rechazos seguros de EWM y completa la verificación de identificadores |
+| A7 | `set_saas_provisioning_configuration` inserta `PRODUCT_CONFIGURATION_SET` directamente en `saas_provisioning_events` | `record_provisioning_event` exige el claim de servicio y esta RPC la invoca un humano |

@@ -118,6 +118,37 @@ el día que un producto genere los suyos, no cambia nada aquí.
 | `EDGE_FUNCTION` | Reservado | Existe en el enum; lanza `ADAPTER_NOT_IMPLEMENTED` |
 | `DB_DIRECT` | **Prohibido** | No existe en el enum, y un test lo verifica |
 
+### Contratos (`product_integrations.adapter_key`)
+
+Una integración `HTTP_M2M` habla **un** contrato, elegido por la columna enum
+`adapter_key` (auditada por `upsert_product_integration`; valores libres
+imposibles). El contrato decide sólo la **forma**: cuerpo, marcadores de ruta y
+lectura de la respuesta. Transporte, guard SSRF, firma M2M y reintentos son
+únicos y compartidos.
+
+| `adapter_key` | Contrato | Capacidades | Quién lo usa |
+| --- | --- | --- | --- |
+| `GENERIC` (default) | Este documento, estándar EBIM v1 | `PROVISION` | Todas las integraciones existentes y futuras |
+| `EWM_V1` | `WMS-by-EBIM` `API_CONTRACT.md` (`origin/qas` @ `7e45d70`) | `PROVISION`, `REPLAY_CERTIFICATION` y `GET_STATUS` si hay `status_path_template` y `read_scope` | Sólo `ewm-provisioning-v1` |
+
+**EWM V1 no es el estándar de la suite. El estándar sigue siendo el contrato
+genérico v1. Other SaaS: no changes required.** Toda fila previa a la migración
+`20260921000100` quedó en `GENERIC`, y `upsert_product_integration` sin
+`p_adapter_key` conserva el valor guardado.
+
+Capacidades opcionales del orquestador:
+
+| Acción | Qué hace | Permiso | Cambia estado |
+| --- | --- | --- | --- |
+| `GET_STATUS` | Consulta el tenant en el producto con `read_scope` y lo compara con el mapping | `can_read_saas_provisioning` (`platform.provisioning.read`) | No |
+| `REPLAY_CERTIFICATION` | Repite el cuerpo aceptado con la misma `Idempotency-Key` y exige `200 replayed:true` | `can_certify_saas_provisioning` (`platform.provisioning.retry`, nunca PRD) | No |
+
+La regla de capacidades vive en `platform.integration_capabilities` y se
+contrasta en pruebas con la que declara cada codec compilado. Los datos propios
+de un alta (p. ej. el almacén inicial de EWM) van en
+`saas_provisioning_requests.product_configuration`, que sólo escribe
+`set_saas_provisioning_configuration` antes del primer envío.
+
 ### MANUAL no finge
 
 Su `provision()` devuelve `MANUAL_REGISTRATION_REQUIRED` y explica el camino
@@ -138,8 +169,11 @@ vista. Bloqueado en tres capas (trigger, precondiciones, registro).
 La clave del registro es el **tipo de integración**, nunca el producto:
 
 ```ts
-resolveAdapter(type, environment, deps)
+resolveAdapter(type, environment, deps, adapterKey = 'GENERIC')
 ```
+
+`adapterKey` elige un codec de un registro **estático y compilado**
+(`CONTRACT_CODECS`); nada que venga de la base se evalúa.
 
 La alternativa —`if (product === 'EWM')` repartido por la aplicación— tiene un
 coste conocido: con cinco productos son cinco ramas en doce archivos y ninguna
@@ -147,15 +181,21 @@ está entera en el mismo sitio.
 
 ## 8. EWM
 
-**No hay adaptador específico de EWM, y no debería haberlo.** El adaptador
-`HTTP_M2M` genérico cubre el contrato; EWM se conecta rellenando configuración
-desde la consola.
+EWM implementó y certificó **su propio** contrato antes de este estándar y no se
+puede cambiar. Por eso existe el codec `EWM_V1`: sigue siendo el mismo
+adaptador `HTTP_M2M` (mismo transporte, SSRF, firma y reintentos), con otra
+forma de cuerpo y de respuesta. Todo lo específico de EWM vive en
+`supabase/functions/_shared/provisioning/adapters/ewm-v1.ts` y, en la consola,
+en `src/features/deployments/contractAdapters.ts`.
 
-Sólo se escribiría un adaptador propio si el contrato final de EWM exigiera
-semántica que el genérico no puede expresar. Hasta entonces, crearlo sería
-código específico de producto en un Control Plane que existe justamente para no
-tenerlo.
+| Punto | EWM V1 |
+| --- | --- |
+| Alta | `POST /internal/platform/v1/tenants`, scope `ewm:tenant:create` |
+| Consulta | `GET /internal/platform/v1/tenants/{controlPlaneTenantId}`, scope `ewm:tenant:read` |
+| Firma | ES256, `iss masteradmin.ebim`, `aud ewm.ebim`, TTL ≤ 300 s |
+| Identificador externo | `externalTenantId = companyId` (EWM declara que `company.id` es su `tenant_id`) |
+| Replay | `200 replayed:true` es éxito; se registra `PROVIDER_REPLAYED` |
+| Admin | Siempre `PREPROVISIONED`: la consola nunca lo muestra como activo |
 
-El seed trae `ewm-provisioning-v1` como **borrador deshabilitado** con la forma
-propuesta (audience `ewm.ebim`, RS256, TTL 300, `/internal/platform/v1/tenants`).
-Cuando el contrato se confirme, se completa desde la UI: ni SQL, ni despliegue.
+Diseño completo: `docs/superpowers/specs/2026-09-21-ewm-masteradmin-adapter-design.md`.
+Certificación QAS: [EWM_QAS_CERTIFICATION.md](./EWM_QAS_CERTIFICATION.md).

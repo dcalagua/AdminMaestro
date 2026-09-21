@@ -95,13 +95,21 @@ PENDING ────────────────► READY_TO_PROVISION �
 cancelar: hay una llamada en vuelo y no sabemos si el alta se completó al otro
 lado. No hay DELETE físico en ninguna de las tablas del eje.
 
-## 7. Qué sigue para EWM
+## 7. EWM: conectado por codec de contrato
 
-Nada de código. Cuando el contrato de EWM esté confirmado:
+EWM tiene un contrato propio (`API_CONTRACT.md` de `WMS-by-EBIM`) y se conecta
+sin modificarlo y sin tocar el estándar:
 
-1. completar la integración `ewm-provisioning-v1` desde la consola (audiencia,
-   rutas, scopes ya están propuestos como borrador);
-2. cargar `EWM_QAS_M2M_PRIVATE_KEY` en los secrets del servidor;
-3. habilitar el perfil de credencial y marcar el destino QAS como READY.
+1. `product_integrations.adapter_key = 'EWM_V1'` selecciona su codec en
+   `resolveAdapter`; el resto de integraciones sigue en `GENERIC`.
+2. `provisioning_execution_context` añade `source` (identidades de MasterAdmin)
+   y `adapter` (clave y capacidades) junto a `payload`, que no cambia.
+3. Los datos propios del alta (almacén inicial, nombre del admin, zonas
+   horarias; moneda puesta por el servidor) se fijan en
+   `product_configuration` y quedan congelados al primer envío, para que un
+   reintento mande el mismo cuerpo que EWM ya guardó.
+4. `GET_STATUS` y `REPLAY_CERTIFICATION` son acciones opcionales, de sólo
+   lectura respecto del estado de la solicitud.
 
-Ver [ADAPTERS.md §5](./ADAPTERS.md) y [DEDICATED_FLOW.md](./DEDICATED_FLOW.md).
+Ver [ADAPTERS.md §6 y §8](./ADAPTERS.md), [M2M.md](./M2M.md) y
+[EWM_QAS_CERTIFICATION.md](./EWM_QAS_CERTIFICATION.md).

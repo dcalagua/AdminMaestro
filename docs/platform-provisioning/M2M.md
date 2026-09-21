@@ -73,7 +73,37 @@ tabla tiene lectura más amplia.
 
 Formato esperado: **PKCS#8 en PEM**. Un formato incorrecto produce
 `PRIVATE_KEY_INVALID`, un código estable, en vez de dejar escapar el mensaje del
-runtime (que en algunos casos incluye fragmentos del material de clave).
+runtime (que en algunos casos incluye fragmentos del material de clave). El
+firmante acepta el PEM en varias líneas o en **una sola** (fijado en
+`m2m.test.ts`); SEC1 (`BEGIN EC PRIVATE KEY`) se rechaza.
+
+### Carga de la clave EWM QAS (SEC1 → PKCS#8)
+
+La clave existente es P-256 en SEC1. Antes de cargarla se comprueba que su
+pública coincide con la que tiene EWM (`WMS_PLATFORM_M2M_PUBLIC_KEY`):
+
+```bash
+K="$HOME/.ebim-keys/masteradmin/ewm/qas/private.pem"
+P="$HOME/.ebim-keys/ewm/qas/masteradmin-public.pem"
+D=$(openssl pkey -in "$K" -pubout -outform DER | openssl dgst -sha256 | awk '{print $2}')
+E=$(openssl pkey -pubin -in "$P" -outform DER | openssl dgst -sha256 | awk '{print $2}')
+[ "$D" = "$E" ] && echo "FINGERPRINT MATCH ${D:0:16}" || echo "STOP: no coincide"
+```
+
+Y se carga convertida a PKCS#8 en una sola línea, por un descriptor de proceso:
+sin archivo intermedio, sin la clave en `argv` y sin mostrarla.
+
+```bash
+supabase secrets set --project-ref jivgwrczgdpsuvqcwqku \
+  --env-file <(printf 'EWM_QAS_M2M_PRIVATE_KEY="%s"\n' \
+    "$(openssl pkcs8 -topk8 -nocrypt -in "$HOME/.ebim-keys/masteradmin/ewm/qas/private.pem" | tr -d '\n')")
+supabase secrets list --project-ref jivgwrczgdpsuvqcwqku   # sólo se mira el NOMBRE
+```
+
+La importación en el runtime se certifica con `GET_STATUS` sobre una solicitud
+todavía no aprovisionada: `404 RESOURCE_NOT_FOUND` significa que EWM aceptó la
+firma, el `iss`, el `aud` y el scope `ewm:tenant:read`; `401`/`403` significa lo
+contrario.
 
 ## 6. Qué tiene que hacer el producto
 
