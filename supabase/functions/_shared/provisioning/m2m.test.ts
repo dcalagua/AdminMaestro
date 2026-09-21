@@ -317,3 +317,81 @@ describe('signM2mToken', () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// Formato EXACTO que acepta el firmante (plan EWM, Task 13.A)
+// ---------------------------------------------------------------------------
+// La clave EWM QAS existe en SEC1 (`BEGIN EC PRIVATE KEY`) y se carga como
+// secret convertida a PKCS#8 en UNA línea. Estas pruebas fijan que ese formato
+// firma, sin tocar `m2m.ts`, y que SEC1 falla cerrado sin filtrar la clave.
+describe('formato de clave ES256 aceptado', () => {
+  async function p256(): Promise<{ pair: CryptoKeyPair; pkcs8B64: string; jwk: JsonWebKey }> {
+    const pair = (await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, [
+      'sign',
+      'verify',
+    ])) as CryptoKeyPair;
+    const pkcs8 = new Uint8Array(await crypto.subtle.exportKey('pkcs8', pair.privateKey));
+    const jwk = await crypto.subtle.exportKey('jwk', pair.privateKey);
+    return { pair, pkcs8B64: btoa(String.fromCharCode(...pkcs8)), jwk };
+  }
+
+  async function verifies(token: string, publicKey: CryptoKey): Promise<boolean> {
+    const [h, p, s] = token.split('.');
+    const sig = Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
+    return crypto.subtle.verify(
+      { name: 'ECDSA', hash: 'SHA-256' },
+      publicKey,
+      sig,
+      new TextEncoder().encode(`${h}.${p}`),
+    );
+  }
+
+  const fromB64Url = (v: string) =>
+    Uint8Array.from(atob(v.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
+
+  it('acepta PKCS#8 PEM en una sola línea', async () => {
+    const { pair, pkcs8B64 } = await p256();
+    // secrets-scan:allow plantilla PEM de una clave GENERADA EN MEMORIA en este test
+    const pem = `-----BEGIN PRIVATE KEY-----${pkcs8B64}-----END PRIVATE KEY-----`;
+    expect(pem).not.toContain('\n');
+    const token = await signM2mToken(claims(), 'ES256', pem);
+    expect(await verifies(token, pair.publicKey)).toBe(true);
+  });
+
+  it('acepta PKCS#8 PEM multilínea', async () => {
+    const { pair, pkcs8B64 } = await p256();
+    // secrets-scan:allow plantilla PEM de una clave GENERADA EN MEMORIA en este test
+    const pem = `-----BEGIN PRIVATE KEY-----\n${pkcs8B64.replace(/(.{64})/g, '$1\n')}\n-----END PRIVATE KEY-----\n`;
+    const token = await signM2mToken(claims(), 'ES256', pem);
+    expect(await verifies(token, pair.publicKey)).toBe(true);
+  });
+
+  it('rechaza SEC1 con PRIVATE_KEY_INVALID sin filtrar material de clave', async () => {
+    const { jwk } = await p256();
+    const d = fromB64Url(jwk.d!);
+    const x = fromB64Url(jwk.x!);
+    const y = fromB64Url(jwk.y!);
+    // ECPrivateKey (RFC 5915): SEQUENCE { 1, OCTET STRING d, [0] prime256v1, [1] BIT STRING 04||x||y }
+    const sec1 = new Uint8Array([
+      0x30, 0x77, 0x02, 0x01, 0x01, 0x04, 0x20, ...d,
+      0xa0, 0x0a, 0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07,
+      0xa1, 0x44, 0x03, 0x42, 0x00, 0x04, ...x, ...y,
+    ]);
+    const b64 = btoa(String.fromCharCode(...sec1));
+    // secrets-scan:allow plantilla PEM de una clave GENERADA EN MEMORIA en este test
+    const pem = `-----BEGIN EC PRIVATE KEY-----\n${b64}\n-----END EC PRIVATE KEY-----`;
+
+    let caught: unknown;
+    try {
+      await signM2mToken(claims(), 'ES256', pem);
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeInstanceOf(ProvisioningError);
+    expect((caught as ProvisioningError).code).toBe('PRIVATE_KEY_INVALID');
+    const message = (caught as ProvisioningError).message;
+    for (let i = 0; i + 16 <= b64.length; i += 16) {
+      expect(message).not.toContain(b64.slice(i, i + 16));
+    }
+  });
+});
