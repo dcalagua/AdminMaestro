@@ -891,6 +891,27 @@ export function useSaasProvisioningEvents(requestId: string | undefined) {
   });
 }
 
+/**
+ * Nombre completo de un perfil de MasterAdmin por correo, para PRECARGAR el
+ * nombre del administrador de un alta. Que RLS no devuelva fila no es un error:
+ * simplemente no hay precarga.
+ */
+export function useProfileFullNameByEmail(email: string | null | undefined) {
+  return useQuery({
+    queryKey: ['profile-full-name', email?.toLowerCase() ?? null],
+    enabled: Boolean(email),
+    queryFn: async (): Promise<string | null> => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('email', email!.toLowerCase())
+        .maybeSingle();
+      if (error) return null;
+      return (data as { full_name: string | null } | null)?.full_name ?? null;
+    },
+  });
+}
+
 /** Precondiciones con CÓDIGOS de bloqueo: la UI explica por qué no se puede. */
 export function useProvisioningPreconditions(requestId: string | undefined) {
   return useQuery({

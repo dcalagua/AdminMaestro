@@ -432,6 +432,15 @@ export function useRegisterManualProvisioning() {
   return useRpc('register_manual_provisioning', PROVISIONING_KEYS);
 }
 
+/**
+ * Datos propios del alta en el producto (p. ej. almacén inicial). Sólo antes
+ * del primer envío: después la base los congela para que un reintento mande
+ * exactamente el mismo cuerpo.
+ */
+export function useSetProvisioningConfiguration() {
+  return useRpc('set_saas_provisioning_configuration', PROVISIONING_KEYS);
+}
+
 /* --------------------------------------------------------------------------
    Ejecución vía Edge Function
    -------------------------------------------------------------------------- */

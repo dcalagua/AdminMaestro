@@ -10,7 +10,7 @@
 --     acotada por CHECK.
 -- ============================================================================
 begin;
-select plan(42);
+select plan(56);
 
 create or replace function pg_temp.act_as(p_user uuid)
 returns void language plpgsql as $$
@@ -334,6 +334,92 @@ select throws_ok(
   $$ select platform.provisioning_execution_context(pg_temp.req_alpha_ewm()) $$,
   '42501', null, 'authenticated sigue sin EXECUTE sobre provisioning_execution_context');
 select pg_temp.act_as_postgres();
+
+-- ===========================================================================
+-- 6. set_saas_provisioning_configuration: única vía de escritura, congelada
+-- ===========================================================================
+select has_function('platform', 'set_saas_provisioning_configuration', array['uuid', 'jsonb'],
+  'existe set_saas_provisioning_configuration(uuid, jsonb)');
+select ok(has_function_privilege('authenticated',
+  'platform.set_saas_provisioning_configuration(uuid, jsonb)', 'EXECUTE'),
+  'authenticated puede ejecutarla');
+select ok(not has_function_privilege('anon',
+  'platform.set_saas_provisioning_configuration(uuid, jsonb)', 'EXECUTE'),
+  'anon no puede ejecutarla');
+
+create or replace function pg_temp.ewm_conf() returns jsonb language sql as $$
+  select '{"organizationTimezone":"America/Lima",
+           "initialWarehouse":{"code":"WH-001","name":"Almacén Principal","timezone":"America/Lima"},
+           "admin":{"fullName":"Nombre Secreto Admin"},
+           "resolvedCurrency":"USD"}'::jsonb $$;
+
+select pg_temp.act_as(pg_temp.esup_owner());
+select throws_ok(
+  $$ select platform.set_saas_provisioning_configuration(pg_temp.req_p1_qas(), pg_temp.ewm_conf()) $$,
+  '42501', null, 'el owner de eSupplier no configura una solicitud de EWM');
+
+select pg_temp.act_as(pg_temp.ewm_owner());
+select lives_ok(
+  $$ select platform.set_saas_provisioning_configuration(pg_temp.req_p1_qas(), pg_temp.ewm_conf()) $$,
+  'el owner de EWM fija la configuración antes del primer intento');
+
+select pg_temp.act_as_postgres();
+select is(
+  (select product_configuration - 'resolvedCurrency' from platform.saas_provisioning_requests
+    where id = pg_temp.req_p1_qas()),
+  pg_temp.ewm_conf() - 'resolvedCurrency', 'la fila guarda la configuración enviada');
+select is(
+  (select product_configuration ->> 'resolvedCurrency' from platform.saas_provisioning_requests
+    where id = pg_temp.req_p1_qas()),
+  (select c.currency::text from platform.tenants t join platform.companies c on c.id = t.company_id
+    where t.id = '50000000-0000-4000-a000-000000000009'),
+  'resolvedCurrency lo pone el servidor desde companies.currency (el USD del cliente se descarta)');
+
+select ok(exists(
+  select 1 from platform.saas_provisioning_events
+   where saas_provisioning_request_id = pg_temp.req_p1_qas()
+     and action = 'PRODUCT_CONFIGURATION_SET'
+     and detail = '{"keys":["admin","initialWarehouse","organizationTimezone","resolvedCurrency"]}'::jsonb),
+  'se registra PRODUCT_CONFIGURATION_SET con las claves');
+select ok(not exists(
+  select 1 from platform.saas_provisioning_events
+   where saas_provisioning_request_id = pg_temp.req_p1_qas()
+     and detail::text like '%Nombre Secreto Admin%'),
+  'el evento no contiene valores (fullName)');
+
+-- R1 · inmutable tras el primer intento
+update platform.saas_provisioning_requests set attempt_count = 1 where id = pg_temp.req_p1_qas();
+select pg_temp.act_as(pg_temp.ewm_owner());
+select throws_ok(
+  $$ select platform.set_saas_provisioning_configuration(pg_temp.req_p1_qas(), pg_temp.ewm_conf()) $$,
+  'P0001', null, 'product_configuration es inmutable tras el primer intento');
+select pg_temp.act_as_postgres();
+update platform.saas_provisioning_requests set attempt_count = 0 where id = pg_temp.req_p1_qas();
+
+-- Estado no configurable: la solicitud DEV de alpha-ewm pasa a CANCELLED.
+update platform.saas_provisioning_requests set status = 'CANCELLED', cancelled_at = now()
+ where id = pg_temp.req_alpha_ewm();
+select pg_temp.act_as(pg_temp.tech_lead());
+select throws_ok(
+  $$ select platform.set_saas_provisioning_configuration(pg_temp.req_alpha_ewm(), '{"a":1}'::jsonb) $$,
+  'P0001', null, 'una solicitud CANCELLED no admite configuración');
+select throws_ok(
+  $$ select platform.set_saas_provisioning_configuration('00000000-0000-4000-a000-0000000000ff', '{}'::jsonb) $$,
+  'P0002', null, 'una solicitud inexistente da SOLICITUD_NO_ENCONTRADA');
+select pg_temp.act_as_postgres();
+
+-- Tenant sin sociedad: se guarda sin resolvedCurrency (el codec bloquea al ejecutar).
+update platform.tenants set company_id = null where id = '50000000-0000-4000-a000-000000000009';
+select pg_temp.act_as(pg_temp.ewm_owner());
+select lives_ok(
+  $$ select platform.set_saas_provisioning_configuration(pg_temp.req_p1_qas(), pg_temp.ewm_conf()) $$,
+  'sin sociedad la configuración se guarda igual');
+select pg_temp.act_as_postgres();
+select ok(not ((select product_configuration from platform.saas_provisioning_requests
+                 where id = pg_temp.req_p1_qas()) ? 'resolvedCurrency'),
+  'sin sociedad no hay resolvedCurrency');
+update platform.tenants set company_id = '31000000-0000-4000-a000-000000000005'
+ where id = '50000000-0000-4000-a000-000000000009';
 
 select * from finish();
 rollback;

@@ -2937,6 +2937,7 @@ export type Database = {
       }
       product_integrations: {
         Row: {
+          adapter_key: Database["platform"]["Enums"]["integration_adapter"]
           additional_scopes: string[]
           algorithm: Database["platform"]["Enums"]["m2m_algorithm"] | null
           allowed_hosts: string[]
@@ -2965,6 +2966,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          adapter_key?: Database["platform"]["Enums"]["integration_adapter"]
           additional_scopes?: string[]
           algorithm?: Database["platform"]["Enums"]["m2m_algorithm"] | null
           allowed_hosts?: string[]
@@ -2993,6 +2995,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          adapter_key?: Database["platform"]["Enums"]["integration_adapter"]
           additional_scopes?: string[]
           algorithm?: Database["platform"]["Enums"]["m2m_algorithm"] | null
           allowed_hosts?: string[]
@@ -4070,6 +4073,7 @@ export type Database = {
           last_error_code: string | null
           last_error_message: string | null
           max_attempts: number
+          product_configuration: Json
           product_integration_id: string | null
           provider_http_status: number | null
           provisioning_environment: Database["platform"]["Enums"]["provisioning_environment"]
@@ -4098,6 +4102,7 @@ export type Database = {
           last_error_code?: string | null
           last_error_message?: string | null
           max_attempts?: number
+          product_configuration?: Json
           product_integration_id?: string | null
           provider_http_status?: number | null
           provisioning_environment: Database["platform"]["Enums"]["provisioning_environment"]
@@ -4126,6 +4131,7 @@ export type Database = {
           last_error_code?: string | null
           last_error_message?: string | null
           max_attempts?: number
+          product_configuration?: Json
           product_integration_id?: string | null
           provider_http_status?: number | null
           provisioning_environment?: Database["platform"]["Enums"]["provisioning_environment"]
@@ -8124,6 +8130,14 @@ export type Database = {
         Args: { p_code: string; p_product: string }
         Returns: boolean
       }
+      integration_capabilities: {
+        Args: {
+          p_adapter_key: Database["platform"]["Enums"]["integration_adapter"]
+          p_read_scope: string
+          p_status_path_template: string
+        }
+        Returns: string[]
+      }
       is_blocked_provisioning_host: {
         Args: { p_host: string }
         Returns: boolean
@@ -8140,6 +8154,7 @@ export type Database = {
       is_sales_agent: { Args: never; Returns: boolean }
       is_secret_reference: { Args: { p_value: string }; Returns: boolean }
       is_service_context: { Args: never; Returns: boolean }
+      is_service_request: { Args: never; Returns: boolean }
       is_slug: { Args: { p_value: string }; Returns: boolean }
       is_subscription_item_due_for_period: {
         Args: {
@@ -8491,6 +8506,10 @@ export type Database = {
         Args: { p_fx_max_rate_age_days?: number; p_reporting_currency: string }
         Returns: undefined
       }
+      set_saas_provisioning_configuration: {
+        Args: { p_configuration: Json; p_request_id: string }
+        Returns: Json
+      }
       set_subscription_collection_profile: {
         Args: {
           p_auto_charge?: boolean
@@ -8797,6 +8816,7 @@ export type Database = {
       }
       upsert_product_integration: {
         Args: {
+          p_adapter_key?: Database["platform"]["Enums"]["integration_adapter"]
           p_additional_scopes?: string[]
           p_algorithm?: Database["platform"]["Enums"]["m2m_algorithm"]
           p_allowed_hosts?: string[]
@@ -8982,6 +9002,7 @@ export type Database = {
       fx_rate_source: "MANUAL"
       fx_rate_status: "ACTIVE" | "SUPERSEDED" | "VOIDED"
       infra_provider: "SUPABASE" | "AWS" | "AZURE" | "GCP" | "ON_PREMISE"
+      integration_adapter: "GENERIC" | "EWM_V1"
       integration_status: "DRAFT" | "READY" | "DEGRADED" | "DISABLED"
       integration_type: "HTTP_M2M" | "EDGE_FUNCTION" | "MANUAL" | "MOCK"
       invoice_status:
@@ -9267,6 +9288,7 @@ export const Constants = {
       fx_rate_source: ["MANUAL"],
       fx_rate_status: ["ACTIVE", "SUPERSEDED", "VOIDED"],
       infra_provider: ["SUPABASE", "AWS", "AZURE", "GCP", "ON_PREMISE"],
+      integration_adapter: ["GENERIC", "EWM_V1"],
       integration_status: ["DRAFT", "READY", "DEGRADED", "DISABLED"],
       integration_type: ["HTTP_M2M", "EDGE_FUNCTION", "MANUAL", "MOCK"],
       invoice_status: [

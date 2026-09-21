@@ -412,3 +412,85 @@ begin
   );
 end;
 $$;
+
+-- ############################################################################
+-- 5. Configuración de producto por solicitud — única vía de escritura
+-- ----------------------------------------------------------------------------
+-- Sólo antes del primer envío (attempt_count = 0). Después es inmutable: el
+-- reintento de un alta tiene que mandar exactamente el mismo cuerpo.
+--
+-- `resolvedCurrency` la escribe SIEMPRE el servidor, desde la moneda de la
+-- sociedad del tenant; la que mande el cliente se descarta. Así la moneda
+-- queda congelada junto con el resto (enmienda A2 del plan).
+--
+-- La base valida estructura (CHECK de forma y tamaño); la semántica la valida
+-- el codec del orquestador, que es el único que conoce la forma de su contrato.
+-- El evento se inserta aquí y no con `record_provisioning_event`, que exige
+-- el claim de servicio: esta RPC la invoca un humano.
+-- ############################################################################
+create function platform.set_saas_provisioning_configuration(
+  p_request_id    uuid,
+  p_configuration jsonb
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = platform, pg_catalog
+as $$
+declare
+  v_req      record;
+  v_conf     jsonb;
+  v_currency text;
+begin
+  select * into v_req from platform.saas_provisioning_requests where id = p_request_id;
+  if v_req.id is null then
+    raise exception 'SOLICITUD_NO_ENCONTRADA' using errcode = 'P0002';
+  end if;
+
+  if not platform.has_product_permission('platform.provisioning.execute', v_req.saas_product_id) then
+    raise exception 'NO_AUTORIZADO: fijar la configuración exige platform.provisioning.execute sobre el producto'
+      using errcode = '42501';
+  end if;
+
+  if v_req.attempt_count <> 0
+     or v_req.status not in ('PENDING', 'READY_TO_PROVISION', 'WAITING_INFRA') then
+    raise exception 'CONFIGURACION_CONGELADA: la configuración de producto sólo se fija antes del primer envío'
+      using errcode = 'P0001';
+  end if;
+
+  select c.currency into v_currency
+    from platform.tenants t join platform.companies c on c.id = t.company_id
+   where t.id = v_req.tenant_id;
+
+  v_conf := coalesce(p_configuration, '{}'::jsonb) - 'resolvedCurrency';
+  -- Sin sociedad no hay moneda que congelar; el codec bloquea al ejecutar.
+  if v_currency is not null then
+    v_conf := v_conf || jsonb_build_object('resolvedCurrency', v_currency);
+  end if;
+
+  update platform.saas_provisioning_requests
+     set product_configuration = v_conf
+   where id = p_request_id;
+
+  insert into platform.saas_provisioning_events (
+    saas_provisioning_request_id, status, action, message, actor_user_id, actor_role,
+    correlation_id, attempt, detail)
+  values (p_request_id, v_req.status, 'PRODUCT_CONFIGURATION_SET',
+          'Configuración de producto fijada',
+          auth.uid(), platform.my_provisioning_actor_role(), v_req.correlation_id,
+          v_req.attempt_count,
+          jsonb_build_object('keys',
+            coalesce((select jsonb_agg(k order by k) from jsonb_object_keys(v_conf) k), '[]'::jsonb)));
+
+  return v_conf;
+end;
+$$;
+
+comment on function platform.set_saas_provisioning_configuration(uuid, jsonb) is
+  'Fija los datos propios de un alta (p. ej. almacén inicial) antes del primer '
+  'envío. Inmutable después. La moneda la resuelve el servidor. El evento '
+  'registra las claves, nunca los valores.';
+
+revoke all on function platform.set_saas_provisioning_configuration(uuid, jsonb) from public, anon;
+grant execute on function platform.set_saas_provisioning_configuration(uuid, jsonb)
+  to authenticated, service_role;
