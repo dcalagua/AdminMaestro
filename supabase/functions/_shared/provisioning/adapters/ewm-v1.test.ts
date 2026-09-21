@@ -341,3 +341,22 @@ describe('EWM_V1 · validación previa a firmar', () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 });
+
+describe('EWM_V1 · R1, el cuerpo no deriva', () => {
+  it('la moneda de source no cuenta: manda la congelada en resolvedCurrency', () => {
+    const c = ewmContext();
+    c.source!.company!.currency = 'USD';
+    const body = buildEwmCreateBody(c);
+    expect(body.organization.currency).toBe('PEN');
+    expect(body.company.currency).toBe('PEN');
+    expect(JSON.stringify(body)).toBe(EWM_BODY_LITERAL);
+  });
+
+  it('el cuerpo no cambia si cambia la cascada de config del tenant', () => {
+    // `source` no trae zona horaria: el cuerpo sólo puede usar la congelada.
+    const c = ewmContext();
+    expect(Object.keys(c.source!)).not.toContain('locale');
+    (c.source as unknown as Record<string, unknown>).locale = { timezone: 'America/Bogota' };
+    expect(JSON.stringify(buildEwmCreateBody(c))).toBe(EWM_BODY_LITERAL);
+  });
+});

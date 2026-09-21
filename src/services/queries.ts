@@ -912,6 +912,23 @@ export function useProfileFullNameByEmail(email: string | null | undefined) {
   });
 }
 
+/**
+ * Configuración efectiva del tenant (cascada plataforma → organización →
+ * sociedad → tenant). Sólo para PRECARGAR valores; el dato que se envía es el
+ * que el operador confirma y la base congela.
+ */
+export function useEffectiveTenantConfig(tenantId: string | null | undefined) {
+  return useQuery({
+    queryKey: ['effective-tenant-config', tenantId ?? null],
+    enabled: Boolean(tenantId),
+    queryFn: async (): Promise<Record<string, unknown> | null> => {
+      const { data, error } = await supabase.rpc('effective_tenant_config', { p_tenant: tenantId! });
+      if (error) return null;
+      return (data ?? null) as Record<string, unknown> | null;
+    },
+  });
+}
+
 /** Precondiciones con CÓDIGOS de bloqueo: la UI explica por qué no se puede. */
 export function useProvisioningPreconditions(requestId: string | undefined) {
   return useQuery({

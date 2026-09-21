@@ -10,7 +10,7 @@
 --     acotada por CHECK.
 -- ============================================================================
 begin;
-select plan(56);
+select plan(61);
 
 create or replace function pg_temp.act_as(p_user uuid)
 returns void language plpgsql as $$
@@ -420,6 +420,37 @@ select ok(not ((select product_configuration from platform.saas_provisioning_req
   'sin sociedad no hay resolvedCurrency');
 update platform.tenants set company_id = '31000000-0000-4000-a000-000000000005'
  where id = '50000000-0000-4000-a000-000000000009';
+
+-- ===========================================================================
+-- 7. R1 · el cuerpo no deriva: moneda y zona horaria congeladas
+-- ===========================================================================
+select pg_temp.act_as(pg_temp.ewm_owner());
+select lives_ok(
+  $$ select platform.set_saas_provisioning_configuration(pg_temp.req_p1_qas(), pg_temp.ewm_conf()) $$,
+  'configuración fijada con la sociedad en PEN');
+select pg_temp.act_as_postgres();
+
+update platform.companies set currency = 'USD' where id = '31000000-0000-4000-a000-000000000005';
+insert into platform.tenant_settings (tenant_id, config)
+values ('50000000-0000-4000-a000-000000000009', '{"locale":{"timezone":"America/Bogota"}}')
+on conflict (tenant_id) do update set config = excluded.config;
+
+select pg_temp.act_as_service();
+select is(
+  platform.provisioning_execution_context(pg_temp.req_p1_qas()) -> 'source' -> 'product_configuration' ->> 'resolvedCurrency',
+  'PEN', 'resolvedCurrency queda congelada aunque cambie companies.currency');
+select is(
+  platform.provisioning_execution_context(pg_temp.req_p1_qas()) -> 'source' -> 'product_configuration' ->> 'organizationTimezone',
+  'America/Lima', 'la zona congelada no cambia aunque cambie la cascada del tenant');
+select pg_temp.act_as_postgres();
+
+select ok(has_function_privilege('authenticated', 'platform.effective_tenant_config(uuid)', 'EXECUTE'),
+  'authenticated puede resolver la configuración efectiva (precarga de zona)');
+select pg_temp.act_as(pg_temp.tech_lead());
+select isnt(
+  platform.effective_tenant_config('50000000-0000-4000-a000-000000000008') -> 'locale' ->> 'timezone',
+  null, 'la cascada devuelve una zona horaria para precargar');
+select pg_temp.act_as_postgres();
 
 select * from finish();
 rollback;

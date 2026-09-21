@@ -494,3 +494,12 @@ comment on function platform.set_saas_provisioning_configuration(uuid, jsonb) is
 revoke all on function platform.set_saas_provisioning_configuration(uuid, jsonb) from public, anon;
 grant execute on function platform.set_saas_provisioning_configuration(uuid, jsonb)
   to authenticated, service_role;
+
+-- ############################################################################
+-- 6. Precarga de zona horaria
+-- ----------------------------------------------------------------------------
+-- La UI precarga las zonas del alta con la cascada `locale.timezone`. La
+-- función es SECURITY INVOKER y lee tablas con RLS: cada operador sólo resuelve
+-- configuración que ya puede ver. Idempotente si el privilegio ya existía.
+-- ############################################################################
+grant execute on function platform.effective_tenant_config(uuid) to authenticated;
