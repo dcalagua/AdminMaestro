@@ -10,7 +10,7 @@
 --     acotada por CHECK.
 -- ============================================================================
 begin;
-select plan(61);
+select plan(72);
 
 create or replace function pg_temp.act_as(p_user uuid)
 returns void language plpgsql as $$
@@ -450,6 +450,45 @@ select pg_temp.act_as(pg_temp.tech_lead());
 select isnt(
   platform.effective_tenant_config('50000000-0000-4000-a000-000000000008') -> 'locale' ->> 'timezone',
   null, 'la cascada devuelve una zona horaria para precargar');
+select pg_temp.act_as_postgres();
+
+-- ===========================================================================
+-- 10. GET_STATUS: can_read_saas_provisioning y columnas de la vista
+-- ===========================================================================
+select ok(not has_function_privilege('anon', 'platform.can_read_saas_provisioning(uuid)', 'EXECUTE'),
+  'anon no puede ejecutar can_read_saas_provisioning');
+
+select pg_temp.act_as(pg_temp.super_admin());
+select is(platform.can_read_saas_provisioning(pg_temp.req_p1_qas()), true, 'super admin lee EWM');
+select pg_temp.act_as(pg_temp.tech_lead());
+select is(platform.can_read_saas_provisioning(pg_temp.req_p1_qas()), true, 'tech lead lee EWM');
+select pg_temp.act_as(pg_temp.ewm_owner());
+select is(platform.can_read_saas_provisioning(pg_temp.req_p1_qas()), true, 'owner de EWM lee EWM');
+select pg_temp.act_as(pg_temp.esup_owner());
+select is(platform.can_read_saas_provisioning(pg_temp.req_p1_qas()), false, 'owner de eSupplier NO lee EWM');
+select pg_temp.act_as('10000000-0000-4000-a000-00000000000b'::uuid);
+select is(platform.can_read_saas_provisioning(pg_temp.req_p1_qas()), false, 'un usuario de tenant NO lee');
+select pg_temp.act_as(pg_temp.tech_lead());
+select is(platform.can_read_saas_provisioning('00000000-0000-4000-a000-0000000000ff'), false,
+  'un id inexistente da false');
+select pg_temp.act_as_postgres();
+
+select is(
+  (select (array_agg(attname::text order by attnum))[1:50] from pg_attribute
+    where attrelid = 'platform.v_saas_provisioning'::regclass and attnum > 0),
+  array['id', 'tenant_id', 'tenant_name', 'tenant_slug', 'deployment_mode', 'customer_organization_id', 'customer_organization_name', 'managing_organization_id', 'managing_organization_name', 'saas_product_id', 'product_code', 'product_short_name', 'subscription_id', 'deployment_target_id', 'deployment_code', 'base_url', 'deployment_status', 'deployment_health', 'product_integration_id', 'integration_code', 'integration_type', 'contract_version', 'idempotency_key', 'correlation_id', 'request_version', 'status', 'provisioning_environment', 'provisioning_policy', 'attempt_count', 'max_attempts', 'requested_by', 'requested_by_name', 'requested_at', 'started_at', 'completed_at', 'cancelled_at', 'cancel_reason', 'last_error_code', 'last_error_message', 'provider_http_status', 'external_reference', 'mapping_id', 'external_tenant_id', 'external_organization_id', 'external_company_id', 'mapping_status', 'registered_manually', 'mapping_metadata', 'created_at', 'updated_at'],
+  'las columnas previas de v_saas_provisioning conservan nombre y orden');
+select is(
+  (select (array_agg(attname::text order by attnum))[51:] from pg_attribute
+    where attrelid = 'platform.v_saas_provisioning'::regclass and attnum > 0),
+  array['adapter_key', 'capabilities', 'product_configuration'],
+  'las columnas nuevas van al final');
+
+select pg_temp.act_as(pg_temp.tech_lead());
+select is((select capabilities from platform.v_saas_provisioning where id = pg_temp.req_alpha_ewm()),
+  '{PROVISION}'::text[], 'una solicitud GENERIC expone capabilities {PROVISION}');
+select is((select adapter_key::text from platform.v_saas_provisioning where id = pg_temp.req_p1_qas()),
+  'EWM_V1', 'la solicitud EWM expone adapter_key EWM_V1');
 select pg_temp.act_as_postgres();
 
 select * from finish();

@@ -503,3 +503,113 @@ grant execute on function platform.set_saas_provisioning_configuration(uuid, jso
 -- configuración que ya puede ver. Idempotente si el privilegio ya existía.
 -- ############################################################################
 grant execute on function platform.effective_tenant_config(uuid) to authenticated;
+
+-- ############################################################################
+-- 7. GET_STATUS — autorización y capacidades visibles para la UI
+-- ############################################################################
+create function platform.can_read_saas_provisioning(p_request_id uuid)
+returns boolean
+language plpgsql
+stable
+security definer
+set search_path = platform, pg_catalog
+as $$
+declare
+  v_product uuid;
+begin
+  select saas_product_id into v_product
+    from platform.saas_provisioning_requests where id = p_request_id;
+
+  -- Una solicitud inexistente da FALSE, no error: falla cerrado y no revela
+  -- si el identificador existe.
+  if v_product is null then
+    return false;
+  end if;
+
+  return platform.has_product_permission('platform.provisioning.read', v_product);
+end;
+$$;
+
+comment on function platform.can_read_saas_provisioning(uuid) is
+  'Booleano EXPLÍCITO para el gate de GET_STATUS en la Edge Function. Consultar '
+  'el estado remoto es de sólo lectura y exige platform.provisioning.read.';
+
+revoke all on function platform.can_read_saas_provisioning(uuid) from public, anon;
+grant execute on function platform.can_read_saas_provisioning(uuid) to authenticated, service_role;
+
+-- Vista operativa: copia literal de 20260915000300 (líneas 406–468) con tres
+-- columnas nuevas AL FINAL y un LEFT JOIN a la integración efectiva.
+create or replace view platform.v_saas_provisioning
+with (security_invoker = true) as
+select
+  r.id,
+  r.tenant_id,
+  t.name                       as tenant_name,
+  t.slug                       as tenant_slug,
+  t.deployment_mode,
+  t.customer_organization_id,
+  co.display_name              as customer_organization_name,
+  t.managing_organization_id,
+  mo.display_name              as managing_organization_name,
+  r.saas_product_id,
+  p.code                       as product_code,
+  p.short_name                 as product_short_name,
+  r.subscription_id,
+  r.deployment_target_id,
+  d.code                       as deployment_code,
+  d.base_url,
+  d.provisioning_status        as deployment_status,
+  d.health_status              as deployment_health,
+  r.product_integration_id,
+  i.code                       as integration_code,
+  i.integration_type,
+  i.contract_version,
+  r.idempotency_key,
+  r.correlation_id,
+  r.request_version,
+  r.status,
+  r.provisioning_environment,
+  r.provisioning_policy,
+  r.attempt_count,
+  r.max_attempts,
+  r.requested_by,
+  pr.full_name                 as requested_by_name,
+  r.requested_at,
+  r.started_at,
+  r.completed_at,
+  r.cancelled_at,
+  r.cancel_reason,
+  r.last_error_code,
+  r.last_error_message,
+  r.provider_http_status,
+  r.external_reference,
+  m.id                         as mapping_id,
+  m.external_tenant_id,
+  m.external_organization_id,
+  m.external_company_id,
+  m.status                     as mapping_status,
+  m.registered_manually,
+  m.metadata                   as mapping_metadata,
+  r.created_at,
+  r.updated_at,
+  -- V4 · adaptadores de contrato: SIEMPRE al final, para no mover columnas.
+  ie.adapter_key,
+  platform.integration_capabilities(ie.adapter_key, ie.status_path_template, ie.read_scope)
+                               as capabilities,
+  r.product_configuration
+from platform.saas_provisioning_requests r
+join platform.tenants t on t.id = r.tenant_id
+join platform.saas_products p on p.id = r.saas_product_id
+left join platform.organizations co on co.id = t.customer_organization_id
+left join platform.organizations mo on mo.id = t.managing_organization_id
+left join platform.deployment_targets d on d.id = r.deployment_target_id
+left join platform.product_integrations i on i.id = r.product_integration_id
+left join platform.profiles pr on pr.id = r.requested_by
+left join platform.tenant_product_mappings m
+       on m.saas_provisioning_request_id = r.id
+-- Integración EFECTIVA (la del destino, o la anotada en la solicitud), la
+-- misma regla que `provisioning_execution_context`.
+left join platform.product_integrations ie
+       on ie.id = coalesce(d.product_integration_id, r.product_integration_id);
+
+grant select on platform.v_saas_provisioning to authenticated;

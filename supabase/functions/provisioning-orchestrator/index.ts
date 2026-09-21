@@ -28,6 +28,7 @@ import {
   permissionRpcFor,
   resolveAdapter,
   routeAction,
+  summarizeStatus,
   withCors,
   type AdapterType,
   type ProvisioningAdapter,
@@ -164,7 +165,10 @@ Deno.serve(withCors(async (req: Request) => {
   if (action === 'CHECK_HEALTH') {
     return await checkHealth(admin, body.deployment_target_id!, actorId, actorRole);
   }
-  if (action === 'GET_STATUS' || action === 'REPLAY_CERTIFICATION') {
+  if (action === 'GET_STATUS') {
+    return await getStatus(admin, body.request_id!, actorId, actorRole);
+  }
+  if (action === 'REPLAY_CERTIFICATION') {
     return json({ error: 'ACCION_NO_DISPONIBLE' }, 501);
   }
 
@@ -334,6 +338,95 @@ async function provision(
     mapping: completed,
     external_tenant_id: outcome.result.externalTenantId,
   });
+}
+
+// ---------------------------------------------------------------------------
+// Consulta de estado remoto (GET_STATUS)
+// ---------------------------------------------------------------------------
+// SÓLO LECTURA. No llama a begin/complete/fail: el estado de la solicitud y el
+// mapping no cambian. Se admite también READY_TO_PROVISION (enmienda A1): con
+// un tenant todavía no aprovisionado, el 404 del producto demuestra que aceptó
+// la firma M2M sin crear nada. PROVISIONING queda fuera: hay una llamada en
+// vuelo.
+// ---------------------------------------------------------------------------
+const STATUS_READABLE = ['ACTIVE', 'FAILED', 'READY_TO_PROVISION'];
+
+async function getStatus(
+  admin: AdminClient,
+  requestId: string,
+  actorId: string | null,
+  actorRole: string,
+): Promise<Response> {
+  const { data: contextData, error: contextError } = await admin.rpc(
+    'provisioning_execution_context',
+    { p_request_id: requestId },
+  );
+  if (contextError) {
+    return json({ error: 'CONTEXTO_NO_DISPONIBLE', message: contextError.message }, 500);
+  }
+
+  const ctx = contextData as Omit<ProvisioningContext, 'actor'>;
+  const context = buildExecutionContext(ctx, { id: actorId, role: actorRole });
+
+  // Capacidad efectiva = la declara la configuración (base) Y el codec compilado.
+  let adapter: ProvisioningAdapter | null = null;
+  try {
+    adapter = resolveAdapter(
+      (ctx.integration?.type ?? 'MANUAL') as AdapterType,
+      ctx.request.environment as ProvisioningEnvironment,
+      { secretResolver },
+      ctx.adapter?.key ?? 'GENERIC',
+    );
+  } catch {
+    adapter = null;
+  }
+  if (!ctx.adapter?.capabilities?.includes('GET_STATUS') || !adapter?.capabilities.includes('GET_STATUS')) {
+    return json(
+      {
+        error: 'CAPACIDAD_NO_SOPORTADA',
+        message: 'La integración de esta solicitud no admite consulta de estado remota',
+      },
+      409,
+    );
+  }
+
+  if (!STATUS_READABLE.includes(ctx.request.status)) {
+    return json(
+      {
+        error: 'ESTADO_NO_CONSULTABLE',
+        message: `No se consulta el estado remoto de una solicitud en ${ctx.request.status}`,
+      },
+      409,
+    );
+  }
+
+  let outcome;
+  try {
+    outcome = await adapter.getStatus(context);
+  } catch (error) {
+    outcome = { ok: false as const, attempts: 0, failure: normalizeThrownFailure(error) };
+  }
+
+  const summary = summarizeStatus(outcome, ctx.source?.mapping ?? null);
+
+  // Códigos y banderas; nunca cuerpos, tokens ni identificadores remotos.
+  await admin.rpc('record_provisioning_event', {
+    p_request_id: requestId,
+    p_action: 'STATUS_CHECKED',
+    p_message: 'Consulta de estado remoto',
+    p_detail: {
+      provider_http_status: summary.provider_http_status,
+      found: summary.found,
+      remote_status: summary.remote?.status ?? null,
+      mapping_consistent: summary.mapping_consistent,
+      provider_code: summary.provider_code,
+    },
+    p_actor_id: actorId,
+    p_actor_role: actorRole,
+    p_http_status: summary.provider_http_status,
+  });
+
+  return json({ request_id: requestId, ...summary });
 }
 
 // ---------------------------------------------------------------------------

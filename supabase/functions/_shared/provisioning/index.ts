@@ -15,6 +15,7 @@ export * from './response.ts';
 export * from './registry.ts';
 export * from './cors.ts';
 export * from './actions.ts';
+export * from './status.ts';
 export { GENERIC_CODEC } from './adapters/generic.ts';
 export { EWM_V1_CODEC } from './adapters/ewm-v1.ts';
 export { HttpM2mAdapter } from './adapters/http-m2m.ts';

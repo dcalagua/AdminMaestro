@@ -388,7 +388,7 @@ export function parseEwmResponse(
 
 export const EWM_V1_CODEC: ContractCodec = {
   key: 'EWM_V1',
-  capabilities: ['PROVISION'],
+  capabilities: ['PROVISION', 'GET_STATUS', 'REPLAY_CERTIFICATION'],
   validateInput: validateEwmInput,
   buildCreateBody: buildEwmCreateBody,
   pathParams: ewmPathParams,

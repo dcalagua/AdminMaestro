@@ -204,3 +204,16 @@ describe('selección de codec por adapterKey', () => {
     expect(Object.keys(CONTRACT_CODECS).sort()).toEqual([...ADAPTER_KEYS].sort());
   });
 });
+
+describe('capacidades: codec compilado = regla SQL', () => {
+  // Misma tabla que prueba pgTAP 23 sobre `platform.integration_capabilities`
+  // con ruta de estado y read_scope presentes. Si una cambia, la otra también.
+  const SQL_CAPABILITIES: Record<AdapterKey, string[]> = {
+    GENERIC: ['PROVISION'],
+    EWM_V1: ['PROVISION', 'GET_STATUS', 'REPLAY_CERTIFICATION'],
+  };
+
+  it.each([...ADAPTER_KEYS])('%s', (key) => {
+    expect([...CONTRACT_CODECS[key].capabilities]).toEqual(SQL_CAPABILITIES[key]);
+  });
+});

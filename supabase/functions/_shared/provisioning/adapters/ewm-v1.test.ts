@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { EWM_V1_CODEC, buildEwmCreateBody, validateEwmProductConfiguration } from './ewm-v1';
 import { HttpM2mAdapter } from './http-m2m';
+import { GENERIC_CODEC } from './generic';
 import type { ProvisioningContext } from '../types';
 
 /*
@@ -562,5 +563,40 @@ describe('EWM_V1 · marcadores de ruta', () => {
     const outcome = await adapter.getStatus(c);
     expect(calls).toHaveLength(0);
     if (!outcome.ok) expect(outcome.failure.code).toBe('PATH_TEMPLATE_INVALID');
+  });
+});
+
+describe('EWM_V1 · capacidades y scopes', () => {
+  const claimsOf = (c: Call) => {
+    const token = (c.init.headers as Record<string, string>).authorization.slice('Bearer '.length);
+    return JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString()) as Record<string, unknown>;
+  };
+
+  it('EWM_V1 declara PROVISION, GET_STATUS y REPLAY_CERTIFICATION; GENERIC sólo PROVISION', () => {
+    expect([...EWM_V1_CODEC.capabilities]).toEqual(['PROVISION', 'GET_STATUS', 'REPLAY_CERTIFICATION']);
+    expect([...GENERIC_CODEC.capabilities]).toEqual(['PROVISION']);
+  });
+
+  it('getStatus firma con ewm:tenant:read y nunca con ewm:tenant:create; GET sin cuerpo', async () => {
+    const { adapter, calls } = ewmAdapter([jsonResponse(200, ewmResponse())]);
+    await adapter.getStatus(ewmContext());
+    expect(claimsOf(calls[0]).scope).toBe('ewm:tenant:read');
+    expect(String(claimsOf(calls[0]).scope)).not.toContain('ewm:tenant:create');
+    expect(calls[0].init.body).toBeUndefined();
+  });
+
+  it('provision firma con ewm:tenant:create, ES256 y exp − iat ≤ 300', async () => {
+    const { adapter, calls } = ewmAdapter([jsonResponse(201, ewmResponse())]);
+    await adapter.provision(ewmContext());
+    const claims = claimsOf(calls[0]);
+    expect(claims.scope).toBe('ewm:tenant:create');
+    expect(claims.iss).toBe('masteradmin.ebim');
+    expect(claims.aud).toBe('ewm.ebim');
+    expect(Number(claims.exp) - Number(claims.iat)).toBeLessThanOrEqual(300);
+    const token = (calls[0].init.headers as Record<string, string>).authorization.slice('Bearer '.length);
+    expect(JSON.parse(Buffer.from(token.split('.')[0], 'base64url').toString())).toEqual({
+      alg: 'ES256',
+      typ: 'JWT',
+    });
   });
 });
