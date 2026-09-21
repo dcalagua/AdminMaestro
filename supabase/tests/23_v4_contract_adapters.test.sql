@@ -10,7 +10,7 @@
 --     acotada por CHECK.
 -- ============================================================================
 begin;
-select plan(24);
+select plan(42);
 
 create or replace function pg_temp.act_as(p_user uuid)
 returns void language plpgsql as $$
@@ -189,6 +189,150 @@ select throws_ok(
   $$ update platform.saas_provisioning_requests set product_configuration = '{"a":1}'::jsonb
       where id = pg_temp.req_alpha_ewm() $$,
   '42501', null, 'authenticated no escribe product_configuration directamente');
+select pg_temp.act_as_postgres();
+
+-- ===========================================================================
+-- 5. provisioning_execution_context: `payload` intacto; `source` y `adapter`
+-- ===========================================================================
+-- Expresión de `payload` PREVIA a esta migración, copiada literalmente de
+-- 20260915000500_v4_orchestrator_rpcs.sql (líneas 183–204) con los mismos
+-- SELECT INTO. Si el contexto nuevo difiere para alguna solicitud, `payload`
+-- cambió: H2.
+create or replace function pg_temp.legacy_payload(p_request_id uuid)
+returns jsonb language plpgsql as $LEGACY$
+declare
+  v_req    record;
+  v_tenant record;
+  v_prod   record;
+  v_target record;
+  v_int    record;
+  v_org    record;
+  v_comp   record;
+  v_plan   record;
+begin
+  select * into v_req from platform.saas_provisioning_requests where id = p_request_id;
+  select * into v_tenant from platform.tenants where id = v_req.tenant_id;
+  select * into v_prod from platform.saas_products where id = v_req.saas_product_id;
+  select * into v_org from platform.organizations where id = v_tenant.customer_organization_id;
+  select * into v_comp from platform.companies where id = v_tenant.company_id;
+  select * into v_target from platform.deployment_targets
+   where id = v_req.deployment_target_id;
+  select * into v_int from platform.product_integrations
+   where id = coalesce(v_target.product_integration_id, v_req.product_integration_id);
+  select p.code, p.name into v_plan
+    from platform.subscriptions s join platform.plans p on p.id = s.plan_id
+   where s.id = v_req.subscription_id;
+  return
+    jsonb_build_object(
+      'tenantCode', v_tenant.slug,
+      'tenantName', v_tenant.name,
+      'adminEmail', v_tenant.admin_email,
+      'tenantType', v_tenant.tenant_type::text,
+      'environment', v_req.provisioning_environment::text,
+      'deploymentMode', v_tenant.deployment_mode::text,
+      'organization', jsonb_build_object(
+        'code', v_org.slug, 'legalName', v_org.legal_name,
+        'displayName', v_org.display_name, 'countryCode', v_org.country_code,
+        'taxId', v_org.tax_id),
+      'company', case when v_comp.id is null then null else jsonb_build_object(
+        'code', v_comp.erp_code, 'name', v_comp.name,
+        'countryCode', v_comp.country_code, 'currency', v_comp.currency,
+        'taxId', v_comp.tax_id) end,
+      'plan', case when v_plan.code is null then null else jsonb_build_object(
+        'code', v_plan.code, 'name', v_plan.name) end,
+      'masterAdmin', jsonb_build_object(
+        'tenantId', v_tenant.id, 'productCode', v_prod.code,
+        'requestId', v_req.id, 'correlationId', v_req.correlation_id,
+        'contractVersion', coalesce(v_int.contract_version, 'v1'))
+    );
+end;
+$LEGACY$;
+
+-- El contexto lo exige el claim de servicio (no el rol de la sesión).
+create or replace function pg_temp.act_as_service()
+returns void language plpgsql as $$
+begin
+  perform set_config('role', 'postgres', true);
+  perform set_config('request.jwt.claims', '{"role":"service_role"}', true);
+end;
+$$;
+
+-- Segunda solicitud, de EWM en QAS sobre `ewm-shared-qas` (integración HTTP_M2M).
+do $$
+begin
+  perform pg_temp.act_as('10000000-0000-4000-a000-000000000002'::uuid);
+  perform set_config('tests.req_p1_qas',
+    platform.create_saas_provisioning_request('50000000-0000-4000-a000-000000000009'::uuid, 'QAS')::text,
+    false);
+  perform pg_temp.act_as_postgres();
+end;
+$$;
+create or replace function pg_temp.req_p1_qas() returns uuid language sql as $$
+  select current_setting('tests.req_p1_qas')::uuid $$;
+
+select pg_temp.act_as_service();
+
+select ok((select count(*) from platform.saas_provisioning_requests) >= 2,
+  'hay solicitudes sobre las que comparar el payload');
+select is(
+  (select count(*) from platform.saas_provisioning_requests r
+    where platform.provisioning_execution_context(r.id) -> 'payload'
+          is distinct from pg_temp.legacy_payload(r.id)),
+  0::bigint, 'payload del contexto idéntico a la expresión previa, para toda solicitud');
+
+select ok(platform.provisioning_execution_context(pg_temp.req_alpha_ewm()) ? 'source',
+  'el contexto trae la clave source');
+select is(platform.provisioning_execution_context(pg_temp.req_alpha_ewm()) -> 'source' -> 'tenant' ->> 'id',
+  '50000000-0000-4000-a000-000000000008', 'source.tenant.id = tenant de la solicitud');
+select is(platform.provisioning_execution_context(pg_temp.req_alpha_ewm()) -> 'source' -> 'organization' ->> 'id',
+  (select customer_organization_id::text from platform.tenants where id = '50000000-0000-4000-a000-000000000008'),
+  'source.organization.id = tenants.customer_organization_id');
+select is(platform.provisioning_execution_context(pg_temp.req_alpha_ewm()) -> 'source' -> 'company' ->> 'id',
+  (select company_id::text from platform.tenants where id = '50000000-0000-4000-a000-000000000008'),
+  'source.company.id = tenants.company_id');
+select is(platform.provisioning_execution_context(pg_temp.req_alpha_ewm()) -> 'source' -> 'product_configuration',
+  '{}'::jsonb, 'source.product_configuration = product_configuration de la solicitud');
+select is(platform.provisioning_execution_context(pg_temp.req_alpha_ewm()) -> 'source' -> 'mapping',
+  'null'::jsonb, 'sin mapping, source.mapping es null');
+
+select is(platform.provisioning_execution_context(pg_temp.req_alpha_ewm()) -> 'adapter' ->> 'key',
+  'GENERIC', 'integración MOCK → adapter.key GENERIC');
+select is(platform.provisioning_execution_context(pg_temp.req_alpha_ewm()) -> 'adapter' -> 'capabilities',
+  '["PROVISION"]'::jsonb, 'GENERIC → capabilities [PROVISION]');
+
+select pg_temp.act_as_postgres();
+update platform.product_integrations set adapter_key = 'EWM_V1',
+       status_path_template = '/internal/platform/v1/tenants/{controlPlaneTenantId}'
+ where id = pg_temp.i_ewm_qas();
+select pg_temp.act_as_service();
+
+select is(platform.provisioning_execution_context(pg_temp.req_p1_qas()) -> 'adapter' ->> 'key',
+  'EWM_V1', 'la integración efectiva EWM_V1 llega al contexto');
+select is(platform.provisioning_execution_context(pg_temp.req_p1_qas()) -> 'adapter' -> 'capabilities',
+  to_jsonb(platform.integration_capabilities('EWM_V1',
+    '/internal/platform/v1/tenants/{controlPlaneTenantId}', 'provisioning:tenant:read')),
+  'adapter.capabilities = integration_capabilities(...)');
+select is(
+  (select count(*) from platform.saas_provisioning_requests r
+    where platform.provisioning_execution_context(r.id) -> 'payload'
+          is distinct from pg_temp.legacy_payload(r.id)),
+  0::bigint, 'payload sigue idéntico con una integración EWM_V1');
+
+select pg_temp.act_as_postgres();
+
+select is(platform.integration_capabilities('GENERIC', '/x/{externalTenantId}', 'r'),
+  '{PROVISION}'::text[], 'GENERIC → {PROVISION}');
+select is(platform.integration_capabilities('EWM_V1', null, 'r'),
+  '{PROVISION,REPLAY_CERTIFICATION}'::text[], 'EWM_V1 sin ruta de estado → sin GET_STATUS');
+select is(platform.integration_capabilities('EWM_V1', '/x', null),
+  '{PROVISION,REPLAY_CERTIFICATION}'::text[], 'EWM_V1 sin read_scope → sin GET_STATUS');
+select is(platform.integration_capabilities('EWM_V1', '/x', 'r'),
+  '{PROVISION,GET_STATUS,REPLAY_CERTIFICATION}'::text[], 'EWM_V1 completo → las tres');
+
+select pg_temp.act_as(pg_temp.tech_lead());
+select throws_ok(
+  $$ select platform.provisioning_execution_context(pg_temp.req_alpha_ewm()) $$,
+  '42501', null, 'authenticated sigue sin EXECUTE sobre provisioning_execution_context');
 select pg_temp.act_as_postgres();
 
 select * from finish();

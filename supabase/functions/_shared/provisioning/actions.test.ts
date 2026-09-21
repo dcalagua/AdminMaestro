@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { permissionRpcFor, routeAction } from './actions';
+import { buildExecutionContext, permissionRpcFor, routeAction } from './actions';
 
 /*
  * Enrutado de acciones del orquestador.
@@ -53,5 +53,21 @@ describe('permissionRpcFor', () => {
       arg: 'p_request_id',
       bodyField: 'request_id',
     });
+  });
+});
+
+describe('buildExecutionContext', () => {
+  it('el contexto sale SÓLO de la base: el cuerpo HTTP no puede aportar source/adapter', () => {
+    const fromDb = {
+      request: { id: 'r1' },
+      source: { tenant: { id: 't-db' } },
+      adapter: { key: 'GENERIC', capabilities: ['PROVISION'] },
+    } as unknown as Parameters<typeof buildExecutionContext>[0];
+    const context = buildExecutionContext(fromDb, { id: 'u1', role: 'TECH_LEAD' });
+    expect(context.source).toBe(fromDb.source);
+    expect(context.adapter).toBe(fromDb.adapter);
+    expect(context.actor).toEqual({ id: 'u1', role: 'TECH_LEAD' });
+    // La firma no acepta el cuerpo de la petición: no hay forma de mezclarlo.
+    expect(buildExecutionContext.length).toBe(2);
   });
 });

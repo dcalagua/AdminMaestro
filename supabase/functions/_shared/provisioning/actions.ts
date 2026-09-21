@@ -8,6 +8,7 @@
  * existieran las acciones nuevas (spec §8, fila 11). Endurecerlo es una
  * decisión separada, no un efecto colateral de este cambio.
  */
+import type { ProvisioningContext } from './types.ts';
 export type OrchestratorAction = 'PROVISION' | 'CHECK_HEALTH' | 'GET_STATUS' | 'REPLAY_CERTIFICATION';
 
 const ROUTED: readonly OrchestratorAction[] = ['CHECK_HEALTH', 'GET_STATUS', 'REPLAY_CERTIFICATION'];
@@ -41,4 +42,17 @@ const PERMISSIONS: Record<OrchestratorAction, PermissionRpc> = {
 
 export function permissionRpcFor(action: OrchestratorAction): PermissionRpc {
   return PERMISSIONS[action];
+}
+
+/**
+ * Contexto de ejecución. Se construye EXCLUSIVAMENTE con lo que devolvió
+ * `provisioning_execution_context` más el actor autenticado: el cuerpo de la
+ * petición no participa, así que el cliente no puede aportar `source`,
+ * `adapter` ni ninguna otra configuración.
+ */
+export function buildExecutionContext(
+  fromDatabase: Omit<ProvisioningContext, 'actor'>,
+  actor: ProvisioningContext['actor'],
+): ProvisioningContext {
+  return { ...fromDatabase, actor };
 }

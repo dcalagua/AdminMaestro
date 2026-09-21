@@ -22,6 +22,7 @@
  */
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import {
+  buildExecutionContext,
   normalizeThrownFailure,
   parseAllowedOrigins,
   permissionRpcFor,
@@ -29,6 +30,7 @@ import {
   routeAction,
   withCors,
   type AdapterType,
+  type ProvisioningAdapter,
   type ProvisioningContext,
   type ProvisioningEnvironment,
 } from '../_shared/provisioning/index.ts';
@@ -207,6 +209,30 @@ async function provision(
   const ctx = contextData as Omit<ProvisioningContext, 'actor'>;
   const adapterType = (ctx.integration?.type ?? 'MANUAL') as AdapterType;
   const environment = ctx.request.environment as ProvisioningEnvironment;
+  const context = buildExecutionContext(ctx, { id: actorId, role: actorRole });
+
+  // El adaptador se resuelve ANTES de `begin` para que el codec valide los
+  // datos sin consumir un intento ni firmar nada. Si la resolución falla, el
+  // error se conserva y se trata después de `begin`, exactamente como antes.
+  let adapter: ProvisioningAdapter | null = null;
+  let resolveError: unknown = null;
+  try {
+    adapter = resolveAdapter(adapterType, environment, { secretResolver }, ctx.adapter?.key ?? 'GENERIC');
+  } catch (error) {
+    resolveError = error;
+  }
+
+  const blockers = adapter?.validateInput?.(context) ?? [];
+  if (blockers.length > 0) {
+    return json(
+      {
+        error: 'PRECONDICIONES_NO_CUMPLIDAS',
+        blockers,
+        message: 'La solicitud no cumple las condiciones para ejecutarse',
+      },
+      409,
+    );
+  }
 
   // Marca PROVISIONING e incrementa el intento. El UPDATE condicional de la RPC
   // es el candado contra la doble ejecución concurrente.
@@ -219,16 +245,9 @@ async function provision(
     return json({ error: 'NO_EJECUTABLE', message: beginError.message }, 409);
   }
 
-  const context: ProvisioningContext = { ...ctx, actor: { id: actorId, role: actorRole } };
-
   let outcome;
   try {
-    const adapter = resolveAdapter(
-      adapterType,
-      environment,
-      { secretResolver },
-      ctx.adapter?.key ?? 'GENERIC',
-    );
+    if (!adapter) throw resolveError;
     outcome = await adapter.provision(context);
   } catch (error) {
     outcome = { ok: false as const, attempts: 0, failure: normalizeThrownFailure(error) };
