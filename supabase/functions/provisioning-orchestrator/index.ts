@@ -24,7 +24,9 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import type { SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 import {
   normalizeThrownFailure,
+  parseAllowedOrigins,
   resolveAdapter,
+  withCors,
   type AdapterType,
   type ProvisioningContext,
   type ProvisioningEnvironment,
@@ -49,7 +51,11 @@ function json(body: unknown, status = 200): Response {
  */
 const secretResolver = (secretRef: string): string | undefined => Deno.env.get(secretRef);
 
-Deno.serve(async (req: Request) => {
+// El preflight se responde ANTES de cualquier autenticación y sin ejecutar
+// nada; el resto de métodos llega al handler con su autenticación intacta.
+const allowedOrigins = parseAllowedOrigins(Deno.env.get('MASTERADMIN_ALLOWED_ORIGINS'));
+
+Deno.serve(withCors(async (req: Request) => {
   if (req.method !== 'POST') {
     return json({ error: 'METODO_NO_PERMITIDO' }, 405);
   }
@@ -149,7 +155,7 @@ Deno.serve(async (req: Request) => {
   }
 
   return await provision(admin, body.request_id!, actorId, actorRole);
-});
+}, allowedOrigins));
 
 // ---------------------------------------------------------------------------
 // Provisioning

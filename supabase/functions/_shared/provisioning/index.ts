@@ -13,6 +13,7 @@ export * from './retry.ts';
 export * from './errors.ts';
 export * from './response.ts';
 export * from './registry.ts';
+export * from './cors.ts';
 export { HttpM2mAdapter } from './adapters/http-m2m.ts';
 export { ManualAdapter } from './adapters/manual.ts';
 export { MockAdapter } from './adapters/mock.ts';
