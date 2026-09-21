@@ -23,6 +23,10 @@ import {
   describePathTemplateProblem,
   describeSecretRefProblem,
 } from '@/lib/provisioning';
+import {
+  CONTRACT_ADAPTER_KEYS,
+  CONTRACT_ADAPTER_OPTIONS,
+} from '@/features/deployments/contractAdapters';
 
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
@@ -64,6 +68,7 @@ const integrationSchema = z
     code: z.string().trim().regex(SLUG, 'Minúsculas y guiones (ej. ewm-provisioning-v1)'),
     name: z.string().trim().min(2, 'Obligatorio'),
     integration_type: z.enum(['HTTP_M2M', 'EDGE_FUNCTION', 'MANUAL', 'MOCK']),
+    adapter_key: z.enum(CONTRACT_ADAPTER_KEYS),
     contract_version: z.string().trim().regex(/^v[0-9]+$/, 'Formato vN, por ejemplo v1'),
     owner_name: z.string().trim().optional(),
     issuer: z.string().trim().min(3, 'Obligatorio'),
@@ -113,6 +118,7 @@ export interface IntegrationDraft {
   code: string;
   name: string;
   integration_type: string;
+  adapter_key?: string | null;
   contract_version: string;
   owner_name: string | null;
   issuer: string;
@@ -154,6 +160,7 @@ export function IntegrationDialog({
       code: '',
       name: '',
       integration_type: 'HTTP_M2M',
+      adapter_key: 'GENERIC',
       contract_version: 'v1',
       owner_name: '',
       issuer: 'masteradmin.ebim',
@@ -181,6 +188,7 @@ export function IntegrationDialog({
       code: integration?.code ?? '',
       name: integration?.name ?? '',
       integration_type: (integration?.integration_type as IntegrationValues['integration_type']) ?? 'HTTP_M2M',
+      adapter_key: (integration?.adapter_key as IntegrationValues['adapter_key']) ?? 'GENERIC',
       contract_version: integration?.contract_version ?? 'v1',
       owner_name: integration?.owner_name ?? '',
       issuer: integration?.issuer ?? 'masteradmin.ebim',
@@ -232,6 +240,9 @@ export function IntegrationDialog({
         p_provisioning_policy: values.provisioning_policy,
         p_enabled: values.enabled,
         p_status: values.status,
+        // Un contrato distinto del estándar sólo existe sobre HTTP_M2M (CHECK de
+        // la base); cualquier otro tipo vuelve al estándar.
+        p_adapter_key: type === 'HTTP_M2M' ? values.adapter_key : 'GENERIC',
       });
       toast.success(isEdit ? 'Integración actualizada' : 'Integración creada', values.code);
       onClose();
@@ -326,6 +337,18 @@ export function IntegrationDialog({
           <p className="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
             Contrato M2M
           </p>
+
+          {type === 'HTTP_M2M' ? (
+            <FieldRow>
+              <SelectField
+                label="Forma del contrato"
+                options={CONTRACT_ADAPTER_OPTIONS}
+                hint="Cómo se arma el cuerpo y se lee la respuesta. El transporte, la firma y el control SSRF son los mismos."
+                error={form.formState.errors.adapter_key}
+                {...form.register('adapter_key')}
+              />
+            </FieldRow>
+          ) : null}
 
           <FieldRow>
             <TextField

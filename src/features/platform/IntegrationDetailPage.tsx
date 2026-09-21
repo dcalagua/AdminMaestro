@@ -48,6 +48,7 @@ import {
   type IntegrationDraft,
 } from './IntegrationDialogs';
 import { RevealSecretRefButton } from './RevealSecretRef';
+import { contractAdapterFor } from '@/features/deployments/contractAdapters';
 
 /** Fila etiqueta/valor para las fichas de configuración. */
 function Row({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string }) {
@@ -133,6 +134,7 @@ export function IntegrationDetailPage() {
     code: data.code,
     name: data.name,
     integration_type: data.integration_type,
+    adapter_key: data.adapter_key,
     contract_version: data.contract_version,
     owner_name: data.owner_name,
     issuer: data.issuer,
@@ -200,6 +202,7 @@ export function IntegrationDetailPage() {
                     hint={INTEGRATION_TYPE_HINT[type]}
                   />
                   <Row label="Versión del contrato" value={<Mono>{data.contract_version}</Mono>} />
+                  <Row label="Forma del contrato" value={contractAdapterFor(data.adapter_key).label} />
                   <Row
                     label="Responsable técnico"
                     value={

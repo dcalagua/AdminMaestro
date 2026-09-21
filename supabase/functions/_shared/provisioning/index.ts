@@ -19,7 +19,6 @@ export * from './status.ts';
 export * from './fingerprint.ts';
 export * from './replay.ts';
 export { GENERIC_CODEC } from './adapters/generic.ts';
-export { EWM_V1_CODEC } from './adapters/ewm-v1.ts';
 export { HttpM2mAdapter } from './adapters/http-m2m.ts';
 export { ManualAdapter } from './adapters/manual.ts';
 export { MockAdapter } from './adapters/mock.ts';
