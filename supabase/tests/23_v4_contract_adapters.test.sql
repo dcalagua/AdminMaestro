@@ -253,7 +253,7 @@ create or replace function pg_temp.act_as_service()
 returns void language plpgsql as $$
 begin
   perform set_config('role', 'postgres', true);
-  perform set_config('request.jwt.claims', '{"role":"service_role"}', true);
+  perform set_config('request.jwt.claims', json_build_object('role', 'service_role')::text, true);
 end;
 $$;
 
