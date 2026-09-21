@@ -12,6 +12,7 @@
  * para evitar.
  */
 import type {
+  AdapterCapability,
   AdapterOutcome,
   ProvisioningAdapter,
   ProvisioningContext,
@@ -19,6 +20,7 @@ import type {
 
 export class ManualAdapter implements ProvisioningAdapter {
   readonly type = 'MANUAL' as const;
+  readonly capabilities: readonly AdapterCapability[] = ['PROVISION'];
 
   provision(_context: ProvisioningContext): Promise<AdapterOutcome> {
     return Promise.resolve({

@@ -9,7 +9,9 @@
  * sólo entonces— se escribiría un adaptador específico.
  */
 import type {
+  AdapterCapability,
   AdapterOutcome,
+  ContractCodec,
   ProvisioningAdapter,
   ProvisioningContext,
   SecretResolver,
@@ -19,7 +21,7 @@ import { buildProvisioningUrl, assertSafeRedirect } from '../url-guard.ts';
 import { buildM2mClaims, resolvePrivateKey, scopesFor, signM2mToken } from '../m2m.ts';
 import { decideRetry, type NetworkFailureKind } from '../retry.ts';
 import { normalizeProviderFailure, normalizeThrownFailure } from '../errors.ts';
-import { parseProvisioningResponse } from '../response.ts';
+import { GENERIC_CODEC } from './generic.ts';
 
 /** Número máximo de saltos que se sigue, cada uno revalidado. */
 const MAX_REDIRECTS = 3;
@@ -41,7 +43,22 @@ interface AttemptOutcome {
 export class HttpM2mAdapter implements ProvisioningAdapter {
   readonly type = 'HTTP_M2M' as const;
 
-  constructor(private readonly deps: HttpAdapterDeps) {}
+  /**
+   * `codec` decide sólo la FORMA del contrato (cuerpo, marcadores, lectura de
+   * la respuesta). Por defecto es GENERIC, que es el comportamiento de siempre.
+   */
+  constructor(
+    private readonly deps: HttpAdapterDeps,
+    readonly codec: ContractCodec = GENERIC_CODEC,
+  ) {}
+
+  get capabilities(): readonly AdapterCapability[] {
+    return this.codec.capabilities;
+  }
+
+  validateInput(context: ProvisioningContext): string[] {
+    return this.codec.validateInput(context);
+  }
 
   provision(context: ProvisioningContext): Promise<AdapterOutcome> {
     return this.call(context, 'create');
@@ -89,7 +106,7 @@ export class HttpM2mAdapter implements ProvisioningAdapter {
       const url = buildProvisioningUrl(
         deployment.base_url ?? '',
         template,
-        { externalTenantId: request.id, tenantCode: context.payload.tenantCode },
+        this.codec.pathParams(context),
         guard,
       );
 
@@ -122,7 +139,12 @@ export class HttpM2mAdapter implements ProvisioningAdapter {
         last = await this.attempt(url, token, context, operation, guard);
 
         if (last.status !== null && last.status >= 200 && last.status < 300) {
-          return { ok: true, result: parseProvisioningResponse(last.body), attempts };
+          return {
+            ok: true,
+            result: this.codec.parseResponse(last.body, operation, context),
+            attempts,
+            httpStatus: last.status,
+          };
         }
 
         const decision = decideRetry({
@@ -201,7 +223,7 @@ export class HttpM2mAdapter implements ProvisioningAdapter {
             'idempotency-key': request.idempotency_key,
             'x-masteradmin-contract': integration?.contract_version ?? 'v1',
           },
-          body: operation === 'create' ? JSON.stringify(context.payload) : undefined,
+          body: operation === 'create' ? JSON.stringify(this.codec.buildCreateBody(context)) : undefined,
           // `fetch` sigue redirecciones por defecto, y eso anularía todo el
           // guard SSRF: bastaría un 302 hacia 169.254.169.254. Se siguen a
           // mano, revalidando cada salto.

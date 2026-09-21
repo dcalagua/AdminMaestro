@@ -21,22 +21,33 @@
  * ni ampliar el alcance del token.
  */
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import type { SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 import {
   normalizeThrownFailure,
   parseAllowedOrigins,
+  permissionRpcFor,
   resolveAdapter,
+  routeAction,
   withCors,
   type AdapterType,
   type ProvisioningContext,
   type ProvisioningEnvironment,
 } from '../_shared/provisioning/index.ts';
 
+/**
+ * Lo ÚNICO que el cliente aporta. `source`, `adapter` o cualquier otra clave
+ * del cuerpo se ignoran: el contexto de ejecución se construye exclusivamente
+ * desde `provisioning_execution_context`.
+ */
 interface RequestBody {
-  action?: 'PROVISION' | 'CHECK_HEALTH';
+  action?: unknown;
   request_id?: string;
   deployment_target_id?: string;
 }
+
+function adminClient(url: string, key: string) {
+  return createClient(url, key, { db: { schema: 'platform' } });
+}
+type AdminClient = ReturnType<typeof adminClient>;
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -74,7 +85,7 @@ Deno.serve(withCors(async (req: Request) => {
     return json({ error: 'CUERPO_INVALIDO: se esperaba JSON' }, 400);
   }
 
-  const action = body.action ?? 'PROVISION';
+  const action = routeAction(body.action);
 
   // ======================== CANALES DE ENTRADA ========================
   // 1. SERVIDOR (cron u otra Edge Function): presenta la clave de servicio.
@@ -110,18 +121,16 @@ Deno.serve(withCors(async (req: Request) => {
     actorId = userData.user.id;
 
     // ---- AUTORIZACIÓN EXPLÍCITA -----------------------------------------
-    const permissionRpc =
-      action === 'CHECK_HEALTH' ? 'can_check_deployment_health' : 'can_execute_saas_provisioning';
-    const permissionArgs =
-      action === 'CHECK_HEALTH'
-        ? { p_deployment_target_id: body.deployment_target_id }
-        : { p_request_id: body.request_id };
+    const permission = permissionRpcFor(action);
+    const subjectId = body[permission.bodyField];
 
-    if (action === 'CHECK_HEALTH' ? !body.deployment_target_id : !body.request_id) {
+    if (!subjectId) {
       return json({ error: 'PARAMETRO_REQUERIDO: falta el identificador de la operación' }, 400);
     }
 
-    const { data: allowed, error: authzError } = await asUser.rpc(permissionRpc, permissionArgs);
+    const { data: allowed, error: authzError } = await asUser.rpc(permission.rpc, {
+      [permission.arg]: subjectId,
+    });
 
     if (authzError) {
       return json(
@@ -148,10 +157,13 @@ Deno.serve(withCors(async (req: Request) => {
   }
 
   // Sólo aquí, superado el gate, se asume el rol de servidor.
-  const admin = createClient(supabaseUrl, serviceKey, { db: { schema: 'platform' } });
+  const admin = adminClient(supabaseUrl, serviceKey);
 
   if (action === 'CHECK_HEALTH') {
     return await checkHealth(admin, body.deployment_target_id!, actorId, actorRole);
+  }
+  if (action === 'GET_STATUS' || action === 'REPLAY_CERTIFICATION') {
+    return json({ error: 'ACCION_NO_DISPONIBLE' }, 501);
   }
 
   return await provision(admin, body.request_id!, actorId, actorRole);
@@ -161,7 +173,7 @@ Deno.serve(withCors(async (req: Request) => {
 // Provisioning
 // ---------------------------------------------------------------------------
 async function provision(
-  admin: SupabaseClient,
+  admin: AdminClient,
   requestId: string,
   actorId: string | null,
   actorRole: string,
@@ -211,7 +223,12 @@ async function provision(
 
   let outcome;
   try {
-    const adapter = resolveAdapter(adapterType, environment, { secretResolver });
+    const adapter = resolveAdapter(
+      adapterType,
+      environment,
+      { secretResolver },
+      ctx.adapter?.key ?? 'GENERIC',
+    );
     outcome = await adapter.provision(context);
   } catch (error) {
     outcome = { ok: false as const, attempts: 0, failure: normalizeThrownFailure(error) };
@@ -308,7 +325,7 @@ async function provision(
 // no tener estado, porque invita a confiar en él.
 // ---------------------------------------------------------------------------
 async function checkHealth(
-  admin: SupabaseClient,
+  admin: AdminClient,
   deploymentTargetId: string,
   actorId: string | null,
   actorRole: string,

@@ -12,6 +12,7 @@
  * cliente intentara entrar.
  */
 import type {
+  AdapterCapability,
   AdapterOutcome,
   ProvisioningAdapter,
   ProvisioningContext,
@@ -19,6 +20,7 @@ import type {
 
 export class MockAdapter implements ProvisioningAdapter {
   readonly type = 'MOCK' as const;
+  readonly capabilities: readonly AdapterCapability[] = ['PROVISION'];
 
   provision(context: ProvisioningContext): Promise<AdapterOutcome> {
     const blocked = this.environmentGuard(context);
