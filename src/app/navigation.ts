@@ -1,3 +1,10 @@
+import {
+  type Icon, ArrowsClockwiseIcon, BellRingingIcon, BuildingOfficeIcon, BuildingsIcon, CertificateIcon,
+  ChartLineUpIcon, CloudArrowUpIcon, CurrencyCircleDollarIcon, FlagIcon, GearSixIcon,
+  HandCoinsIcon, HandshakeIcon, HardDrivesIcon, HouseIcon, LinkIcon, PercentIcon,
+  PlugsConnectedIcon, ReceiptIcon, RocketLaunchIcon, ScalesIcon, ShieldCheckIcon, SquaresFourIcon,
+  StackIcon, TreeStructureIcon, UsersThreeIcon,
+} from '@phosphor-icons/react';
 import type { PersonaKind } from '@/features/auth/session';
 
 /**
@@ -15,6 +22,8 @@ import type { PersonaKind } from '@/features/auth/session';
 export interface NavItem {
   to: string;
   label: string;
+  /** Icono Phosphor, mismo set que EWM. */
+  icon: Icon;
   /** Personas que ven la entrada. Vacío = todas. */
   personas?: PersonaKind[];
   group: string;
@@ -22,41 +31,41 @@ export interface NavItem {
 
 export const NAV_ITEMS: NavItem[] = [
   // ---- Plataforma ---------------------------------------------------------
-  { to: '/', label: 'Dashboard', group: 'Plataforma' },
-  { to: '/products', label: 'Suite SaaS', group: 'Plataforma' },
-  { to: '/plans', label: 'Planes y licencias', group: 'Plataforma' },
-  { to: '/feature-flags', label: 'Feature flags', group: 'Plataforma' },
-  { to: '/integrations', label: 'Integraciones SaaS', group: 'Plataforma', personas: ['EBIM'] },
+  { to: '/', label: 'Dashboard', icon: HouseIcon, group: 'Plataforma' },
+  { to: '/products', label: 'Suite SaaS', icon: SquaresFourIcon, group: 'Plataforma' },
+  { to: '/plans', label: 'Planes y licencias', icon: CertificateIcon, group: 'Plataforma' },
+  { to: '/feature-flags', label: 'Feature flags', icon: FlagIcon, group: 'Plataforma' },
+  { to: '/integrations', label: 'Integraciones SaaS', icon: PlugsConnectedIcon, group: 'Plataforma', personas: ['EBIM'] },
 
   // ---- Comercial ----------------------------------------------------------
-  { to: '/partners', label: 'Partners / Resellers', group: 'Comercial', personas: ['EBIM', 'PARTNER'] },
-  { to: '/customers', label: 'Clientes', group: 'Comercial', personas: ['EBIM', 'PARTNER'] },
-  { to: '/organizations', label: 'Todas las organizaciones', group: 'Comercial', personas: ['EBIM', 'PARTNER'] },
-  { to: '/sales-agents', label: 'Comerciales', group: 'Comercial', personas: ['EBIM', 'PARTNER'] },
-  { to: '/attributions', label: 'Atribuciones', group: 'Comercial' },
-  { to: '/commission-plans', label: 'Planes de comisión', group: 'Comercial', personas: ['EBIM', 'PARTNER'] },
-  { to: '/commissions', label: 'Comisiones y liquidaciones', group: 'Comercial' },
+  { to: '/partners', label: 'Partners / Resellers', icon: HandshakeIcon, group: 'Comercial', personas: ['EBIM', 'PARTNER'] },
+  { to: '/customers', label: 'Clientes', icon: BuildingsIcon, group: 'Comercial', personas: ['EBIM', 'PARTNER'] },
+  { to: '/organizations', label: 'Todas las organizaciones', icon: TreeStructureIcon, group: 'Comercial', personas: ['EBIM', 'PARTNER'] },
+  { to: '/sales-agents', label: 'Comerciales', icon: UsersThreeIcon, group: 'Comercial', personas: ['EBIM', 'PARTNER'] },
+  { to: '/attributions', label: 'Atribuciones', icon: LinkIcon, group: 'Comercial' },
+  { to: '/commission-plans', label: 'Planes de comisión', icon: PercentIcon, group: 'Comercial', personas: ['EBIM', 'PARTNER'] },
+  { to: '/commissions', label: 'Comisiones y liquidaciones', icon: HandCoinsIcon, group: 'Comercial' },
 
   // ---- Tenancy ------------------------------------------------------------
-  { to: '/onboarding', label: 'Nueva venta', group: 'Tenancy', personas: ['EBIM'] },
-  { to: '/tenants', label: 'Tenants', group: 'Tenancy' },
-  { to: '/subscriptions', label: 'Suscripciones y licencias', group: 'Tenancy', personas: ['EBIM', 'PARTNER'] },
+  { to: '/onboarding', label: 'Nueva venta', icon: RocketLaunchIcon, group: 'Tenancy', personas: ['EBIM'] },
+  { to: '/tenants', label: 'Tenants', icon: BuildingOfficeIcon, group: 'Tenancy' },
+  { to: '/subscriptions', label: 'Suscripciones y licencias', icon: ArrowsClockwiseIcon, group: 'Tenancy', personas: ['EBIM', 'PARTNER'] },
 
   // ---- Cobranza -----------------------------------------------------------
-  { to: '/billing', label: 'Facturación y cobros', group: 'Cobranza', personas: ['EBIM', 'PARTNER'] },
-  { to: '/renewals', label: 'Renovaciones y alertas', group: 'Cobranza', personas: ['EBIM', 'PARTNER'] },
-  { to: '/reconciliation', label: 'Reconciliación', group: 'Cobranza', personas: ['EBIM'] },
+  { to: '/billing', label: 'Facturación y cobros', icon: ReceiptIcon, group: 'Cobranza', personas: ['EBIM', 'PARTNER'] },
+  { to: '/renewals', label: 'Renovaciones y alertas', icon: BellRingingIcon, group: 'Cobranza', personas: ['EBIM', 'PARTNER'] },
+  { to: '/reconciliation', label: 'Reconciliación', icon: ScalesIcon, group: 'Cobranza', personas: ['EBIM'] },
 
   // ---- Infraestructura ----------------------------------------------------
-  { to: '/deployments', label: 'Deployments', group: 'Infraestructura', personas: ['EBIM', 'PARTNER'] },
-  { to: '/provisioning', label: 'Provisioning de infraestructura', group: 'Infraestructura', personas: ['EBIM', 'PARTNER'] },
-  { to: '/saas-provisioning', label: 'Provisioning SaaS', group: 'Infraestructura', personas: ['EBIM', 'PARTNER'] },
+  { to: '/deployments', label: 'Deployments', icon: CloudArrowUpIcon, group: 'Infraestructura', personas: ['EBIM', 'PARTNER'] },
+  { to: '/provisioning', label: 'Provisioning de infraestructura', icon: HardDrivesIcon, group: 'Infraestructura', personas: ['EBIM', 'PARTNER'] },
+  { to: '/saas-provisioning', label: 'Provisioning SaaS', icon: StackIcon, group: 'Infraestructura', personas: ['EBIM', 'PARTNER'] },
 
   // ---- Gobierno -----------------------------------------------------------
-  { to: '/costs', label: 'Costos y margen', group: 'Gobierno', personas: ['EBIM'] },
-  { to: '/regional', label: 'Monedas y FX', group: 'Gobierno', personas: ['EBIM'] },
-  { to: '/audit', label: 'Auditoría', group: 'Gobierno', personas: ['EBIM', 'PARTNER'] },
-  { to: '/settings', label: 'Configuración', group: 'Gobierno' },
+  { to: '/costs', label: 'Costos y margen', icon: ChartLineUpIcon, group: 'Gobierno', personas: ['EBIM'] },
+  { to: '/regional', label: 'Monedas y FX', icon: CurrencyCircleDollarIcon, group: 'Gobierno', personas: ['EBIM'] },
+  { to: '/audit', label: 'Auditoría', icon: ShieldCheckIcon, group: 'Gobierno', personas: ['EBIM', 'PARTNER'] },
+  { to: '/settings', label: 'Configuración', icon: GearSixIcon, group: 'Gobierno' },
 ];
 
 export function navItemsFor(persona: PersonaKind): NavItem[] {

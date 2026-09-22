@@ -1,7 +1,8 @@
 /**
  * Isotipo EBIM — contrato §4.6.
  *
- * SVG inline (sin archivo de imagen), swirl de 6 figuras, viewBox 200x200,
+ * SVG inline (sin archivo de imagen): 1 círculo + 5 cuadrados redondeados
+ * rotados, viewBox 200x200 — copiado del isotipo de EWM (WMS-by-EBIM),
  * `fill` configurable. El mismo dibujo que sirve el favicon: todas las apps de
  * la suite muestran EL MISMO isotipo, no una reinterpretación.
  *
@@ -31,12 +32,12 @@ export function EbimMark({
       aria-label="EBIM"
       className={`${animated ? 'animate-spin-stop' : ''} ${className}`.trim()}
     >
-      <path d="M100 18c14 0 25 11 25 25s-11 25-25 25-25-11-25-25 11-25 25-25z" />
-      <path d="M157 51c10 10 10 26 0 36s-26 10-36 0-10-26 0-36 26-10 36 0z" />
-      <path d="M182 100c0 14-11 25-25 25s-25-11-25-25 11-25 25-25 25 11 25 25z" />
-      <path d="M157 149c10 10 10 26 0 36s-26 10-36 0-10-26 0-36 26-10 36 0z" opacity=".82" />
-      <path d="M100 132c14 0 25 11 25 25s-11 25-25 25-25-11-25-25 11-25 25-25z" opacity=".64" />
-      <path d="M43 75c14 0 25 11 25 25s-11 25-25 25-25-11-25-25 11-25 25-25z" opacity=".46" />
+      <circle cx="100" cy="38" r="26" />
+      <rect x="127.7" y="43" width="52" height="52" rx="4" transform="rotate(15 153.7 69)" />
+      <rect x="127.7" y="105" width="52" height="52" rx="14" transform="rotate(-10 153.7 131)" />
+      <rect x="74" y="136" width="52" height="52" rx="13" transform="rotate(45 100 162)" />
+      <rect x="20.3" y="105" width="52" height="52" rx="16" transform="rotate(8 46.3 131)" />
+      <rect x="20.3" y="43" width="52" height="52" rx="23" transform="rotate(-6 46.3 69)" />
     </svg>
   );
 }
