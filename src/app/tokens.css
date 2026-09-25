@@ -51,6 +51,17 @@
   --info: #0b6b8f;
   --info-soft: #e6f2f7;
 
+  /* --- Gráficos (spec §7.4). Serie única: verde funcional (AA). Categóricas
+     G04: las tres primeras del orden validado (dataviz validate_palette.js,
+     all-pairs, claro y oscuro): cobrado=aqua, costo=naranja, comisión=azul.
+     El aqua claro queda < 3:1: la regla de alivio exige etiquetas/tabla. ---- */
+  --chart-single: #2f7355;
+  --chart-collected: #1baf7a;
+  --chart-cost: #eb6834;
+  --chart-commission: #2a78d6;
+  --chart-grid: #e4e7e5;
+  --chart-axis: #5b6f67;
+
   /* --- Densidad: default de suite = "equilibrada" (§4.4) ---------------- */
   --control-h: 36px;
   --row-h: 44px;
@@ -84,6 +95,13 @@
   --danger: #ff8f85;
   --info: #5cc3e6;
   --danger-fill: #b42318;
+
+  --chart-single: #7cc79c;
+  --chart-collected: #199e70;
+  --chart-cost: #d95926;
+  --chart-commission: #3987e5;
+  --chart-grid: #26332e;
+  --chart-axis: #93a79e;
 
   --ok-soft: #12291d;
   --warn-soft: #2c2110;
