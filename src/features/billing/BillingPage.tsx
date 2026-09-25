@@ -66,6 +66,8 @@ const AGING_VALUES: AgingFilter[] = ['VENCIDA', 'VIGENTE', 'D1_30', 'D31_60', 'D
 
 function agingLabel(value: string): string {
   if (value === 'VENCIDA') return 'Vencida (todas las bandas)';
+  if (value === 'SALDADA') return 'Saldada';
+  if (value === 'VENCIDA') return 'Vencida (todas las bandas)';
   return AGING_BUCKETS.find((b) => b.id === value)?.label ?? value;
 }
 

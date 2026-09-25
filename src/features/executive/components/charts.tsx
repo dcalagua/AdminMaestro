@@ -97,7 +97,15 @@ export function SingleBars({
             </>
           ) : (
             <>
-              <XAxis dataKey="label" tick={AXIS} tickLine={false} axisLine={{ stroke: 'var(--chart-grid)' }} interval={0} />
+              <XAxis
+                dataKey="label"
+                tick={AXIS}
+                tickLine={false}
+                axisLine={{ stroke: 'var(--chart-grid)' }}
+                // En pantallas estrechas Recharts omite etiquetas que chocarían.
+                interval="preserveStartEnd"
+                minTickGap={6}
+              />
               <YAxis
                 tick={AXIS}
                 tickFormatter={(v: number) => formatMoneyCompact(v, currency)}
@@ -159,7 +167,7 @@ export function ComponentBars({
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 8, bottom: 4, left: 0 }} barGap={2} accessibilityLayer>
           <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
-          <XAxis dataKey="label" tick={AXIS} tickLine={false} axisLine={{ stroke: 'var(--chart-grid)' }} interval={0} />
+          <XAxis dataKey="label" tick={AXIS} tickLine={false} axisLine={{ stroke: 'var(--chart-grid)' }} interval="preserveStartEnd" minTickGap={6} />
           <YAxis tick={AXIS} tickFormatter={(v: number) => formatMoneyCompact(v, currency)} width={84} tickLine={false} axisLine={false} />
           <Tooltip cursor={{ fill: 'var(--accent-soft)' }} content={<MoneyTooltip currency={currency} />} />
           <Legend wrapperStyle={{ fontSize: 12, color: 'var(--text)' }} iconType="square" />
