@@ -232,7 +232,7 @@ export function AuditDetail({
             {diff.length === 0 ? (
               <p className="text-sm text-muted">Sin diferencias entre los dos estados registrados.</p>
             ) : (
-              <div className="overflow-x-auto" role="region" aria-label="Diferencias" tabIndex={0}>
+              <div className="relative overflow-x-auto" role="region" aria-label="Diferencias" tabIndex={0}>
                 <table className="w-full border-collapse" aria-label="Diferencias antes y después">
                   <thead className="border-b border-border bg-[color:var(--bg)]">
                     <tr>

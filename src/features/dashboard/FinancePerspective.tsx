@@ -42,7 +42,8 @@ function AgingChart({ onSelect }: { onSelect: (bucket: string) => void }) {
   const aging = useReceivablesAging();
   const state = fromQuery(aging);
   const rows = aging.data ?? [];
-  const currencies = [...new Set(rows.map((r) => r.currency))].sort();
+  const balanceOf = (c: string) => rows.filter((r) => r.currency === c).reduce((t, r) => t + Math.abs(Number(r.balance)), 0);
+  const currencies = [...new Set(rows.map((r) => r.currency))].sort((a, b) => balanceOf(b) - balanceOf(a));
   const [picked, setPicked] = useState('');
   const currency = currencies.includes(picked) ? picked : (currencies[0] ?? '');
   const data: BarDatum[] = AGING_BUCKETS.map((b) => {
@@ -112,9 +113,11 @@ function ComponentsChart({
 }) {
   const state = fromQuery(query, { isEmpty: (d) => d.groups.length === 0 });
   const groups = query.data?.groups ?? [];
+  const volume = (c: string) =>
+    groups.reduce((t, g) => t + Math.abs(Number(g.metrics.COLLECTED?.native?.[c] ?? 0)) + Math.abs(Number(g.metrics.COST?.native?.[c] ?? 0)), 0);
   const currencies = [
     ...new Set(groups.flatMap((g) => ['COLLECTED', 'COST', 'COMMISSION'].flatMap((k) => Object.keys(g.metrics[k as 'COST']?.native ?? {})))),
-  ].sort();
+  ].sort((a, b) => volume(b) - volume(a));
   const [picked, setPicked] = useState('');
   const currency = currencies.includes(picked) ? picked : (currencies[0] ?? '');
   const val = (g: (typeof groups)[number], k: 'COLLECTED' | 'COST' | 'COMMISSION') => Number(g.metrics[k]?.native?.[currency] ?? 0);
@@ -200,7 +203,10 @@ function PartnerChart({
 }) {
   const state = fromQuery(query, { isEmpty: (d) => d.groups.length === 0 });
   const groups = query.data?.groups ?? [];
-  const currencies = [...new Set(groups.flatMap((g) => Object.keys(g.metrics.COLLECTED?.native ?? {})))].sort();
+  const collectedOf = (c: string) => groups.reduce((t, g) => t + Number(g.metrics.COLLECTED?.native?.[c] ?? 0), 0);
+  const currencies = [...new Set(groups.flatMap((g) => Object.keys(g.metrics.COLLECTED?.native ?? {})))].sort(
+    (a, b) => collectedOf(b) - collectedOf(a),
+  );
   const [picked, setPicked] = useState('');
   const currency = currencies.includes(picked) ? picked : (currencies[0] ?? '');
   const data: BarDatum[] = groups

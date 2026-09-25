@@ -88,7 +88,7 @@ export function ChartPanel({
         {ready ? (
           <>
             {state.status === 'partial' ? <PartialNote reasons={state.reasons} /> : null}
-            {view === 'chart' ? chart() : <div className="overflow-x-auto">{table()}</div>}
+            {view === 'chart' ? chart() : <div className="relative overflow-x-auto">{table()}</div>}
           </>
         ) : (
           <StateMessage state={state} onRetry={onRetry} emptyText={emptyText} />

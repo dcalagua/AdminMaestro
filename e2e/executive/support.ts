@@ -91,6 +91,23 @@ export async function setAppearance(
   );
 }
 
+/**
+ * Apariencia tal como la fija una persona: desde Configuración, después de
+ * iniciar sesión (el perfil guardado manda sobre el almacenamiento local).
+ */
+export async function applyAppearance(
+  page: Page,
+  mode: 'light' | 'dark',
+  density: 'comoda' | 'equilibrada' | 'compacta' = 'equilibrada',
+) {
+  await page.goto('/settings#appearance');
+  const label = { comoda: 'Cómoda', equilibrada: 'Equilibrada', compacta: 'Compacta' }[density];
+  await page.getByRole('button', { name: mode === 'dark' ? 'Oscuro' : 'Claro', exact: true }).click();
+  await page.getByRole('button', { name: label, exact: true }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', mode);
+  await expect(page.locator('html')).toHaveAttribute('data-density', density);
+}
+
 export async function login(page: Page, email: string) {
   await page.goto('/login');
   await page.getByLabel('Correo corporativo').fill(email);
@@ -118,6 +135,8 @@ export const SEED = {
   productId: '20000000-0000-4000-a000-000000000001',
   tenantId: '50000000-0000-4000-a000-000000000001',
   subscriptionId: '70000000-0000-4000-a000-000000000001',
+  /** Tenant del fixture local `supabase/fixtures/executive-demo.sql`. */
+  demoTenantId: '5e000000-0000-4000-a000-00000000e001',
 } as const;
 
 export interface PageSpec {
@@ -164,5 +183,16 @@ export function pageMatrix(integrationId: string): PageSpec[] {
     { id: 'P30', name: 'settings', path: '/settings' },
     { id: 'P31', name: 'tenant-detail', path: `/tenants/${SEED.tenantId}`, key: true },
     { id: 'P32', name: 'tenants', path: '/tenants' },
+  ];
+}
+
+/** Vistas adicionales de la matriz ampliada (sólo en el set «after»). */
+export function extraViews(): PageSpec[] {
+  return [
+    { id: 'P16', name: 'dashboard-finanzas', path: '/#finanzas', key: true },
+    { id: 'P16', name: 'dashboard-operacion', path: '/#operacion', key: true },
+    { id: 'P31', name: 'tenant-detail-demo-fixture', path: `/tenants/${SEED.demoTenantId}`, key: true },
+    { id: 'P02', name: 'billing-cobros', path: '/billing#cobros' },
+    { id: 'P02', name: 'billing-vencidas-31-60', path: '/billing?estado=OPEN&antiguedad=D31_60' },
   ];
 }

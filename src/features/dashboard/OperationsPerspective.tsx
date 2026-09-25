@@ -94,7 +94,7 @@ export function OperationsPerspective() {
         {productState.status !== 'ready' ? (
           <div className="px-4"><StateMessage state={productState} onRetry={() => void products.refetch()} /></div>
         ) : (
-          <div className="overflow-x-auto" role="region" aria-label="Matriz por producto y entorno" tabIndex={0}>
+          <div className="relative overflow-x-auto" role="region" aria-label="Matriz por producto y entorno" tabIndex={0}>
             <table className="w-full min-w-[860px] border-collapse text-sm">
               <thead className="border-b border-border bg-[color:var(--bg)]">
                 <tr>

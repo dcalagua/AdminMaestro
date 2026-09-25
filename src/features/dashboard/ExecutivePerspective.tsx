@@ -241,6 +241,9 @@ export function ExecutivePerspective({ ctx, onOpenOperations }: { ctx: ReportCon
 function DeltaLine({ current, previous, partial }: { current: CurrencyAmounts; previous: CurrencyAmounts; partial: boolean }) {
   const currencies = Object.keys({ ...current, ...previous }).sort();
   if (currencies.length === 0) return null;
+  if (partial) {
+    return <p className="mt-1 text-[11px] font-semibold text-muted">Mes en curso: sin comparación con un mes completo.</p>;
+  }
   return (
     <ul className="mt-1 space-y-0.5 text-[11px] font-semibold">
       {currencies.map((c) => {
@@ -278,7 +281,10 @@ function CollectionsChart({
 }) {
   const state = fromQuery(query, { isEmpty: (rows) => rows.length === 0 });
   const series = query.data ? collectionsSeries(query.data, months) : {};
-  const currencies = Object.keys(series);
+  // Por defecto, la moneda con más volumen en la ventana (no la primera del abecedario).
+  const currencies = Object.keys(series).sort(
+    (a, b) => series[b]!.reduce((t, p) => t + p.amount, 0) - series[a]!.reduce((t, p) => t + p.amount, 0),
+  );
   const [picked, setPicked] = useState('');
   const currency = currencies.includes(picked) ? picked : (currencies[0] ?? '');
   const currentMonthKey = ctx.snapshotDate.slice(0, 7);
@@ -354,7 +360,10 @@ function MrrByProductChart({
   const products = useProducts();
   const state = fromQuery(query, { isEmpty: (d) => d.groups.length === 0 });
   const groups = (query.data?.groups ?? []).filter((g) => g.key !== 'SIN_PRODUCTO');
-  const currencies = [...new Set(groups.flatMap((g) => Object.keys(g.metrics.MRR?.native ?? {})))].sort();
+  const mrrTotal = (c: string) => groups.reduce((t, g) => t + Number(g.metrics.MRR?.native?.[c] ?? 0), 0);
+  const currencies = [...new Set(groups.flatMap((g) => Object.keys(g.metrics.MRR?.native ?? {})))].sort(
+    (a, b) => mrrTotal(b) - mrrTotal(a),
+  );
   const [picked, setPicked] = useState('');
   const currency = currencies.includes(picked) ? picked : (currencies[0] ?? '');
   const data: BarDatum[] = groups

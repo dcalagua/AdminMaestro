@@ -5,7 +5,9 @@ import {
   USERS,
   guardRemote,
   login,
+  extraViews,
   pageMatrix,
+  applyAppearance,
   setAppearance,
   settle,
   unexpectedRemoteHosts,
@@ -89,9 +91,11 @@ test.describe('captura de páginas P01–P32', () => {
       // P01 se captura sin sesión.
       const integrationId = await (async () => {
         await login(page, USERS.superAdmin);
+        // En «after» la apariencia vive en el perfil: se fija como lo haría la persona.
+        if (SET !== 'before') await applyAppearance(page, theme);
         return resolveIntegrationId(page);
       })();
-      const specs = pageMatrix(integrationId);
+      const specs = [...pageMatrix(integrationId), ...(SET === 'before' ? [] : extraViews())];
 
       for (const spec of specs) {
         const runs = plan(spec).filter((r) => r.theme === theme);

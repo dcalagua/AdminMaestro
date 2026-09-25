@@ -452,7 +452,7 @@ function EnvironmentMatrix({
       title="Salud observada por producto y entorno"
       description="Última comprobación guardada; no es monitoreo en tiempo real. Sólo cuentan los destinos con provisioning habilitado."
     >
-      <div className="overflow-x-auto" role="region" aria-label="Matriz de producto y entorno" tabIndex={0}>
+      <div className="relative overflow-x-auto" role="region" aria-label="Matriz de producto y entorno" tabIndex={0}>
         <table className="w-full border-collapse">
           <thead className="border-b border-border bg-[color:var(--bg)]">
             <tr>
