@@ -205,9 +205,9 @@ test.describe('Nueva venta: cerrar un contrato NO aprovisiona', () => {
 
     const menu = page.getByRole('navigation');
     await expect(menu.getByRole('link', { name: 'Nueva venta' })).toBeVisible();
-    await expect(menu.getByRole('link', { name: 'Provisioning SaaS' })).toBeVisible();
+    await expect(menu.getByRole('link', { name: 'Altas SaaS' })).toBeVisible();
 
-    await menu.getByRole('link', { name: 'Provisioning SaaS' }).click();
+    await menu.getByRole('link', { name: 'Altas SaaS' }).click();
     await expect(page.getByRole('heading', { name: 'Provisioning SaaS' })).toBeVisible();
   });
 });

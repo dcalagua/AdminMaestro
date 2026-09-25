@@ -4,7 +4,7 @@ import { AuthProvider } from '@/features/auth/AuthContext';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { ToastProvider } from '@/components/ui/Toast';
 import { AppShell } from './AppShell';
-import { RequireAuth, RequirePersona } from './guards';
+import { RequireAuth, RequireFinanceView, RequirePersona } from './guards';
 import { createAppQueryClient } from './queryClient';
 import { AppearanceProvider } from './AppearanceProvider';
 
@@ -123,17 +123,24 @@ export function App() {
                       path="commission-plans"
                       element={
                         <RequirePersona personas={['EBIM', 'PARTNER']}>
-                          <CommissionPlansPage />
+                          <RequireFinanceView><CommissionPlansPage /></RequireFinanceView>
                         </RequirePersona>
                       }
                     />
-                    <Route path="commissions" element={<CommissionsPage />} />
+                    <Route
+                    path="commissions"
+                    element={
+                      <RequireFinanceView>
+                        <CommissionsPage />
+                      </RequireFinanceView>
+                    }
+                  />
 
                     <Route
                       path="subscriptions"
                       element={
                         <RequirePersona personas={['EBIM', 'PARTNER']}>
-                          <SubscriptionsPage />
+                          <RequireFinanceView><SubscriptionsPage /></RequireFinanceView>
                         </RequirePersona>
                       }
                     />
@@ -141,7 +148,7 @@ export function App() {
                       path="subscriptions/:subscriptionId"
                       element={
                         <RequirePersona personas={['EBIM', 'PARTNER']}>
-                          <SubscriptionDetailPage />
+                          <RequireFinanceView><SubscriptionDetailPage /></RequireFinanceView>
                         </RequirePersona>
                       }
                     />
@@ -149,7 +156,7 @@ export function App() {
                       path="billing"
                       element={
                         <RequirePersona personas={['EBIM', 'PARTNER']}>
-                          <BillingPage />
+                          <RequireFinanceView><BillingPage /></RequireFinanceView>
                         </RequirePersona>
                       }
                     />
@@ -157,7 +164,7 @@ export function App() {
                       path="renewals"
                       element={
                         <RequirePersona personas={['EBIM', 'PARTNER']}>
-                          <RenewalsPage />
+                          <RequireFinanceView><RenewalsPage /></RequireFinanceView>
                         </RequirePersona>
                       }
                     />
@@ -165,7 +172,7 @@ export function App() {
                       path="reconciliation"
                       element={
                         <RequirePersona personas={['EBIM']}>
-                          <ReconciliationPage />
+                          <RequireFinanceView><ReconciliationPage /></RequireFinanceView>
                         </RequirePersona>
                       }
                     />
@@ -173,7 +180,7 @@ export function App() {
                       path="costs"
                       element={
                         <RequirePersona personas={['EBIM']}>
-                          <CostsPage />
+                          <RequireFinanceView><CostsPage /></RequireFinanceView>
                         </RequirePersona>
                       }
                     />
@@ -236,7 +243,7 @@ export function App() {
                       path="regional"
                       element={
                         <RequirePersona personas={['EBIM']}>
-                          <RegionalPage />
+                          <RequireFinanceView><RegionalPage /></RequireFinanceView>
                         </RequirePersona>
                       }
                     />

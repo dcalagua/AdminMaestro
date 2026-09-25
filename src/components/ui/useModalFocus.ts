@@ -33,6 +33,8 @@ export function useModalFocus(
     initialFocus?: () => HTMLElement | null | undefined;
     onEscape: () => void;
     canEscape?: () => boolean;
+    /** Elemento al que volver al cerrar (por defecto, el que tenía el foco al abrir). */
+    returnFocus?: () => HTMLElement | null | undefined;
   },
 ) {
   const opts = useRef(options);
@@ -76,8 +78,10 @@ export function useModalFocus(
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('keydown', onKey);
-      // Devolver el foco sólo si el activador sigue en el documento.
-      if (activator && document.contains(activator)) activator.focus();
+      // Devolver el foco sólo si el destino sigue en el documento. Safari no
+      // enfoca un botón al hacer clic: por eso el consumidor puede nombrarlo.
+      const back = opts.current.returnFocus?.() ?? activator;
+      if (back && back !== document.body && document.contains(back)) back.focus();
     };
   }, [open, containerRef]);
 }

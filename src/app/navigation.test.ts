@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { navItemsFor, navGroupsFor, NAV_ITEMS } from './navigation';
+import { navItemsFor, navGroupsFor, NAV_ITEMS, hasFinanceView, routeMeta } from './navigation';
+import type { SessionRoles } from '@/types/domain';
 
 describe('navegación por perfil', () => {
   it('EBIM ve todas las entradas', () => {
@@ -38,15 +39,33 @@ describe('navegación por perfil', () => {
     }
   });
 
-  it('agrupa manteniendo el orden de declaración', () => {
-    // La Fase 14 reordena el menú siguiendo el recorrido de una venta:
-    // Plataforma -> Comercial -> Tenancy -> Cobranza -> Infraestructura -> Gobierno.
+  it('agrupa por arquitectura de negocio (spec §5)', () => {
+    // Sustituye a la agrupación de la Fase 14 (Plataforma → … → Gobierno): la
+    // spec aprobada reorganiza el menú por pregunta de negocio sin tocar URLs.
     const grupos = navGroupsFor('EBIM').map((g) => g.group);
-    expect(grupos[0]).toBe('Plataforma');
     expect(grupos).toEqual([
-      'Plataforma', 'Comercial', 'Tenancy', 'Cobranza', 'Infraestructura', 'Gobierno',
+      'Inicio', 'Clientes y canales', 'Productos y contratos', 'Finanzas', 'Operación SaaS', 'Gobierno',
     ]);
     expect(new Set(grupos).size).toBe(grupos.length);
+  });
+
+  it('conserva exactamente las 25 rutas existentes', () => {
+    expect(NAV_ITEMS.map((i) => i.to).sort()).toEqual([
+      '/', '/attributions', '/audit', '/billing', '/commission-plans', '/commissions', '/costs',
+      '/customers', '/deployments', '/feature-flags', '/integrations', '/onboarding', '/organizations',
+      '/partners', '/plans', '/products', '/provisioning', '/reconciliation', '/regional', '/renewals',
+      '/saas-provisioning', '/sales-agents', '/settings', '/subscriptions', '/tenants',
+    ]);
+  });
+
+  it('etiquetas de negocio de la spec', () => {
+    const label = (to: string) => NAV_ITEMS.find((i) => i.to === to)?.label;
+    expect(label('/')).toBe('Resumen ejecutivo');
+    expect(label('/feature-flags')).toBe('Capacidades');
+    expect(label('/deployments')).toBe('Entornos y despliegues');
+    expect(label('/saas-provisioning')).toBe('Altas SaaS');
+    expect(label('/provisioning')).toBe('Solicitudes de infraestructura');
+    expect(label('/organizations')).toBe('Directorio corporativo');
   });
 
   it('la reconciliación financiera es solo de EBIM', () => {
@@ -106,8 +125,49 @@ describe('navegación del plano de provisioning', () => {
   it('los dos ejes de provisioning conviven con nombres distinguibles', () => {
     const infra = NAV_ITEMS.find((i) => i.to === '/provisioning');
     const saas = NAV_ITEMS.find((i) => i.to === '/saas-provisioning');
-    expect(infra?.label).toBe('Provisioning de infraestructura');
-    expect(saas?.label).toBe('Provisioning SaaS');
+    expect(infra?.label).toBe('Solicitudes de infraestructura');
+    expect(saas?.label).toBe('Altas SaaS');
+    expect(infra?.label).not.toBe(saas?.label);
     expect(infra?.group).toBe(saas?.group);
+  });
+});
+
+describe('finanzas y perfil técnico (spec §4)', () => {
+  const base: SessionRoles = {
+    userId: 'u', email: 'u@ebim.test', fullName: null, platformRole: null, organizations: [],
+    tenantRoles: [], salesAgentId: null, provisioningRoles: [], ownedProductIds: [],
+  };
+
+  it('un propietario técnico (EBIM sin rol de plataforma) no obtiene el menú de finanzas', () => {
+    const technical = { ...base, ownedProductIds: ['p1'] };
+    const finance = hasFinanceView('EBIM', technical);
+    expect(finance).toBe(false);
+    const rutas = navItemsFor('EBIM', { finance }).map((i) => i.to);
+    for (const r of ['/billing', '/costs', '/commissions', '/renewals', '/reconciliation', '/regional', '/subscriptions']) {
+      expect(rutas).not.toContain(r);
+    }
+    expect(rutas).toContain('/integrations');
+    expect(rutas).toContain('/saas-provisioning');
+  });
+
+  it('super admin y finanzas sí la obtienen; partner conserva su cartera', () => {
+    expect(hasFinanceView('EBIM', { ...base, platformRole: 'EBIM_FINANCE' })).toBe(true);
+    expect(hasFinanceView('EBIM', { ...base, platformRole: 'EBIM_SUPER_ADMIN' })).toBe(true);
+    expect(hasFinanceView('PARTNER', base)).toBe(true);
+  });
+});
+
+describe('migas y títulos humanos', () => {
+  it('listado', () => {
+    expect(routeMeta('/billing')).toMatchObject({ group: 'Finanzas', title: 'Facturación y cobros', isDetail: false });
+  });
+  it('fichas de detalle', () => {
+    expect(routeMeta('/tenants/abc')).toMatchObject({ group: 'Productos y contratos', title: 'Tenant 360', isDetail: true });
+    expect(routeMeta('/organizations/x')).toMatchObject({ title: 'Ficha 360', isDetail: true });
+    expect(routeMeta('/subscriptions/x')).toMatchObject({ title: 'Contrato 360' });
+  });
+  it('inicio y no encontrado', () => {
+    expect(routeMeta('/').title).toBe('Resumen ejecutivo');
+    expect(routeMeta('/nada').title).toBe('Página no encontrada');
   });
 });
