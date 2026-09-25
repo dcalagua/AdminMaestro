@@ -891,6 +891,47 @@ export function useSaasProvisioningEvents(requestId: string | undefined) {
   });
 }
 
+/**
+ * Nombre completo de un perfil de MasterAdmin por correo, para PRECARGAR el
+ * nombre del administrador de un alta. Que RLS no devuelva fila no es un error:
+ * simplemente no hay precarga.
+ */
+export function useProfileFullNameByEmail(email: string | null | undefined) {
+  return useQuery({
+    queryKey: ['profile-full-name', email?.toLowerCase() ?? null],
+    enabled: Boolean(email),
+    queryFn: async (): Promise<string | null> => {
+      // `ilike` sin comodines: el correo guardado puede tener otra capitalización.
+      const pattern = email!.trim().replace(/[\\%_]/g, (c) => `\\${c}`);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .ilike('email', pattern)
+        .limit(1)
+        .maybeSingle();
+      if (error) return null;
+      return (data as { full_name: string | null } | null)?.full_name ?? null;
+    },
+  });
+}
+
+/**
+ * Configuración efectiva del tenant (cascada plataforma → organización →
+ * sociedad → tenant). Sólo para PRECARGAR valores; el dato que se envía es el
+ * que el operador confirma y la base congela.
+ */
+export function useEffectiveTenantConfig(tenantId: string | null | undefined) {
+  return useQuery({
+    queryKey: ['effective-tenant-config', tenantId ?? null],
+    enabled: Boolean(tenantId),
+    queryFn: async (): Promise<Record<string, unknown> | null> => {
+      const { data, error } = await supabase.rpc('effective_tenant_config', { p_tenant: tenantId! });
+      if (error) return null;
+      return (data ?? null) as Record<string, unknown> | null;
+    },
+  });
+}
+
 /** Precondiciones con CÓDIGOS de bloqueo: la UI explica por qué no se puede. */
 export function useProvisioningPreconditions(requestId: string | undefined) {
   return useQuery({

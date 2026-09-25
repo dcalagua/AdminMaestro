@@ -9,7 +9,9 @@
  * sólo entonces— se escribiría un adaptador específico.
  */
 import type {
+  AdapterCapability,
   AdapterOutcome,
+  ContractCodec,
   ProvisioningAdapter,
   ProvisioningContext,
   SecretResolver,
@@ -19,7 +21,8 @@ import { buildProvisioningUrl, assertSafeRedirect } from '../url-guard.ts';
 import { buildM2mClaims, resolvePrivateKey, scopesFor, signM2mToken } from '../m2m.ts';
 import { decideRetry, type NetworkFailureKind } from '../retry.ts';
 import { normalizeProviderFailure, normalizeThrownFailure } from '../errors.ts';
-import { parseProvisioningResponse } from '../response.ts';
+import { GENERIC_CODEC } from './generic.ts';
+import { createBodyText, sha256Hex } from '../fingerprint.ts';
 
 /** Número máximo de saltos que se sigue, cada uno revalidado. */
 const MAX_REDIRECTS = 3;
@@ -41,7 +44,27 @@ interface AttemptOutcome {
 export class HttpM2mAdapter implements ProvisioningAdapter {
   readonly type = 'HTTP_M2M' as const;
 
-  constructor(private readonly deps: HttpAdapterDeps) {}
+  /**
+   * `codec` decide sólo la FORMA del contrato (cuerpo, marcadores, lectura de
+   * la respuesta). Por defecto es GENERIC, que es el comportamiento de siempre.
+   */
+  constructor(
+    private readonly deps: HttpAdapterDeps,
+    readonly codec: ContractCodec = GENERIC_CODEC,
+  ) {}
+
+  get capabilities(): readonly AdapterCapability[] {
+    return this.codec.capabilities;
+  }
+
+  validateInput(context: ProvisioningContext): string[] {
+    return this.codec.validateInput(context);
+  }
+
+  /** SHA-256 del texto EXACTO que `provision()` enviaría para este contexto. */
+  createBodyFingerprint(context: ProvisioningContext): Promise<string> {
+    return sha256Hex(createBodyText(this.codec, context));
+  }
 
   provision(context: ProvisioningContext): Promise<AdapterOutcome> {
     return this.call(context, 'create');
@@ -89,9 +112,13 @@ export class HttpM2mAdapter implements ProvisioningAdapter {
       const url = buildProvisioningUrl(
         deployment.base_url ?? '',
         template,
-        { externalTenantId: request.id, tenantCode: context.payload.tenantCode },
+        this.codec.pathParams(context),
         guard,
       );
+
+      // El cuerpo se construye UNA vez y ANTES de firmar: si el codec no puede
+      // armarlo, no se emite ningún token y el fallo no se confunde con uno de red.
+      const bodyText = operation === 'create' ? createBodyText(this.codec, context) : undefined;
 
       const claims = buildM2mClaims({
         integration,
@@ -119,10 +146,15 @@ export class HttpM2mAdapter implements ProvisioningAdapter {
 
       for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         attempts = attempt;
-        last = await this.attempt(url, token, context, operation, guard);
+        last = await this.attempt(url, token, context, operation, guard, bodyText);
 
         if (last.status !== null && last.status >= 200 && last.status < 300) {
-          return { ok: true, result: parseProvisioningResponse(last.body), attempts };
+          return {
+            ok: true,
+            result: this.codec.parseResponse(last.body, operation, context),
+            attempts,
+            httpStatus: last.status,
+          };
         }
 
         const decision = decideRetry({
@@ -174,6 +206,7 @@ export class HttpM2mAdapter implements ProvisioningAdapter {
     context: ProvisioningContext,
     operation: 'create' | 'read',
     guard: { environment: ProvisioningContext['request']['environment']; allowedHosts: string[] },
+    bodyText: string | undefined,
   ): Promise<AttemptOutcome> {
     const fetchImpl = this.deps.fetchImpl ?? fetch;
     const { deployment, request, integration } = context;
@@ -201,7 +234,7 @@ export class HttpM2mAdapter implements ProvisioningAdapter {
             'idempotency-key': request.idempotency_key,
             'x-masteradmin-contract': integration?.contract_version ?? 'v1',
           },
-          body: operation === 'create' ? JSON.stringify(context.payload) : undefined,
+          body: bodyText,
           // `fetch` sigue redirecciones por defecto, y eso anularía todo el
           // guard SSRF: bastaría un 302 hacia 169.254.169.254. Se siguen a
           // mano, revalidando cada salto.

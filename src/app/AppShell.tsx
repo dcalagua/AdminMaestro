@@ -39,11 +39,11 @@ export function AppShell() {
         }`}
         style={{ background: 'var(--sidebar)' }}
       >
-        <div className="flex items-center gap-2.5 px-5 py-5">
-          <EbimMark size={28} color="#FFFFFF" animated />
+        <div className="flex items-center gap-3 px-5 pb-6 pt-6">
+          <EbimMark size={34} color="#FFFFFF" animated />
           <div className="leading-none">
-            <div className="text-[15px] font-extrabold tracking-tight">Control Plane</div>
-            <div className="mt-[3px] text-[9px] font-bold tracking-[0.22em] text-white/70">
+            <div className="text-[17px] font-extrabold tracking-tight">Control Plane</div>
+            <div className="mt-[4px] text-[9px] font-bold tracking-[0.22em] text-white/70">
               BY EBIM
             </div>
           </div>
@@ -62,14 +62,19 @@ export function AppShell() {
                   end={item.to === '/'}
                   onClick={() => setMobileOpen(false)}
                   className={({ isActive }) =>
-                    `block rounded-field px-2.5 py-2 text-[13.5px] font-medium transition-colors ${
+                    `flex items-center gap-3 rounded-field px-2.5 py-2 text-[13.5px] font-medium transition-colors ${
                       isActive
                         ? 'bg-white/20 font-semibold text-white'
                         : 'text-white/80 hover:bg-white/10 hover:text-white'
                     }`
                   }
                 >
-                  {item.label}
+                  {({ isActive }) => (
+                    <>
+                      <item.icon size={18} weight={isActive ? 'fill' : 'regular'} aria-hidden className="shrink-0" />
+                      <span className="min-w-0 truncate">{item.label}</span>
+                    </>
+                  )}
                 </NavLink>
               ))}
             </div>

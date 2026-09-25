@@ -17,6 +17,16 @@ export type AdapterType = 'HTTP_M2M' | 'EDGE_FUNCTION' | 'MANUAL' | 'MOCK';
 
 export type M2mAlgorithm = 'RS256' | 'ES256';
 
+/**
+ * Contrato que habla una integración HTTP_M2M. `GENERIC` es el estándar EBIM
+ * v1; el resto son codecs compilados para productos que ya tienen un contrato
+ * propio y no pueden cambiarlo. Espejo del enum `platform.integration_adapter`.
+ */
+export type AdapterKey = 'GENERIC' | 'EWM_V1';
+export const ADAPTER_KEYS: readonly AdapterKey[] = ['GENERIC', 'EWM_V1'];
+
+export type AdapterCapability = 'PROVISION' | 'GET_STATUS' | 'REPLAY_CERTIFICATION';
+
 /** Configuración del contrato, tal y como la resuelve la base. */
 export interface IntegrationConfig {
   id: string;
@@ -96,6 +106,37 @@ export interface ProvisioningPayload {
   masterAdmin: Record<string, unknown>;
 }
 
+/**
+ * Identidades y atributos de entidades de MasterAdmin, tal y como los resuelve
+ * `provisioning_execution_context`. Nada aquí es específico de un producto: un
+ * codec toma de aquí lo que su contrato necesita.
+ */
+export interface ProvisioningSource {
+  tenant: { id: string; slug: string; name: string; admin_email: string; deployment_mode: string };
+  organization: {
+    id: string;
+    slug: string;
+    legal_name: string;
+    display_name: string;
+    country_code: string;
+    tax_id: string | null;
+  };
+  company: {
+    id: string;
+    name: string;
+    erp_code: string | null;
+    country_code: string;
+    currency: string;
+    tax_id: string | null;
+  } | null;
+  mapping: {
+    external_tenant_id: string | null;
+    external_organization_id: string | null;
+    external_company_id: string | null;
+  } | null;
+  product_configuration: Record<string, unknown>;
+}
+
 /** Todo lo que un adaptador necesita. Lo resuelve el SERVIDOR, no el cliente. */
 export interface ProvisioningContext {
   request: RequestConfig;
@@ -106,6 +147,8 @@ export interface ProvisioningContext {
   payload: ProvisioningPayload;
   /** Usuario humano que inició la operación. Viaja como claim de AUDITORÍA. */
   actor: { id: string | null; role: string };
+  source?: ProvisioningSource;
+  adapter?: { key: AdapterKey; capabilities: AdapterCapability[] };
 }
 
 /**
@@ -123,6 +166,8 @@ export interface AdapterResult {
   externalCompanyId: string | null;
   resources: Record<string, unknown>;
   rawReference: string | null;
+  /** Sólo lo asignan codecs cuyo contrato distingue alta nueva de repetición. */
+  replayed?: boolean;
 }
 
 export interface AdapterFailure {
@@ -135,7 +180,7 @@ export interface AdapterFailure {
 }
 
 export type AdapterOutcome =
-  | { ok: true; result: AdapterResult; attempts: number }
+  | { ok: true; result: AdapterResult; attempts: number; httpStatus?: number }
   | { ok: false; failure: AdapterFailure; attempts: number };
 
 export interface HealthOutcome {
@@ -152,8 +197,28 @@ export interface HealthOutcome {
  */
 export interface ProvisioningAdapter {
   readonly type: AdapterType;
+  readonly capabilities: readonly AdapterCapability[];
   provision(context: ProvisioningContext): Promise<AdapterOutcome>;
   getStatus(context: ProvisioningContext): Promise<AdapterOutcome>;
+  /** Bloqueos de datos ANTES de firmar o llamar. Ausente = sin bloqueos. */
+  validateInput?(context: ProvisioningContext): string[];
+  /** SHA-256 del texto exacto del cuerpo de creación. */
+  createBodyFingerprint?(context: ProvisioningContext): Promise<string>;
+}
+
+/**
+ * Forma de un contrato. Sin E/S: no firma, no llama, no lee secretos. El
+ * transporte, el guard SSRF, la firma y los reintentos son del adaptador y son
+ * los mismos para todos los codecs.
+ */
+export interface ContractCodec {
+  readonly key: AdapterKey;
+  readonly capabilities: readonly AdapterCapability[];
+  validateInput(context: ProvisioningContext): string[];
+  buildCreateBody(context: ProvisioningContext): unknown;
+  pathParams(context: ProvisioningContext): Record<string, string>;
+  /** `context` permite contrastar la respuesta con lo enviado; GENERIC lo ignora. */
+  parseResponse(body: unknown, operation: 'create' | 'read', context: ProvisioningContext): AdapterResult;
 }
 
 /**

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  CONTRACT_CODECS,
   DEV_ONLY_ADAPTERS,
   IMPLEMENTED_ADAPTERS,
   isAdapterAllowedInEnvironment,
@@ -8,8 +9,8 @@ import {
 import { HttpM2mAdapter } from './adapters/http-m2m';
 import { ManualAdapter } from './adapters/manual';
 import { MockAdapter } from './adapters/mock';
-import { ProvisioningError } from './types';
-import type { AdapterType, ProvisioningContext, ProvisioningEnvironment } from './types';
+import { ADAPTER_KEYS, ProvisioningError } from './types';
+import type { AdapterKey, AdapterType, ProvisioningContext, ProvisioningEnvironment } from './types';
 
 /*
  * V4 · Registro de adaptadores.
@@ -158,5 +159,61 @@ describe('MockAdapter', () => {
   it('el prefijo `mock-` hace evidente cualquier fuga a otro entorno', async () => {
     const outcome = await new MockAdapter().provision(context('DEV'));
     if (outcome.ok) expect(outcome.result.externalTenantId.startsWith('mock-')).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Codecs de contrato (plan EWM, Task 3)
+// ---------------------------------------------------------------------------
+describe('selección de codec por adapterKey', () => {
+  it('sin cuarto argumento, HTTP_M2M usa el codec GENERIC y sólo PROVISION', () => {
+    const adapter = resolveAdapter('HTTP_M2M', 'QAS', deps) as HttpM2mAdapter;
+    expect(adapter.codec.key).toBe('GENERIC');
+    expect([...adapter.capabilities]).toEqual(['PROVISION']);
+  });
+
+  it('GENERIC explícito da el mismo resultado', () => {
+    const adapter = resolveAdapter('HTTP_M2M', 'QAS', deps, 'GENERIC') as HttpM2mAdapter;
+    expect(adapter.codec.key).toBe('GENERIC');
+    expect([...adapter.capabilities]).toEqual(['PROVISION']);
+  });
+
+  it('EWM_V1 selecciona el codec EWM_V1', () => {
+    const adapter = resolveAdapter('HTTP_M2M', 'QAS', deps, 'EWM_V1') as HttpM2mAdapter;
+    expect(adapter.codec.key).toBe('EWM_V1');
+  });
+
+  it('un adaptador no GENERIC sobre un tipo distinto de HTTP_M2M no se resuelve', () => {
+    expect(codeOf(() => resolveAdapter('MANUAL', 'QAS', deps, 'EWM_V1'))).toBe(
+      'ADAPTER_NOT_IMPLEMENTED',
+    );
+  });
+
+  it('una clave fuera del catálogo compilado no se resuelve', () => {
+    expect(codeOf(() => resolveAdapter('HTTP_M2M', 'QAS', deps, 'OTRO' as AdapterKey))).toBe(
+      'ADAPTER_NOT_IMPLEMENTED',
+    );
+  });
+
+  it('MANUAL y MOCK declaran sólo PROVISION', () => {
+    expect([...new ManualAdapter().capabilities]).toEqual(['PROVISION']);
+    expect([...new MockAdapter().capabilities]).toEqual(['PROVISION']);
+  });
+
+  it('el catálogo de codecs coincide con ADAPTER_KEYS', () => {
+    expect(Object.keys(CONTRACT_CODECS).sort()).toEqual([...ADAPTER_KEYS].sort());
+  });
+});
+
+describe('capacidades: codec compilado = regla SQL', () => {
+  // Misma tabla que prueba pgTAP 23 sobre `platform.integration_capabilities`
+  // con ruta de estado y read_scope presentes. Si una cambia, la otra también.
+  const SQL_CAPABILITIES: Record<AdapterKey, string[]> = {
+    GENERIC: ['PROVISION'],
+    EWM_V1: ['PROVISION', 'GET_STATUS', 'REPLAY_CERTIFICATION'],
+  };
+
+  it.each([...ADAPTER_KEYS])('%s', (key) => {
+    expect([...CONTRACT_CODECS[key].capabilities]).toEqual(SQL_CAPABILITIES[key]);
   });
 });

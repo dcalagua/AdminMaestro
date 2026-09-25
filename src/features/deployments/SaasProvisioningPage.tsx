@@ -38,6 +38,9 @@ import {
   type SaasProvisioningStatus,
 } from '@/lib/provisioning';
 import { NewProvisioningRequestDialog, RegisterManualDialog } from './ProvisioningDialogs';
+import { ProductConfigurationForm } from './ProductConfigurationForm';
+import { ProvisioningStatusAction } from './ProvisioningStatusAction';
+import { contractAdapterFor } from './contractAdapters';
 import { DEPLOYMENT_MODE_LABEL } from '@/types/domain';
 import type { DeploymentMode } from '@/types/domain';
 
@@ -395,6 +398,10 @@ function RequestDetail({ request }: { request: Record<string, unknown> }) {
             }
           />
           <Pair label="Contrato" value={(request.contract_version as string) ?? '—'} />
+          <Pair
+            label="Forma del contrato"
+            value={contractAdapterFor(request.adapter_key as string | null).label}
+          />
         </dl>
 
         <p className="mt-4 mb-2 text-xs font-bold uppercase tracking-wide text-muted">
@@ -441,6 +448,9 @@ function RequestDetail({ request }: { request: Record<string, unknown> }) {
             </div>
           </>
         ) : null}
+
+        <ProductConfigurationForm request={request} />
+        <ProvisioningStatusAction request={request} />
 
         {blockers.length > 0 && status !== 'ACTIVE' ? (
           <>

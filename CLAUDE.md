@@ -13,7 +13,24 @@ Sigue `.claude-prompts-v2/00_START_HERE_VSCODE.md` y las fases V2 en orden.
 ## Seguridad
 - Nunca modificar GUIDELINES_ROOT.
 - Nunca exponer secretos Supabase/Culqi.
-- Nunca git push.
+## Git policy — EBIM MasterAdmin multi-app program
+
+Git push is authorized for development, QAS and feature branches
+when required to complete the MasterAdmin integration program.
+
+Allowed:
+- push feature branches
+- push dev
+- push qas when the repository workflow requires it
+- create PR branches and evidence branches
+
+Forbidden:
+- force push
+- destructive history rewrites
+- push or merge to PRD/production release branches without explicit human authorization
+- delete remote branches unless explicitly requested
+
+Always verify the remote target and branch before pushing.
 - Nunca reset/link/push contra Supabase remoto.
 - Mantener RLS como autoridad, UI solo UX.
 - Mantener `comercial != acceso operativo`.

@@ -432,6 +432,15 @@ export function useRegisterManualProvisioning() {
   return useRpc('register_manual_provisioning', PROVISIONING_KEYS);
 }
 
+/**
+ * Datos propios del alta en el producto (p. ej. almacén inicial). Sólo antes
+ * del primer envío: después la base los congela para que un reintento mande
+ * exactamente el mismo cuerpo.
+ */
+export function useSetProvisioningConfiguration() {
+  return useRpc('set_saas_provisioning_configuration', PROVISIONING_KEYS);
+}
+
 /* --------------------------------------------------------------------------
    Ejecución vía Edge Function
    -------------------------------------------------------------------------- */
@@ -449,6 +458,17 @@ export interface OrchestratorResult {
   detail?: string;
   provider_http_status?: number | null;
   retryable?: boolean;
+  /** GET_STATUS: resultado de la consulta remota, de sólo lectura. */
+  found?: boolean;
+  remote?: {
+    status: string;
+    externalTenantId: string;
+    externalOrganizationId: string | null;
+    externalCompanyId: string | null;
+    resources: Record<string, unknown>;
+  } | null;
+  mapping_consistent?: boolean;
+  provider_code?: string | null;
 }
 
 /**
@@ -460,7 +480,7 @@ export interface OrchestratorResult {
  * reapuntar la llamada a cualquier sitio y ampliar el alcance del token.
  */
 async function invokeOrchestrator(body: {
-  action: 'PROVISION' | 'CHECK_HEALTH';
+  action: 'PROVISION' | 'CHECK_HEALTH' | 'GET_STATUS';
   request_id?: string;
   deployment_target_id?: string;
 }): Promise<OrchestratorResult> {
@@ -477,7 +497,11 @@ async function invokeOrchestrator(body: {
     if (context && typeof context.json === 'function') {
       try {
         const payload = (await context.json()) as OrchestratorResult;
-        throw new Error(payload.message ?? payload.error ?? error.message);
+        const base = payload.message ?? payload.error ?? error.message;
+        // Los bloqueos son códigos accionables: sin ellos, «no cumple las
+        // condiciones» no dice qué falta.
+        const blockers = payload.blockers?.length ? ` (${payload.blockers.join(', ')})` : '';
+        throw new Error(`${base}${blockers}`);
       } catch (parsed) {
         if (parsed instanceof Error && parsed.message !== error.message) throw parsed;
       }
@@ -494,6 +518,19 @@ export function useProvisionTenant() {
     mutationFn: (requestId: string) =>
       invokeOrchestrator({ action: 'PROVISION', request_id: requestId }),
     onSuccess: () => invalidate(qc, [...PROVISIONING_KEYS, ...AGGREGATE_KEYS]),
+  });
+}
+
+/**
+ * Consulta de estado remoto (GET_STATUS). Sólo lectura: no cambia la solicitud
+ * ni el mapping; el historial gana un evento STATUS_CHECKED.
+ */
+export function useGetProvisioningStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (requestId: string) =>
+      invokeOrchestrator({ action: 'GET_STATUS', request_id: requestId }),
+    onSuccess: () => invalidate(qc, ['saas-provisioning-events']),
   });
 }
 

@@ -512,3 +512,55 @@ test.describe('verificación de conexión', () => {
     expect(res.status).toBe(403);
   });
 });
+
+// ---------------------------------------------------------------------------
+test.describe('GET_STATUS: sólo con la capacidad, sólo lectura', () => {
+  async function snapshot(requestId: string) {
+    const { data } = await db
+      .from('saas_provisioning_requests')
+      .select('status, attempt_count')
+      .eq('id', requestId)
+      .maybeSingle();
+    return data as { status: string; attempt_count: number };
+  }
+
+  test('una integración GENERIC (MOCK) no admite consulta de estado', async () => {
+    const requestId = await ensureRequest(PROVISIONING_USERS.techLead, TENANT_ALPHA_EWM);
+    const before = await snapshot(requestId);
+
+    const res = await callOrchestrator(await jwtOf(PROVISIONING_USERS.techLead), {
+      action: 'GET_STATUS',
+      request_id: requestId,
+    });
+
+    expect(res.status).toBe(409);
+    expect(res.body.error).toBe('CAPACIDAD_NO_SOPORTADA');
+    expect(await snapshot(requestId)).toEqual(before);
+  });
+
+  test('AISLAMIENTO: el owner de eSupplier no consulta una solicitud de EWM', async () => {
+    const requestId = await ensureRequest(PROVISIONING_USERS.techLead, TENANT_ALPHA_EWM);
+    const res = await callOrchestrator(await jwtOf(PROVISIONING_USERS.esupplierOwner), {
+      action: 'GET_STATUS',
+      request_id: requestId,
+    });
+    expect(res.status).toBe(403);
+  });
+});
+
+// ---------------------------------------------------------------------------
+test.describe('REPLAY_CERTIFICATION: interna y sólo con la capacidad', () => {
+  test('una integración GENERIC (MOCK) no admite certificación de replay', async () => {
+    const requestId = await ensureRequest(PROVISIONING_USERS.techLead, TENANT_ALPHA_EWM);
+    const before = await statusOf(requestId);
+
+    const res = await callOrchestrator(await jwtOf(PROVISIONING_USERS.techLead), {
+      action: 'REPLAY_CERTIFICATION',
+      request_id: requestId,
+    });
+
+    expect(res.status).toBe(409);
+    expect(res.body.error).toBe('CAPACIDAD_NO_SOPORTADA');
+    expect(await statusOf(requestId)).toBe(before);
+  });
+});

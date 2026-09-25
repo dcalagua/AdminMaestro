@@ -21,20 +21,37 @@
  * ni ampliar el alcance del token.
  */
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import type { SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 import {
+  buildExecutionContext,
+  evaluateReplayCertification,
   normalizeThrownFailure,
+  parseAllowedOrigins,
+  permissionRpcFor,
   resolveAdapter,
+  routeAction,
+  summarizeStatus,
+  withCors,
   type AdapterType,
+  type ProvisioningAdapter,
   type ProvisioningContext,
   type ProvisioningEnvironment,
 } from '../_shared/provisioning/index.ts';
 
+/**
+ * Lo ÚNICO que el cliente aporta. `source`, `adapter` o cualquier otra clave
+ * del cuerpo se ignoran: el contexto de ejecución se construye exclusivamente
+ * desde `provisioning_execution_context`.
+ */
 interface RequestBody {
-  action?: 'PROVISION' | 'CHECK_HEALTH';
+  action?: unknown;
   request_id?: string;
   deployment_target_id?: string;
 }
+
+function adminClient(url: string, key: string) {
+  return createClient(url, key, { db: { schema: 'platform' } });
+}
+type AdminClient = ReturnType<typeof adminClient>;
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -49,7 +66,11 @@ function json(body: unknown, status = 200): Response {
  */
 const secretResolver = (secretRef: string): string | undefined => Deno.env.get(secretRef);
 
-Deno.serve(async (req: Request) => {
+// El preflight se responde ANTES de cualquier autenticación y sin ejecutar
+// nada; el resto de métodos llega al handler con su autenticación intacta.
+const allowedOrigins = parseAllowedOrigins(Deno.env.get('MASTERADMIN_ALLOWED_ORIGINS'));
+
+Deno.serve(withCors(async (req: Request) => {
   if (req.method !== 'POST') {
     return json({ error: 'METODO_NO_PERMITIDO' }, 405);
   }
@@ -68,7 +89,7 @@ Deno.serve(async (req: Request) => {
     return json({ error: 'CUERPO_INVALIDO: se esperaba JSON' }, 400);
   }
 
-  const action = body.action ?? 'PROVISION';
+  const action = routeAction(body.action);
 
   // ======================== CANALES DE ENTRADA ========================
   // 1. SERVIDOR (cron u otra Edge Function): presenta la clave de servicio.
@@ -104,18 +125,16 @@ Deno.serve(async (req: Request) => {
     actorId = userData.user.id;
 
     // ---- AUTORIZACIÓN EXPLÍCITA -----------------------------------------
-    const permissionRpc =
-      action === 'CHECK_HEALTH' ? 'can_check_deployment_health' : 'can_execute_saas_provisioning';
-    const permissionArgs =
-      action === 'CHECK_HEALTH'
-        ? { p_deployment_target_id: body.deployment_target_id }
-        : { p_request_id: body.request_id };
+    const permission = permissionRpcFor(action);
+    const subjectId = body[permission.bodyField];
 
-    if (action === 'CHECK_HEALTH' ? !body.deployment_target_id : !body.request_id) {
+    if (!subjectId) {
       return json({ error: 'PARAMETRO_REQUERIDO: falta el identificador de la operación' }, 400);
     }
 
-    const { data: allowed, error: authzError } = await asUser.rpc(permissionRpc, permissionArgs);
+    const { data: allowed, error: authzError } = await asUser.rpc(permission.rpc, {
+      [permission.arg]: subjectId,
+    });
 
     if (authzError) {
       return json(
@@ -142,20 +161,26 @@ Deno.serve(async (req: Request) => {
   }
 
   // Sólo aquí, superado el gate, se asume el rol de servidor.
-  const admin = createClient(supabaseUrl, serviceKey, { db: { schema: 'platform' } });
+  const admin = adminClient(supabaseUrl, serviceKey);
 
   if (action === 'CHECK_HEALTH') {
     return await checkHealth(admin, body.deployment_target_id!, actorId, actorRole);
   }
+  if (action === 'GET_STATUS') {
+    return await getStatus(admin, body.request_id!, actorId, actorRole);
+  }
+  if (action === 'REPLAY_CERTIFICATION') {
+    return await certifyReplay(admin, body.request_id!, actorId, actorRole);
+  }
 
   return await provision(admin, body.request_id!, actorId, actorRole);
-});
+}, allowedOrigins));
 
 // ---------------------------------------------------------------------------
 // Provisioning
 // ---------------------------------------------------------------------------
 async function provision(
-  admin: SupabaseClient,
+  admin: AdminClient,
   requestId: string,
   actorId: string | null,
   actorRole: string,
@@ -189,6 +214,30 @@ async function provision(
   const ctx = contextData as Omit<ProvisioningContext, 'actor'>;
   const adapterType = (ctx.integration?.type ?? 'MANUAL') as AdapterType;
   const environment = ctx.request.environment as ProvisioningEnvironment;
+  let context = buildExecutionContext(ctx, { id: actorId, role: actorRole });
+
+  // El adaptador se resuelve ANTES de `begin` para que el codec valide los
+  // datos sin consumir un intento ni firmar nada. Si la resolución falla, el
+  // error se conserva y se trata después de `begin`, exactamente como antes.
+  let adapter: ProvisioningAdapter | null = null;
+  let resolveError: unknown = null;
+  try {
+    adapter = resolveAdapter(adapterType, environment, { secretResolver }, ctx.adapter?.key ?? 'GENERIC');
+  } catch (error) {
+    resolveError = error;
+  }
+
+  const blockers = adapter?.validateInput?.(context) ?? [];
+  if (blockers.length > 0) {
+    return json(
+      {
+        error: 'PRECONDICIONES_NO_CUMPLIDAS',
+        blockers,
+        message: 'La solicitud no cumple las condiciones para ejecutarse',
+      },
+      409,
+    );
+  }
 
   // Marca PROVISIONING e incrementa el intento. El UPDATE condicional de la RPC
   // es el candado contra la doble ejecución concurrente.
@@ -201,11 +250,26 @@ async function provision(
     return json({ error: 'NO_EJECUTABLE', message: beginError.message }, 409);
   }
 
-  const context: ProvisioningContext = { ...ctx, actor: { id: actorId, role: actorRole } };
+  // Contratos con configuración congelada (los que certifican replay): tras
+  // `begin`, attempt_count > 0 y la base ya no admite cambios, así que se relee
+  // el contexto. Lo que se envía es exactamente lo que queda congelado aunque
+  // alguien guardara entre la primera lectura y `begin`. GENERIC no relee: su
+  // flujo queda idéntico.
+  if (adapter?.capabilities.includes('REPLAY_CERTIFICATION')) {
+    const { data: frozen, error: frozenError } = await admin.rpc('provisioning_execution_context', {
+      p_request_id: requestId,
+    });
+    if (!frozenError && frozen) {
+      context = buildExecutionContext(frozen as Omit<ProvisioningContext, 'actor'>, {
+        id: actorId,
+        role: actorRole,
+      });
+    }
+  }
 
   let outcome;
   try {
-    const adapter = resolveAdapter(adapterType, environment, { secretResolver });
+    if (!adapter) throw resolveError;
     outcome = await adapter.provision(context);
   } catch (error) {
     outcome = { ok: false as const, attempts: 0, failure: normalizeThrownFailure(error) };
@@ -285,6 +349,32 @@ async function provision(
     return json({ request_id: requestId, status: 'FAILED', error_code: 'MAPPING_WRITE_FAILED' }, 200);
   }
 
+  // Evidencia para la certificación de replay. Sólo la escriben los contratos
+  // que declaran REPLAY_CERTIFICATION: una ejecución GENERIC deja exactamente
+  // los mismos eventos que antes. La respuesta de PROVISION no cambia.
+  if (adapter?.capabilities.includes('REPLAY_CERTIFICATION') && adapter.createBodyFingerprint) {
+    await admin.rpc('record_provisioning_event', {
+      p_request_id: requestId,
+      p_action: 'PROVIDER_REQUEST_FINGERPRINT',
+      p_message: 'Huella SHA-256 del cuerpo aceptado por el producto',
+      p_detail: { body_sha256: await adapter.createBodyFingerprint(context) },
+      p_actor_id: actorId,
+      p_actor_role: actorRole,
+      p_http_status: outcome.httpStatus ?? null,
+    });
+    if (outcome.result.replayed === true) {
+      await admin.rpc('record_provisioning_event', {
+        p_request_id: requestId,
+        p_action: 'PROVIDER_REPLAYED',
+        p_message: 'El producto reconoció la petición como repetición: no creó nada nuevo',
+        p_detail: { provider_http_status: outcome.httpStatus ?? null },
+        p_actor_id: actorId,
+        p_actor_role: actorRole,
+        p_http_status: outcome.httpStatus ?? null,
+      });
+    }
+  }
+
   return json({
     request_id: requestId,
     status: 'ACTIVE',
@@ -295,6 +385,229 @@ async function provision(
 }
 
 // ---------------------------------------------------------------------------
+// Consulta de estado remoto (GET_STATUS)
+// ---------------------------------------------------------------------------
+// SÓLO LECTURA. No llama a begin/complete/fail: el estado de la solicitud y el
+// mapping no cambian. Se admite también READY_TO_PROVISION (enmienda A1): con
+// un tenant todavía no aprovisionado, el 404 del producto demuestra que aceptó
+// la firma M2M sin crear nada. PROVISIONING queda fuera: hay una llamada en
+// vuelo.
+// ---------------------------------------------------------------------------
+const STATUS_READABLE = ['ACTIVE', 'FAILED', 'READY_TO_PROVISION'];
+
+async function getStatus(
+  admin: AdminClient,
+  requestId: string,
+  actorId: string | null,
+  actorRole: string,
+): Promise<Response> {
+  const { data: contextData, error: contextError } = await admin.rpc(
+    'provisioning_execution_context',
+    { p_request_id: requestId },
+  );
+  if (contextError) {
+    return json({ error: 'CONTEXTO_NO_DISPONIBLE', message: contextError.message }, 500);
+  }
+
+  const ctx = contextData as Omit<ProvisioningContext, 'actor'>;
+  const context = buildExecutionContext(ctx, { id: actorId, role: actorRole });
+
+  // Capacidad efectiva = la declara la configuración (base) Y el codec compilado.
+  let adapter: ProvisioningAdapter | null = null;
+  try {
+    adapter = resolveAdapter(
+      (ctx.integration?.type ?? 'MANUAL') as AdapterType,
+      ctx.request.environment as ProvisioningEnvironment,
+      { secretResolver },
+      ctx.adapter?.key ?? 'GENERIC',
+    );
+  } catch {
+    adapter = null;
+  }
+  if (!ctx.adapter?.capabilities?.includes('GET_STATUS') || !adapter?.capabilities.includes('GET_STATUS')) {
+    return json(
+      {
+        error: 'CAPACIDAD_NO_SOPORTADA',
+        message: 'La integración de esta solicitud no admite consulta de estado remota',
+      },
+      409,
+    );
+  }
+
+  if (!STATUS_READABLE.includes(ctx.request.status)) {
+    return json(
+      {
+        error: 'ESTADO_NO_CONSULTABLE',
+        message: `No se consulta el estado remoto de una solicitud en ${ctx.request.status}`,
+      },
+      409,
+    );
+  }
+
+  let outcome;
+  try {
+    outcome = await adapter.getStatus(context);
+  } catch (error) {
+    outcome = { ok: false as const, attempts: 0, failure: normalizeThrownFailure(error) };
+  }
+
+  const summary = summarizeStatus(outcome, ctx.source?.mapping ?? null);
+
+  // Códigos y banderas; nunca cuerpos, tokens ni identificadores remotos.
+  await admin.rpc('record_provisioning_event', {
+    p_request_id: requestId,
+    p_action: 'STATUS_CHECKED',
+    p_message: 'Consulta de estado remoto',
+    p_detail: {
+      provider_http_status: summary.provider_http_status,
+      found: summary.found,
+      remote_status: summary.remote?.status ?? null,
+      mapping_consistent: summary.mapping_consistent,
+      provider_code: summary.provider_code,
+    },
+    p_actor_id: actorId,
+    p_actor_role: actorRole,
+    p_http_status: summary.provider_http_status,
+  });
+
+  return json({ request_id: requestId, ...summary });
+}
+
+// ---------------------------------------------------------------------------
+// Certificación interna de replay (REPLAY_CERTIFICATION)
+// ---------------------------------------------------------------------------
+// Repite la MISMA petición (mismo cuerpo, misma clave de idempotencia, misma
+// correlación) de una solicitud ACTIVE para demostrar que el producto responde
+// `200 replayed:true` sin crear nada. No aparece en la UI y NUNCA llama a
+// begin/complete/fail: el estado y el mapping no cambian. Si el cuerpo
+// reconstruido no tiene la huella del envío aceptado, no se llama.
+// ---------------------------------------------------------------------------
+async function certifyReplay(
+  admin: AdminClient,
+  requestId: string,
+  actorId: string | null,
+  actorRole: string,
+): Promise<Response> {
+  const { data: contextData, error: contextError } = await admin.rpc(
+    'provisioning_execution_context',
+    { p_request_id: requestId },
+  );
+  if (contextError) {
+    return json({ error: 'CONTEXTO_NO_DISPONIBLE', message: contextError.message }, 500);
+  }
+
+  const ctx = contextData as Omit<ProvisioningContext, 'actor'>;
+  const context = buildExecutionContext(ctx, { id: actorId, role: actorRole });
+
+  let adapter: ProvisioningAdapter | null = null;
+  try {
+    adapter = resolveAdapter(
+      (ctx.integration?.type ?? 'MANUAL') as AdapterType,
+      ctx.request.environment as ProvisioningEnvironment,
+      { secretResolver },
+      ctx.adapter?.key ?? 'GENERIC',
+    );
+  } catch {
+    adapter = null;
+  }
+  if (
+    !ctx.adapter?.capabilities?.includes('REPLAY_CERTIFICATION') ||
+    !adapter?.capabilities.includes('REPLAY_CERTIFICATION') ||
+    !adapter.createBodyFingerprint
+  ) {
+    return json(
+      {
+        error: 'CAPACIDAD_NO_SOPORTADA',
+        message: 'La integración de esta solicitud no admite certificación de replay',
+      },
+      409,
+    );
+  }
+
+  // Nunca en PRD, sea cual sea el canal: el canal servidor no pasa por
+  // `can_certify_saas_provisioning`, así que la regla se repite aquí.
+  if (ctx.request.environment === 'PRD') {
+    return json(
+      { error: 'AMBIENTE_NO_CERTIFICABLE', message: 'La certificación de replay no se ejecuta en PRD' },
+      409,
+    );
+  }
+
+  if (ctx.request.status !== 'ACTIVE') {
+    return json(
+      {
+        error: 'ESTADO_NO_CERTIFICABLE',
+        message: `Sólo se certifica el replay de una solicitud ACTIVE (está en ${ctx.request.status})`,
+      },
+      409,
+    );
+  }
+
+  const { data: fingerprintEvent } = await admin
+    .from('saas_provisioning_events')
+    .select('detail')
+    .eq('saas_provisioning_request_id', requestId)
+    .eq('action', 'PROVIDER_REQUEST_FINGERPRINT')
+    .order('occurred_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const expectedFingerprint =
+    ((fingerprintEvent as { detail?: { body_sha256?: unknown } } | null)?.detail?.body_sha256 as
+      | string
+      | undefined) ?? null;
+
+  let actualFingerprint = '';
+  try {
+    actualFingerprint = await adapter.createBodyFingerprint(context);
+  } catch {
+    // Si el cuerpo ya no se puede construir, tampoco es el que se aceptó.
+    actualFingerprint = '';
+  }
+
+  const precheck = evaluateReplayCertification({
+    expectedFingerprint,
+    actualFingerprint,
+    mapping: ctx.source?.mapping ?? null,
+  });
+  if ('call' in precheck && !precheck.call) {
+    return json({ request_id: requestId, error: precheck.error, certified: false }, 409);
+  }
+
+  let outcome;
+  try {
+    outcome = await adapter.provision(context);
+  } catch (error) {
+    outcome = { ok: false as const, attempts: 0, failure: normalizeThrownFailure(error) };
+  }
+
+  const verdict = evaluateReplayCertification({
+    expectedFingerprint,
+    actualFingerprint,
+    mapping: ctx.source?.mapping ?? null,
+    outcome,
+  });
+
+  await admin.rpc('record_provisioning_event', {
+    p_request_id: requestId,
+    p_action: verdict.certified ? 'REPLAY_CERTIFICATION_PASSED' : 'REPLAY_CERTIFICATION_FAILED',
+    p_message: verdict.certified
+      ? 'Certificación de replay superada: el producto reconoció la repetición sin duplicar'
+      : `Certificación de replay fallida: ${verdict.reason ?? 'sin motivo'}`,
+    p_detail: {
+      provider_http_status: verdict.provider_http_status,
+      replayed: verdict.replayed,
+      identifiers_match: verdict.identifiers_match,
+      reason: verdict.reason,
+    },
+    p_actor_id: actorId,
+    p_actor_role: actorRole,
+    p_http_status: verdict.provider_http_status,
+  });
+
+  return json({ request_id: requestId, ...verdict });
+}
+
+// ---------------------------------------------------------------------------
 // Verificación de conexión
 // ---------------------------------------------------------------------------
 // Si el producto no declara ruta de salud, el resultado es UNKNOWN. No se
@@ -302,7 +615,7 @@ async function provision(
 // no tener estado, porque invita a confiar en él.
 // ---------------------------------------------------------------------------
 async function checkHealth(
-  admin: SupabaseClient,
+  admin: AdminClient,
   deploymentTargetId: string,
   actorId: string | null,
   actorRole: string,

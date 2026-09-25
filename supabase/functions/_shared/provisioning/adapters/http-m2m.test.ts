@@ -380,3 +380,29 @@ describe('getStatus', () => {
     expect(String(url)).toContain('/internal/platform/v1/tenants/');
   });
 });
+
+describe('marcador {controlPlaneTenantId} en GENERIC (plan EWM, Task 9)', () => {
+  const TENANT = '50000000-0000-4000-a000-000000000008';
+  const ok = { externalTenantId: 'ext-1' };
+
+  it('con payload.masterAdmin.tenantId se sustituyen los tres marcadores', async () => {
+    const fetchImpl = vi.fn(async () => jsonResponse(201, ok)) as unknown as typeof fetch;
+    const ctx = context({
+      integration: { ...integration, create_path_template: '/t/{controlPlaneTenantId}/{tenantCode}/{externalTenantId}' },
+    });
+    ctx.payload.masterAdmin = { tenantId: TENANT };
+    await adapter(fetchImpl).provision(ctx);
+    const url = (fetchImpl as unknown as { mock: { calls: [string][] } }).mock.calls[0][0];
+    expect(url).toBe(`https://producto-qas.example.com/t/${TENANT}/alpha/req-1`);
+  });
+
+  it('sin source ni masterAdmin.tenantId, {controlPlaneTenantId} queda sin valor → PATH_TEMPLATE_INVALID', async () => {
+    const fetchImpl = vi.fn() as unknown as typeof fetch;
+    const outcome = await adapter(fetchImpl).provision(
+      context({ integration: { ...integration, create_path_template: '/t/{controlPlaneTenantId}' } }),
+    );
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) expect(outcome.failure.code).toBe('PATH_TEMPLATE_INVALID');
+  });
+});
