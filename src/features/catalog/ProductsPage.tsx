@@ -162,7 +162,7 @@ export function ProductsPage() {
         title={`¿Archivar ${archiving?.short_name}?`}
         message="El producto dejará de ofrecerse. La base rechazará la operación si aún tiene tenants o suscripciones vivas."
         confirmLabel="Archivar"
-        onConfirm={() => void confirmArchive()}
+        onConfirm={confirmArchive}
         onCancel={() => setArchiving(null)}
       />
     </PageContainer>

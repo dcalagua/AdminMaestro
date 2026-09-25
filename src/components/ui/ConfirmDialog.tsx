@@ -1,9 +1,16 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { useModalFocus } from './useModalFocus';
 
 /**
  * Confirmación para operaciones destructivas o de alto impacto.
- * Requisito UX del prompt fase 9. Bloquea el foco dentro del diálogo y cierra
- * con Escape.
+ *
+ * Ciclo de teclado completo (E09): foco confinado y devuelto al activador;
+ * Escape cancela salvo con la operación en curso. En tono `danger` el foco
+ * inicial va a «Cancelar»: un Enter accidental nunca ejecuta lo irreversible.
+ *
+ * Sin doble envío: tras el primer clic el botón queda deshabilitado y
+ * `aria-busy` hasta que la promesa de `onConfirm` termina, `busy` vuelve a
+ * `false` o el diálogo se cierra.
  */
 export function ConfirmDialog({
   open,
@@ -12,6 +19,7 @@ export function ConfirmDialog({
   confirmLabel = 'Confirmar',
   cancelLabel = 'Cancelar',
   tone = 'danger',
+  busy = false,
   onConfirm,
   onCancel,
 }: {
@@ -21,46 +29,87 @@ export function ConfirmDialog({
   confirmLabel?: string;
   cancelLabel?: string;
   tone?: 'danger' | 'primary';
-  onConfirm: () => void;
+  /** Operación en curso controlada por el consumidor (p. ej. `mutation.isPending`). */
+  busy?: boolean;
+  onConfirm: () => void | Promise<unknown>;
   onCancel: () => void;
 }) {
+  const titleId = useId();
+  const messageId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
   const confirmRef = useRef<HTMLButtonElement>(null);
+  const [latched, setLatched] = useState(false);
+  const [wasOpen, setWasOpen] = useState(open);
+  const firing = useRef(false);
+  const pending = busy || latched;
 
+  // Al cerrarse, el cerrojo se libera (ajuste de estado durante el render).
+  if (wasOpen !== open) {
+    setWasOpen(open);
+    if (!open) setLatched(false);
+  }
   useEffect(() => {
-    if (!open) return;
-    confirmRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onCancel]);
+    if (!open) firing.current = false;
+  }, [open]);
+
+  useModalFocus(panelRef, open, {
+    initialFocus: () => (tone === 'danger' ? cancelRef.current : confirmRef.current),
+    onEscape: onCancel,
+    canEscape: () => !pending,
+  });
 
   if (!open) return null;
 
+  const confirm = () => {
+    if (firing.current || busy) return;
+    firing.current = true;
+    setLatched(true);
+    let result: void | Promise<unknown>;
+    try {
+      result = onConfirm();
+    } catch (error) {
+      firing.current = false;
+      setLatched(false);
+      throw error;
+    }
+    if (result && typeof (result as Promise<unknown>).finally === 'function') {
+      void (result as Promise<unknown>).finally(() => {
+        firing.current = false;
+        setLatched(false);
+      });
+    }
+  };
+
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="confirm-title"
-    >
-      <div className="ebim-card w-full max-w-md p-5 shadow-pop">
-        <h2 id="confirm-title" className="text-base font-bold text-fg">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div
+        ref={panelRef}
+        className="ebim-card w-full max-w-md p-5 shadow-pop"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={messageId}
+      >
+        <h2 id={titleId} className="text-base font-bold text-fg">
           {title}
         </h2>
-        <p className="mt-2 text-sm text-muted">{message}</p>
-        <div className="mt-5 flex justify-end gap-2">
-          <button type="button" className="ebim-btn-ghost" onClick={onCancel}>
+        <p id={messageId} className="mt-2 text-sm text-muted">
+          {message}
+        </p>
+        <div className="mt-5 flex flex-wrap justify-end gap-2">
+          <button ref={cancelRef} type="button" className="ebim-btn-ghost" onClick={onCancel} disabled={pending}>
             {cancelLabel}
           </button>
           <button
             ref={confirmRef}
             type="button"
             className={tone === 'danger' ? 'ebim-btn-danger' : 'ebim-btn-primary'}
-            onClick={onConfirm}
+            onClick={confirm}
+            disabled={pending}
+            aria-busy={pending || undefined}
           >
-            {confirmLabel}
+            {pending ? 'Procesando…' : confirmLabel}
           </button>
         </div>
       </div>

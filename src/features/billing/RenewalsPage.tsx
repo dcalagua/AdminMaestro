@@ -347,7 +347,7 @@ export function RenewalsPage() {
         title="¿Aplicar las suspensiones pendientes?"
         message="Se suspenderán únicamente los tenants cuya política de cobranza tenga la suspensión automática activada y cuyo periodo de gracia haya terminado. Cada suspensión encola una solicitud SUSPEND_TENANT en DRY_RUN y queda auditada."
         confirmLabel="Aplicar suspensiones"
-        onConfirm={() => void doSuspend()}
+        onConfirm={doSuspend}
         onCancel={() => setConfirmSuspend(false)}
       />
     </PageContainer>

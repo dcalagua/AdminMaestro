@@ -394,7 +394,7 @@ export function OrganizationDetailPage() {
         title={`¿Cerrar el acuerdo de ${endingAgreement?.product}?`}
         message="El canal dejará de poder vender y administrar tenants de este producto. La base lo impide si aún administra tenants vivos."
         confirmLabel="Cerrar acuerdo"
-        onConfirm={() => void confirmEndAgreement()}
+        onConfirm={confirmEndAgreement}
         onCancel={() => setEndingAgreement(null)}
       />
     </PageContainer>

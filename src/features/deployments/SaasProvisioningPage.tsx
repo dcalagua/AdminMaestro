@@ -358,7 +358,7 @@ export function SaasProvisioningPage() {
         message={`${cancelTarget?.label ?? ''} quedará cancelada. No se borra nada: la solicitud queda en el historial y se podrá crear una nueva.`}
         confirmLabel="Cancelar solicitud"
         cancelLabel="Volver"
-        onConfirm={() => void confirmCancel()}
+        onConfirm={confirmCancel}
         onCancel={() => setCancelTarget(null)}
       />
     </PageContainer>

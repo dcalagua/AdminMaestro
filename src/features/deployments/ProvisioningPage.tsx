@@ -194,7 +194,7 @@ export function ProvisioningPage() {
         confirmLabel="Reintentar"
         tone="primary"
         onCancel={() => setRetryTarget(null)}
-        onConfirm={() => void confirmRetry()}
+        onConfirm={confirmRetry}
       />
 
       <EnqueueProvisioningDialog open={enqueueOpen} onClose={() => setEnqueueOpen(false)} />

@@ -193,7 +193,7 @@ export function CommissionPlansPage() {
         title={`¿Cerrar la regla "${closingRule?.name}"?`}
         message="Dejará de aplicarse a cobros futuros. Las comisiones ya devengadas con esta regla se conservan intactas."
         confirmLabel="Cerrar regla"
-        onConfirm={() => void confirmCloseRule()}
+        onConfirm={confirmCloseRule}
         onCancel={() => setClosingRule(null)}
       />
     </PageContainer>

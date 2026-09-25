@@ -449,7 +449,7 @@ export function TenantDetailPage() {
         }
         confirmLabel={pendingAction === 'SUSPEND' ? 'Suspender' : 'Reactivar'}
         tone={pendingAction === 'SUSPEND' ? 'danger' : 'primary'}
-        onConfirm={() => void applyAction()}
+        onConfirm={applyAction}
         onCancel={() => setPendingAction(null)}
       />
     </PageContainer>

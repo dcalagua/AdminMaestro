@@ -514,7 +514,7 @@ export function SubscriptionDetailPage() {
         title="¿Rechazar este documento?"
         message="El documento vuelve al cliente. Podrá registrarse de nuevo cuando lo corrija."
         confirmLabel="Rechazar"
-        onConfirm={() => void doReject()}
+        onConfirm={doReject}
         onCancel={() => setRejectId(null)}
       />
 
@@ -523,7 +523,7 @@ export function SubscriptionDetailPage() {
         title="¿Anular este documento?"
         message="Anular es terminal: habrá que solicitar uno nuevo. El histórico se conserva."
         confirmLabel="Anular"
-        onConfirm={() => void doCancel()}
+        onConfirm={doCancel}
         onCancel={() => setCancelId(null)}
       />
     </PageContainer>

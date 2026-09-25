@@ -132,7 +132,7 @@ export function AttributionsPage() {
         title="¿Cerrar la vigencia de esta atribución?"
         message="La atribución dejará de generar comisión nueva. No se borra: las comisiones ya devengadas siguen apuntando a ella."
         confirmLabel="Cerrar atribución"
-        onConfirm={() => void confirmEnd()}
+        onConfirm={confirmEnd}
         onCancel={() => setEnding(null)}
       />
     </PageContainer>

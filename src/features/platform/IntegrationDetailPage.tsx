@@ -626,7 +626,7 @@ export function IntegrationDetailPage() {
         title="Retirar propietario técnico"
         message={`${ownerToRemove?.name ?? ''} dejará de ver el provisioning de este producto. La asignación se desactiva; no se borra el historial.`}
         confirmLabel="Retirar"
-        onConfirm={() => void confirmRemoveOwner()}
+        onConfirm={confirmRemoveOwner}
         onCancel={() => setOwnerToRemove(null)}
       />
     </PageContainer>
