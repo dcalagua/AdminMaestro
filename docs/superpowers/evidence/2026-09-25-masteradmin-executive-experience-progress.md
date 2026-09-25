@@ -56,4 +56,11 @@ Hashes de archivos protegidos: `docs/superpowers/evidence/executive-experience/p
 |---|---|---|---|---|---|
 | T01 aislar | DONE | (este commit) | — | este ledger, plan, spec, aprobación | T02 |
 | T02 entorno | DONE | (este commit) | stack arriba, env local | tabla runtime | T03 |
-| T03 baseline | DONE | (este commit) | tabla baseline | logs + capturas before | T04 |
+| T03 baseline | DONE | 778c3fb | tabla baseline | logs + capturas before | T04 |
+| T13a lecturas SQL | DONE | a3ed009 | pgTAP `25_executive_read_models` (32) RED→GREEN; suite 26/841 PASS | migración `20260925100000_executive_read_models.sql` (con rollback en cabecera) | UI T13 |
+| T04 contratos | DONE | 9be746e | `executive-contracts.test.ts` 20 (RED doc→GREEN) | `src/features/executive/*`, `docs/finance/EXECUTIVE_KPI_DICTIONARY.md` | T05 |
+| T05 sesiones (E11) | DONE | f0cddeb | `session-isolation.test.tsx` RED (B reutilizaba la query en vuelo de A) → GREEN | hipótesis E11 REPRODUCIDA y corregida sin tocar RLS | T06 |
+| T06 apariencia (E10) | DONE | 325b556 | `AppearanceProvider.test.tsx` 6 | perfil propio vía `profiles_update_self` (contrato U-12) | T07 |
+| T07 tokens/botones (E07/E08) | DONE | 0eadd77 | `tokens.test.ts` 38 (19 RED→GREEN) | contraste medido sobre tokens; renderizado en capturas after | T08 |
+| T08 diálogos/tabs (E09) | DONE | 5d0ba1f | `dialogs-tabs.test.tsx` 12 (10 RED→GREEN) | 11 consumidores pasan la promesa de confirmación | T09 |
+| T09 shell/navegación (E12) | DONE | d53aec9 | `navigation.test.ts` 22, `AppShell.test.tsx` 7 | tests de navegación actualizados a la IA aprobada (spec §5); e2e legacy: sólo etiquetas de menú | T10 |
