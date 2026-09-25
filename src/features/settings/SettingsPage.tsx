@@ -15,7 +15,7 @@ import { EbimLockup } from '@/components/ui/EbimMark';
  */
 export function SettingsPage() {
   const { roles, persona } = useAuth();
-  const { mode, density, setMode, setDensity } = useAppearance();
+  const { mode, density, setMode, setDensity, persistence } = useAppearance();
 
   return (
     <PageContainer title="Configuración" description="Tu sesión, tu apariencia y el entorno de esta consola.">
@@ -64,6 +64,12 @@ export function SettingsPage() {
                       Altura de control / fila: cómoda 40/52 · equilibrada 36/44 · compacta 32/38.
                     </p>
                   </div>
+
+                  <p className="text-xs text-muted" data-testid="appearance-persistence">
+                    {persistence === 'BROWSER_AND_PROFILE'
+                      ? 'Se guarda en este navegador y en tu perfil: se aplica al iniciar sesión en otro equipo.'
+                      : 'Se guarda sólo en este navegador: no se pudo sincronizar con tu perfil.'}
+                  </p>
 
                   <div className="rounded-field border border-border p-4">
                     <p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted">
