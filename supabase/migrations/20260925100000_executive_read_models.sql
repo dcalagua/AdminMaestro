@@ -304,14 +304,24 @@ select
   coalesce(al.allocation_count, 0) as allocation_count,
   coalesce(al.allocated, 0)        as allocated_amount,
   coalesce(al.platform_part, 0)    as platform_amount,
-  ce.amount - coalesce(al.allocated, 0) - coalesce(al.platform_part, 0) as unallocated_amount
+  ce.amount - coalesce(al.allocated, 0) - coalesce(al.platform_part, 0) as unallocated_amount,
+  coalesce(al.allocations, '[]'::jsonb) as allocations
 from platform.cost_entries ce
 left join lateral (
   select array_agg(distinct a.scope::text order by a.scope::text) as scopes,
+         -- Destino legible de cada asignación (RLS de cada tabla decide si el
+         -- nombre es visible; si no lo es, queda NULL, no se inventa).
+         jsonb_agg(jsonb_build_object(
+           'scope', a.scope, 'weight', a.weight, 'rule', a.allocation_rule,
+           'product', sp.short_name, 'tenant', t.name, 'target', dt.code,
+           'amount', round(ce.amount * a.weight, 2)) order by a.scope, a.weight desc) as allocations,
          count(*) as allocation_count,
          sum(round(ce.amount * a.weight, 2)) filter (where a.scope <> 'PLATFORM') as allocated,
          sum(round(ce.amount * a.weight, 2)) filter (where a.scope = 'PLATFORM')  as platform_part
     from platform.cost_allocations a
+    left join platform.saas_products sp on sp.id = a.saas_product_id
+    left join platform.tenants t on t.id = a.tenant_id
+    left join platform.deployment_targets dt on dt.id = a.deployment_target_id
    where a.cost_entry_id = ce.id
 ) al on true;
 

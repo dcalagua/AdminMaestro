@@ -16,7 +16,7 @@ import { PageContainer, Card, DataTable, SearchBar, Badge, EmptyState, ErrorStat
 import { PagedTable, type TableColumn } from '@/components/ui/PagedTable';
 import { ExportMenu } from '@/components/ui/ExportMenu';
 import type { ExportColumn } from '@/lib/export';
-import { formatDate, formatMoney, sumByCurrency } from '@/lib/format';
+import { formatDate, formatMoney, formatPercent, sumByCurrency } from '@/lib/format';
 import { DEPLOYMENT_MODE_LABEL } from '@/types/domain';
 import { KpiCard, CurrencyLines, StateMessage } from '@/features/executive/components/StateView';
 import { fromQuery } from '@/features/executive/dataState';
@@ -79,6 +79,26 @@ function categoryLabel(value: string | null): string {
 
 function num(value: number | string | null | undefined): number | null {
   return value === null || value === undefined ? null : Number(value);
+}
+
+interface AllocationView {
+  scope: string;
+  weight: number;
+  product: string | null;
+  tenant: string | null;
+  target: string | null;
+}
+
+/** `allocations` de v_cost_entry_list (jsonb) en forma segura para pintar. */
+function allocationsOf(raw: unknown): AllocationView[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((a: Record<string, unknown>) => ({
+    scope: String(a.scope ?? ''),
+    weight: Number(a.weight ?? 0),
+    product: (a.product as string | null) ?? null,
+    tenant: (a.tenant as string | null) ?? null,
+    target: (a.target as string | null) ?? null,
+  }));
 }
 
 export function CostsPage() {
@@ -176,18 +196,23 @@ function CostEntriesSection() {
     },
     {
       id: 'scopes',
-      header: 'Alcance',
+      header: 'Imputación',
       cell: (r) =>
         !r.allocation_count ? (
           <Badge tone="warn">Sin asignar</Badge>
         ) : (
-          <span className="flex flex-wrap gap-1">
-            {(r.scopes ?? []).map((s) => (
-              <Badge key={s} tone={s === 'PLATFORM' ? 'neutral' : 'accent'}>
-                {SCOPE_LABEL[s] ?? s}
-              </Badge>
+          // Regla EXPLÍCITA de cada asignación: destino y peso (nunca un prorrateo implícito).
+          <ul className="space-y-0.5 text-xs">
+            {allocationsOf(r.allocations).map((a, i) => (
+              <li key={i} className="flex flex-wrap items-center gap-1">
+                <Badge tone={a.scope === 'PLATFORM' ? 'neutral' : 'accent'}>{SCOPE_LABEL[a.scope] ?? a.scope}</Badge>
+                <span className="text-muted">
+                  {[a.product, a.tenant, a.target].filter(Boolean).join(' · ') || (a.scope === 'PLATFORM' ? 'no se reparte' : 'destino no visible')}
+                  {a.weight < 1 ? ` (${formatPercent(a.weight, 0)})` : ''}
+                </span>
+              </li>
             ))}
-          </span>
+          </ul>
         ),
     },
   ];
@@ -203,7 +228,13 @@ function CostEntriesSection() {
     { header: 'Asignado', value: (r) => r.allocated_amount, kind: 'amount' },
     { header: 'Plataforma', value: (r) => r.platform_amount, kind: 'amount' },
     { header: 'Sin asignar', value: (r) => r.unallocated_amount, kind: 'amount' },
-    { header: 'Alcances', value: (r) => (r.scopes ?? []).map((s) => SCOPE_LABEL[s] ?? s).join(' | ') },
+    {
+      header: 'Imputación',
+      value: (r) =>
+        allocationsOf(r.allocations)
+          .map((a) => `${SCOPE_LABEL[a.scope] ?? a.scope}${[a.product, a.tenant, a.target].filter(Boolean).length ? ` ${[a.product, a.tenant, a.target].filter(Boolean).join('/')}` : ''} ${Math.round(a.weight * 100)}%`)
+          .join(' | '),
+    },
   ];
 
   const categories = [...(summary.data?.by_category ?? [])]

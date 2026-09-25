@@ -6540,6 +6540,7 @@ export type Database = {
         Row: {
           allocated_amount: number | null
           allocation_count: number | null
+          allocations: Json | null
           amount: number | null
           category: Database["platform"]["Enums"]["cost_category"] | null
           category_text: string | null
