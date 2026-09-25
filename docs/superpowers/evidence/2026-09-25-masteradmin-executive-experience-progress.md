@@ -54,8 +54,8 @@ Hashes de archivos protegidos: `docs/superpowers/evidence/executive-experience/p
 
 | Tarea | Estado | Commit | Prueba | Evidencia | Próximo paso |
 |---|---|---|---|---|---|
-| T01 aislar | DONE | (este commit) | — | este ledger, plan, spec, aprobación | T02 |
-| T02 entorno | DONE | (este commit) | stack arriba, env local | tabla runtime | T03 |
+| T01 aislar | DONE | 778c3fb | — | este ledger, plan, spec, aprobación | T02 |
+| T02 entorno | DONE | 778c3fb | stack arriba, env local | tabla runtime | T03 |
 | T03 baseline | DONE | 778c3fb | tabla baseline | logs + capturas before | T04 |
 | T13a lecturas SQL | DONE | a3ed009 | pgTAP `25_executive_read_models` (32) RED→GREEN; suite 26/841 PASS | migración `20260925100000_executive_read_models.sql` (con rollback en cabecera) | UI T13 |
 | T04 contratos | DONE | 9be746e | `executive-contracts.test.ts` 20 (RED doc→GREEN) | `src/features/executive/*`, `docs/finance/EXECUTIVE_KPI_DICTIONARY.md` | T05 |
@@ -64,3 +64,47 @@ Hashes de archivos protegidos: `docs/superpowers/evidence/executive-experience/p
 | T07 tokens/botones (E07/E08) | DONE | 0eadd77 | `tokens.test.ts` 38 (19 RED→GREEN) | contraste medido sobre tokens; renderizado en capturas after | T08 |
 | T08 diálogos/tabs (E09) | DONE | 5d0ba1f | `dialogs-tabs.test.tsx` 12 (10 RED→GREEN) | 11 consumidores pasan la promesa de confirmación | T09 |
 | T09 shell/navegación (E12) | DONE | d53aec9 | `navigation.test.ts` 22, `AppShell.test.tsx` 7 | tests de navegación actualizados a la IA aprobada (spec §5); e2e legacy: sólo etiquetas de menú | T10 |
+| T10 tabla paginada | DONE | 5ab09be | `PagedTable.test.tsx` 7 | aditiva; DataTable intacta; orden con desempate por id | T11 |
+| T11 exportación | DONE | 5ab09be | `export.test.ts` 10 + ExportMenu 3 | página vs todos, límite 5000 rotulado, fórmulas neutralizadas, columnas `secret` excluidas | T12 |
+| T12 período consolidado (E03) | DONE | 7ef7281 | `financeConsolidated.test.tsx` 3 (RED→GREEN) | `asOf` sigue siendo fecha FX | T13 |
+| T13 agregados sin truncación (E02) | DONE | a3ed009, a9717cd, badfa98 | pgTAP 25 (34); BillingPage/CostsPage/CommissionsPage tests | >200 facturas/costos, >300 comisiones; filtros idénticos tabla/resumen | T14 |
+| T14 cartera y series | DONE | a3ed009, f4c40c1 | pgTAP 25 conciliación al céntimo | antigüedad vigente/1–30/31–60/61–90/>90/sin fecha | T15 |
+| T15 gráficos | DONE | b2efbee, 2035d53 | build; paleta validada con dataviz validator | Recharts 3.10.1 MIT exacto; carga diferida | T16 |
+| T16/T17 inicio y perspectivas | DONE | f4c40c1, c8872dd | `DashboardPage.test.tsx` 8; states e2e | 6 KPI; sin CHECK_HEALTH; sin 8/8 | T18 |
+| T18 cliente 360 (E16) | DONE | a96677b, 95589bf | `Organization360.test.tsx` 3; J7/J13/J14 | lecturas acotadas; sociedades vía `upsert_company` | T19 |
+| T19 tenant 360 | DONE | cdf450a | `tenantDimensions.test.ts` 8 | fixture PENDING+ACTIVE+MRR 0+PREPROVISIONED | T20 |
+| T20 nueva venta | DONE | 7b32ecc | `onboarding-continuity.spec.ts` (navegador) | 1 RPC con doble clic; sin RPC de alta SaaS | T21 |
+| T21 catálogo/comercial | DONE (subagente) | 0dc035c | 15 tests | sin 8/8; «Sin precio definido» | T22 |
+| T22 finanzas administrativas | DONE (subagente) | a9717cd | 27 tests | sin mutaciones nuevas; texto DRY_RUN verificado contra SQL | T23 |
+| T23 SaaS/gobierno/acceso | DONE (subagente) | 9f57578, c905e01 | 63 tests | sin CHECK_HEALTH al render; login sin anclas vacías | T24 |
+| T24 evidencia 32 páginas | DONE | 67670d6 | capture/states/onboarding e2e 6/6 | `executive-experience/page-matrix.md`; 110 + 26 capturas; 0 overflow | T25 |
+| T25 gates | DONE | — | ver tabla final | pgTAP 26/843 incl. `24_secret_key_rule`; e2e legacy 80/80 (base 80/80) | T26 |
+| Revisión independiente | DONE | 52c8b16 | pgTAP +3 (RED→GREEN), Appearance A→B test | 0 BLOCKER; 2 MAJOR + 3 MINOR corregidos; 1 limitación de export documentada | T26 |
+| T26 entrega | DONE | — | — | demo-guide.md, promotion-runbook.md, logs/ | reporte final |
+
+## Gates finales (HEAD tras 52c8b16 + evidencia, 2026-09-25)
+
+| Gate | Resultado | Log |
+|---|---|---|
+| typecheck | PASS | `executive-experience/logs/final/typecheck.log` |
+| lint | PASS | `logs/final/lint.log` |
+| Vitest | PASS 54 archivos / 776 tests (incluye golden GENERIC 12/12) | `logs/final/vitest.log` |
+| build | PASS (principal 340 kB gzip; dashboard 128 kB diferido) | `logs/final/build.log` |
+| secrets:scan (repo + bundle) | PASS | `logs/final/secrets.log` |
+| pgTAP (BD limpia) | PASS 26 / 846, incl. `24_secret_key_rule` y `25_executive_read_models` | `logs/final/pgtap.log` |
+| e2e legacy UI (BD limpia) | rama 80/80; base e2ad696 80/80 | `logs/final/e2e-legacy-*-clean.log`, `-final.log` |
+| e2e mejora (capturas, estados, sesión, onboarding) | PASS 6/6 | `logs/final/e2e-capture-final.log` |
+| e2e golden/orquestador/payment por HTTP | NOT_RUN (requieren Edge Functions servidas; backend protegido sin cambios por hash) | — |
+| Hash de protegidos | supabase/functions, migraciones previas, tests 00–24, seed, config: idénticos. Cambiaron sólo 5 e2e UI (etiquetas) | `protected-baseline.sha256` |
+
+Subagentes: 3 implementadores en páginas disjuntas (sin commits propios; integración y commits por el integrador) + 1 revisor independiente de la rama.
+
+## Limitaciones conocidas
+
+- Exportación «todos los filtrados»: detecta duplicados, errores y cambios del total; un borrado + alta
+  simultáneos con el mismo total podrían omitir una fila sin detectarse (sin snapshot transaccional).
+- K03 (saldo) incluye saldos a favor negativos; la banda «Saldo a favor» los separa de la cartera vencida.
+- «Cobrado confirmado» de la ficha 360 usa el importe del pago (no el prorrateo por línea): puede diferir
+  en céntimos de `v_collected_revenue`.
+- e2e HTTP del orquestador/golden/payment-setup: NOT_RUN (requieren Edge Functions servidas).
+- Capturas: todas medidas automáticamente; inspección a ojo de una muestra (ver page-matrix.md).
