@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
-  useTenant, useTenantFeatures, useTenantAttributions, useSubscriptions,
-  useTenantMargin, useProvisioningRequests, useAuditLogs, useTenantProductMappings,
+  useTenant, useTenantFeatures, useTenantAttributions, useTenantProductMappings, useProvisioningTargets,
 } from '@/services/queries';
+import { useTenantAudit, useTenantInfraRequests, useTenantMarginRows, useTenantSubscriptions } from './tenantQueries';
+import { tenantDimensions } from './tenantDimensions';
+import { TenantDimensionsView } from './TenantDimensionsView';
 import { useRequestTenantSuspension, useRequestTenantResume } from '@/services/mutations';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -26,7 +28,12 @@ import {
 } from '@/lib/provisioning';
 
 /**
- * Detalle de tenant en pestañas administrativas (prompt fase 9).
+ * Tenant 360 (P31, spec §11.2): cuatro dimensiones visibles — comercial, alta
+ * técnica, salud observada y acceso del administrador — sin semáforo global.
+ * Cambiar el estado comercial NO afirma una suspensión en los productos: la
+ * orden al producto se encola en DRY_RUN y así se dice.
+ *
+ * Todas las lecturas van acotadas a ESTE tenant en el servidor.
  *
  * Lo que NO aparece aquí, deliberadamente: proveedores, órdenes, inventario,
  * documentos. El Control Plane administra metadatos y gobierno; los datos
@@ -38,14 +45,15 @@ export function TenantDetailPage() {
   const tenant = useTenant(tenantId);
   const features = useTenantFeatures(tenantId);
   const attributions = useTenantAttributions(tenantId);
-  const subscriptions = useSubscriptions();
-  const margins = useTenantMargin();
+  const subscriptions = useTenantSubscriptions(tenantId);
+  const margins = useTenantMarginRows(tenantId);
+  const targets = useProvisioningTargets();
   // Alta del tenant DENTRO de cada SaaS de la suite. Es otra pregunta que
   // «¿dónde vive la base de datos?»: aquí se responde «¿existe ya este tenant
   // en EWM, en eSupplier, en TMS?».
   const productProvisioning = useTenantProductMappings(tenantId);
-  const provisioning = useProvisioningRequests();
-  const audit = useAuditLogs();
+  const provisioning = useTenantInfraRequests(tenantId);
+  const audit = useTenantAudit(tenantId);
   const perms = usePermissions();
   const toast = useToast();
   const suspend = useRequestTenantSuspension();
@@ -65,10 +73,16 @@ export function TenantDetailPage() {
           p_tenant_id: tenantId,
           p_reason: 'Suspensión solicitada desde la consola',
         });
-        toast.success('Tenant suspendido', 'Se encoló la solicitud SUSPEND_TENANT en DRY_RUN.');
+        toast.success(
+          'Estado comercial: suspendido',
+          'Cambió en el Control Plane. La orden SUSPEND_TENANT al producto quedó encolada en simulación (DRY_RUN): el acceso en el producto no cambió.',
+        );
       } else {
         await resume.mutateAsync({ p_tenant_id: tenantId });
-        toast.success('Tenant reactivado', 'Se encoló la solicitud RESUME_TENANT en DRY_RUN.');
+        toast.success(
+          'Estado comercial: activo',
+          'Cambió en el Control Plane. La orden RESUME_TENANT al producto quedó encolada en simulación (DRY_RUN).',
+        );
       }
     } catch (error) {
       toast.error('No se pudo aplicar el cambio', businessErrorMessage(error));
@@ -93,11 +107,12 @@ export function TenantDetailPage() {
   }
 
   const t = tenant.data;
-  const tenantSubs = (subscriptions.data ?? []).filter((s) => s.tenant_id === tenantId);
+  const tenantSubs = subscriptions.data ?? [];
   // V3 · una fila por moneda: un tenant con costo USD y cobro PEN tiene dos.
-  const tenantMargins = (margins.data ?? []).filter((m) => m.tenant_id === tenantId && m.currency);
-  const tenantProvisioning = (provisioning.data ?? []).filter((p) => p.tenant_id === tenantId);
-  const tenantAudit = (audit.data ?? []).filter((a) => a.tenant_id === tenantId);
+  const tenantMargins = (margins.data ?? []).filter((m) => m.currency);
+  const tenantProvisioning = provisioning.data ?? [];
+  const tenantAudit = audit.data ?? [];
+  const dims = tenantDimensions(t, productProvisioning.data ?? [], targets.data ?? []);
 
   const showFinance = isFinance(roles) || canManagePlatform(roles);
 
@@ -136,8 +151,22 @@ export function TenantDetailPage() {
         </div>
       }
     >
+      <div className="mb-4">
+        {productProvisioning.error ? (
+          <p className="mb-2 text-xs font-semibold text-warn" role="status">
+            No se pudieron leer las altas SaaS: «Alta técnica» y «Acceso administrador» pueden estar incompletos.
+          </p>
+        ) : null}
+        <TenantDimensionsView dims={dims} />
+      </div>
+
       <div className="mb-5 grid gap-3 sm:grid-cols-4">
-        <StatCard label="MRR" value={formatMoney(Number(t.mrr), t.currency as string | null)} tone="ok" />
+        <StatCard
+          label="MRR vigente"
+          value={Number(t.mrr) === 0 || !t.currency ? 'Sin recurrente vigente' : formatMoney(Number(t.mrr), t.currency as string | null)}
+          tone={Number(t.mrr) > 0 ? 'ok' : 'neutral'}
+          hint="Foto actual del contrato"
+        />
         <StatCard label="Plan" value={(t.plan_name as string) ?? 'Sin plan'} />
         <StatCard label="Infraestructura" value={(t.deployment_target_code as string) ?? 'Sin asignar'} hint={(t.deployment_region as string) ?? undefined} />
         <StatCard
@@ -444,10 +473,11 @@ export function TenantDetailPage() {
         title={pendingAction === 'SUSPEND' ? '¿Suspender este tenant?' : '¿Reactivar este tenant?'}
         message={
           pendingAction === 'SUSPEND'
-            ? 'El tenant queda suspendido y se encola una solicitud SUSPEND_TENANT en DRY_RUN. El motivo queda en auditoría.'
-            : 'El tenant vuelve a estado activo y se encola una solicitud RESUME_TENANT en DRY_RUN.'
+            ? 'Cambia el estado COMERCIAL a «Suspendido» en el Control Plane y encola una orden SUSPEND_TENANT en simulación (DRY_RUN): no se apaga el acceso en los productos. El motivo queda en auditoría.'
+            : 'Cambia el estado COMERCIAL a «Activo» en el Control Plane y encola una orden RESUME_TENANT en simulación (DRY_RUN).'
         }
-        confirmLabel={pendingAction === 'SUSPEND' ? 'Suspender' : 'Reactivar'}
+        confirmLabel={pendingAction === 'SUSPEND' ? 'Suspender (comercial)' : 'Reactivar (comercial)'}
+        busy={suspend.isPending || resume.isPending}
         tone={pendingAction === 'SUSPEND' ? 'danger' : 'primary'}
         onConfirm={applyAction}
         onCancel={() => setPendingAction(null)}
