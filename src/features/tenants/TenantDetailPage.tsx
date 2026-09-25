@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import {
   useTenant, useTenantFeatures, useTenantAttributions, useTenantProductMappings, useProvisioningTargets,
 } from '@/services/queries';
@@ -42,6 +42,14 @@ import {
 export function TenantDetailPage() {
   const { tenantId } = useParams();
   const { roles } = useAuth();
+  const location = useLocation();
+  // Se captura UNA vez al llegar: cambiar de pestaña (#hash) crea otra entrada de
+  // historial sin `state` y el contexto de la venta no debe desaparecer.
+  const [onboarded] = useState(
+    () =>
+      (location.state as { onboarded?: { subscriptionId: string | null; productName: string; activated: boolean } } | null)
+        ?.onboarded,
+  );
   const tenant = useTenant(tenantId);
   const features = useTenantFeatures(tenantId);
   const attributions = useTenantAttributions(tenantId);
@@ -151,6 +159,35 @@ export function TenantDetailPage() {
         </div>
       }
     >
+      {onboarded ? (
+        <section className="ebim-card mb-4 border-l-4 border-l-[color:var(--accent-action)] p-4" aria-labelledby="next-steps-title">
+          <h2 id="next-steps-title" className="text-sm font-bold text-fg">Venta registrada: siguientes pasos</h2>
+          <p className="mt-1 text-sm text-muted">
+            Se crearon el tenant, el contrato y la atribución{onboarded.activated ? ' (contrato activo)' : ' (contrato en borrador para revisión)'}. El alta
+            dentro del producto es una decisión aparte: nada de lo de abajo la ejecuta.
+          </p>
+          <ul className="mt-2 flex flex-wrap gap-2 text-sm">
+            {onboarded.subscriptionId ? (
+              <li>
+                <Link className="ebim-btn-secondary h-8 px-3 text-xs" to={`/subscriptions/${onboarded.subscriptionId}`}>
+                  Revisar el contrato
+                </Link>
+              </li>
+            ) : null}
+            <li>
+              <a className="ebim-btn-ghost h-8 px-3 text-xs" href="#products">
+                Ver estado del alta en el producto
+              </a>
+            </li>
+            <li>
+              <Link className="ebim-btn-ghost h-8 px-3 text-xs" to="/saas-provisioning">
+                Ir a Altas SaaS (decisión manual)
+              </Link>
+            </li>
+          </ul>
+        </section>
+      ) : null}
+
       <div className="mb-4">
         {productProvisioning.error ? (
           <p className="mb-2 text-xs font-semibold text-warn" role="status">

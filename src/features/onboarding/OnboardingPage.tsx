@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -160,6 +160,9 @@ export function OnboardingPage() {
   const marketList = useMemo(() => markets.data ?? [], [markets.data]);
 
   const [step, setStep] = useState(1);
+  // Cerrojo síncrono contra el doble clic: `isPending` sólo se activa cuando la
+  // mutación arranca, DESPUÉS de la validación asíncrona del formulario.
+  const submitting = useRef(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -297,7 +300,7 @@ export function OnboardingPage() {
     setStep((s) => Math.min(s + 1, STEPS.length));
   }
 
-  const submit = form.handleSubmit(async (raw) => {
+  const submitOnce = form.handleSubmit(async (raw) => {
     const v = schema.parse(raw);
     try {
       const result = (await onboard.mutateAsync({
@@ -329,15 +332,36 @@ export function OnboardingPage() {
         p_deployment_target_id: v.deployment_target_id || undefined,
         p_activate: v.activate,
         p_notes: v.notes || undefined,
-      })) as { tenant_id?: string } | null;
+      })) as { tenant_id?: string; subscription_id?: string; provisioning_request_id?: string } | null;
 
       toast.success('Alta completada', `${v.tenant_name} se creó de forma transaccional.`);
-      if (result?.tenant_id) navigate(`/tenants/${result.tenant_id}`);
-      else navigate('/tenants');
+      // Continuidad (spec §11.3): el Tenant 360 recibe el contexto de la venta
+      // para ofrecer los siguientes pasos. Navegar NO ejecuta ninguna alta SaaS.
+      if (result?.tenant_id) {
+        navigate(`/tenants/${result.tenant_id}`, {
+          state: {
+            onboarded: {
+              subscriptionId: result.subscription_id ?? null,
+              productName: v.saas_product_code,
+              activated: v.activate,
+            },
+          },
+        });
+      } else navigate('/tenants');
     } catch {
       /* el error de la base se muestra bajo los botones */
     }
   });
+
+  async function submit() {
+    if (submitting.current) return;
+    submitting.current = true;
+    try {
+      await submitOnce();
+    } finally {
+      submitting.current = false;
+    }
+  }
 
   if (!perms.canManagePlatform && !perms.canManageCommercial) {
     return (
@@ -736,7 +760,7 @@ export function OnboardingPage() {
                   <p className="mt-2">
                     Esa alta se decide en{' '}
                     <Link to="/saas-provisioning" className="ebim-link">
-                      Infraestructura → Provisioning SaaS
+                      Operación SaaS → Altas SaaS
                     </Link>
                     , según la política configurada en la integración del producto. El valor por
                     defecto es <strong>manual</strong> hasta que el contrato de cada producto esté
@@ -782,6 +806,7 @@ export function OnboardingPage() {
             <button
               type="button" className="ebim-btn-primary"
               onClick={() => void submit()} disabled={onboard.isPending}
+              aria-busy={onboard.isPending || undefined}
             >
               {onboard.isPending ? 'Creando…' : 'Crear cliente'}
             </button>
