@@ -6,6 +6,13 @@ import { PLATFORM_ROLE_LABEL, ORG_ROLE_LABEL } from '@/types/domain';
 import { env } from '@/lib/env';
 import { EbimLockup } from '@/components/ui/EbimMark';
 
+const APP_ENV_LABEL: Record<string, string> = {
+  LOCAL: 'Local (desarrollo en este equipo)',
+  DEV: 'Desarrollo',
+  QAS: 'Calidad (QAS)',
+  PRD: 'Producción',
+};
+
 /**
  * Configuración.
  *
@@ -92,7 +99,10 @@ export function SettingsPage() {
             label: 'Mi sesión',
             content: (
               <div className="grid gap-4 lg:grid-cols-2">
-                <Card title="Identidad">
+                <Card
+                  title="Identidad"
+                  description="Tus roles los asigna el equipo de plataforma EBIM; esta pantalla sólo los muestra."
+                >
                   <dl className="divide-y divide-border">
                     {[
                       ['Correo', roles?.email ?? '—'],
@@ -140,18 +150,21 @@ export function SettingsPage() {
             content: (
               <Card title="Entorno de la consola">
                 <div className="p-4">
-                  <div className="mb-4">
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                     <EbimLockup appName="Control Plane" />
+                    <Badge tone={env.isProduction ? 'warn' : 'info'}>
+                      Entorno: {APP_ENV_LABEL[env.appEnv] ?? env.appEnv}
+                    </Badge>
                   </div>
                   <dl className="divide-y divide-border">
                     {[
-                      ['Entorno', env.appEnv],
+                      ['Entorno (configuración de la aplicación)', env.appEnv],
                       ['URL de Supabase', env.supabaseUrl],
                       ['Clave en uso', 'anon / publicable — la seguridad la da RLS'],
                       // La regla de lint prohíbe el token literal en el cliente, incluso
                       // dentro de una etiqueta de UI. Se describe sin escribirlo.
                       ['Clave de servicio en el navegador', 'Nunca. Sólo existe del lado servidor.'],
-                      ['Modo de provisioning', 'DRY_RUN (por defecto)'],
+                      ['Solicitudes de infraestructura', 'DRY_RUN por defecto (simulación)'],
                     ].map(([k, v]) => (
                       <div key={k} className="flex justify-between gap-4 px-1 py-2.5 text-sm">
                         <dt className="text-muted">{k}</dt>
