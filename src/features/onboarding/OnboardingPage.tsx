@@ -369,7 +369,7 @@ export function OnboardingPage() {
               onClick={() => setStep(s.id)}
               className={`rounded-field px-3 py-1.5 text-[13px] font-semibold transition-colors ${
                 s.id === step
-                  ? 'bg-accent text-[color:var(--accent-fg)]'
+                  ? 'bg-[color:var(--accent-action)] text-[color:var(--accent-action-fg)]'
                   : s.id < step
                     ? 'bg-accent-soft text-accent-deep'
                     : 'text-muted'

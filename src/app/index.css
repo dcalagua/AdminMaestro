@@ -52,28 +52,43 @@
   .ebim-input {
     @apply h-control w-full rounded-field border border-border bg-card px-3 text-sm text-fg
            placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2
-           focus:ring-[color:var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-60;
+           focus:ring-[color:var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-60
+           aria-[invalid=true]:border-danger;
   }
 
   .ebim-label {
     @apply mb-1.5 block text-[13px] font-semibold text-fg;
   }
 
+  /* Sistema de botones ÚNICO (E07). Cuatro variantes; ninguna pantalla define
+     la suya. Estados: hover, focus-visible (anillo global), disabled y busy
+     (`aria-busy="true"` mientras una mutación está en curso). */
   .ebim-btn {
-    @apply inline-flex h-control items-center justify-center gap-2 rounded-field px-4 text-sm
-           font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-55;
+    @apply inline-flex h-control items-center justify-center gap-2 whitespace-nowrap rounded-field
+           px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed
+           disabled:opacity-55 aria-busy:cursor-progress;
   }
 
+  /* Acción principal: verde profundo funcional (AA), no el verde de marca. */
   .ebim-btn-primary {
-    @apply ebim-btn bg-accent text-[color:var(--accent-fg)] hover:brightness-95 active:brightness-90;
+    @apply ebim-btn bg-[color:var(--accent-action)] text-[color:var(--accent-action-fg)]
+           [&:not(:disabled):hover]:bg-[color:var(--accent-action-hover)];
   }
 
+  /* Acción secundaria destacada: contorno de marca sobre la tarjeta. */
+  .ebim-btn-secondary {
+    @apply ebim-btn border border-[color:var(--accent-action)] bg-card text-accent-deep
+           [&:not(:disabled):hover]:bg-accent-soft;
+  }
+
+  /* Acción terciaria / cancelar. */
   .ebim-btn-ghost {
-    @apply ebim-btn border border-border bg-card text-fg hover:bg-accent-soft;
+    @apply ebim-btn border border-border bg-card text-fg [&:not(:disabled):hover]:bg-accent-soft;
   }
 
+  /* Acción destructiva: nunca es la dominante ni recibe el foco por defecto. */
   .ebim-btn-danger {
-    @apply ebim-btn bg-danger text-white hover:brightness-95;
+    @apply ebim-btn bg-[color:var(--danger-fill)] text-white [&:not(:disabled):hover]:brightness-110;
   }
 
   .ebim-th {

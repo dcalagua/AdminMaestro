@@ -21,8 +21,15 @@
   --accent-ring: rgba(90, 169, 127, 0.3);
   --accent2: #056769; /* teal secundario */
   --brand-mark: #0a5a52; /* isotipo sobre fondo claro (§4.6) */
+  /* Variante FUNCIONAL para botones con texto (E08): blanco sobre #5AA97F da
+     2.83:1; sobre el verde profundo, 5.67:1. La marca sigue en rellenos/barras. */
+  --accent-action: #2f7355;
+  --accent-action-hover: #275f47;
+  --accent-action-fg: #ffffff;
 
-  --sidebar: linear-gradient(168deg, #185d4a 0%, #2b997c 78%, #2b997c 100%);
+  /* Degradado del sidebar: mismo arranque de marca; el tramo final se oscurece
+     lo justo para que el texto blanco del menú supere 4.5:1 (antes 3.53:1). */
+  --sidebar: linear-gradient(168deg, #185d4a 0%, #22795f 78%, #22795f 100%);
   --hero-grad: linear-gradient(155deg, #185d4a 0%, #2b997c 70%, #2b997c 100%);
 
   /* --- Neutros (light) -------------------------------------------------- */
@@ -31,14 +38,15 @@
   --elevated: #ffffff;
   --border: #e4e7e5;
   --text: #16211d;
-  --muted: #667a72;
+  --muted: #5b6f67; /* 5.04:1 sobre --bg (antes #667a72, 4.30:1) */
 
-  /* --- Semánticos ------------------------------------------------------- */
-  --ok: #1f8a52;
+  /* --- Semánticos (texto ≥ 4.5:1 sobre card y sobre su -soft) ------------ */
+  --ok: #177a47;
   --ok-soft: #e6f4ec;
-  --warn: #b06b00;
+  --warn: #935a00;
   --warn-soft: #fdf1de;
   --danger: #b42318;
+  --danger-fill: #b42318; /* relleno de botón peligroso: blanco encima, 6.57:1 */
   --danger-soft: #fdeceb;
   --info: #0b6b8f;
   --info-soft: #e6f2f7;
@@ -65,6 +73,17 @@
   --accent-soft: #1b3329;
   --accent-deep: #7cc79c; /* sobre fondo oscuro el "deep" invierte para mantener AA */
   --accent-ring: rgba(124, 199, 156, 0.35);
+  --accent-action: #7cc79c;
+  --accent-action-hover: #95d4ae;
+  --accent-action-fg: #0e1613;
+
+  /* En oscuro el texto semántico se aclara (antes 2.6–4.0:1); el relleno del
+     botón peligroso se queda oscuro para que el blanco siga siendo legible. */
+  --ok: #5fd08c;
+  --warn: #f5b546;
+  --danger: #ff8f85;
+  --info: #5cc3e6;
+  --danger-fill: #b42318;
 
   --ok-soft: #12291d;
   --warn-soft: #2c2110;
@@ -92,4 +111,14 @@
   --row-h: 38px;
   --pad-y: 6px;
   --pad-x: 10px;
+}
+
+/* Spec §6.3: en pantallas táctiles pequeñas la densidad compacta no reduce los
+   objetivos de interacción por debajo de la equilibrada. Se reorganiza el
+   layout; no se encoge el control. */
+@media (max-width: 639px) {
+  :root[data-density='compacta'] {
+    --control-h: 36px;
+    --row-h: 44px;
+  }
 }
