@@ -19,7 +19,7 @@ const FINANCE = 'finance@ebim.test';
 
 async function gotoSaasProvisioning(page: Page) {
   await page.goto('/saas-provisioning');
-  await expect(page.getByRole('heading', { name: 'Provisioning SaaS' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Altas SaaS', level: 1 })).toBeVisible();
 }
 
 /**
@@ -208,7 +208,7 @@ test.describe('Nueva venta: cerrar un contrato NO aprovisiona', () => {
     await expect(menu.getByRole('link', { name: 'Altas SaaS' })).toBeVisible();
 
     await menu.getByRole('link', { name: 'Altas SaaS' }).click();
-    await expect(page.getByRole('heading', { name: 'Provisioning SaaS' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Altas SaaS', level: 1 })).toBeVisible();
   });
 });
 
@@ -217,7 +217,7 @@ test.describe('aislamiento entre propietarios de producto', () => {
     await login(page, EWM_OWNER);
     await page.goto('/saas-provisioning');
 
-    await expect(page.getByRole('heading', { name: 'Provisioning SaaS' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Altas SaaS', level: 1 })).toBeVisible();
     await expect(page.getByText('EWM').first()).toBeVisible();
     // RLS, no el menú: aunque llegara por URL, la base no le devuelve eSupplier.
     await expect(page.getByText('eSupplier')).toHaveCount(0);
@@ -227,7 +227,7 @@ test.describe('aislamiento entre propietarios de producto', () => {
     await login(page, ESUPPLIER_OWNER);
     await page.goto('/saas-provisioning');
 
-    await expect(page.getByRole('heading', { name: 'Provisioning SaaS' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Altas SaaS', level: 1 })).toBeVisible();
     await expect(page.getByText('EWM')).toHaveCount(0);
   });
 
@@ -244,7 +244,7 @@ test.describe('sólo lectura', () => {
     await login(page, FINANCE);
     await page.goto('/saas-provisioning');
 
-    await expect(page.getByRole('heading', { name: 'Provisioning SaaS' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Altas SaaS', level: 1 })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Nueva solicitud' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Provisionar' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Reintentar' })).toHaveCount(0);

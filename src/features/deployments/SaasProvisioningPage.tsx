@@ -174,7 +174,7 @@ export function SaasProvisioningPage() {
 
   return (
     <PageContainer
-      title="Provisioning SaaS"
+      title="Altas SaaS"
       description="Altas SaaS: el alta de cada tenant DENTRO de cada producto de la suite. MasterAdmin llama a la API del producto, nunca a su base de datos. La infraestructura física tiene su propia cola."
       actions={
         access.can('platform.provisioning.execute') || access.ownedProductIds.length > 0 ? (
