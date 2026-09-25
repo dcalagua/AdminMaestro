@@ -11,7 +11,7 @@
 -- Todo se revierte al final (rollback).
 -- ============================================================================
 begin;
-select plan(32);
+select plan(34);
 
 create or replace function pg_temp.act_as(p_user uuid)
 returns void language plpgsql as $$
@@ -42,10 +42,10 @@ create or replace function pg_temp.product() returns uuid language sql as $$ sel
 select is(
   (select count(*)::int from pg_class c
     where c.relnamespace = 'platform'::regnamespace and c.relkind = 'v'
-      and c.relname in ('v_invoice_balances', 'v_collected_payments', 'v_renewal_pipeline')
+      and c.relname in ('v_invoice_balances', 'v_collected_payments', 'v_renewal_pipeline', 'v_cost_entry_list')
       and (select option_value from pg_options_to_table(c.reloptions)
             where option_name = 'security_invoker') = 'true'),
-  3, 'Las 3 vistas nuevas son security_invoker');
+  4, 'Las 4 vistas nuevas son security_invoker');
 
 select is(
   (select count(*)::int from pg_proc p
@@ -58,19 +58,19 @@ select is(
 select is(
   (select count(*)::int from information_schema.role_table_grants
     where table_schema = 'platform'
-      and table_name in ('v_invoice_balances', 'v_collected_payments', 'v_renewal_pipeline')
+      and table_name in ('v_invoice_balances', 'v_collected_payments', 'v_renewal_pipeline', 'v_cost_entry_list')
       and grantee in ('anon', 'PUBLIC')),
   0, 'anon/PUBLIC sin privilegios sobre las vistas nuevas');
 
 select is(
   (select count(*)::int from information_schema.role_table_grants
     where table_schema = 'platform'
-      and table_name in ('v_invoice_balances', 'v_collected_payments', 'v_renewal_pipeline')
+      and table_name in ('v_invoice_balances', 'v_collected_payments', 'v_renewal_pipeline', 'v_cost_entry_list')
       and grantee = 'authenticated' and privilege_type <> 'SELECT'),
   0, 'authenticated sólo tiene SELECT sobre las vistas nuevas');
 
 select ok(
-  not has_function_privilege('anon', 'platform.invoice_summary(text, text, uuid)', 'execute')
+  not has_function_privilege('anon', 'platform.invoice_summary(text, text, uuid, text)', 'execute')
   and not has_function_privilege('anon', 'platform.cost_summary(text, text)', 'execute')
   and not has_function_privilege('anon', 'platform.commission_summary(text, text)', 'execute')
   and not has_function_privilege('anon', 'platform.receivables_aging(uuid)', 'execute')
@@ -145,6 +145,10 @@ select is(
   23000.00::numeric, 'Todas vencidas hace 45 días: cartera vencida = saldo');
 
 select is(
+  (select (platform.invoice_summary('FX-BULK-', 'ALL', null, 'D31_60') ->> 'row_count')::int),
+  230, 'El filtro de antigüedad del resumen coincide con la banda del detalle');
+
+select is(
   (select balance from platform.receivables_aging((select id from fx_org))
     where aging_bucket = 'D31_60' and currency = 'USD'),
   (select sum(balance) from platform.v_invoice_balances
@@ -199,6 +203,10 @@ select is(
 select is(
   (select (platform.cost_summary('FX-COST-', 'PLATFORM') -> 'platform' ->> 'USD')::numeric),
   2100.00::numeric, 'Costo de plataforma identificado como tal, no repartido');
+
+select is(
+  (select count(*)::int from platform.v_cost_entry_list where description like 'FX-COST-%' and 'PLATFORM' = any (scopes)),
+  210, 'La lista paginable de costos ve el mismo universo que el resumen');
 
 select is(
   (select (platform.cost_summary('FX-COST-', 'ALL') -> 'allocated' ->> 'USD')::numeric),

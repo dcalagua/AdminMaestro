@@ -27,7 +27,8 @@
 --   drop function if exists platform.cost_summary(text, text);
 --   drop function if exists platform.collections_by_month(date, date, uuid);
 --   drop function if exists platform.receivables_aging(uuid);
---   drop function if exists platform.invoice_summary(text, text, uuid);
+--   drop function if exists platform.invoice_summary(text, text, uuid, text);
+--   drop view if exists platform.v_cost_entry_list;
 --   drop view if exists platform.v_renewal_pipeline;
 --   drop view if exists platform.v_collected_payments;
 --   drop view if exists platform.v_invoice_balances;
@@ -152,6 +153,9 @@ comment on view platform.v_renewal_pipeline is
 -- p_search : mismo criterio que la tabla (número u organización, ILIKE).
 -- p_status : ALL | OPEN (ISSUED, PARTIALLY_PAID) | PAID | EXCLUDED (DRAFT, VOID)
 --            | UNCOLLECTIBLE.
+-- p_aging  : NULL | VIGENTE | D1_30 | D31_60 | D61_90 | D90_MAS | SIN_FECHA |
+--            VENCIDA (las cuatro bandas vencidas). Es el filtro con el que el
+--            gráfico de antigüedad abre su detalle.
 -- Devuelve, por moneda: facturado (no DRAFT/VOID), cobrado confirmado, saldo de
 -- cartera (sólo computables) y conteos. `row_count` = filas de la tabla con ese
 -- filtro, para comprobar que tabla y resumen hablan del mismo universo.
@@ -159,7 +163,8 @@ comment on view platform.v_renewal_pipeline is
 create or replace function platform.invoice_summary(
   p_search          text default null,
   p_status          text default 'ALL',
-  p_organization_id uuid default null
+  p_organization_id uuid default null,
+  p_aging           text default null
 )
 returns jsonb
 language sql
@@ -180,6 +185,11 @@ as $$
              when 'EXCLUDED'      then b.status in ('DRAFT', 'VOID')
              when 'UNCOLLECTIBLE' then b.status = 'UNCOLLECTIBLE'
              else true
+           end
+       and case upper(coalesce(p_aging, ''))
+             when '' then true
+             when 'VENCIDA' then b.aging_bucket in ('D1_30', 'D31_60', 'D61_90', 'D90_MAS')
+             else b.aging_bucket = upper(p_aging)
            end
   ),
   by_currency as (
@@ -204,7 +214,7 @@ as $$
   );
 $$;
 
-comment on function platform.invoice_summary(text, text, uuid) is
+comment on function platform.invoice_summary(text, text, uuid, text) is
   'Totales de facturación por moneda sobre el universo autorizado completo con los filtros de la '
   'tabla (buscador + estado). SECURITY INVOKER: RLS de invoices/payments.';
 
@@ -277,6 +287,38 @@ comment on function platform.collections_by_month(date, date, uuid) is
 -- p_scope: ALL | PLATFORM | PRODUCT | ORGANIZATION | TENANT | DEPLOYMENT_TARGET
 --          (costos con al menos una asignación de ese ámbito) | UNALLOCATED.
 -- ---------------------------------------------------------------------------
+create or replace view platform.v_cost_entry_list
+with (security_invoker = true) as
+select
+  ce.id,
+  ce.category,
+  ce.category::text              as category_text,
+  ce.description,
+  ce.vendor,
+  ce.amount,
+  ce.currency,
+  ce.period_start,
+  ce.period_end,
+  ce.is_recurring,
+  coalesce(al.scopes, array[]::text[]) as scopes,
+  coalesce(al.allocation_count, 0) as allocation_count,
+  coalesce(al.allocated, 0)        as allocated_amount,
+  coalesce(al.platform_part, 0)    as platform_amount,
+  ce.amount - coalesce(al.allocated, 0) - coalesce(al.platform_part, 0) as unallocated_amount
+from platform.cost_entries ce
+left join lateral (
+  select array_agg(distinct a.scope::text order by a.scope::text) as scopes,
+         count(*) as allocation_count,
+         sum(round(ce.amount * a.weight, 2)) filter (where a.scope <> 'PLATFORM') as allocated,
+         sum(round(ce.amount * a.weight, 2)) filter (where a.scope = 'PLATFORM')  as platform_part
+    from platform.cost_allocations a
+   where a.cost_entry_id = ce.id
+) al on true;
+
+comment on view platform.v_cost_entry_list is
+  'Costo registrado con su reparto: asignado (no PLATFORM), plataforma y sin asignar. Misma fuente '
+  'para la tabla paginada y para cost_summary.';
+
 create or replace function platform.cost_summary(
   p_search text default null,
   p_scope  text default 'ALL'
@@ -288,29 +330,24 @@ security invoker
 set search_path = platform, pg_catalog
 as $$
   with entries as (
-    select ce.*,
-           coalesce((select sum(round(ce.amount * a.weight, 2)) from platform.cost_allocations a
-                      where a.cost_entry_id = ce.id and a.scope <> 'PLATFORM'), 0) as allocated,
-           coalesce((select sum(round(ce.amount * a.weight, 2)) from platform.cost_allocations a
-                      where a.cost_entry_id = ce.id and a.scope = 'PLATFORM'), 0) as platform_part
-      from platform.cost_entries ce
+    select e.*
+      from platform.v_cost_entry_list e
      where (nullif(trim(coalesce(p_search, '')), '') is null
-            or ce.description ilike '%' || trim(p_search) || '%'
-            or coalesce(ce.vendor, '') ilike '%' || trim(p_search) || '%'
-            or ce.category::text ilike '%' || trim(p_search) || '%')
+            or e.description ilike '%' || trim(p_search) || '%'
+            or coalesce(e.vendor, '') ilike '%' || trim(p_search) || '%'
+            or e.category_text ilike '%' || trim(p_search) || '%')
        and case upper(coalesce(p_scope, 'ALL'))
              when 'ALL' then true
-             when 'UNALLOCATED' then not exists (select 1 from platform.cost_allocations a where a.cost_entry_id = ce.id)
-             else exists (select 1 from platform.cost_allocations a
-                           where a.cost_entry_id = ce.id and a.scope::text = upper(p_scope))
+             when 'UNALLOCATED' then e.allocation_count = 0
+             else upper(p_scope) = any (e.scopes)
            end
   ),
   by_currency as (
     select currency,
-           sum(amount) as registered,
-           sum(allocated) as allocated,
-           sum(platform_part) as platform_part,
-           sum(amount) - sum(allocated) - sum(platform_part) as unallocated
+           sum(amount)             as registered,
+           sum(allocated_amount)   as allocated,
+           sum(platform_amount)    as platform_part,
+           sum(unallocated_amount) as unallocated
       from entries group by currency
   )
   select jsonb_build_object(
@@ -319,10 +356,10 @@ as $$
     'allocated',   coalesce((select jsonb_object_agg(currency, allocated)     from by_currency), '{}'::jsonb),
     'platform',    coalesce((select jsonb_object_agg(currency, platform_part) from by_currency), '{}'::jsonb),
     'unallocated', coalesce((select jsonb_object_agg(currency, unallocated)   from by_currency), '{}'::jsonb),
-    'by_category', coalesce((select jsonb_agg(jsonb_build_object('category', category, 'currency', currency, 'amount', total)
-                                              order by category, currency)
-                               from (select category::text, currency, sum(amount) as total
-                                       from entries group by category, currency) c), '[]'::jsonb),
+    'by_category', coalesce((select jsonb_agg(jsonb_build_object('category', category_text, 'currency', currency, 'amount', total)
+                                              order by category_text, currency)
+                               from (select category_text, currency, sum(amount) as total
+                                       from entries group by category_text, currency) c), '[]'::jsonb),
     'observed_at', now()
   );
 $$;
@@ -386,9 +423,11 @@ comment on function platform.commission_summary(text, text) is
 -- ---------------------------------------------------------------------------
 -- 9. GRANTS mínimos: lectura para authenticated/service_role; nada para anon.
 -- ---------------------------------------------------------------------------
-revoke all on platform.v_invoice_balances, platform.v_collected_payments, platform.v_renewal_pipeline
+revoke all on platform.v_invoice_balances, platform.v_collected_payments, platform.v_renewal_pipeline,
+              platform.v_cost_entry_list
   from anon, public;
-grant select on platform.v_invoice_balances, platform.v_collected_payments, platform.v_renewal_pipeline
+grant select on platform.v_invoice_balances, platform.v_collected_payments, platform.v_renewal_pipeline,
+                platform.v_cost_entry_list
   to authenticated, service_role;
 
 do $$

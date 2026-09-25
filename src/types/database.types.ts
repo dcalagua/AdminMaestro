@@ -1014,6 +1014,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "cost_allocations_cost_entry_id_fkey"
+            columns: ["cost_entry_id"]
+            isOneToOne: false
+            referencedRelation: "v_cost_entry_list"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "cost_allocations_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
@@ -6529,6 +6536,34 @@ export type Database = {
           },
         ]
       }
+      v_cost_entry_list: {
+        Row: {
+          allocated_amount: number | null
+          allocation_count: number | null
+          amount: number | null
+          category: Database["platform"]["Enums"]["cost_category"] | null
+          category_text: string | null
+          currency: string | null
+          description: string | null
+          id: string | null
+          is_recurring: boolean | null
+          period_end: string | null
+          period_start: string | null
+          platform_amount: number | null
+          scopes: string[] | null
+          unallocated_amount: number | null
+          vendor: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_entries_currency_fk"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       v_currency_integrity_issues: {
         Row: {
           issue_kind: string | null
@@ -8649,6 +8684,7 @@ export type Database = {
       }
       invoice_summary: {
         Args: {
+          p_aging?: string
           p_organization_id?: string
           p_search?: string
           p_status?: string
