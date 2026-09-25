@@ -203,6 +203,13 @@ export type Database = {
             foreignKeyName: "billing_alerts_invoice_id_fkey"
             columns: ["invoice_id"]
             isOneToOne: false
+            referencedRelation: "v_collected_payments"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "billing_alerts_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
             referencedRelation: "v_collected_revenue"
             referencedColumns: ["invoice_id"]
           },
@@ -211,6 +218,13 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "v_commission_detail"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "billing_alerts_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_invoice_balances"
             referencedColumns: ["invoice_id"]
           },
           {
@@ -225,6 +239,13 @@ export type Database = {
             columns: ["subscription_id"]
             isOneToOne: false
             referencedRelation: "v_renewal_dashboard"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "billing_alerts_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_renewal_pipeline"
             referencedColumns: ["subscription_id"]
           },
           {
@@ -436,6 +457,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "payments"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_events_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "v_collected_payments"
+            referencedColumns: ["payment_id"]
           },
           {
             foreignKeyName: "commission_events_reversal_of_event_id_fkey"
@@ -1592,6 +1620,13 @@ export type Database = {
             foreignKeyName: "invoice_lines_invoice_id_fkey"
             columns: ["invoice_id"]
             isOneToOne: false
+            referencedRelation: "v_collected_payments"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
             referencedRelation: "v_collected_revenue"
             referencedColumns: ["invoice_id"]
           },
@@ -1600,6 +1635,13 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "v_commission_detail"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_invoice_balances"
             referencedColumns: ["invoice_id"]
           },
           {
@@ -1797,6 +1839,13 @@ export type Database = {
             columns: ["subscription_id"]
             isOneToOne: false
             referencedRelation: "v_renewal_dashboard"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_renewal_pipeline"
             referencedColumns: ["subscription_id"]
           },
           {
@@ -2695,6 +2744,13 @@ export type Database = {
             foreignKeyName: "payments_invoice_id_fkey"
             columns: ["invoice_id"]
             isOneToOne: false
+            referencedRelation: "v_collected_payments"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
             referencedRelation: "v_collected_revenue"
             referencedColumns: ["invoice_id"]
           },
@@ -2703,6 +2759,13 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "v_commission_detail"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_invoice_balances"
             referencedColumns: ["invoice_id"]
           },
         ]
@@ -3555,6 +3618,13 @@ export type Database = {
             foreignKeyName: "provider_subscriptions_subscription_id_fkey"
             columns: ["subscription_id"]
             isOneToOne: false
+            referencedRelation: "v_renewal_pipeline"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "provider_subscriptions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
             referencedRelation: "v_subscription_collection"
             referencedColumns: ["subscription_id"]
           },
@@ -3633,6 +3703,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "provider_webhook_events_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "v_collected_payments"
+            referencedColumns: ["payment_id"]
+          },
+          {
             foreignKeyName: "provider_webhook_events_provider_account_id_fkey"
             columns: ["provider_account_id"]
             isOneToOne: false
@@ -3658,6 +3735,13 @@ export type Database = {
             columns: ["subscription_id"]
             isOneToOne: false
             referencedRelation: "v_renewal_dashboard"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "provider_webhook_events_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_renewal_pipeline"
             referencedColumns: ["subscription_id"]
           },
           {
@@ -4228,6 +4312,13 @@ export type Database = {
             foreignKeyName: "saas_provisioning_requests_subscription_id_fkey"
             columns: ["subscription_id"]
             isOneToOne: false
+            referencedRelation: "v_renewal_pipeline"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
             referencedRelation: "v_subscription_collection"
             referencedColumns: ["subscription_id"]
           },
@@ -4573,6 +4664,13 @@ export type Database = {
             foreignKeyName: "sales_attributions_subscription_id_fkey"
             columns: ["subscription_id"]
             isOneToOne: false
+            referencedRelation: "v_renewal_pipeline"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "sales_attributions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
             referencedRelation: "v_subscription_collection"
             referencedColumns: ["subscription_id"]
           },
@@ -4727,6 +4825,13 @@ export type Database = {
             foreignKeyName: "subscription_collection_profiles_subscription_id_fkey"
             columns: ["subscription_id"]
             isOneToOne: false
+            referencedRelation: "v_renewal_pipeline"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "subscription_collection_profiles_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
             referencedRelation: "v_subscription_collection"
             referencedColumns: ["subscription_id"]
           },
@@ -4843,6 +4948,13 @@ export type Database = {
             foreignKeyName: "subscription_commercial_documents_subscription_id_fkey"
             columns: ["subscription_id"]
             isOneToOne: false
+            referencedRelation: "v_renewal_pipeline"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "subscription_commercial_documents_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
             referencedRelation: "v_subscription_collection"
             referencedColumns: ["subscription_id"]
           },
@@ -4948,6 +5060,13 @@ export type Database = {
             columns: ["subscription_id"]
             isOneToOne: false
             referencedRelation: "v_renewal_dashboard"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "subscription_items_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_renewal_pipeline"
             referencedColumns: ["subscription_id"]
           },
           {
@@ -5956,6 +6075,123 @@ export type Database = {
         }
         Relationships: []
       }
+      v_collected_payments: {
+        Row: {
+          collected_amount: number | null
+          collected_month: string | null
+          collected_on: string | null
+          currency: string | null
+          customer_organization_id: string | null
+          invoice_id: string | null
+          invoice_number: string | null
+          method: string | null
+          organization_name: string | null
+          payment_amount: number | null
+          payment_id: string | null
+          reference: string | null
+          subscription_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_currency_fk"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "invoices_customer_organization_id_fkey"
+            columns: ["customer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_organization_id_fkey"
+            columns: ["customer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_billing_contact_readiness"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_organization_id_fkey"
+            columns: ["customer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_finance"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_organization_id_fkey"
+            columns: ["customer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_margin"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_organization_id_fkey"
+            columns: ["customer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["customer_organization_id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_organization_id_fkey"
+            columns: ["customer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["managing_organization_id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_renewal_dashboard"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_renewal_pipeline"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_collection"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_documents"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_mrr"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["subscription_id"]
+          },
+        ]
+      }
       v_collected_revenue: {
         Row: {
           charge_kind: Database["platform"]["Enums"]["charge_kind"] | null
@@ -6123,6 +6359,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "payments"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_events_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "v_collected_payments"
+            referencedColumns: ["payment_id"]
           },
           {
             foreignKeyName: "commission_events_reversal_of_event_id_fkey"
@@ -6323,6 +6566,129 @@ export type Database = {
           subscription_id: string | null
         }
         Relationships: []
+      }
+      v_invoice_balances: {
+        Row: {
+          aging_bucket: string | null
+          balance: number | null
+          confirmed_paid: number | null
+          confirmed_payments: number | null
+          currency: string | null
+          customer_organization_id: string | null
+          days_overdue: number | null
+          due_date: string | null
+          invoice_id: string | null
+          is_receivable: boolean | null
+          issue_date: string | null
+          number: string | null
+          organization_name: string | null
+          period_end: string | null
+          period_start: string | null
+          reversed_amount: number | null
+          status: Database["platform"]["Enums"]["invoice_status"] | null
+          subscription_id: string | null
+          total: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_currency_fk"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "invoices_customer_organization_id_fkey"
+            columns: ["customer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_organization_id_fkey"
+            columns: ["customer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_billing_contact_readiness"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_organization_id_fkey"
+            columns: ["customer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_finance"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_organization_id_fkey"
+            columns: ["customer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_margin"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_organization_id_fkey"
+            columns: ["customer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["customer_organization_id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_organization_id_fkey"
+            columns: ["customer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["managing_organization_id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_renewal_dashboard"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_renewal_pipeline"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_collection"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_documents"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_mrr"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["subscription_id"]
+          },
+        ]
       }
       v_partner_agreements: {
         Row: {
@@ -6722,6 +7088,13 @@ export type Database = {
             foreignKeyName: "provider_subscriptions_subscription_id_fkey"
             columns: ["subscription_id"]
             isOneToOne: false
+            referencedRelation: "v_renewal_pipeline"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "provider_subscriptions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
             referencedRelation: "v_subscription_collection"
             referencedColumns: ["subscription_id"]
           },
@@ -7034,12 +7407,115 @@ export type Database = {
           },
         ]
       }
+      v_renewal_pipeline: {
+        Row: {
+          auto_suspend: boolean | null
+          billed_organization_id: string | null
+          billed_organization_name: string | null
+          billing_interval:
+            | Database["platform"]["Enums"]["billing_interval"]
+            | null
+          collection_method:
+            | Database["platform"]["Enums"]["collection_method"]
+            | null
+          critical_alerts: number | null
+          currency: string | null
+          current_mrr: number | null
+          days_to_renewal: number | null
+          grace_period_days: number | null
+          in_grace: boolean | null
+          is_past_due: boolean | null
+          open_alerts: number | null
+          product_code: string | null
+          product_short_name: string | null
+          provider_account_code: string | null
+          renewal_on: string | null
+          renewal_window: string | null
+          subscription_code: string | null
+          subscription_id: string | null
+          subscription_status:
+            | Database["platform"]["Enums"]["subscription_status"]
+            | null
+          suspension_pending: boolean | null
+          tenant_id: string | null
+          tenant_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_billed_organization_id_fkey"
+            columns: ["billed_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_billed_organization_id_fkey"
+            columns: ["billed_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_billing_contact_readiness"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_billed_organization_id_fkey"
+            columns: ["billed_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_finance"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_billed_organization_id_fkey"
+            columns: ["billed_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_margin"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_billed_organization_id_fkey"
+            columns: ["billed_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["customer_organization_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_billed_organization_id_fkey"
+            columns: ["billed_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["managing_organization_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_margin"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
       v_saas_provisioning: {
         Row: {
+          adapter_key:
+            | Database["platform"]["Enums"]["integration_adapter"]
+            | null
           attempt_count: number | null
           base_url: string | null
           cancel_reason: string | null
           cancelled_at: string | null
+          capabilities: string[] | null
           completed_at: string | null
           contract_version: string | null
           correlation_id: string | null
@@ -7078,6 +7554,7 @@ export type Database = {
             | null
           max_attempts: number | null
           product_code: string | null
+          product_configuration: Json | null
           product_integration_id: string | null
           product_short_name: string | null
           provider_http_status: number | null
@@ -7179,6 +7656,13 @@ export type Database = {
             columns: ["subscription_id"]
             isOneToOne: false
             referencedRelation: "v_renewal_dashboard"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_renewal_pipeline"
             referencedColumns: ["subscription_id"]
           },
           {
@@ -7815,6 +8299,10 @@ export type Database = {
         Args: { p_product_id: string; p_tenant_id: string; p_version: number }
         Returns: string
       }
+      can_certify_saas_provisioning: {
+        Args: { p_request_id: string }
+        Returns: boolean
+      }
       can_check_deployment_health: {
         Args: { p_deployment_target_id: string }
         Returns: boolean
@@ -7832,6 +8320,10 @@ export type Database = {
       }
       can_manage_tenant: { Args: { p_tenant: string }; Returns: boolean }
       can_read_finance: { Args: never; Returns: boolean }
+      can_read_saas_provisioning: {
+        Args: { p_request_id: string }
+        Returns: boolean
+      }
       can_read_tenant: { Args: { p_tenant: string }; Returns: boolean }
       can_run_provisioning: { Args: never; Returns: boolean }
       cancel_commercial_document: {
@@ -7844,6 +8336,19 @@ export type Database = {
       }
       check_provisioning_preconditions: {
         Args: { p_request_id: string }
+        Returns: Json
+      }
+      collections_by_month: {
+        Args: { p_from?: string; p_organization_id?: string; p_to?: string }
+        Returns: {
+          amount: number
+          currency: string
+          month: string
+          payment_count: number
+        }[]
+      }
+      commission_summary: {
+        Args: { p_search?: string; p_status?: string }
         Returns: Json
       }
       complete_saas_provisioning: {
@@ -7883,6 +8388,10 @@ export type Database = {
           p_paid_at?: string
           p_reference: string
         }
+        Returns: Json
+      }
+      cost_summary: {
+        Args: { p_scope?: string; p_search?: string }
         Returns: Json
       }
       create_saas_provisioning_request: {
@@ -8138,6 +8647,14 @@ export type Database = {
         }
         Returns: string[]
       }
+      invoice_summary: {
+        Args: {
+          p_organization_id?: string
+          p_search?: string
+          p_status?: string
+        }
+        Returns: Json
+      }
       is_blocked_provisioning_host: {
         Args: { p_host: string }
         Returns: boolean
@@ -8291,6 +8808,15 @@ export type Database = {
       provisioning_execution_context: {
         Args: { p_request_id: string }
         Returns: Json
+      }
+      receivables_aging: {
+        Args: { p_organization_id?: string }
+        Returns: {
+          aging_bucket: string
+          balance: number
+          currency: string
+          invoice_count: number
+        }[]
       }
       receive_commercial_document: {
         Args: {
