@@ -1,7 +1,9 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/features/auth/AuthContext';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+import { LoadingState } from '@/components/ui/primitives';
 import { ToastProvider } from '@/components/ui/Toast';
 import { AppShell } from './AppShell';
 import { RequireAuth, RequireFinanceView, RequirePersona } from './guards';
@@ -9,7 +11,6 @@ import { createAppQueryClient } from './queryClient';
 import { AppearanceProvider } from './AppearanceProvider';
 
 import { LoginPage } from '@/features/auth/LoginPage';
-import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { ProductsPage } from '@/features/catalog/ProductsPage';
 import { ProductDetailPage } from '@/features/catalog/ProductDetailPage';
 import { PlansPage } from '@/features/catalog/PlansPage';
@@ -41,6 +42,14 @@ import { SettingsPage } from '@/features/settings/SettingsPage';
 import { RegionalPage } from '@/features/regional/RegionalPage';
 import { NotFoundPage } from '@/features/settings/NotFoundPage';
 
+/**
+ * El inicio ejecutivo es la única pantalla con gráficos (Recharts ≈ 170 kB gzip):
+ * se carga aparte para que el login y el resto de la consola no paguen ese peso.
+ */
+const DashboardPage = lazy(() =>
+  import('@/features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })),
+);
+
 /** Una caché por pestaña, firmada por identidad de sesión (ver `queryClient.ts`). */
 const queryClient = createAppQueryClient();
 
@@ -62,7 +71,14 @@ export function App() {
                       </RequireAuth>
                     }
                   >
-                    <Route index element={<DashboardPage />} />
+                    <Route
+                    index
+                    element={
+                      <Suspense fallback={<LoadingState label="Cargando el resumen ejecutivo…" />}>
+                        <DashboardPage />
+                      </Suspense>
+                    }
+                  />
 
                     <Route path="products" element={<ProductsPage />} />
                     <Route path="products/:productId" element={<ProductDetailPage />} />
