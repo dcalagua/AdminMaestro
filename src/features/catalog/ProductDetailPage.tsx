@@ -1,20 +1,52 @@
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   useProduct, useTenantOverview, usePartnerAgreements, usePlans,
-  useProductMargin, useDeploymentTargets, useSubscriptions,
+  useProductMargin, useDeploymentTargets, useSubscriptions, useProductIntegrations,
 } from '@/services/queries';
 import { SectionTabs } from '@/components/ui/SectionTabs';
 import {
   PageContainer, Card, DataTable, LoadingState, ErrorState, EmptyState, Badge, StatCard,
 } from '@/components/ui/primitives';
 import { usePermissions } from '@/hooks/usePermissions';
-import { formatMoney, formatPercent, formatNumber, formatDate } from '@/lib/format';
-import { DEPLOYMENT_MODE_LABEL, TENANT_TYPE_LABEL } from '@/types/domain';
+import { formatMoney, formatPercent, formatNumber, formatDateTime } from '@/lib/format';
+import { DEPLOYMENT_MODE_LABEL, TENANT_STATUS_LABEL, TENANT_TYPE_LABEL } from '@/types/domain';
+import { StateMessage } from '@/features/executive/components/StateView';
+import { fromQuery } from '@/features/executive/dataState';
+import { countText, entityStatusLabel, entityStatusTone, summarizeIntegration } from './catalogLabels';
+import type { PriceRow } from './catalogLabels';
 import { ProductFormDialog } from './ProductFormDialog';
 import { RegionalPriceList } from './RegionalPriceList';
 import { PlanFormDialog, PlanPriceDialog } from './PlanDialogs';
 import type { PlanDraft } from './PlanDialogs';
+
+interface ReadLike {
+  data?: unknown;
+  error?: unknown;
+  isLoading?: boolean;
+  dataUpdatedAt?: number;
+  refetch?: () => unknown;
+}
+
+/**
+ * Guarda de lectura por pestaña: mientras carga o si la lectura falla (o no hay
+ * acceso) se dice eso — nunca se pinta como lista vacía ni como cero.
+ */
+function guard(query: ReadLike): ReactNode | null {
+  if (query.isLoading) return <LoadingState />;
+  if (query.error) {
+    return (
+      <div className="px-4">
+        <StateMessage
+          state={fromQuery(query, { isEmpty: () => false })}
+          onRetry={query.refetch ? () => void query.refetch!() : undefined}
+        />
+      </div>
+    );
+  }
+  return null;
+}
 
 /**
  * Vista 360 de un SaaS de la suite.
@@ -32,6 +64,7 @@ export function ProductDetailPage() {
   const margins = useProductMargin();
   const targets = useDeploymentTargets();
   const subs = useSubscriptions();
+  const integrations = useProductIntegrations();
   const perms = usePermissions();
 
   const [editing, setEditing] = useState(false);
@@ -41,8 +74,25 @@ export function ProductDetailPage() {
   });
   const [priceDialog, setPriceDialog] = useState<{ id: string; name: string } | null>(null);
 
-  if (product.isLoading) return <LoadingState />;
-  if (product.error) return <ErrorState error={product.error} />;
+  if (product.isLoading) {
+    return (
+      <PageContainer title="Producto">
+        <LoadingState label="Cargando producto…" />
+      </PageContainer>
+    );
+  }
+  if (product.error) {
+    return (
+      <PageContainer
+        title="Producto"
+        breadcrumbs={<Link className="text-xs text-muted hover:text-fg" to="/products">← Suite SaaS</Link>}
+      >
+        <Card>
+          <ErrorState error={product.error} onRetry={() => void product.refetch()} />
+        </Card>
+      </PageContainer>
+    );
+  }
   if (!product.data) {
     return (
       <PageContainer title="Producto no encontrado">
@@ -67,13 +117,22 @@ export function ProductDetailPage() {
   // El margen viene agrupado por moneda: no se suman PEN y USD sin FX explícito.
   // V3 · una fila por moneda; la fila sin moneda es «sin actividad», no «USD 0».
   const productMargins = (margins.data ?? []).filter((m) => m.saas_product_id === p.id && m.currency);
+  const productIntegrations = ((integrations.data ?? []) as Array<Record<string, unknown>>).filter(
+    (i) => i.saas_product_id === p.id,
+  );
+  const integration = summarizeIntegration(productIntegrations);
+  const integrationText = integrations.error
+    ? countText(integrations, 0)
+    : integrations.isLoading
+      ? '…'
+      : integration.label;
 
   return (
     <PageContainer
       title={p.lockup_name ?? p.name}
       description={p.description ?? undefined}
       breadcrumbs={
-        <Link className="text-xs text-muted hover:text-fg" to="/products">← SaaS Products</Link>
+        <Link className="text-xs text-muted hover:text-fg" to="/products">← Suite SaaS</Link>
       }
       actions={
         perms.canManagePlatform ? (
@@ -83,10 +142,21 @@ export function ProductDetailPage() {
         ) : null
       }
     >
-      <div className="mb-5 grid gap-3 sm:grid-cols-4">
-        <StatCard label="Tenants" value={formatNumber(productTenants.length)} />
-        <StatCard label="Canales habilitados" value={formatNumber(productAgreements.length)} />
-        <StatCard label="Planes" value={formatNumber(productPlans.length)} />
+      <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-muted">
+        <span>Estado comercial</span>
+        <Badge tone={entityStatusTone(p.status)}>{entityStatusLabel(p.status)}</Badge>
+        <span className="ml-2">Integración técnica</span>
+        {integrations.error || integrations.isLoading ? (
+          <span>{integrationText}</span>
+        ) : (
+          <Badge tone={integration.tone}>{integration.label}</Badge>
+        )}
+      </div>
+
+      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard label="Tenants" value={countText(tenants, productTenants.length)} />
+        <StatCard label="Canales habilitados" value={countText(agreements, productAgreements.length)} />
+        <StatCard label="Planes" value={countText(plans, productPlans.length)} />
         <StatCard label="Unidad de cobro" value={p.billing_unit} />
       </div>
 
@@ -100,14 +170,15 @@ export function ProductDetailPage() {
                 <Card title="Identidad del producto">
                   <dl className="divide-y divide-border">
                     {[
-                      ['Código', p.code],
                       ['Nombre completo', p.name],
                       ['Nombre corto', p.short_name],
                       ['Lockup', p.lockup_name ?? '—'],
-                      ['Color de acento', p.accent_color ?? 'Hereda de EBIM'],
+                      ['Estado comercial', entityStatusLabel(p.status)],
+                      ['Integración técnica', integrationText],
                       ['Unidad de cobro', p.billing_unit],
                       ['Facturable', p.is_billable ? 'Sí' : 'No'],
-                      ['Estado', p.status],
+                      ['Color de acento', p.accent_color ?? 'Hereda de EBIM'],
+                      ['Código técnico', p.code],
                     ].map(([k, v]) => (
                       <div key={k as string} className="flex justify-between gap-4 px-4 py-2.5 text-sm">
                         <dt className="text-muted">{k}</dt>
@@ -121,6 +192,7 @@ export function ProductDetailPage() {
                   title="Distribución de tenants"
                   description="Los tres modelos conviven sin ramas de código."
                 >
+                  {guard(tenants) ?? (
                   <dl className="divide-y divide-border">
                     {(['SHARED', 'PARTNER_DEDICATED', 'TENANT_DEDICATED'] as const).map((mode) => (
                       <div key={mode} className="flex justify-between gap-4 px-4 py-2.5 text-sm">
@@ -135,10 +207,11 @@ export function ProductDetailPage() {
                     <div className="flex justify-between gap-4 px-4 py-2.5 text-sm">
                       <dt className="text-muted">Suscripciones activas</dt>
                       <dd className="text-right font-medium tabular-nums">
-                        {formatNumber(productSubs.filter((s) => s.status === 'ACTIVE').length)}
+                        {countText(subs, productSubs.filter((s) => s.status === 'ACTIVE').length)}
                       </dd>
                     </div>
                   </dl>
+                  )}
                 </Card>
               </div>
             ),
@@ -161,14 +234,14 @@ export function ProductDetailPage() {
                   ) : null
                 }
               >
-                {productPlans.length === 0 ? (
+                {guard(plans) ?? (productPlans.length === 0 ? (
                   <EmptyState
                     title="Sin planes definidos"
                     description="Sin plan no se puede vender este producto."
                   />
                 ) : (
                   <DataTable
-                    columns={['Plan', 'Modelo', 'Sociedades incluidas', 'Precios vigentes', '']}
+                    columns={['Plan', 'Modelo', 'Sociedades incluidas', 'Precio recurrente', 'Cargos únicos', '']}
                   >
                     {productPlans.map((pl) => (
                       <tr key={pl.id as string}>
@@ -190,7 +263,10 @@ export function ProductDetailPage() {
                         </td>
                         <td className="ebim-td tabular-nums">{pl.included_companies}</td>
                         <td className="ebim-td">
-                          <RegionalPriceList prices={pl.plan_prices as Array<Record<string, unknown>>} />
+                          <RegionalPriceList prices={pl.plan_prices as PriceRow[]} kind="recurring" />
+                        </td>
+                        <td className="ebim-td">
+                          <RegionalPriceList prices={pl.plan_prices as PriceRow[]} kind="one-time" />
                         </td>
                         <td className="ebim-td">
                           {perms.canManagePlatform ? (
@@ -232,7 +308,7 @@ export function ProductDetailPage() {
                       </tr>
                     ))}
                   </DataTable>
-                )}
+                ))}
               </Card>
             ),
           },
@@ -241,7 +317,7 @@ export function ProductDetailPage() {
             label: 'Partners',
             content: (
               <Card description="Quién puede comercializar este SaaS y bajo qué condiciones. Un mismo partner puede tener otro margen en otro producto.">
-                {productAgreements.length === 0 ? (
+                {guard(agreements) ?? (productAgreements.length === 0 ? (
                   <EmptyState
                     title="Ninguna organización habilitada"
                     description="Nadie puede comercializar este producto todavía. Los acuerdos se crean desde el detalle de la organización."
@@ -285,12 +361,14 @@ export function ProductDetailPage() {
                         </td>
                         <td className="ebim-td text-xs text-muted">{a.billing_responsibility}</td>
                         <td className="ebim-td">
-                          <Badge tone={a.status === 'ACTIVE' ? 'ok' : 'neutral'}>{a.status}</Badge>
+                          <Badge tone={entityStatusTone(a.status as string)}>
+                            {entityStatusLabel(a.status as string)}
+                          </Badge>
                         </td>
                       </tr>
                     ))}
                   </DataTable>
-                )}
+                ))}
               </Card>
             ),
           },
@@ -299,7 +377,7 @@ export function ProductDetailPage() {
             label: 'Tenants',
             content: (
               <Card>
-                {productTenants.length === 0 ? (
+                {guard(tenants) ?? (productTenants.length === 0 ? (
                   <EmptyState title="Sin tenants para este producto" />
                 ) : (
                   <DataTable
@@ -331,11 +409,13 @@ export function ProductDetailPage() {
                         <td className="ebim-td tabular-nums">
                           {formatMoney(Number(t.mrr), t.currency as string | null)}
                         </td>
-                        <td className="ebim-td text-muted">{t.status}</td>
+                        <td className="ebim-td text-muted">
+                          {TENANT_STATUS_LABEL[t.status as keyof typeof TENANT_STATUS_LABEL] ?? t.status}
+                        </td>
                       </tr>
                     ))}
                   </DataTable>
-                )}
+                ))}
               </Card>
             ),
           },
@@ -348,7 +428,7 @@ export function ProductDetailPage() {
                 title="Margen del producto"
                 description="Agrupado por moneda: no se consolidan PEN y USD sin un tipo de cambio auditable."
               >
-                {productMargins.length === 0 ? (
+                {guard(margins) ?? (productMargins.length === 0 ? (
                   <EmptyState
                     title="Sin margen calculable"
                     description="Aparece en cuanto el producto tenga suscripciones con cobros registrados."
@@ -396,7 +476,7 @@ export function ProductDetailPage() {
                       </div>
                     ))}
                   </div>
-                )}
+                ))}
               </Card>
             ),
           },
@@ -405,7 +485,7 @@ export function ProductDetailPage() {
             label: 'Deployments',
             content: (
               <Card description="Infraestructura que sirve a este producto. Los targets sin producto asignado son compartidos de propósito general.">
-                {productTargets.length === 0 ? (
+                {guard(targets) ?? (productTargets.length === 0 ? (
                   <EmptyState title="Sin infraestructura asociada" />
                 ) : (
                   <DataTable
@@ -438,16 +518,18 @@ export function ProductDetailPage() {
                           </td>
                           <td className="ebim-td tabular-nums">{formatNumber(active.length)}</td>
                           <td className="ebim-td">
-                            <Badge tone={t.status === 'ACTIVE' ? 'ok' : 'neutral'}>{t.status}</Badge>
+                            <Badge tone={entityStatusTone(t.status)}>{entityStatusLabel(t.status)}</Badge>
                           </td>
                         </tr>
                       );
                     })}
                   </DataTable>
-                )}
-                <p className="border-t border-border px-4 py-2.5 text-xs text-muted">
-                  Última lectura de infraestructura: {formatDate(new Date())}.
-                </p>
+                ))}
+                {targets.dataUpdatedAt ? (
+                  <p className="border-t border-border px-4 py-2.5 text-xs text-muted">
+                    Última lectura de infraestructura: {formatDateTime(new Date(targets.dataUpdatedAt))}.
+                  </p>
+                ) : null}
               </Card>
             ),
           },

@@ -309,7 +309,7 @@ test.describe('J12 · Una mutación no autorizada se rechaza de verdad', () => {
     await login(page, USERS.partnerAdmin);
     await goToSection(page, 'Suite SaaS');
 
-    await expect(page.getByRole('heading', { name: 'SaaS Products' })).toBeVisible({
+    await expect(page.getByRole('heading', { name: 'Suite SaaS', level: 1 })).toBeVisible({
       timeout: 15_000,
     });
     // La UI no ofrece la acción...
