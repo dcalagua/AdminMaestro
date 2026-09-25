@@ -1,10 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/features/auth/AuthContext';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { ToastProvider } from '@/components/ui/Toast';
 import { AppShell } from './AppShell';
 import { RequireAuth, RequirePersona } from './guards';
+import { createAppQueryClient } from './queryClient';
 
 import { LoginPage } from '@/features/auth/LoginPage';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
@@ -39,19 +40,8 @@ import { SettingsPage } from '@/features/settings/SettingsPage';
 import { RegionalPage } from '@/features/regional/RegionalPage';
 import { NotFoundPage } from '@/features/settings/NotFoundPage';
 
-/**
- * TanStack Query con `retry: 1`: un fallo de RLS (403/permiso denegado) no es
- * transitorio, y reintentarlo tres veces sólo retrasa el mensaje de error.
- */
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      staleTime: 30_000,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+/** Una caché por pestaña, firmada por identidad de sesión (ver `queryClient.ts`). */
+const queryClient = createAppQueryClient();
 
 export function App() {
   return (
