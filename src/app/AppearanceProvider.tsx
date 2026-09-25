@@ -34,6 +34,12 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
   );
   const [owner, setOwner] = useState<string | null>(userId);
   const profileSettings = useRef<Record<string, unknown> | null>(null);
+  // Identidad cuyo `profiles.settings` está cargado. Hasta que llegue el de la
+  // persona actual no se escribe su perfil: nunca con los ajustes de otra (A→B).
+  const hydratedFor = useRef<string | null>(null);
+  // La persona cambió la apariencia antes de terminar la hidratación: su
+  // elección manda y se sube cuando el perfil esté cargado.
+  const pendingChoice = useRef<AppearancePrefs | null>(null);
 
   // Cambio de identidad: se toma la preferencia local de la nueva persona
   // (patrón «ajustar estado durante el render», sin efecto intermedio).
@@ -48,6 +54,10 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
   }, [prefs]);
 
   const pushRemote = useCallback(async (uid: string, next: AppearancePrefs) => {
+    if (hydratedFor.current !== uid) {
+      pendingChoice.current = next;
+      return;
+    }
     const settings = {
       ...(profileSettings.current ?? {}),
       appearance: { mode: next.mode, density: next.density, updated_at: new Date().toISOString() },
@@ -63,10 +73,10 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
 
   // Hidratación desde el perfil al iniciar sesión (U-12).
   useEffect(() => {
-    if (!userId) {
-      profileSettings.current = null;
-      return;
-    }
+    profileSettings.current = null;
+    hydratedFor.current = null;
+    pendingChoice.current = null;
+    if (!userId) return;
     let cancelled = false;
     const hadOwnLocal = hasOwnStoredPrefs(userId);
     void supabase
@@ -82,6 +92,13 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
         }
         const settings = (data.settings ?? {}) as Record<string, unknown>;
         profileSettings.current = settings;
+        hydratedFor.current = userId;
+        if (pendingChoice.current) {
+          const choice = pendingChoice.current;
+          pendingChoice.current = null;
+          void pushRemote(userId, choice);
+          return;
+        }
         const local = initialPrefsFor(userId);
         const { prefs: resolved, pushLocal } = resolveRemote(
           local,

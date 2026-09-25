@@ -61,7 +61,8 @@ export const KPI_DICTIONARY: Record<KpiId, KpiDefinition> = {
     excludes: 'DRAFT, VOID, UNCOLLECTIBLE (se informan aparte); pagos en otra moneda no se compensan',
     precision: 'numeric(14,2); sobrepagos quedan negativos, sin recorte',
     coverage: 'Foto actual; no reconstruye saldos a fechas pasadas',
-    detailHref: '/billing?estado=OPEN',
+    // Todas las facturas: el saldo incluye sobrepagos (negativos) de facturas pagadas.
+    detailHref: '/billing',
   },
   K04: {
     id: 'K04',
@@ -128,7 +129,7 @@ export function consolidatedMetricState(
   return { status: 'ready', data: { native, reporting } };
 }
 
-export type AgingBucket = 'VIGENTE' | 'D1_30' | 'D31_60' | 'D61_90' | 'D90_MAS' | 'SIN_FECHA';
+export type AgingBucket = 'VIGENTE' | 'D1_30' | 'D31_60' | 'D61_90' | 'D90_MAS' | 'SIN_FECHA' | 'A_FAVOR';
 
 export const AGING_BUCKETS: Array<{ id: AgingBucket; label: string; overdue: boolean }> = [
   { id: 'VIGENTE', label: 'Vigente', overdue: false },
@@ -137,6 +138,8 @@ export const AGING_BUCKETS: Array<{ id: AgingBucket; label: string; overdue: boo
   { id: 'D61_90', label: '61–90 días', overdue: true },
   { id: 'D90_MAS', label: 'Más de 90 días', overdue: true },
   { id: 'SIN_FECHA', label: 'Sin fecha', overdue: false },
+  // Sobrepago: saldo negativo a favor del cliente; visible, nunca «vencido».
+  { id: 'A_FAVOR', label: 'Saldo a favor', overdue: false },
 ];
 
 export interface AgingRow {

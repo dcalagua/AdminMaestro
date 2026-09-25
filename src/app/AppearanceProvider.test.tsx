@@ -143,6 +143,22 @@ describe('Apariencia compartida', () => {
     await waitFor(() => expect(screen.getByTestId('persistence')).toHaveTextContent('BROWSER_ONLY'));
   });
 
+  it('cambio directo A→B: el perfil de B nunca recibe los ajustes de A', async () => {
+    remote.settings.set('userA', { appearance: { mode: 'dark', density: 'comoda', updated_at: 'x' }, secretoDeA: 'no-copiar' });
+    authState.userId = 'userA';
+    const { rerender } = render(<Harness />);
+    await waitFor(() => expect(screen.getByTestId('shell-mode')).toHaveTextContent('dark'));
+    authState.userId = 'userB';
+    rerender(<Harness />);
+    // B cambia antes de que su perfil termine de cargarse.
+    fireEvent.click(screen.getByText('settings-compacta'));
+    await waitFor(() => expect(remote.updates.some((u) => u.id === 'userB')).toBe(true));
+    for (const u of remote.updates.filter((x) => x.id === 'userB')) {
+      expect(JSON.stringify(u.settings)).not.toContain('secretoDeA');
+    }
+    expect(screen.getByTestId('shell-density')).toHaveTextContent('compacta');
+  });
+
   it('storage no disponible no rompe el renderizado', () => {
     const get = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new Error('SecurityError');

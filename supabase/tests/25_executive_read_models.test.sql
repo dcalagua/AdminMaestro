@@ -11,7 +11,7 @@
 -- Todo se revierte al final (rollback).
 -- ============================================================================
 begin;
-select plan(34);
+select plan(37);
 
 create or replace function pg_temp.act_as(p_user uuid)
 returns void language plpgsql as $$
@@ -122,15 +122,23 @@ insert into platform.invoices (number, customer_organization_id, status, currenc
   ('FX-NODUE', (select id from fx_org), 'ISSUED', 'USD', current_date - 10, null,              50, 50),
   ('FX-VOID',  (select id from fx_org), 'VOID',   'USD', current_date - 10, current_date - 5, 70, 70),
   ('FX-OVER',  (select id from fx_org), 'ISSUED', 'USD', current_date - 10, current_date + 20, 40, 40),
-  ('FX-REV',   (select id from fx_org), 'ISSUED', 'USD', current_date - 10, current_date + 20, 60, 60);
+  ('FX-REV',   (select id from fx_org), 'ISSUED', 'USD', current_date - 10, current_date + 20, 60, 60),
+  ('FX-OVERDUE-PAID', (select id from fx_org), 'ISSUED', 'USD', current_date - 130, current_date - 100, 100, 100),
+  ('FX-UNCOL', (select id from fx_org), 'ISSUED', 'USD', current_date - 10, current_date + 20, 80, 80);
 insert into platform.invoice_lines (invoice_id, description, charge_kind, is_recurring, quantity, unit_amount, currency)
 select i.id, 'Línea fixture', 'LICENSE', true, 1, i.total, 'USD'
-  from platform.invoices i where i.number in ('FX-NODUE', 'FX-VOID', 'FX-OVER', 'FX-REV');
+  from platform.invoices i where i.number in ('FX-NODUE', 'FX-VOID', 'FX-OVER', 'FX-REV', 'FX-OVERDUE-PAID', 'FX-UNCOL');
 insert into platform.payments (invoice_id, reference, status, amount, currency, paid_at) values
   ((select id from platform.invoices where number = 'FX-OVER'), 'FX-PAY-OVER-1', 'CONFIRMED', 30, 'USD', now()),
   ((select id from platform.invoices where number = 'FX-OVER'), 'FX-PAY-OVER-2', 'CONFIRMED', 25, 'USD', now()),
   ((select id from platform.invoices where number = 'FX-REV'),  'FX-PAY-REV',    'CONFIRMED', 60, 'USD', now());
 update platform.payments set status = 'REVERSED' where reference = 'FX-PAY-REV';
+-- Sobrepago de una factura vencida hace 100 días; y un cobro sobre una factura
+-- luego declarada incobrable.
+insert into platform.payments (invoice_id, reference, status, amount, currency, paid_at) values
+  ((select id from platform.invoices where number = 'FX-OVERDUE-PAID'), 'FX-PAY-ODP', 'CONFIRMED', 110, 'USD', now()),
+  ((select id from platform.invoices where number = 'FX-UNCOL'), 'FX-PAY-UNCOL', 'CONFIRMED', 20, 'USD', now());
+update platform.invoices set status = 'UNCOLLECTIBLE' where number = 'FX-UNCOL';
 
 select is(
   (select (platform.invoice_summary('FX-BULK-', 'ALL') ->> 'row_count')::int),
@@ -167,6 +175,18 @@ select ok(
 select is(
   (select balance from platform.v_invoice_balances where number = 'FX-OVER'),
   -15.00::numeric, 'Sobrepago: saldo negativo conservado, sin recortar a cero');
+
+select is(
+  (select aging_bucket from platform.v_invoice_balances where number = 'FX-OVERDUE-PAID'),
+  'A_FAVOR', 'Sobrepago vencido: banda «a favor», nunca una banda vencida');
+
+select is(
+  (select (platform.invoice_summary('FX-OVERDUE-PAID', 'ALL') -> 'overdue' ->> 'USD')), null,
+  'Un saldo a favor no reduce la cartera vencida');
+
+select is(
+  (select (platform.invoice_summary('FX-UNCOL', 'ALL') -> 'collected' ->> 'USD')), null,
+  'Cobrado del resumen: sólo facturas computables (como v_collected_revenue), no incobrables');
 
 select is(
   (select (confirmed_paid, balance, reversed_amount)::text from platform.v_invoice_balances where number = 'FX-REV'),
@@ -212,16 +232,16 @@ select is(
   (select (platform.cost_summary('FX-COST-', 'ALL') -> 'allocated' ->> 'USD')::numeric),
   0::numeric, 'Nada del costo de plataforma aparece como asignado a producto/tenant');
 
--- Comisiones: 320 eventos fixture. Cada uno cuelga de un pago PENDING propio
--- (la clave de idempotencia incluye el pago; un pago PENDING no dispara el
--- generador automático de comisiones), copiando agente/atribución/regla de un
--- evento USD del seed.
+-- Comisiones: 320 eventos fixture, cada uno sobre un pago CONFIRMED propio
+-- (regla del modelo: sólo se comisiona lo cobrado; la clave de idempotencia
+-- incluye el pago). La factura no tiene suscripción, así que el generador
+-- automático no crea eventos: se copian agente/atribución/regla de un evento USD.
 insert into platform.invoices (number, customer_organization_id, status, currency, issue_date, due_date, subtotal, total)
 values ('FX-COMM', (select id from fx_org), 'ISSUED', 'USD', current_date - 5, current_date + 25, 100000, 100000);
 insert into platform.invoice_lines (invoice_id, description, charge_kind, is_recurring, quantity, unit_amount, currency)
 select id, 'Línea fixture', 'LICENSE', true, 1, 100000, 'USD' from platform.invoices where number = 'FX-COMM';
-insert into platform.payments (invoice_id, reference, status, amount, currency)
-select (select id from platform.invoices where number = 'FX-COMM'), 'FX-COMM-PAY-' || g, 'PENDING', 1, 'USD'
+insert into platform.payments (invoice_id, reference, status, amount, currency, paid_at)
+select (select id from platform.invoices where number = 'FX-COMM'), 'FX-COMM-PAY-' || g, 'CONFIRMED', 1, 'USD', now()
   from generate_series(1, 320) g;
 insert into platform.commission_events
   (sales_agent_id, sales_attribution_id, commission_rule_id, payment_id, saas_product_id,

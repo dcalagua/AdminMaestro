@@ -73,7 +73,7 @@ async function rpcJson<T>(fn: string, args: Record<string, unknown>): Promise<T>
 export type InvoiceRow = Tables<{ schema: 'platform' }, 'v_invoice_balances'>;
 export type InvoiceFilter = 'ALL' | 'OPEN' | 'PAID' | 'EXCLUDED' | 'UNCOLLECTIBLE';
 export type InvoiceSort = 'issue_date' | 'due_date' | 'number' | 'total' | 'balance' | 'organization_name';
-export type AgingFilter = '' | 'VENCIDA' | 'VIGENTE' | 'D1_30' | 'D31_60' | 'D61_90' | 'D90_MAS' | 'SIN_FECHA';
+export type AgingFilter = '' | 'VENCIDA' | 'VIGENTE' | 'D1_30' | 'D31_60' | 'D61_90' | 'D90_MAS' | 'SIN_FECHA' | 'A_FAVOR';
 
 export interface InvoiceListParams extends ListParams<InvoiceFilter, InvoiceSort> {
   organizationId?: string;

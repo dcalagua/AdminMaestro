@@ -70,6 +70,9 @@ select
   case
     when i.status not in ('ISSUED', 'PARTIALLY_PAID', 'PAID') then 'NO_COMPUTABLE'
     when i.total - coalesce(p.confirmed_paid, 0) = 0 then 'SALDADA'
+    -- Sobrepago: saldo a favor del cliente. Se conserva (negativo) en el saldo,
+    -- pero NUNCA en una banda vencida: restaría a la cartera vencida.
+    when i.total - coalesce(p.confirmed_paid, 0) < 0 then 'A_FAVOR'
     when i.due_date is null then 'SIN_FECHA'
     when i.due_date >= current_date then 'VIGENTE'
     when current_date - i.due_date <= 30 then 'D1_30'
@@ -195,7 +198,8 @@ as $$
   by_currency as (
     select currency,
            sum(total) filter (where status not in ('DRAFT', 'VOID'))   as invoiced,
-           sum(confirmed_paid)                                          as collected,
+           -- Mismas facturas que cuentan en v_collected_revenue (no incobrables).
+           sum(confirmed_paid) filter (where is_receivable)             as collected,
            sum(balance) filter (where is_receivable)                    as receivable,
            sum(balance) filter (where is_receivable and aging_bucket in ('D1_30', 'D31_60', 'D61_90', 'D90_MAS')) as overdue,
            count(*)                                                     as invoices
@@ -207,7 +211,7 @@ as $$
     'status_counts', coalesce((select jsonb_object_agg(status, n)
                                  from (select status, count(*) as n from base group by status) s), '{}'::jsonb),
     'invoiced',   coalesce((select jsonb_object_agg(currency, invoiced)   from by_currency where invoiced   is not null), '{}'::jsonb),
-    'collected',  coalesce((select jsonb_object_agg(currency, collected)  from by_currency where collected  <> 0),       '{}'::jsonb),
+    'collected',  coalesce((select jsonb_object_agg(currency, collected)  from by_currency where collected  is not null and collected <> 0), '{}'::jsonb),
     'receivable', coalesce((select jsonb_object_agg(currency, receivable) from by_currency where receivable is not null), '{}'::jsonb),
     'overdue',    coalesce((select jsonb_object_agg(currency, overdue)    from by_currency where overdue    is not null), '{}'::jsonb),
     'observed_at', now()
@@ -243,7 +247,7 @@ as $$
 $$;
 
 comment on function platform.receivables_aging(uuid) is
-  'Saldo de cartera por moneda y banda (VIGENTE, D1_30, D31_60, D61_90, D90_MAS, SIN_FECHA). Foto actual.';
+  'Saldo de cartera por moneda y banda (VIGENTE, D1_30, D31_60, D61_90, D90_MAS, SIN_FECHA, A_FAVOR). Foto actual.';
 
 -- ---------------------------------------------------------------------------
 -- 6. Cobros por mes (K02, G01). Fecha del hecho = paid_at.

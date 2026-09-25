@@ -62,7 +62,7 @@ const PAYMENT_LIST = {
   sortDir: 'desc' as const,
 };
 
-const AGING_VALUES: AgingFilter[] = ['VENCIDA', 'VIGENTE', 'D1_30', 'D31_60', 'D61_90', 'D90_MAS', 'SIN_FECHA'];
+const AGING_VALUES: AgingFilter[] = ['VENCIDA', 'VIGENTE', 'D1_30', 'D31_60', 'D61_90', 'D90_MAS', 'SIN_FECHA', 'A_FAVOR'];
 
 function agingLabel(value: string): string {
   if (value === 'VENCIDA') return 'Vencida (todas las bandas)';

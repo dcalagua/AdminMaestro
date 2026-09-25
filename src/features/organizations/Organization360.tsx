@@ -474,10 +474,10 @@ export function Org360Activity({ organizationId }: { organizationId: string }) {
           </ol>
         )}
       </Section>
-      <Section title="Altas SaaS" description="Solicitudes registradas en el control plane; no se ejecuta nada desde aquí." state={fromQuery(saas)} onRetry={() => void saas.refetch()} empty="Sin altas SaaS para los tenants de esta organización.">
+      <Section title="Altas SaaS" description="Últimas 50 solicitudes registradas en el control plane; no se ejecuta nada desde aquí." state={fromQuery(saas)} onRetry={() => void saas.refetch()} empty="Sin altas SaaS para los tenants de esta organización.">
         {() => (
           <DataTable columns={['Producto', 'Tenant', 'Solicitud', 'Mapping', 'Fecha']}>
-            {saas.data!.map((r) => (
+            {saas.data!.slice(0, 50).map((r) => (
               <tr key={r.id as string}>
                 <td className="ebim-td">{r.product_short_name}</td>
                 <td className="ebim-td text-xs">{r.tenant_id ? <Link className="ebim-link" to={`/tenants/${r.tenant_id}`}>Ver tenant</Link> : '—'}</td>

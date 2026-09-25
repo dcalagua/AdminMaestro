@@ -11,7 +11,8 @@
 --     pagos parciales, un pago revertido, un sobrepago, una anulada y facturas
 --     sin vencimiento → muchos registros, sin truncar;
 --   · 210 costos con asignación explícita (plataforma y producto);
---   · 320 comisiones ELIGIBLE colgadas de pagos PENDING propios;
+--   · 320 comisiones ELIGIBLE, cada una sobre un pago CONFIRMED propio (sólo se
+--     comisiona lo cobrado);
 --   · el caso del Tenant 360: comercial PENDING + alta ACTIVE + mapping ACTIVE +
 --     MRR 0 + administrador PREPROVISIONED (EWM, destino ewm-shared-dev);
 --   · una alta SaaS FALLIDA para ver «requiere atención».
@@ -82,8 +83,8 @@ begin
   values ('DEMO-EXEC-COMM', '30000000-0000-4000-a000-000000000004', 'ISSUED', 'USD', current_date, current_date + 30, 500, 500, 'Fixture local DEMO-EXEC');
   insert into platform.invoice_lines (invoice_id, description, charge_kind, is_recurring, quantity, unit_amount, currency)
   select id, 'Base de comisiones (fixture)', 'LICENSE', true, 1, 500, 'USD' from platform.invoices where number = 'DEMO-EXEC-COMM';
-  insert into platform.payments (invoice_id, reference, status, amount, currency)
-  select (select id from platform.invoices where number = 'DEMO-EXEC-COMM'), 'DEMO-EXEC-COMM-' || g, 'PENDING', 1, 'USD'
+  insert into platform.payments (invoice_id, reference, status, amount, currency, paid_at, method)
+  select (select id from platform.invoices where number = 'DEMO-EXEC-COMM'), 'DEMO-EXEC-COMM-' || g, 'CONFIRMED', 1, 'USD', now(), 'TRANSFER'
     from generate_series(1, 320) g;
   insert into platform.commission_events
     (sales_agent_id, sales_attribution_id, commission_rule_id, payment_id, saas_product_id,

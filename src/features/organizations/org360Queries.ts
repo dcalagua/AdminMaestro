@@ -79,8 +79,9 @@ export function useOrgSaasProvisioning(orgId: string) {
           .from('v_saas_provisioning')
           .select('*')
           .or(`customer_organization_id.eq.${orgId},managing_organization_id.eq.${orgId}`)
-          .order('requested_at', { ascending: false })
-          .limit(50),
+          // Sin tope: alimenta el estado técnico de CADA tenant; un lote truncado
+          // haría decir «sin alta» a un tenant con solicitudes antiguas.
+          .order('requested_at', { ascending: false }),
       ),
   });
 }
