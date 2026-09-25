@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useProvisioningRequests } from '@/services/queries';
 import { useRetryProvisioning } from '@/services/mutations';
 import { useSearchFilter } from '@/hooks/useSearchFilter';
@@ -16,12 +17,46 @@ import { EnqueueProvisioningDialog } from './DeploymentDialogs';
 
 type QueueFilter = 'ALL' | 'OPEN' | 'FAILED' | 'DONE';
 
+const ACTION_LABEL: Record<string, string> = {
+  CREATE_TENANT_SPACE: 'Crear espacio de tenant',
+  CREATE_DEDICATED_TARGET: 'Crear infraestructura dedicada',
+  ATTACH_TENANT_TO_TARGET: 'Adjuntar tenant a destino',
+  SUSPEND_TENANT: 'Suspender tenant',
+  RESUME_TENANT: 'Reanudar tenant',
+  DECOMMISSION_TENANT: 'Dar de baja tenant',
+};
+
+const OPEN_STATUSES = ['PENDING', 'VALIDATING', 'RUNNING'];
+
+function statusLabel(status: string): string {
+  return PROVISIONING_STATUS_LABEL[status as keyof typeof PROVISIONING_STATUS_LABEL] ?? status;
+}
+
+function statusTone(status: string): 'ok' | 'danger' | 'warn' | 'neutral' {
+  if (status === 'SUCCEEDED') return 'ok';
+  if (status === 'FAILED') return 'danger';
+  if (status === 'CANCELLED') return 'neutral';
+  return 'warn';
+}
+
+/** DRY_RUN y LIVE se dicen con palabras: una simulación no es un resultado real. */
+function ModeBadge({ mode }: { mode: string }) {
+  return mode === 'DRY_RUN' ? (
+    <Badge tone="info">Simulación · DRY_RUN</Badge>
+  ) : (
+    <Badge tone="warn">Real · {mode}</Badge>
+  );
+}
+
 /**
- * Cola de provisioning.
+ * Solicitudes de infraestructura: la cola que crea o ajusta la infraestructura
+ * física (espacios, destinos dedicados). Es un eje DISTINTO de las altas SaaS
+ * (el tenant dentro de cada producto), que viven en su propia pantalla.
  *
- * Todo corre en DRY_RUN: la Edge Function `provisioning-worker` simula la
- * operación y registra el timeline sin tocar ninguna API remota. Pasar a LIVE
- * exige un secreto de servidor que la UI nunca ve (prompt fase 8).
+ * Todo corre en DRY_RUN por defecto: la Edge Function `provisioning-worker`
+ * simula la operación y registra el timeline sin tocar ninguna API remota. Pasar
+ * a LIVE exige un secreto de servidor que la UI nunca ve. Abrir esta pantalla no
+ * encola ni ejecuta nada.
  */
 export function ProvisioningPage() {
   const requests = useProvisioningRequests();
@@ -47,14 +82,14 @@ export function ProvisioningPage() {
     }
   }
   const { term, setTerm, filtered } = useSearchFilter(requests.data, (r) => [
-    r.action, r.status, r.idempotency_key,
+    r.action, ACTION_LABEL[r.action as string], r.status, r.idempotency_key,
     (r.tenants as { name: string } | null)?.name,
     (r.deployment_targets as { code: string } | null)?.code,
   ]);
 
   const rows = filtered.filter((r) => {
     switch (filter) {
-      case 'OPEN': return ['PENDING', 'VALIDATING', 'RUNNING'].includes(r.status as string);
+      case 'OPEN': return OPEN_STATUSES.includes(r.status as string);
       case 'FAILED': return r.status === 'FAILED';
       case 'DONE': return r.status === 'SUCCEEDED';
       default: return true;
@@ -62,13 +97,14 @@ export function ProvisioningPage() {
   });
 
   const all = requests.data ?? [];
+  const failed = all.filter((r) => r.status === 'FAILED').length;
 
   return (
     <PageContainer
-      title="Provisioning"
-      description="Solicitudes de aprovisionamiento con máquina de estados e idempotencia. Modo DRY_RUN por defecto: no se ejecuta ninguna llamada remota real."
+      title="Solicitudes de infraestructura"
+      description="Cola de trabajos de infraestructura física con máquina de estados e idempotencia. No incluye las altas de tenants dentro de cada producto: esas son las Altas SaaS."
       actions={
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Badge tone="info">Modo por defecto: DRY_RUN</Badge>
           {perms.canManagePlatform ? (
             <button type="button" className="ebim-btn-primary" onClick={() => setEnqueueOpen(true)}>
@@ -78,22 +114,29 @@ export function ProvisioningPage() {
         </div>
       }
     >
-      <div className="mb-4 grid gap-3 sm:grid-cols-4">
+      <p className="mb-4 text-sm text-muted">
+        ¿Buscas el alta de un tenant en un producto?{' '}
+        <Link className="ebim-link" to="/saas-provisioning">
+          Ir a Altas SaaS
+        </Link>
+      </p>
+
+      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Solicitudes" value={String(all.length)} />
-        <StatCard label="En cola" value={String(all.filter((r) => ['PENDING', 'VALIDATING', 'RUNNING'].includes(r.status as string)).length)} tone="warn" />
-        <StatCard label="Completadas" value={String(all.filter((r) => r.status === 'SUCCEEDED').length)} tone="ok" />
         <StatCard
-          label="Fallidas"
-          value={String(all.filter((r) => r.status === 'FAILED').length)}
-          tone={all.some((r) => r.status === 'FAILED') ? 'danger' : 'ok'}
+          label="En cola"
+          value={String(all.filter((r) => OPEN_STATUSES.includes(r.status as string)).length)}
+          tone="warn"
         />
+        <StatCard label="Completadas" value={String(all.filter((r) => r.status === 'SUCCEEDED').length)} tone="ok" />
+        <StatCard label="Fallidas" value={String(failed)} tone={failed > 0 ? 'danger' : 'neutral'} />
       </div>
 
       <Card>
         <SearchBar
           value={term}
           onChange={setTerm}
-          placeholder="Buscar por acción, tenant, target o clave de idempotencia…"
+          placeholder="Buscar por acción, tenant, destino o clave de idempotencia…"
           right={
             <StatusTabs
               value={filter}
@@ -112,89 +155,128 @@ export function ProvisioningPage() {
         ) : requests.error ? (
           <ErrorState error={requests.error} onRetry={() => void requests.refetch()} />
         ) : rows.length === 0 ? (
-          <EmptyState title="Sin solicitudes de provisioning" />
+          <EmptyState title="Sin solicitudes de infraestructura" description="Nada en cola para este filtro." />
         ) : (
-          <DataTable columns={['Acción', 'Tenant', 'Target', 'Modo', 'Estado', 'Intentos', 'Creada', '']}>
-            {rows.map((r) => (
-              <>
-                <tr key={r.id as string}>
-                  <td className="ebim-td font-medium">{r.action as string}</td>
-                  <td className="ebim-td">{(r.tenants as { name: string } | null)?.name ?? '—'}</td>
-                  <td className="ebim-td font-mono text-xs text-muted">
-                    {(r.deployment_targets as { code: string } | null)?.code ?? '—'}
-                  </td>
-                  <td className="ebim-td">
-                    <Badge tone={r.mode === 'DRY_RUN' ? 'info' : 'warn'}>{r.mode as string}</Badge>
-                  </td>
-                  <td className="ebim-td">
-                    <Badge tone={r.status === 'SUCCEEDED' ? 'ok' : r.status === 'FAILED' ? 'danger' : 'warn'}>
-                      {PROVISIONING_STATUS_LABEL[r.status as keyof typeof PROVISIONING_STATUS_LABEL]}
-                    </Badge>
-                  </td>
-                  <td className="ebim-td tabular-nums">
-                    {r.attempts as number}/{r.max_attempts as number}
-                  </td>
-                  <td className="ebim-td text-xs text-muted">{formatDateTime(r.created_at as string)}</td>
-                  <td className="ebim-td text-right">
-                    <button
-                      type="button"
-                      className="ebim-link text-[13px]"
-                      onClick={() => setExpanded(expanded === r.id ? null : (r.id as string))}
-                    >
-                      {expanded === r.id ? 'Ocultar' : 'Timeline'}
-                    </button>
-                    {r.status === 'FAILED' && (r.attempts as number) < (r.max_attempts as number) ? (
-                      <button
-                        type="button"
-                        className="ebim-link ml-3 text-[13px]"
-                        onClick={() => setRetryTarget(r.id as string)}
-                      >
-                        Reintentar
-                      </button>
-                    ) : null}
-                  </td>
-                </tr>
-                {expanded === r.id ? (
-                  <tr key={`${r.id}-detail`}>
-                    <td colSpan={8} className="bg-[color:var(--bg)] px-4 py-3">
+          <DataTable columns={['Acción', 'Tenant', 'Destino', 'Modo', 'Estado', 'Intentos', 'Creada', '']}>
+            {rows.map((r) => {
+              const id = r.id as string;
+              const isExpanded = expanded === id;
+              const events = ((r.provisioning_events ?? []) as Array<Record<string, unknown>>)
+                .slice()
+                .sort((a, b) => String(a.occurred_at).localeCompare(String(b.occurred_at)));
+              return (
+                <Fragment key={id}>
+                  <tr>
+                    <td className="ebim-td">
+                      <span className="font-medium">{ACTION_LABEL[r.action as string] ?? (r.action as string)}</span>
+                      <p className="font-mono text-xs text-muted">{r.action as string}</p>
+                    </td>
+                    <td className="ebim-td">{(r.tenants as { name: string } | null)?.name ?? '—'}</td>
+                    <td className="ebim-td font-mono text-xs text-muted">
+                      {(r.deployment_targets as { code: string } | null)?.code ?? '—'}
+                    </td>
+                    <td className="ebim-td">
+                      <ModeBadge mode={r.mode as string} />
+                    </td>
+                    <td className="ebim-td">
+                      <Badge tone={statusTone(r.status as string)}>{statusLabel(r.status as string)}</Badge>
                       {r.error_message ? (
-                        <p className="mb-2 rounded-field bg-danger-soft px-3 py-2 text-xs text-danger">
+                        <p className="mt-1 max-w-[220px] truncate text-xs text-danger" title={r.error_message as string}>
                           {r.error_message as string}
                         </p>
                       ) : null}
-                      <ol className="space-y-1.5">
-                        {((r.provisioning_events ?? []) as Array<Record<string, unknown>>)
-                          .sort((a, b) => String(a.occurred_at).localeCompare(String(b.occurred_at)))
-                          .map((e) => (
-                            <li key={e.id as string} className="flex gap-3 text-xs">
-                              <span className="w-40 shrink-0 text-muted">
-                                {formatDateTime(e.occurred_at as string)}
-                              </span>
-                              <Badge tone="neutral">{e.status as string}</Badge>
-                              <span className="text-fg">{e.message as string}</span>
-                            </li>
-                          ))}
-                        {((r.provisioning_events ?? []) as unknown[]).length === 0 ? (
-                          <li className="text-xs text-muted">Sin eventos registrados.</li>
+                    </td>
+                    <td className="ebim-td tabular-nums">
+                      {r.attempts as number}/{r.max_attempts as number}
+                    </td>
+                    <td className="ebim-td whitespace-nowrap text-xs text-muted">{formatDateTime(r.created_at as string)}</td>
+                    <td className="ebim-td text-right">
+                      <div className="flex flex-wrap justify-end gap-3">
+                        <button
+                          type="button"
+                          className="ebim-link text-[13px]"
+                          aria-expanded={isExpanded}
+                          onClick={() => setExpanded(isExpanded ? null : id)}
+                        >
+                          {isExpanded ? 'Ocultar' : 'Timeline'}
+                        </button>
+                        {r.status === 'FAILED' && (r.attempts as number) < (r.max_attempts as number) ? (
+                          <button
+                            type="button"
+                            className="ebim-link text-[13px]"
+                            onClick={() => setRetryTarget(id)}
+                          >
+                            Reintentar
+                          </button>
                         ) : null}
-                      </ol>
+                      </div>
                     </td>
                   </tr>
-                ) : null}
-              </>
-            ))}
+                  {isExpanded ? (
+                    <tr>
+                      <td colSpan={8} className="bg-[color:var(--bg)] px-4 py-3">
+                        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+                          <div className="min-w-0 space-y-2 text-[13px]">
+                            <p className="text-xs font-bold uppercase tracking-wide text-muted">Resultado</p>
+                            <p className="text-fg">
+                              {r.mode === 'DRY_RUN'
+                                ? 'Simulación: no se llamó a ninguna API remota ni se creó infraestructura.'
+                                : 'Ejecución real: el resultado corresponde a la infraestructura del proveedor.'}
+                            </p>
+                            <p className="text-muted">
+                              Clave de idempotencia:{' '}
+                              <span className="break-all font-mono text-xs">{r.idempotency_key as string}</span>
+                            </p>
+                            {r.finished_at ? (
+                              <p className="text-muted">Finalizada el {formatDateTime(r.finished_at as string)}</p>
+                            ) : null}
+                            {r.error_message ? (
+                              <div role="note" className="rounded-field bg-danger-soft px-3 py-2 text-xs text-danger">
+                                <p className="font-semibold">Error completo</p>
+                                <p className="mt-1 whitespace-pre-wrap break-words">{r.error_message as string}</p>
+                              </div>
+                            ) : null}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted">
+                              Timeline de la solicitud
+                            </p>
+                            <ol className="space-y-2">
+                              {events.map((e) => (
+                                <li key={e.id as string} className="border-l-2 border-border pl-3 text-xs">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <Badge tone={statusTone(e.status as string)}>{statusLabel(e.status as string)}</Badge>
+                                    <time className="text-muted" dateTime={e.occurred_at as string}>
+                                      {formatDateTime(e.occurred_at as string)}
+                                    </time>
+                                  </div>
+                                  <p className="mt-0.5 break-words text-fg">{e.message as string}</p>
+                                </li>
+                              ))}
+                              {events.length === 0 ? (
+                                <li className="text-xs text-muted">Sin eventos registrados.</li>
+                              ) : null}
+                            </ol>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : null}
+                </Fragment>
+              );
+            })}
           </DataTable>
         )}
       </Card>
 
       <ConfirmDialog
         open={retryTarget !== null}
-        title="Reintentar solicitud de provisioning"
+        title="Reintentar solicitud de infraestructura"
         message="Se volverá a encolar la solicitud en modo DRY_RUN. La clave de idempotencia evita duplicar el trabajo si la operación anterior sí llegó a completarse."
         confirmLabel="Reintentar"
         tone="primary"
         onCancel={() => setRetryTarget(null)}
-        onConfirm={() => void confirmRetry()}
+        onConfirm={confirmRetry}
       />
 
       <EnqueueProvisioningDialog open={enqueueOpen} onClose={() => setEnqueueOpen(false)} />

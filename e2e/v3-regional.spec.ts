@@ -242,6 +242,8 @@ test.describe('R5 · UI regional: FX, tarifas por mercado e importes con ISO (fa
 
   test('el dashboard muestra importes con código ISO, nunca un símbolo ambiguo', async ({ page }) => {
     await login(page, USERS.superAdmin);
+    // Desde la spec 2026-09-25 el panel regional vive en la perspectiva Finanzas.
+    await page.goto('/#finanzas');
     await expect(page.getByText(/MRR/).first()).toBeVisible();
     const kpi = page.locator('.ebim-card').filter({ hasText: 'Comisión pendiente' }).first();
     // Seed regional: comisiones en tres monedas, cada una con su código y por separado.
@@ -264,6 +266,7 @@ async function setReportingCurrency(page: Page, code: string) {
 test.describe('R6 · Dashboard regional NATIVO / CONSOLIDADO (fase 13)', () => {
   test('nativo separa por moneda y consolidado declara moneda de reporte y fecha de tasas', async ({ page }) => {
     await login(page, USERS.finance);
+    await page.goto('/#finanzas');
     const panel = page.locator('section').filter({ hasText: 'Finanzas regionales' });
     await expect(panel.getByRole('tab', { name: 'Nativo' })).toHaveAttribute('aria-selected', 'true');
 
@@ -285,7 +288,7 @@ test.describe('R6 · Dashboard regional NATIVO / CONSOLIDADO (fase 13)', () => {
       // Con BOB como moneda de reporte, los hechos USD/PEN necesitan tasas hacia BOB en la
       // fecha elegida. Una fecha sin tasas publicadas garantiza el faltante.
       await setReportingCurrency(page, 'BOB');
-      await page.goto('/');
+      await page.goto('/#finanzas');
       const panel = page.locator('section').filter({ hasText: 'Finanzas regionales' });
       await panel.getByRole('tab', { name: 'Consolidado' }).click();
       await field(panel, 'Fecha de las tasas').fill('2001-01-01');

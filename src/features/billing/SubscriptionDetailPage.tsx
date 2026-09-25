@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
-  useSubscription, useSubscriptionCollection, useCommercialDocuments, useInvoices,
+  useSubscription, useSubscriptionCollection, useCommercialDocuments, useSubscriptionInvoices,
 } from '@/services/queries';
 import { useRejectDocument, useCancelDocument } from '@/services/mutations';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -13,6 +13,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/toast-context';
 import { businessErrorMessage } from '@/lib/pgError';
 import { formatMoney, formatDate, formatDateTime } from '@/lib/format';
+import { INVOICE_STATUS_LABEL } from '@/types/domain';
 import { formatPeriod } from '@/lib/billing';
 import {
   CollectionProfileDialog, RequestDocumentDialog, ReceiveDocumentDialog, ApproveDocumentDialog,
@@ -20,6 +21,16 @@ import {
 import { CulqiCardPanel } from './CulqiCardPanel';
 import { ManualPaymentDialog } from './ManualPaymentDialog';
 import { PeriodInvoiceAction } from './PeriodInvoiceAction';
+import {
+  BILLING_INTERVAL_LABEL, CHARGE_KIND_LABEL, SUBSCRIPTION_STATUS_LABEL, SUBSCRIPTION_STATUS_TONE, splitCharges,
+} from './subscriptionLabels';
+
+
+function moneyByCurrency(map: Record<string, number>): string {
+  const entries = Object.entries(map).sort(([a], [b]) => a.localeCompare(b));
+  if (entries.length === 0) return '—';
+  return entries.map(([currency, amount]) => formatMoney(amount, currency)).join(' · ');
+}
 
 /**
  * Detalle de suscripción, con la pestaña **Cobranza** que introduce la Fase 07.
@@ -61,7 +72,7 @@ export function SubscriptionDetailPage() {
   const subscription = useSubscription(subscriptionId);
   const collection = useSubscriptionCollection(subscriptionId);
   const documents = useCommercialDocuments(subscriptionId);
-  const invoices = useInvoices();
+  const invoices = useSubscriptionInvoices(subscriptionId);
   const perms = usePermissions();
   const toast = useToast();
   const rejectDoc = useRejectDocument();
@@ -96,14 +107,9 @@ export function SubscriptionDetailPage() {
   const profile = (collection.data ?? [])[0];
   const items = (s.subscription_items ?? []) as Array<Record<string, unknown>>;
   const docs = documents.data ?? [];
-  const subInvoices = (invoices.data ?? []).filter((i) => i.subscription_id === subscriptionId);
+  const subInvoices = invoices.data ?? [];
 
-  const recurringTotal = items
-    .filter((i) => i.billing_interval !== 'ONE_TIME')
-    .reduce((sum, i) => sum + Number(i.amount ?? 0), 0);
-  const oneTimeTotal = items
-    .filter((i) => i.billing_interval === 'ONE_TIME')
-    .reduce((sum, i) => sum + Number(i.amount ?? 0), 0);
+  const charges = splitCharges(items, s.currency);
 
   const needsDocument =
     profile?.requires_service_order === true || profile?.requires_purchase_order === true;
@@ -151,22 +157,22 @@ export function SubscriptionDetailPage() {
         <Link className="text-xs text-muted hover:text-fg" to="/subscriptions">← Suscripciones</Link>
       }
       actions={
-        <Badge tone={s.status === 'ACTIVE' ? 'ok' : s.status === 'CANCELLED' ? 'danger' : 'warn'}>
-          {s.status}
+        <Badge tone={SUBSCRIPTION_STATUS_TONE[s.status] ?? 'neutral'}>
+          Contrato: {SUBSCRIPTION_STATUS_LABEL[s.status] ?? s.status}
         </Badge>
       }
     >
-      <div className="mb-5 grid gap-3 sm:grid-cols-4">
+      <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          label="Recurrente"
-          value={formatMoney(recurringTotal, s.currency)}
-          hint={s.billing_interval}
+          label="Recurrente (mensual)"
+          value={charges.recurringCount === 0 ? 'Sin líneas recurrentes' : moneyByCurrency(charges.monthly)}
+          hint={`Cadencia de facturación: ${BILLING_INTERVAL_LABEL[s.billing_interval] ?? s.billing_interval}. Líneas normalizadas a mes.`}
           tone="ok"
         />
         <StatCard
           label="Cargos únicos"
-          value={formatMoney(oneTimeTotal, s.currency)}
-          hint="No cuentan para el MRR"
+          value={charges.oneTimeCount === 0 ? 'Ninguno' : moneyByCurrency(charges.oneTime)}
+          hint="Se facturan una vez. No cuentan para el MRR."
         />
         <StatCard
           label="Método de cobro"
@@ -198,7 +204,7 @@ export function SubscriptionDetailPage() {
             content: (
               <Card
                 title="Líneas de la suscripción"
-                description="Las líneas ONE_TIME (implementación, servicios) no entran en el MRR."
+                description="Las líneas recurrentes se facturan con su cadencia; los cargos únicos (implementación, servicios) se facturan una vez y no entran en el MRR."
               >
                 {items.length === 0 ? (
                   <EmptyState title="Sin líneas" description="Esta suscripción no tiene cargos." />
@@ -211,10 +217,18 @@ export function SubscriptionDetailPage() {
                         <td className="ebim-td font-medium">{i.description as string}</td>
                         <td className="ebim-td">
                           <Badge tone={i.charge_kind === 'IMPLEMENTATION_FEE' ? 'info' : 'accent'}>
-                            {i.charge_kind as string}
+                            {CHARGE_KIND_LABEL[i.charge_kind as string] ?? (i.charge_kind as string)}
                           </Badge>
                         </td>
-                        <td className="ebim-td text-muted">{i.billing_interval as string}</td>
+                        <td className="ebim-td">
+                          {i.billing_interval === 'ONE_TIME' ? (
+                            <Badge tone="neutral">Cargo único</Badge>
+                          ) : (
+                            <Badge tone="ok">
+                              Recurrente · {BILLING_INTERVAL_LABEL[i.billing_interval as string] ?? (i.billing_interval as string)}
+                            </Badge>
+                          )}
+                        </td>
                         <td className="ebim-td tabular-nums">{Number(i.quantity)}</td>
                         <td className="ebim-td tabular-nums">
                           {formatMoney(Number(i.unit_amount), i.currency as string)}
@@ -252,7 +266,11 @@ export function SubscriptionDetailPage() {
                     ) : null
                   }
                 >
-                  {!profile?.profile_id ? (
+                  {collection.isLoading ? (
+                    <LoadingState />
+                  ) : collection.error ? (
+                    <ErrorState error={collection.error} onRetry={() => void collection.refetch()} />
+                  ) : !profile?.profile_id ? (
                     <EmptyState
                       title="Sin perfil de cobro"
                       description="Sin perfil, la suscripción se cobra manualmente. No se presupone tarjeta."
@@ -306,7 +324,11 @@ export function SubscriptionDetailPage() {
                     ) : null
                   }
                 >
-                  {docs.length === 0 ? (
+                  {documents.isLoading ? (
+                    <LoadingState />
+                  ) : documents.error ? (
+                    <ErrorState error={documents.error} onRetry={() => void documents.refetch()} />
+                  ) : docs.length === 0 ? (
                     <EmptyState
                       title="Sin documentos"
                       description={
@@ -414,7 +436,11 @@ export function SubscriptionDetailPage() {
                 {perms.canReadFinance && (s.status === 'ACTIVE' || s.status === 'PAST_DUE') ? (
                   <PeriodInvoiceAction subscriptionId={s.id} currency={s.currency} />
                 ) : null}
-                {subInvoices.length === 0 ? (
+                {invoices.isLoading ? (
+                  <LoadingState />
+                ) : invoices.error ? (
+                  <ErrorState error={invoices.error} onRetry={() => void invoices.refetch()} />
+                ) : subInvoices.length === 0 ? (
                   <EmptyState title="Sin facturas emitidas" />
                 ) : (
                   <DataTable columns={['Número', 'Período', 'Emitida', 'Vence', 'Total', 'Estado', 'Cobros', '']}>
@@ -438,7 +464,7 @@ export function SubscriptionDetailPage() {
                                 i.status === 'PAID' ? 'ok' : i.status === 'VOID' ? 'neutral' : 'warn'
                               }
                             >
-                              {i.status}
+                              {INVOICE_STATUS_LABEL[i.status as keyof typeof INVOICE_STATUS_LABEL] ?? i.status}
                             </Badge>
                           </td>
                           <td className="ebim-td text-xs">
@@ -514,7 +540,7 @@ export function SubscriptionDetailPage() {
         title="¿Rechazar este documento?"
         message="El documento vuelve al cliente. Podrá registrarse de nuevo cuando lo corrija."
         confirmLabel="Rechazar"
-        onConfirm={() => void doReject()}
+        onConfirm={doReject}
         onCancel={() => setRejectId(null)}
       />
 
@@ -523,7 +549,7 @@ export function SubscriptionDetailPage() {
         title="¿Anular este documento?"
         message="Anular es terminal: habrá que solicitar uno nuevo. El histórico se conserva."
         confirmLabel="Anular"
-        onConfirm={() => void doCancel()}
+        onConfirm={doCancel}
         onCancel={() => setCancelId(null)}
       />
     </PageContainer>

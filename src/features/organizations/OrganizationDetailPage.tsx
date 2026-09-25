@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import {
-  useOrganization, usePartnerAgreements, useTenantOverview, usePartnerMargin, useSalesAgents,
-} from '@/services/queries';
+import { useOrganization, usePartnerAgreements } from '@/services/queries';
 import { useEndProductAgreement } from '@/services/mutations';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -14,25 +12,40 @@ import {
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/toast-context';
 import { businessErrorMessage } from '@/lib/pgError';
-import { formatMoney, formatPercent, formatNumber, formatDate } from '@/lib/format';
-import { DEPLOYMENT_MODE_LABEL, TENANT_TYPE_LABEL } from '@/types/domain';
+import { formatMoney, formatPercent, formatDate, formatNumber } from '@/lib/format';
+import { DEPLOYMENT_MODE_LABEL } from '@/types/domain';
 import { AgreementFormDialog } from './AgreementFormDialog';
-import { Organization360 } from './Organization360';
+import {
+  Org360Activity,
+  Org360Billing,
+  Org360Contracts,
+  Org360Documents,
+  Org360Summary,
+  Org360Tenants,
+} from './Organization360';
+import { useOrgPartnerMargin, useOrgSalesAgents } from './org360Queries';
+import { CompanyFormDialog, type CompanyDraft } from './CompanyFormDialog';
 import { BillingContactPanel } from './BillingContactPanel';
 import type { AgreementDraft } from './AgreementFormDialog';
 
 /**
- * Detalle de organización, en tabs centrados con deep-link `#hash`
- * (contrato §8 / regla gmao-025).
+ * Cliente / partner 360 (P22), en tabs centrados con deep-link `#hash`
+ * (contrato §8 / regla gmao-025). Los hashes existentes (#view360, #overview,
+ * #products, #tenants, #commercials, #margin) siguen funcionando.
+ *
+ * Todas las lecturas van ACOTADAS a esta organización en el servidor (E16).
  */
 export function OrganizationDetailPage() {
   const { organizationId } = useParams();
   const { roles } = useAuth();
   const org = useOrganization(organizationId);
   const agreements = usePartnerAgreements(organizationId);
-  const tenants = useTenantOverview();
-  const margin = usePartnerMargin();
-  const agents = useSalesAgents();
+  const margin = useOrgPartnerMargin(organizationId ?? '');
+  const agents = useOrgSalesAgents(organizationId ?? '');
+  const [companyDialog, setCompanyDialog] = useState<{ open: boolean; company: CompanyDraft | null }>({
+    open: false,
+    company: null,
+  });
   const perms = usePermissions();
   const toast = useToast();
   const endAgreement = useEndProductAgreement();
@@ -82,18 +95,17 @@ export function OrganizationDetailPage() {
     (c) => c.capability,
   );
 
-  const asCustomer = (tenants.data ?? []).filter((t) => t.customer_organization_id === o.id);
-  const asManager = (tenants.data ?? []).filter((t) => t.managing_organization_id === o.id);
   // V3 · una fila por moneda del canal; nunca un margen mezclado.
-  const orgMargins = (margin.data ?? []).filter((m) => m.organization_id === o.id && m.currency);
-  const orgAgents = (agents.data ?? []).filter((a) => a.organization_id === o.id);
+  const orgMargins = (margin.data ?? []).filter((m) => m.currency);
+  const orgAgents = agents.data ?? [];
+  const canManageCompanies = perms.canManageOrganization(o.id);
 
   return (
     <PageContainer
       title={o.display_name}
       description={`${o.legal_name} · ${o.country_code}${o.tax_id ? ` · ${o.tax_id}` : ''}`}
       breadcrumbs={
-        <Link className="text-xs text-muted hover:text-fg" to="/organizations">← Organizaciones</Link>
+        <Link className="text-xs text-muted hover:text-fg" to="/organizations">← Directorio corporativo</Link>
       }
       actions={
         <div className="flex flex-wrap gap-1">
@@ -103,29 +115,41 @@ export function OrganizationDetailPage() {
         </div>
       }
     >
-      <div className="mb-5 grid gap-3 sm:grid-cols-4">
-        <StatCard label="Sociedades" value={formatNumber(companies.length)} />
-        <StatCard label="Tenants como cliente" value={formatNumber(asCustomer.length)} />
-        <StatCard label="Tenants que administra" value={formatNumber(asManager.length)} />
-        <StatCard label="Productos autorizados" value={formatNumber(agreements.data?.length ?? 0)} />
-      </div>
-
       <SectionTabs
         tabs={[
           {
             id: 'view360',
             label: 'Vista 360',
-            content: (
-              <Organization360
-                organizationId={o.id}
-                organizationName={o.display_name}
-                capabilities={capabilities}
-              />
-            ),
+            content: <Org360Summary organizationId={o.id} capabilities={capabilities} />,
+          },
+          {
+            id: 'contracts',
+            label: 'Productos y contratos',
+            content: <Org360Contracts organizationId={o.id} organizationName={o.display_name} />,
+          },
+          {
+            id: 'billing',
+            label: 'Cobros y saldo',
+            content: <Org360Billing organizationId={o.id} />,
+          },
+          {
+            id: 'documents',
+            label: 'Documentos',
+            content: <Org360Documents organizationId={o.id} />,
+          },
+          {
+            id: 'tenants',
+            label: 'Tenants y acceso',
+            content: <Org360Tenants organizationId={o.id} />,
+          },
+          {
+            id: 'activity',
+            label: 'Actividad',
+            content: <Org360Activity organizationId={o.id} />,
           },
           {
             id: 'overview',
-            label: 'Resumen',
+            label: 'Resumen y sociedades',
             content: (
               <div className="grid gap-4 lg:grid-cols-2">
                 <Card title="Identidad y marca" description="Contrato §4.3: interfaz de branding homologada.">
@@ -145,11 +169,25 @@ export function OrganizationDetailPage() {
                   </dl>
                 </Card>
 
-                <Card title="Sociedades" description="Contrato §3.1: multipaís dentro de la misma cuenta.">
+                <Card
+                  title="Sociedades"
+                  description="Contrato §3.1: multipaís dentro de la misma cuenta."
+                  actions={
+                    canManageCompanies ? (
+                      <button
+                        type="button"
+                        className="ebim-btn-secondary h-8 px-3 text-xs"
+                        onClick={() => setCompanyDialog({ open: true, company: null })}
+                      >
+                        Nueva sociedad
+                      </button>
+                    ) : null
+                  }
+                >
                   {companies.length === 0 ? (
                     <EmptyState title="Sin sociedades registradas" />
                   ) : (
-                    <DataTable columns={['Sociedad', 'Mercado', 'País', 'Moneda', 'ERP code']}>
+                    <DataTable columns={['Sociedad', 'Mercado', 'País', 'Moneda', 'ERP code', '']}>
                       {companies.map((c) => (
                         <tr key={c.id as string}>
                           <td className="ebim-td font-semibold">
@@ -165,6 +203,29 @@ export function OrganizationDetailPage() {
                           <td className="ebim-td">{c.currency as string}</td>
                           <td className="ebim-td font-mono text-xs text-muted">
                             {(c.erp_code as string) ?? '—'}
+                          </td>
+                          <td className="ebim-td text-right">
+                            {canManageCompanies ? (
+                              <button
+                                type="button"
+                                className="ebim-link text-xs"
+                                onClick={() =>
+                                  setCompanyDialog({
+                                    open: true,
+                                    company: {
+                                      id: c.id as string,
+                                      name: c.name as string,
+                                      tax_id: (c.tax_id as string | null) ?? null,
+                                      erp_code: (c.erp_code as string | null) ?? null,
+                                      market_code: (c.markets as { code: string } | null)?.code ?? null,
+                                      is_default: Boolean(c.is_default),
+                                    },
+                                  })
+                                }
+                              >
+                                Editar
+                              </button>
+                            ) : null}
                           </td>
                         </tr>
                       ))}
@@ -317,21 +378,13 @@ export function OrganizationDetailPage() {
             ),
           },
           {
-            id: 'tenants',
-            label: 'Tenants',
-            content: (
-              <div className="space-y-4">
-                <TenantTable title="Tenants que administra (como partner)" rows={asManager} />
-                <TenantTable title="Tenants propios (como cliente)" rows={asCustomer} />
-              </div>
-            ),
-          },
-          {
             id: 'commercials',
             label: 'Comerciales',
             content: (
               <Card description="Comerciales afiliados a esta organización.">
-                {orgAgents.length === 0 ? (
+                {agents.error ? (
+                  <ErrorState error={agents.error} onRetry={() => void agents.refetch()} />
+                ) : orgAgents.length === 0 ? (
                   <EmptyState title="Sin comerciales afiliados" />
                 ) : (
                   <DataTable columns={['Comercial', 'Tipo', 'Contacto', 'Estado']}>
@@ -356,7 +409,9 @@ export function OrganizationDetailPage() {
             hidden: !isFinance(roles) && roles?.platformRole !== 'EBIM_PRODUCT_ADMIN',
             content: (
               <Card title="Margen de la organización">
-                {orgMargins.length > 0 ? (
+                {margin.error ? (
+                  <ErrorState error={margin.error} onRetry={() => void margin.refetch()} />
+                ) : orgMargins.length > 0 ? (
                   orgMargins.map((orgMargin) => (
                     <div key={orgMargin.currency} className="grid gap-3 p-4 sm:grid-cols-4">
                       <StatCard label={`MRR · ${orgMargin.currency}`} value={formatMoney(Number(orgMargin.mrr), orgMargin.currency)} />
@@ -389,47 +444,21 @@ export function OrganizationDetailPage() {
         onClose={() => setAgreementDialog({ open: false, agreement: null })}
       />
 
+      <CompanyFormDialog
+        open={companyDialog.open}
+        organizationId={o.id}
+        company={companyDialog.company}
+        onClose={() => setCompanyDialog({ open: false, company: null })}
+      />
+
       <ConfirmDialog
         open={Boolean(endingAgreement)}
         title={`¿Cerrar el acuerdo de ${endingAgreement?.product}?`}
         message="El canal dejará de poder vender y administrar tenants de este producto. La base lo impide si aún administra tenants vivos."
         confirmLabel="Cerrar acuerdo"
-        onConfirm={() => void confirmEndAgreement()}
+        onConfirm={confirmEndAgreement}
         onCancel={() => setEndingAgreement(null)}
       />
     </PageContainer>
-  );
-}
-
-function TenantTable({ title, rows }: { title: string; rows: Array<Record<string, unknown>> }) {
-  return (
-    <Card title={title}>
-      {rows.length === 0 ? (
-        <EmptyState title="Sin tenants en esta categoría" />
-      ) : (
-        <DataTable columns={['Tenant', 'Producto', 'Tipo', 'Modelo', 'MRR', 'Estado']}>
-          {rows.map((t) => (
-            <tr key={t.tenant_id as string}>
-              <td className="ebim-td">
-                <Link className="ebim-link" to={`/tenants/${t.tenant_id}`}>{t.name as string}</Link>
-              </td>
-              <td className="ebim-td">{t.product_short_name as string}</td>
-              <td className="ebim-td">
-                <Badge tone={t.tenant_type === 'PRODUCTION' ? 'ok' : 'info'}>
-                  {TENANT_TYPE_LABEL[t.tenant_type as keyof typeof TENANT_TYPE_LABEL]}
-                </Badge>
-              </td>
-              <td className="ebim-td">
-                <Badge tone="accent">
-                  {DEPLOYMENT_MODE_LABEL[t.deployment_mode as keyof typeof DEPLOYMENT_MODE_LABEL]}
-                </Badge>
-              </td>
-              <td className="ebim-td tabular-nums">{formatMoney(Number(t.mrr), t.currency as string | null)}</td>
-              <td className="ebim-td text-muted">{t.status as string}</td>
-            </tr>
-          ))}
-        </DataTable>
-      )}
-    </Card>
   );
 }

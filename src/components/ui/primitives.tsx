@@ -215,7 +215,9 @@ export function DataTable({
   children: ReactNode;
 }) {
   return (
-    <div className="overflow-x-auto">
+    // `relative`: el scroll horizontal también recorta a los descendientes
+    // posicionados (p. ej. etiquetas sr-only); sin él ensanchan la página.
+    <div className="relative overflow-x-auto">
       <table className="w-full border-collapse">
         <thead className="border-b border-border bg-[color:var(--bg)]">
           <tr>

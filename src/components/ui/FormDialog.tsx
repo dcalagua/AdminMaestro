@@ -1,13 +1,16 @@
-import { useEffect, useId, useRef } from 'react';
+import { useId, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { businessErrorMessage } from '@/lib/pgError';
+import { useModalFocus } from './useModalFocus';
 
 /**
  * Diálogo de formulario del Control Plane.
  *
- * Es el complemento de escritura de `ConfirmDialog` (que solo confirma). Se
- * queda deliberadamente en el mismo estilo: tarjeta con tokens, cierre con
- * Escape, foco atrapado en el primer campo.
+ * Es el complemento de escritura de `ConfirmDialog` (que solo confirma). Mismo
+ * ciclo de teclado (E09): foco inicial en el primer campo, Tab confinado, foco
+ * devuelto al activador y Escape bloqueado mientras se guarda (`busy`). El botón
+ * de guardar queda deshabilitado y `aria-busy` durante el guardado: no hay doble
+ * envío.
  *
  * Muestra el error de negocio devuelto por Postgres tal y como lo tradujo
  * `parseBusinessError`, encima de los botones: el usuario debe ver POR QUÉ la
@@ -39,43 +42,46 @@ export function FormDialog({
   children: ReactNode;
 }) {
   const titleId = useId();
+  const descriptionId = useId();
+  const formRef = useRef<HTMLFormElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    // Primer control enfocable del formulario, no el botón de guardar.
-    const first = bodyRef.current?.querySelector<HTMLElement>(
-      'input:not([type=hidden]), select, textarea',
-    );
-    first?.focus();
-
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !busy) onCancel();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, busy, onCancel]);
+  useModalFocus(formRef, open, {
+    // Primer control del formulario, no el botón de guardar.
+    initialFocus: () =>
+      bodyRef.current?.querySelector<HTMLElement>(
+        'input:not([type=hidden]):not([disabled]), select:not([disabled]), textarea:not([disabled])',
+      ),
+    onEscape: onCancel,
+    canEscape: () => !busy,
+  });
 
   if (!open) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 py-10"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={titleId}
-    >
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 py-10">
       <form
+        ref={formRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={description ? descriptionId : undefined}
+        aria-busy={busy || undefined}
         className={`ebim-card w-full ${wide ? 'max-w-3xl' : 'max-w-xl'} p-5 shadow-pop`}
         onSubmit={(e) => {
           e.preventDefault();
+          if (busy) return;
           onSubmit();
         }}
       >
         <h2 id={titleId} className="text-base font-bold text-fg">
           {title}
         </h2>
-        {description ? <p className="mt-1 text-sm text-muted">{description}</p> : null}
+        {description ? (
+          <p id={descriptionId} className="mt-1 text-sm text-muted">
+            {description}
+          </p>
+        ) : null}
 
         <div ref={bodyRef} className="mt-4 grid gap-4">
           {children}
@@ -94,7 +100,7 @@ export function FormDialog({
           <button type="button" className="ebim-btn-ghost" onClick={onCancel} disabled={busy}>
             {cancelLabel}
           </button>
-          <button type="submit" className="ebim-btn-primary" disabled={busy}>
+          <button type="submit" className="ebim-btn-primary" disabled={busy} aria-busy={busy || undefined}>
             {busy ? 'Guardando…' : submitLabel}
           </button>
         </div>

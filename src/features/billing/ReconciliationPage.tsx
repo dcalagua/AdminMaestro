@@ -6,9 +6,11 @@ import {
 import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { SectionTabs, StatusTabs } from '@/components/ui/SectionTabs';
 import {
-  PageContainer, Card, DataTable, SearchBar, StatCard, LoadingState, ErrorState, EmptyState, Badge,
+  PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge,
 } from '@/components/ui/primitives';
 import { formatMoney, formatPercent, formatNumber, formatDateTime } from '@/lib/format';
+import { KpiCard } from '@/features/executive/components/StateView';
+import { fromQuery } from '@/features/executive/dataState';
 
 /**
  * Reconciliación financiera.
@@ -17,9 +19,9 @@ import { formatMoney, formatPercent, formatNumber, formatDateTime } from '@/lib/
  * automáticamente hace que el número cierre y que nadie sepa por qué, que es
  * justo lo contrario de lo que necesita un cierre contable.
  *
- * Todo se agrupa POR MONEDA. No hay tabla de tipos de cambio, así que consolidar
- * PEN y USD produciría un total que nadie puede auditar. Está documentado como
- * fuera de alcance de V2.
+ * Todo se agrupa POR MONEDA. Aquí no se convierte: el consolidado con tipo de
+ * cambio explícito vive en el inicio ejecutivo. Entrar a esta pantalla sólo LEE
+ * (vistas y ledger); no existe ninguna acción que corrija un hallazgo.
  */
 
 const FINDING_LABEL: Record<string, string> = {
@@ -37,6 +39,32 @@ const SEVERITY_TONE: Record<string, 'ok' | 'warn' | 'danger'> = {
   ERROR: 'danger',
 };
 
+const SEVERITY_LABEL: Record<string, string> = {
+  OK: 'Cuadra',
+  REVIEW: 'Revisar',
+  ERROR: 'Error',
+};
+
+/** Prioridad de la bandeja: primero los errores, luego lo que hay que revisar. */
+const SEVERITY_RANK: Record<string, number> = { ERROR: 0, REVIEW: 1, OK: 2 };
+
+/** Dónde nace cada tipo de hallazgo: ayuda a saber a quién preguntar. */
+const FINDING_SOURCE: Record<string, string> = {
+  PROVIDER_DRIFT: 'Proveedor de pagos vs. suscripción',
+  OPEN_INVOICE: 'Facturas',
+  EXPIRED_DOCUMENT: 'Documentos del cliente',
+  REVERSED_PAYMENT: 'Cobros',
+  REJECTED_WEBHOOK: 'Ledger de webhooks',
+  MISSING_COLLECTION_PROFILE: 'Perfil de cobro',
+};
+
+const EVENT_STATUS_LABEL: Record<string, string> = {
+  RECEIVED: 'Recibido',
+  PROCESSED: 'Procesado',
+  IGNORED: 'Ignorado (repetido)',
+  REJECTED: 'Rechazado',
+};
+
 type Filter = 'ALL' | 'ERROR' | 'REVIEW';
 
 export function ReconciliationPage() {
@@ -50,7 +78,10 @@ export function ReconciliationPage() {
     f.subject, f.organization_name, f.detail, f.finding_type,
   ]);
 
-  const rows = filtered.filter((f) => (filter === 'ALL' ? true : f.severity === filter));
+  const rows = filtered
+    .filter((f) => (filter === 'ALL' ? true : f.severity === filter))
+    .sort((a, b) => (SEVERITY_RANK[a.severity ?? ''] ?? 9) - (SEVERITY_RANK[b.severity ?? ''] ?? 9));
+  const findingsState = fromQuery(findings, { isEmpty: () => false });
   const all = findings.data ?? [];
 
   const errors = all.filter((f) => f.severity === 'ERROR').length;
@@ -61,15 +92,42 @@ export function ReconciliationPage() {
       title="Reconciliación"
       description="Diferencias entre lo que dice el proveedor, lo que dice la factura y lo que dice el cobro. La pantalla diagnostica; las correcciones las decide una persona."
       actions={
-        <Badge tone={errors > 0 ? 'danger' : reviews > 0 ? 'warn' : 'ok'}>
-          {errors > 0 ? 'ERROR' : reviews > 0 ? 'REVIEW' : 'OK'}
-        </Badge>
+        findings.data ? (
+          <Badge tone={errors > 0 ? 'danger' : reviews > 0 ? 'warn' : 'ok'}>
+            {errors > 0 ? 'Con errores' : reviews > 0 ? 'Hay que revisar' : 'Todo cuadra'}
+          </Badge>
+        ) : null
       }
     >
+      <p className="mb-4 rounded-lg bg-info-soft px-3 py-2 text-xs text-info">
+        <strong>Sólo diagnóstico.</strong> Abrir esta pantalla no corrige, reintenta ni registra nada. Cada hallazgo indica
+        su causa y su fuente; la corrección la decide una persona desde el contrato o la factura.
+      </p>
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <StatCard label="Hallazgos con error" value={formatNumber(errors)} tone={errors > 0 ? 'danger' : 'ok'} />
-        <StatCard label="Para revisar" value={formatNumber(reviews)} tone={reviews > 0 ? 'warn' : 'ok'} />
-        <StatCard label="Total de hallazgos" value={formatNumber(all.length)} />
+        <KpiCard
+          id="recon-errors"
+          label="Hallazgos con error"
+          temporality="Foto actual"
+          state={findingsState}
+          onRetry={() => void findings.refetch()}
+          render={() => <span className={`tabular-nums ${errors > 0 ? 'text-danger' : ''}`}>{formatNumber(errors)}</span>}
+        />
+        <KpiCard
+          id="recon-review"
+          label="Para revisar"
+          temporality="Foto actual"
+          state={findingsState}
+          onRetry={() => void findings.refetch()}
+          render={() => <span className={`tabular-nums ${reviews > 0 ? 'text-warn' : ''}`}>{formatNumber(reviews)}</span>}
+        />
+        <KpiCard
+          id="recon-total"
+          label="Total de hallazgos"
+          temporality="Foto actual"
+          state={findingsState}
+          onRetry={() => void findings.refetch()}
+          render={() => <span className="tabular-nums">{formatNumber(all.length)}</span>}
+        />
       </div>
 
       <SectionTabs
@@ -105,13 +163,19 @@ export function ReconciliationPage() {
                     description="No hay diferencias entre el proveedor, las facturas y los cobros registrados."
                   />
                 ) : (
-                  <DataTable columns={['Tipo', 'Sujeto', 'Organización', 'Detalle', 'Importe', '']}>
+                  <DataTable columns={['Prioridad', 'Hallazgo', 'Sujeto', 'Organización', 'Detalle', 'Importe', 'Evidencia']}>
                     {rows.map((f, idx) => (
                       <tr key={`${f.finding_type}-${f.subject}-${idx}`}>
                         <td className="ebim-td">
                           <Badge tone={SEVERITY_TONE[f.severity as string] ?? 'neutral'}>
-                            {FINDING_LABEL[f.finding_type as string] ?? f.finding_type}
+                            {SEVERITY_LABEL[f.severity as string] ?? f.severity}
                           </Badge>
+                        </td>
+                        <td className="ebim-td">
+                          <span className="font-semibold">{FINDING_LABEL[f.finding_type as string] ?? f.finding_type}</span>
+                          <span className="block text-xs text-muted">
+                            Fuente: {FINDING_SOURCE[f.finding_type as string] ?? 'Sin clasificar'}
+                          </span>
                         </td>
                         <td className="ebim-td font-mono text-xs font-semibold">{f.subject}</td>
                         <td className="ebim-td text-muted">{f.organization_name}</td>
@@ -124,12 +188,14 @@ export function ReconciliationPage() {
                         <td className="ebim-td text-right">
                           {f.subscription_id ? (
                             <Link
-                              className="ebim-link text-[13px]"
+                              className="ebim-link whitespace-nowrap text-[13px]"
                               to={`/subscriptions/${f.subscription_id}`}
                             >
-                              Ver
+                              Ver contrato
                             </Link>
-                          ) : null}
+                          ) : (
+                            <span className="text-xs text-muted">Sin contrato</span>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -144,17 +210,19 @@ export function ReconciliationPage() {
             content: (
               <Card
                 title="Panel gerencial por producto"
-                description="Agrupado por moneda: sin tabla de tipos de cambio, consolidar PEN y USD daría un número no auditable."
+                description="Una fila por producto y moneda: aquí no se convierte. El consolidado con tipo de cambio explícito está en el inicio. Margen gerencial, no contable."
               >
                 {products.isLoading ? (
                   <LoadingState />
+                ) : products.error ? (
+                  <ErrorState error={products.error} onRetry={() => void products.refetch()} />
                 ) : (products.data ?? []).length === 0 ? (
                   <EmptyState title="Sin datos financieros" />
                 ) : (
                   <DataTable
                     columns={[
                       'Producto', 'Moneda', 'MRR', 'Licencia cobrada', 'Implementación',
-                      'Infraestructura', 'Costo', 'Comisiones', 'Margen', '%',
+                      'Infraestructura', 'Costo', 'Comisiones', 'Margen gerencial', '% sobre cobrado',
                     ]}
                   >
                     {(products.data ?? [])
@@ -208,13 +276,15 @@ export function ReconciliationPage() {
               >
                 {partners.isLoading ? (
                   <LoadingState />
+                ) : partners.error ? (
+                  <ErrorState error={partners.error} onRetry={() => void partners.refetch()} />
                 ) : (partners.data ?? []).length === 0 ? (
                   <EmptyState title="Sin canales con actividad" />
                 ) : (
                   <DataTable
                     columns={[
                       'Organización', 'Moneda', 'MRR', 'Cobrado', 'Costo directo',
-                      'Margen bruto', 'Margen de canal', 'Comisión a comerciales', 'Tenants',
+                      'Margen gerencial', 'Margen de canal', 'Comisión a comerciales', 'Tenants',
                     ]}
                   >
                     {(partners.data ?? []).map((p) => (
@@ -267,6 +337,8 @@ export function ReconciliationPage() {
               >
                 {events.isLoading ? (
                   <LoadingState />
+                ) : events.error ? (
+                  <ErrorState error={events.error} onRetry={() => void events.refetch()} />
                 ) : (events.data ?? []).length === 0 ? (
                   <EmptyState
                     title="Sin eventos registrados"
@@ -291,7 +363,7 @@ export function ReconciliationPage() {
                                   : 'neutral'
                             }
                           >
-                            {e.status}
+                            {EVENT_STATUS_LABEL[e.status] ?? e.status}
                           </Badge>
                         </td>
                         <td className="ebim-td text-xs text-muted">

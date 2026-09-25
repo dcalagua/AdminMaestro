@@ -68,7 +68,7 @@ export function ProvisioningStatusAction({ request }: { request: Record<string, 
                   <dd className="text-fg">{admin}</dd>
                 </div>
               ) : null}
-              <p className={result.mapping_consistent ? 'pt-1 text-success' : 'pt-1 font-semibold text-danger'}>
+              <p className={result.mapping_consistent ? 'pt-1 text-ok' : 'pt-1 font-semibold text-danger'}>
                 {result.mapping_consistent ? 'Coincide con el mapping' : 'No coincide con el mapping'}
               </p>
             </dl>

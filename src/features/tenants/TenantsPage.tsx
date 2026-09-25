@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useTenantOverview } from '@/services/queries';
+import { useProvisioningTargets, useSaasProvisioningRequests, useTenantOverview } from '@/services/queries';
+import { tenantDimensions } from './tenantDimensions';
+import { TenantDimensionsInline } from './TenantDimensionsView';
 import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { StatusTabs } from '@/components/ui/SectionTabs';
 import {
@@ -22,6 +24,10 @@ type TenantFilter = 'ALL' | 'PRODUCTION' | 'DEMO_TRIAL' | 'SHARED' | 'DEDICATED'
  */
 export function TenantsPage() {
   const tenants = useTenantOverview();
+  // Alta técnica y acceso del administrador: otra fuente (v_saas_provisioning).
+  // Si no se puede leer, se dice; no se deduce del estado comercial.
+  const saas = useSaasProvisioningRequests();
+  const targets = useProvisioningTargets();
   const perms = usePermissions();
   const [tab, setTab] = useState<TenantFilter>('ALL');
   const [creating, setCreating] = useState(false);
@@ -102,7 +108,7 @@ export function TenantsPage() {
           />
         ) : (
           <DataTable
-            columns={['Tenant', 'Producto', 'Cliente', 'Administra', 'Tipo', 'Modelo', 'Infraestructura', 'MRR', 'Estado', '']}
+            columns={['Tenant', 'Producto', 'Cliente', 'Administra', 'Tipo', 'Modelo', 'Entorno', 'MRR vigente', 'Comercial · alta · admin', '']}
           >
             {rows.map((t) => (
               <tr key={t.tenant_id as string}>
@@ -123,12 +129,22 @@ export function TenantsPage() {
                     {DEPLOYMENT_MODE_LABEL[t.deployment_mode as keyof typeof DEPLOYMENT_MODE_LABEL]}
                   </Badge>
                 </td>
-                <td className="ebim-td font-mono text-xs text-muted">{t.deployment_target_code ?? '—'}</td>
-                <td className="ebim-td tabular-nums">{formatMoney(Number(t.mrr), t.currency as string | null)}</td>
+                <td className="ebim-td text-xs">
+                  <span className="block">{t.environment ?? <span className="text-muted">Sin dato</span>}</span>
+                  <span className="font-mono text-muted">{t.deployment_target_code ?? '—'}</span>
+                </td>
+                <td className="ebim-td tabular-nums">
+                  {Number(t.mrr) === 0 || !t.currency ? <span className="text-muted">Sin recurrente</span> : formatMoney(Number(t.mrr), t.currency as string | null)}
+                </td>
                 <td className="ebim-td">
-                  <Badge tone={t.status === 'ACTIVE' ? 'ok' : t.status === 'PENDING' ? 'warn' : 'neutral'}>
-                    {TENANT_STATUS_LABEL[t.status as keyof typeof TENANT_STATUS_LABEL]}
-                  </Badge>
+                  <span className="sr-only">{TENANT_STATUS_LABEL[t.status as keyof typeof TENANT_STATUS_LABEL]}</span>
+                  {saas.error ? (
+                    <span className="text-xs text-warn">Alta y acceso: no se pudo leer</span>
+                  ) : (
+                    <TenantDimensionsInline
+                      dims={tenantDimensions(t, (saas.data ?? []).filter((r) => r.tenant_id === t.tenant_id), targets.data ?? [])}
+                    />
+                  )}
                 </td>
                 <td className="ebim-td text-right">
                   {perms.canManagePlatform || perms.canManageOrganization(t.customer_organization_id as string) ? (

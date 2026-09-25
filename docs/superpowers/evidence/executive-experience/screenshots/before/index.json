@@ -1,0 +1,798 @@
+{
+  "set": "before",
+  "shots": [
+    {
+      "id": "P01",
+      "name": "login",
+      "file": "P01-login-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P01",
+      "name": "login",
+      "file": "P01-login-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P02",
+      "name": "billing",
+      "file": "P02-billing-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P02",
+      "name": "billing",
+      "file": "P02-billing-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P02",
+      "name": "billing",
+      "file": "P02-billing-1280-light.jpg",
+      "width": 1280,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P02",
+      "name": "billing",
+      "file": "P02-billing-768-light.jpg",
+      "width": 768,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P03",
+      "name": "costs",
+      "file": "P03-costs-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P03",
+      "name": "costs",
+      "file": "P03-costs-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P04",
+      "name": "reconciliation",
+      "file": "P04-reconciliation-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P04",
+      "name": "reconciliation",
+      "file": "P04-reconciliation-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P05",
+      "name": "renewals",
+      "file": "P05-renewals-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P05",
+      "name": "renewals",
+      "file": "P05-renewals-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P06",
+      "name": "subscription-detail",
+      "file": "P06-subscription-detail-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P06",
+      "name": "subscription-detail",
+      "file": "P06-subscription-detail-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P07",
+      "name": "subscriptions",
+      "file": "P07-subscriptions-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P07",
+      "name": "subscriptions",
+      "file": "P07-subscriptions-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P08",
+      "name": "feature-flags",
+      "file": "P08-feature-flags-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P08",
+      "name": "feature-flags",
+      "file": "P08-feature-flags-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P09",
+      "name": "plans",
+      "file": "P09-plans-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P09",
+      "name": "plans",
+      "file": "P09-plans-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P10",
+      "name": "product-detail",
+      "file": "P10-product-detail-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P10",
+      "name": "product-detail",
+      "file": "P10-product-detail-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P11",
+      "name": "products",
+      "file": "P11-products-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P11",
+      "name": "products",
+      "file": "P11-products-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P12",
+      "name": "attributions",
+      "file": "P12-attributions-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P12",
+      "name": "attributions",
+      "file": "P12-attributions-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P13",
+      "name": "commission-plans",
+      "file": "P13-commission-plans-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P13",
+      "name": "commission-plans",
+      "file": "P13-commission-plans-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P14",
+      "name": "commissions",
+      "file": "P14-commissions-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P14",
+      "name": "commissions",
+      "file": "P14-commissions-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P15",
+      "name": "sales-agents",
+      "file": "P15-sales-agents-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P15",
+      "name": "sales-agents",
+      "file": "P15-sales-agents-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P16",
+      "name": "dashboard",
+      "file": "P16-dashboard-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P16",
+      "name": "dashboard",
+      "file": "P16-dashboard-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P16",
+      "name": "dashboard",
+      "file": "P16-dashboard-1280-light.jpg",
+      "width": 1280,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P16",
+      "name": "dashboard",
+      "file": "P16-dashboard-768-light.jpg",
+      "width": 768,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P17",
+      "name": "deployments",
+      "file": "P17-deployments-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P17",
+      "name": "deployments",
+      "file": "P17-deployments-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P18",
+      "name": "provisioning",
+      "file": "P18-provisioning-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P18",
+      "name": "provisioning",
+      "file": "P18-provisioning-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P19",
+      "name": "saas-provisioning",
+      "file": "P19-saas-provisioning-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P19",
+      "name": "saas-provisioning",
+      "file": "P19-saas-provisioning-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P19",
+      "name": "saas-provisioning",
+      "file": "P19-saas-provisioning-1280-light.jpg",
+      "width": 1280,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P19",
+      "name": "saas-provisioning",
+      "file": "P19-saas-provisioning-768-light.jpg",
+      "width": 768,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P20",
+      "name": "onboarding",
+      "file": "P20-onboarding-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P20",
+      "name": "onboarding",
+      "file": "P20-onboarding-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P21",
+      "name": "customers",
+      "file": "P21-customers-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P21",
+      "name": "customers",
+      "file": "P21-customers-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P22",
+      "name": "organization-detail",
+      "file": "P22-organization-detail-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P22",
+      "name": "organization-detail",
+      "file": "P22-organization-detail-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": true,
+      "httpErrors": 0
+    },
+    {
+      "id": "P22",
+      "name": "organization-detail",
+      "file": "P22-organization-detail-1280-light.jpg",
+      "width": 1280,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P22",
+      "name": "organization-detail",
+      "file": "P22-organization-detail-768-light.jpg",
+      "width": 768,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P23",
+      "name": "organizations",
+      "file": "P23-organizations-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P23",
+      "name": "organizations",
+      "file": "P23-organizations-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P24",
+      "name": "partners",
+      "file": "P24-partners-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P24",
+      "name": "partners",
+      "file": "P24-partners-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P25",
+      "name": "integration-detail",
+      "file": "P25-integration-detail-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P25",
+      "name": "integration-detail",
+      "file": "P25-integration-detail-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P26",
+      "name": "integrations",
+      "file": "P26-integrations-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P26",
+      "name": "integrations",
+      "file": "P26-integrations-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P26",
+      "name": "integrations",
+      "file": "P26-integrations-1280-light.jpg",
+      "width": 1280,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P26",
+      "name": "integrations",
+      "file": "P26-integrations-768-light.jpg",
+      "width": 768,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P27",
+      "name": "regional",
+      "file": "P27-regional-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P27",
+      "name": "regional",
+      "file": "P27-regional-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P28",
+      "name": "audit",
+      "file": "P28-audit-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P28",
+      "name": "audit",
+      "file": "P28-audit-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P29",
+      "name": "not-found",
+      "file": "P29-not-found-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P29",
+      "name": "not-found",
+      "file": "P29-not-found-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P30",
+      "name": "settings",
+      "file": "P30-settings-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P30",
+      "name": "settings",
+      "file": "P30-settings-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P31",
+      "name": "tenant-detail",
+      "file": "P31-tenant-detail-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P31",
+      "name": "tenant-detail",
+      "file": "P31-tenant-detail-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P31",
+      "name": "tenant-detail",
+      "file": "P31-tenant-detail-1280-light.jpg",
+      "width": 1280,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P31",
+      "name": "tenant-detail",
+      "file": "P31-tenant-detail-768-light.jpg",
+      "width": 768,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P32",
+      "name": "tenants",
+      "file": "P32-tenants-1440-light.jpg",
+      "width": 1440,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P32",
+      "name": "tenants",
+      "file": "P32-tenants-390-light.jpg",
+      "width": 390,
+      "theme": "light",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P02",
+      "name": "billing",
+      "file": "P02-billing-1440-dark.jpg",
+      "width": 1440,
+      "theme": "dark",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P02",
+      "name": "billing",
+      "file": "P02-billing-390-dark.jpg",
+      "width": 390,
+      "theme": "dark",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P16",
+      "name": "dashboard",
+      "file": "P16-dashboard-1440-dark.jpg",
+      "width": 1440,
+      "theme": "dark",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P16",
+      "name": "dashboard",
+      "file": "P16-dashboard-390-dark.jpg",
+      "width": 390,
+      "theme": "dark",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P19",
+      "name": "saas-provisioning",
+      "file": "P19-saas-provisioning-1440-dark.jpg",
+      "width": 1440,
+      "theme": "dark",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P19",
+      "name": "saas-provisioning",
+      "file": "P19-saas-provisioning-390-dark.jpg",
+      "width": 390,
+      "theme": "dark",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P22",
+      "name": "organization-detail",
+      "file": "P22-organization-detail-1440-dark.jpg",
+      "width": 1440,
+      "theme": "dark",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P22",
+      "name": "organization-detail",
+      "file": "P22-organization-detail-390-dark.jpg",
+      "width": 390,
+      "theme": "dark",
+      "horizontalOverflow": true,
+      "httpErrors": 0
+    },
+    {
+      "id": "P26",
+      "name": "integrations",
+      "file": "P26-integrations-1440-dark.jpg",
+      "width": 1440,
+      "theme": "dark",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P26",
+      "name": "integrations",
+      "file": "P26-integrations-390-dark.jpg",
+      "width": 390,
+      "theme": "dark",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P31",
+      "name": "tenant-detail",
+      "file": "P31-tenant-detail-1440-dark.jpg",
+      "width": 1440,
+      "theme": "dark",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    },
+    {
+      "id": "P31",
+      "name": "tenant-detail",
+      "file": "P31-tenant-detail-390-dark.jpg",
+      "width": 390,
+      "theme": "dark",
+      "horizontalOverflow": false,
+      "httpErrors": 0
+    }
+  ],
+  "blocked": []
+}

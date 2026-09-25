@@ -45,14 +45,21 @@ function FieldShell({
       </label>
       {children}
       {message ? (
-        <p className="mt-1 text-xs text-danger" role="alert">
+        <p id={`${id}-msg`} className="mt-1 text-xs text-danger" role="alert">
           {message}
         </p>
       ) : hint ? (
-        <p className="mt-1 text-xs text-muted">{hint}</p>
+        <p id={`${id}-msg`} className="mt-1 text-xs text-muted">
+          {hint}
+        </p>
       ) : null}
     </div>
   );
+}
+
+/** Vincula el control con su ayuda o error para lectores de pantalla. */
+function describedBy(id: string, hint?: string, error?: FieldIssue): string | undefined {
+  return error?.message || hint ? `${id}-msg` : undefined;
 }
 
 type InputProps = React.InputHTMLAttributes<HTMLInputElement>;
@@ -73,6 +80,7 @@ export function TextField({
         id={id}
         className="ebim-input"
         aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy(id, hint, error)}
         {...input}
       />
     </FieldShell>
@@ -104,7 +112,13 @@ export function SelectField({
   const id = useId();
   return (
     <FieldShell id={id} label={label} hint={hint} error={error} required={select.required} className={className}>
-      <select id={id} className="ebim-input" aria-invalid={error ? true : undefined} {...select}>
+      <select
+        id={id}
+        className="ebim-input"
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy(id, hint, error)}
+        {...select}
+      >
         {placeholder ? <option value="">{placeholder}</option> : null}
         {options.map((o) => (
           <option key={o.value} value={o.value}>
@@ -126,7 +140,13 @@ export function TextAreaField({
   const id = useId();
   return (
     <FieldShell id={id} label={label} hint={hint} error={error} required={area.required} className={className}>
-      <textarea id={id} className="ebim-input min-h-[80px]" aria-invalid={error ? true : undefined} {...area} />
+      <textarea
+        id={id}
+        className="ebim-input min-h-[80px]"
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy(id, hint, error)}
+        {...area}
+      />
     </FieldShell>
   );
 }

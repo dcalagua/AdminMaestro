@@ -53,8 +53,8 @@ export function RegionalFinancePanel() {
 
   return (
     <Card
-      title="Finanzas regionales"
-      description="Perú, Bolivia y Ecuador. NATIVO separa por moneda; CONSOLIDADO convierte cada total a la moneda de reporte con una tasa explícita."
+      title="Finanzas regionales · acumulado sin período"
+      description="Todas las fechas (sin filtro de período). NATIVO separa por moneda; CONSOLIDADO convierte cada total a la moneda de reporte con una tasa explícita."
       actions={
         <div role="tablist" aria-label="Modo del tablero financiero" className="flex gap-1">
           {(['NATIVE', 'CONSOLIDATED'] as const).map((m) => (

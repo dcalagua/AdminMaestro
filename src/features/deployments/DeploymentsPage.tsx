@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useDeploymentTargets, useProvisioningTargets } from '@/services/queries';
 import { useCheckDeploymentHealth } from '@/services/mutations';
 import { useProvisioningAccess } from '@/hooks/useProvisioningAccess';
@@ -8,12 +8,20 @@ import {
   DEPLOYMENT_HEALTH_LABEL,
   DEPLOYMENT_TARGET_STATUS_LABEL,
   PROVISIONING_ENVIRONMENT_LABEL,
-  healthTone,
   targetStatusTone,
   type DeploymentHealth,
   type DeploymentTargetStatus,
   type ProvisioningEnvironment,
 } from '@/lib/provisioning';
+import {
+  ENVIRONMENT_ORDER,
+  isEvaluable,
+  notEvaluatedReason,
+  observedHealth,
+  summarizeByEnvironment,
+  type TargetHealthInput,
+} from '@/features/platform/targetHealth';
+import { HealthBadge, ObservationDate } from '@/features/platform/EnvironmentHealth';
 import {
   DeploymentProvisioningDialog,
   type TargetProvisioningDraft,
@@ -28,8 +36,27 @@ import { DEPLOYMENT_MODE_LABEL } from '@/types/domain';
 import { DeploymentTargetDialog, AttachTenantDialog } from './DeploymentDialogs';
 import type { TargetDraft } from './DeploymentDialogs';
 
+const TARGET_STATUS_LABEL: Record<string, string> = {
+  ACTIVE: 'Activo',
+  INACTIVE: 'Inactivo',
+  SUSPENDED: 'Suspendido',
+  ARCHIVED: 'Archivado',
+};
+
+const ENVIRONMENT_KIND_LABEL: Record<string, string> = {
+  DEMO: 'Demo',
+  TRIAL: 'Prueba',
+  PRODUCTION: 'Producción',
+  SANDBOX: 'Sandbox',
+};
+
 /**
- * Deployment targets: la infraestructura FÍSICA, desacoplada del tenant lógico.
+ * Entornos y despliegues: la infraestructura FÍSICA, desacoplada del tenant lógico.
+ *
+ * La salud que se ve es la ÚLTIMA OBSERVACIÓN guardada, con su fecha. Abrir la
+ * pantalla no verifica nada ni habilita nada: «Verificar conexión» es una acción
+ * explícita, y un destino en borrador o deshabilitado se muestra «No evaluado»,
+ * no como fallo.
  *
  * Estas filas contienen SÓLO metadata pública (region, project ref). No hay
  * passwords, service_role keys ni PATs: un trigger en la base rechaza cualquier
@@ -79,11 +106,12 @@ export function DeploymentsPage() {
 
   const all = targets.data ?? [];
   const byMode = (mode: string) => all.filter((t) => t.deployment_mode === mode).length;
+  const provisioningRows = provisioning.data ?? [];
 
   return (
     <PageContainer
-      title="Deployments"
-      description="Dónde vive físicamente cada tenant. Un target compartido aloja muchos; uno dedicado de cliente, exactamente uno."
+      title="Entornos y despliegues"
+      description="Dónde vive físicamente cada tenant y a qué destino se llama en cada entorno. Un destino compartido aloja muchos tenants; uno dedicado de cliente, exactamente uno."
       actions={
         perms.canManagePlatform ? (
           <button
@@ -96,12 +124,14 @@ export function DeploymentsPage() {
         ) : null
       }
     >
-      <div className="mb-4 grid gap-3 sm:grid-cols-4">
-        <StatCard label="Targets totales" value={String(all.length)} />
+      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Destinos totales" value={String(all.length)} />
         <StatCard label="Compartidos" value={String(byMode('SHARED'))} />
         <StatCard label="Dedicados de partner" value={String(byMode('PARTNER_DEDICATED'))} />
         <StatCard label="Dedicados de cliente" value={String(byMode('TENANT_DEDICATED'))} />
       </div>
+
+      <EnvironmentMatrix rows={provisioningRows} loading={provisioning.isLoading} error={provisioning.error} />
 
       <Card>
         <SearchBar value={term} onChange={setTerm} placeholder="Buscar por código, región, proveedor u organización…" />
@@ -110,7 +140,7 @@ export function DeploymentsPage() {
         ) : targets.error ? (
           <ErrorState error={targets.error} onRetry={() => void targets.refetch()} />
         ) : filtered.length === 0 ? (
-          <EmptyState title="Sin deployment targets" />
+          <EmptyState title="Sin destinos de despliegue" description="No hay destinos visibles para tu perfil o ninguno coincide con la búsqueda." />
         ) : (
           <div className="divide-y divide-border">
             {filtered.map((t) => {
@@ -118,17 +148,22 @@ export function DeploymentsPage() {
                 (d) => d.status === 'ACTIVE',
               );
               return (
-                <div key={t.id} className="p-4">
+                <div key={t.id} className="min-w-0 p-4">
                   <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-sm font-bold">{t.code}</span>
+                    <span className="break-all font-mono text-sm font-bold">{t.code}</span>
                     <Badge tone="accent">
                       {DEPLOYMENT_MODE_LABEL[t.deployment_mode as keyof typeof DEPLOYMENT_MODE_LABEL]}
                     </Badge>
                     <Badge tone="info">{t.provider}</Badge>
                     {t.region ? <Badge tone="neutral">{t.region}</Badge> : null}
-                    <Badge tone={t.status === 'ACTIVE' ? 'ok' : 'neutral'}>{t.status}</Badge>
+                    <Badge tone="neutral">
+                      Tipo de entorno: {ENVIRONMENT_KIND_LABEL[t.environment] ?? t.environment}
+                    </Badge>
+                    <Badge tone={t.status === 'ACTIVE' ? 'ok' : 'neutral'}>
+                      {TARGET_STATUS_LABEL[t.status] ?? t.status}
+                    </Badge>
                     {perms.canManagePlatform ? (
-                      <span className="ml-auto flex gap-3">
+                      <span className="ml-auto flex flex-wrap gap-3">
                         <button
                           type="button"
                           className="ebim-link text-[13px]"
@@ -267,7 +302,9 @@ function ProvisioningPanel({
 
   const environment = row.provisioning_environment as ProvisioningEnvironment | null;
   const status = row.provisioning_status as DeploymentTargetStatus;
-  const health = row.health_status as DeploymentHealth;
+  const healthInput = row as TargetHealthInput;
+  const health = observedHealth(healthInput);
+  const evaluable = isEvaluable(healthInput);
   const targetId = row.deployment_target_id as string;
   const code = row.code as string;
 
@@ -293,19 +330,29 @@ function ProvisioningPanel({
           Provisioning SaaS
         </span>
         {environment ? (
-          <Badge tone="info">{PROVISIONING_ENVIRONMENT_LABEL[environment]}</Badge>
+          <Badge tone="info">Entorno: {PROVISIONING_ENVIRONMENT_LABEL[environment]}</Badge>
         ) : (
-          <Badge tone="neutral">Sin ambiente</Badge>
+          <Badge tone="neutral">Sin entorno</Badge>
         )}
-        <Badge tone={targetStatusTone(status)}>{DEPLOYMENT_TARGET_STATUS_LABEL[status]}</Badge>
-        <Badge tone={healthTone(health)}>{DEPLOYMENT_HEALTH_LABEL[health]}</Badge>
+        {/* Deshabilitado/borrador no es un fallo: tono neutro, nunca rojo. */}
+        <Badge tone={status === 'DISABLED' ? 'neutral' : targetStatusTone(status)}>
+          {DEPLOYMENT_TARGET_STATUS_LABEL[status]}
+        </Badge>
         {row.provisioning_enabled ? (
           <Badge tone="ok">Habilitado</Badge>
         ) : (
           <Badge tone="neutral">Deshabilitado</Badge>
         )}
+        <HealthBadge health={health} />
+        <span className="text-xs">
+          {evaluable ? (
+            <ObservationDate at={row.health_checked_at as string | null} />
+          ) : (
+            <span className="text-muted">{notEvaluatedReason(healthInput)}</span>
+          )}
+        </span>
 
-        <span className="ml-auto flex gap-3">
+        <span className="ml-auto flex flex-wrap gap-3">
           {canCheck ? (
             <button
               type="button"
@@ -328,6 +375,12 @@ function ProvisioningPanel({
         </span>
       </div>
 
+      {evaluable && row.health_detail ? (
+        <p className="mb-2 break-words text-xs text-muted">
+          Detalle de la última comprobación: {row.health_detail as string}
+        </p>
+      ) : null}
+
       <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted">
         <span>
           Integración:{' '}
@@ -342,7 +395,7 @@ function ProvisioningPanel({
         <span>
           URL base:{' '}
           {row.base_url ? (
-            <span className="font-mono">{row.base_url as string}</span>
+            <span className="break-all font-mono">{row.base_url as string}</span>
           ) : (
             'no aplica'
           )}
@@ -361,5 +414,88 @@ function ProvisioningPanel({
         </span>
       </div>
     </div>
+  );
+}
+
+/**
+ * Matriz producto × entorno (spec §7.3). Cada celda resume SÓLO los destinos
+ * habilitados de ese producto en ese entorno; un entorno sin destinos
+ * habilitados es «No evaluado». No hay columna de «peor estado global».
+ */
+function EnvironmentMatrix({
+  rows,
+  loading,
+  error,
+}: {
+  rows: ReadonlyArray<TargetHealthInput & { product_short_name?: string | null }>;
+  loading: boolean;
+  error: unknown;
+}) {
+  const { products, environments } = useMemo(() => {
+    const byProduct = new Map<string, TargetHealthInput[]>();
+    for (const r of rows) {
+      const key = r.product_short_name ?? 'Sin producto';
+      byProduct.set(key, [...(byProduct.get(key) ?? []), r]);
+    }
+    const present = new Set(rows.map((r) => r.provisioning_environment).filter(Boolean) as string[]);
+    return {
+      products: [...byProduct.entries()].sort(([a], [b]) => a.localeCompare(b)),
+      environments: ENVIRONMENT_ORDER.filter((e) => present.has(e)),
+    };
+  }, [rows]);
+
+  if (loading || error || products.length === 0 || environments.length === 0) return null;
+
+  return (
+    <Card
+      className="mb-4"
+      title="Salud observada por producto y entorno"
+      description="Última comprobación guardada; no es monitoreo en tiempo real. Sólo cuentan los destinos con provisioning habilitado."
+    >
+      <div className="relative overflow-x-auto" role="region" aria-label="Matriz de producto y entorno" tabIndex={0}>
+        <table className="w-full border-collapse">
+          <thead className="border-b border-border bg-[color:var(--bg)]">
+            <tr>
+              <th scope="col" className="ebim-th">Producto</th>
+              {environments.map((e) => (
+                <th key={e} scope="col" className="ebim-th">
+                  {PROVISIONING_ENVIRONMENT_LABEL[e]}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {products.map(([product, targets]) => {
+              const summaries = summarizeByEnvironment(targets);
+              return (
+                <tr key={product}>
+                  <th scope="row" className="ebim-td text-left font-semibold">
+                    {product}
+                  </th>
+                  {environments.map((e) => {
+                    const s = summaries.find((x) => x.environment === e);
+                    return (
+                      <td key={e} className="ebim-td align-top">
+                        {s ? (
+                          <div className="flex flex-col items-start gap-1 text-xs">
+                            <HealthBadge health={s.health} />
+                            {s.health === 'NOT_EVALUATED' ? null : <ObservationDate at={s.latestCheckedAt} />}
+                            <span className="text-muted">
+                              {s.evaluated} de {s.total} habilitado{s.total === 1 ? '' : 's'}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted">Sin destino</span>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </Card>
   );
 }

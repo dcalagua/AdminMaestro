@@ -447,8 +447,8 @@ export function ReceiveDocumentDialog({
         error={form.formState.errors.amount} {...form.register('amount')}
       />
       <TextField
-        label="Referencia del archivo" placeholder="storage://os/2026/os-0455.pdf"
-        hint="Una referencia, no el archivo ni una URL firmada."
+        label="Referencia del archivo (texto, no se adjunta)" placeholder="storage://os/2026/os-0455.pdf"
+        hint="Escribe dónde está guardado el documento. La consola no sube ni guarda el archivo; tampoco uses una URL firmada."
         error={form.formState.errors.external_file_ref} {...form.register('external_file_ref')}
       />
       <TextAreaField label="Notas" error={form.formState.errors.notes} {...form.register('notes')} />

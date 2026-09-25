@@ -19,7 +19,6 @@ import {
 import { formatDateTime } from '@/lib/format';
 import {
   CREDENTIAL_TYPE_LABEL,
-  DEPLOYMENT_HEALTH_LABEL,
   DEPLOYMENT_TARGET_STATUS_LABEL,
   INTEGRATION_STATUS_LABEL,
   INTEGRATION_TYPE_HINT,
@@ -28,11 +27,9 @@ import {
   PROVISIONING_ENVIRONMENT_LABEL,
   PROVISIONING_POLICY_HINT,
   PROVISIONING_POLICY_LABEL,
-  healthTone,
   integrationStatusTone,
   targetStatusTone,
   type CredentialProfileType,
-  type DeploymentHealth,
   type DeploymentTargetStatus,
   type IntegrationStatus,
   type IntegrationType,
@@ -49,6 +46,8 @@ import {
 } from './IntegrationDialogs';
 import { RevealSecretRefButton } from './RevealSecretRef';
 import { contractAdapterFor } from '@/features/deployments/contractAdapters';
+import { environmentLabel, isEvaluable, notEvaluatedReason, observedHealth, summarizeByEnvironment } from './targetHealth';
+import { EnvironmentHealthList, HealthBadge, ObservationDate } from './EnvironmentHealth';
 
 /** Fila etiqueta/valor para las fichas de configuración. */
 function Row({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string }) {
@@ -127,6 +126,12 @@ export function IntegrationDetailPage() {
     (c) => c.saas_product_id === productId || c.saas_product_id === null,
   );
   const productOwners = (owners.data ?? []).filter((o) => o.saas_product_id === productId);
+  const enabledTargets = relatedTargets.filter(isEvaluable);
+  const readyCredentials = productCredentials.filter((c) => c.enabled && c.secret_configured);
+  const responsible =
+    data.owner_name ??
+    (data.profiles as { full_name: string | null; email: string } | null)?.full_name ??
+    null;
 
   const draft: IntegrationDraft = {
     id: data.id,
@@ -189,8 +194,73 @@ export function IntegrationDetailPage() {
       <SectionTabs
         tabs={[
           {
+            id: 'summary',
+            label: 'Resumen',
+            content: (
+              <div className="grid gap-4 lg:grid-cols-2">
+                <Card
+                  title="Resumen operativo"
+                  description="Lo necesario para saber si se puede operar. Los parámetros técnicos están en las pestañas siguientes."
+                >
+                  <div className="px-4 pb-2">
+                    <Row
+                      label="Estado"
+                      value={
+                        <span className="flex flex-wrap gap-2">
+                          <Badge tone={integrationStatusTone(data.status as IntegrationStatus)}>
+                            {INTEGRATION_STATUS_LABEL[data.status as IntegrationStatus]}
+                          </Badge>
+                          {data.enabled ? <Badge tone="ok">Habilitada</Badge> : <Badge>Deshabilitada</Badge>}
+                        </span>
+                      }
+                    />
+                    <Row
+                      label="Política de provisioning"
+                      value={PROVISIONING_POLICY_LABEL[data.provisioning_policy as ProvisioningPolicy]}
+                      hint={PROVISIONING_POLICY_HINT[data.provisioning_policy as ProvisioningPolicy]}
+                    />
+                    <Row label="Responsable técnico" value={responsible ?? NOT_SET} />
+                    <Row
+                      label="Destinos habilitados"
+                      value={`${enabledTargets.length} de ${relatedTargets.length}`}
+                      hint="Un destino deshabilitado o en borrador queda «No evaluado»."
+                    />
+                    <Row
+                      label="Credenciales listas"
+                      value={
+                        credentials.isLoading
+                          ? 'Leyendo…'
+                          : `${readyCredentials.length} de ${productCredentials.length} con referencia configurada y habilitadas`
+                      }
+                      hint="Sólo se sabe si la referencia existe; el valor del secreto nunca llega a la consola."
+                    />
+                    <Row
+                      label="Certificación"
+                      value={<span className="text-muted">Sin fuente verificable en la consola</span>}
+                      hint="No se deduce de que la integración esté lista ni de que un alta haya quedado activa."
+                    />
+                  </div>
+                </Card>
+                <Card
+                  title="Salud observada por entorno"
+                  description="Última comprobación guardada de cada entorno. No es monitoreo en tiempo real: se actualiza con «Verificar conexión» en Entornos y despliegues."
+                >
+                  <div className="p-4">
+                    {targets.isLoading ? (
+                      <LoadingState label="Leyendo destinos…" />
+                    ) : targets.error ? (
+                      <ErrorState error={targets.error} onRetry={() => void targets.refetch()} />
+                    ) : (
+                      <EnvironmentHealthList summaries={summarizeByEnvironment(relatedTargets)} />
+                    )}
+                  </div>
+                </Card>
+              </div>
+            ),
+          },
+          {
             id: 'general',
-            label: 'General',
+            label: 'Contrato',
             content: (
               <Card title="Identidad y contrato">
                 <div className="px-4 pb-2">
@@ -203,20 +273,7 @@ export function IntegrationDetailPage() {
                   />
                   <Row label="Versión del contrato" value={<Mono>{data.contract_version}</Mono>} />
                   <Row label="Forma del contrato" value={contractAdapterFor(data.adapter_key).label} />
-                  <Row
-                    label="Responsable técnico"
-                    value={
-                      data.owner_name ??
-                      (data.profiles as { full_name: string | null; email: string } | null)
-                        ?.full_name ??
-                      NOT_SET
-                    }
-                  />
-                  <Row
-                    label="Política de provisioning"
-                    value={PROVISIONING_POLICY_LABEL[data.provisioning_policy as ProvisioningPolicy]}
-                    hint={PROVISIONING_POLICY_HINT[data.provisioning_policy as ProvisioningPolicy]}
-                  />
+                  <Row label="Responsable técnico" value={responsible ?? NOT_SET} />
                   <Row label="Actualizada" value={formatDateTime(data.updated_at)} />
                 </div>
               </Card>
@@ -349,17 +406,17 @@ export function IntegrationDetailPage() {
           },
           {
             id: 'deployments',
-            label: `Deployments (${relatedTargets.length})`,
+            label: `Destinos (${relatedTargets.length})`,
             content: (
               <Card title="Destinos que usan esta integración">
                 {relatedTargets.length === 0 ? (
                   <EmptyState
                     title="Sin destinos asociados"
-                    description="Configure un destino en Infraestructura → Deployments para indicar a qué URL se llama en cada ambiente."
+                    description="Configure un destino en Entornos y despliegues para indicar a qué URL se llama en cada entorno."
                   />
                 ) : (
                   <DataTable
-                    columns={['Destino', 'Ambiente', 'Modo', 'URL base', 'Estado', 'Salud', 'Timeout']}
+                    columns={['Destino', 'Entorno', 'Modo', 'URL base', 'Estado', 'Salud observada', 'Timeout']}
                   >
                     {relatedTargets.map((t) => (
                       <tr key={t.deployment_target_id}>
@@ -368,13 +425,7 @@ export function IntegrationDetailPage() {
                             {t.code}
                           </Link>
                         </td>
-                        <td className="ebim-td">
-                          {
-                            PROVISIONING_ENVIRONMENT_LABEL[
-                              t.provisioning_environment as ProvisioningEnvironment
-                            ]
-                          }
-                        </td>
+                        <td className="ebim-td">{environmentLabel(t.provisioning_environment)}</td>
                         <td className="ebim-td">{t.deployment_mode}</td>
                         <td className="ebim-td">
                           {t.base_url ? (
@@ -395,9 +446,14 @@ export function IntegrationDetailPage() {
                           </Badge>
                         </td>
                         <td className="ebim-td">
-                          <Badge tone={healthTone(t.health_status as DeploymentHealth)}>
-                            {DEPLOYMENT_HEALTH_LABEL[t.health_status as DeploymentHealth]}
-                          </Badge>
+                          <HealthBadge health={observedHealth(t)} />
+                          <p className="mt-1 text-xs">
+                            {isEvaluable(t) ? (
+                              <ObservationDate at={t.health_checked_at} />
+                            ) : (
+                              <span className="text-muted">{notEvaluatedReason(t)}</span>
+                            )}
+                          </p>
                         </td>
                         <td className="ebim-td tabular-nums">{t.timeout_ms} ms</td>
                       </tr>
@@ -588,7 +644,7 @@ export function IntegrationDetailPage() {
                           <td className="ebim-td">{entry.actor_email ?? '—'}</td>
                           <td className="ebim-td">
                             {changed.length === 0 ? (
-                              <span className="text-muted">Alta</span>
+                              <span className="text-muted">Sin campos registrados</span>
                             ) : (
                               <Mono>{changed.join(', ')}</Mono>
                             )}
@@ -626,7 +682,7 @@ export function IntegrationDetailPage() {
         title="Retirar propietario técnico"
         message={`${ownerToRemove?.name ?? ''} dejará de ver el provisioning de este producto. La asignación se desactiva; no se borra el historial.`}
         confirmLabel="Retirar"
-        onConfirm={() => void confirmRemoveOwner()}
+        onConfirm={confirmRemoveOwner}
         onCancel={() => setOwnerToRemove(null)}
       />
     </PageContainer>

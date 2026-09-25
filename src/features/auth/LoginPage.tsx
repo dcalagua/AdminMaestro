@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { MoonIcon, SunIcon } from '@phosphor-icons/react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useAppearance } from '@/hooks/useAppearance';
@@ -70,6 +71,24 @@ const BULLETS = [
   },
 ];
 
+/**
+ * Ayuda de acceso (spec §11.5). NO existe flujo de restablecimiento ni de
+ * solicitud de acceso en esta consola, y esta fase no lo construye: se explica
+ * con honestidad a quién pedirlo, sin simular un proceso automático.
+ */
+type HelpTopic = 'recover' | 'access';
+
+const HELP_TEXT: Record<HelpTopic, { title: string; body: string }> = {
+  recover: {
+    title: 'Restablecer la contraseña',
+    body: 'Esta consola no tiene restablecimiento automático de contraseña. Pide el restablecimiento al equipo de plataforma EBIM (operador), indicando tu correo corporativo.',
+  },
+  access: {
+    title: 'Solicitar acceso',
+    body: 'Esta consola no permite auto-registro ni solicitudes en línea. Pide el acceso al equipo de plataforma EBIM (operador), indicando tu correo corporativo y tu organización.',
+  },
+};
+
 export function LoginPage() {
   const { signIn } = useAuth();
   const { mode, toggleMode } = useAppearance();
@@ -81,6 +100,14 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [help, setHelp] = useState<HelpTopic | null>(null);
+  const helpRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (help) helpRef.current?.focus();
+  }, [help]);
+
+  const toggleHelp = (topic: HelpTopic) => setHelp((current) => (current === topic ? null : topic));
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -111,7 +138,10 @@ export function LoginPage() {
           aria-label={mode === 'light' ? 'Activar modo oscuro' : 'Activar modo claro'}
           className="rounded-field border border-border bg-card px-2.5 py-1 text-xs font-semibold text-muted hover:text-fg"
         >
-          {mode === 'light' ? '🌙 Oscuro' : '☀️ Claro'}
+          <span className="inline-flex items-center gap-1">
+            {mode === 'light' ? <MoonIcon size={14} aria-hidden /> : <SunIcon size={14} aria-hidden />}
+            {mode === 'light' ? 'Oscuro' : 'Claro'}
+          </span>
         </button>
       </div>
 
@@ -204,6 +234,8 @@ export function LoginPage() {
                 type="email"
                 autoComplete="username"
                 required
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? 'login-error' : undefined}
                 className="ebim-input"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -221,6 +253,8 @@ export function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   required
+                  aria-invalid={error ? true : undefined}
+                  aria-describedby={error ? 'login-error' : undefined}
                   className="ebim-input pr-11"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -230,6 +264,7 @@ export function LoginPage() {
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
                   aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  aria-pressed={showPassword}
                   className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1.5 text-muted hover:text-fg"
                 >
                   <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" aria-hidden>
@@ -239,16 +274,24 @@ export function LoginPage() {
                   </svg>
                 </button>
               </div>
-              {/* 11 · Link de recuperar, alineado a la derecha, bajo el campo. */}
+              {/* 11 · Recuperar, alineado a la derecha, bajo el campo. No hay flujo
+                  automático: abre la explicación honesta de a quién pedirlo. */}
               <div className="mt-1.5 text-right">
-                <a className="text-[13px] font-semibold text-accent-deep hover:underline" href="#recuperar">
+                <button
+                  type="button"
+                  className="rounded text-[13px] font-semibold text-accent-deep hover:underline"
+                  aria-expanded={help === 'recover'}
+                  aria-controls="login-help"
+                  onClick={() => toggleHelp('recover')}
+                >
                   ¿Olvidaste tu contraseña?
-                </a>
+                </button>
               </div>
             </div>
 
             {error ? (
               <p
+                id="login-error"
                 role="alert"
                 className="rounded-field bg-danger-soft px-3 py-2.5 text-[13px] font-medium text-danger"
               >
@@ -267,13 +310,46 @@ export function LoginPage() {
             </button>
           </form>
 
-          {/* 13 · UN SOLO link secundario, en texto corriente. */}
+          {/* 13 · UN SOLO link secundario, en texto corriente. Apunta a la ayuda
+              de esta misma página: no existe un formulario de solicitud. */}
           <p className="mt-5 text-center text-[13px] text-muted">
             ¿Necesitas acceso?{' '}
-            <a className="font-semibold text-accent-deep hover:underline" href="#solicitar">
+            <a
+              className="font-semibold text-accent-deep hover:underline"
+              href="#login-help"
+              aria-expanded={help === 'access'}
+              aria-controls="login-help"
+              onClick={(e) => {
+                e.preventDefault();
+                toggleHelp('access');
+              }}
+            >
               Solicítalo al equipo de plataforma
             </a>
           </p>
+
+          {help ? (
+            <div
+              id="login-help"
+              ref={helpRef}
+              tabIndex={-1}
+              role="note"
+              aria-labelledby="login-help-title"
+              className="mt-4 rounded-field border border-border bg-[color:var(--bg)] px-4 py-3 text-[13px]"
+            >
+              <p id="login-help-title" className="font-semibold text-fg">
+                {HELP_TEXT[help].title}
+              </p>
+              <p className="mt-1 text-muted">{HELP_TEXT[help].body}</p>
+              <button
+                type="button"
+                className="mt-2 rounded text-[13px] font-semibold text-accent-deep hover:underline"
+                onClick={() => setHelp(null)}
+              >
+                Entendido
+              </button>
+            </div>
+          ) : null}
 
           {/* 14 · Lockup "by EBIM" al pie, tras un divisor sutil, centrado. */}
           <div className="mt-7 border-t border-border pt-5 text-center">

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   useSaasProvisioningRequests,
@@ -22,6 +22,7 @@ import {
 import { formatDateTime } from '@/lib/format';
 import {
   INTEGRATION_TYPE_LABEL,
+  MAPPING_STATUS_LABEL,
   PROVISIONING_ENVIRONMENT_LABEL,
   PROVISIONING_POLICY_LABEL,
   SAAS_PROVISIONING_STATUS_LABEL,
@@ -36,6 +37,7 @@ import {
   type ProvisioningEnvironment,
   type ProvisioningPolicy,
   type SaasProvisioningStatus,
+  type TenantProductMappingStatus,
 } from '@/lib/provisioning';
 import { NewProvisioningRequestDialog, RegisterManualDialog } from './ProvisioningDialogs';
 import { ProductConfigurationForm } from './ProductConfigurationForm';
@@ -45,6 +47,20 @@ import { DEPLOYMENT_MODE_LABEL } from '@/types/domain';
 import type { DeploymentMode } from '@/types/domain';
 
 type QueueFilter = 'ALL' | 'OPEN' | 'WAITING' | 'FAILED' | 'ACTIVE';
+
+/** Capacidades que declara el contrato de la integración (no son permisos). */
+const CAPABILITY_LABEL: Record<string, string> = {
+  PROVISION: 'Alta en el producto',
+  GET_STATUS: 'Consulta de estado',
+  REPLAY_CERTIFICATION: 'Repetición controlada fuera de producción',
+};
+
+function mappingTone(status: TenantProductMappingStatus): 'ok' | 'warn' | 'danger' | 'neutral' {
+  if (status === 'ACTIVE') return 'ok';
+  if (status === 'FAILED') return 'danger';
+  if (status === 'PENDING') return 'warn';
+  return 'neutral';
+}
 
 /**
  * Provisioning SaaS: el alta de cada tenant DENTRO de cada producto.
@@ -56,6 +72,10 @@ type QueueFilter = 'ALL' | 'OPEN' | 'WAITING' | 'FAILED' | 'ACTIVE';
  * La ejecución NO sale de esta pantalla hacia el producto: va al orquestador
  * server-side, que comprueba el permiso contra la base antes de hacer nada y
  * resuelve él toda la configuración.
+ *
+ * Abrir, recargar o volver a esta pantalla sólo LEE: ninguna solicitud se crea
+ * ni se ejecuta por navegar. Cada acción es un botón explícito y sólo aparece si
+ * el estado, el permiso y la capacidad del contrato la admiten.
  */
 export function SaasProvisioningPage() {
   const requests = useSaasProvisioningRequests();
@@ -154,8 +174,8 @@ export function SaasProvisioningPage() {
 
   return (
     <PageContainer
-      title="Provisioning SaaS"
-      description="El alta de cada tenant DENTRO de cada producto de la suite. MasterAdmin llama a la API del producto; nunca a su base de datos."
+      title="Altas SaaS"
+      description="Altas SaaS: el alta de cada tenant DENTRO de cada producto de la suite. MasterAdmin llama a la API del producto, nunca a su base de datos. La infraestructura física tiene su propia cola."
       actions={
         access.can('platform.provisioning.execute') || access.ownedProductIds.length > 0 ? (
           <button type="button" className="ebim-btn-primary" onClick={() => setNewOpen(true)}>
@@ -164,7 +184,7 @@ export function SaasProvisioningPage() {
         ) : null
       }
     >
-      <div className="mb-4 grid gap-3 sm:grid-cols-4">
+      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Activos" value={String(countBy('ACTIVE'))} tone="ok" />
         <StatCard label="Listos para provisionar" value={String(countBy('READY_TO_PROVISION'))} />
         <StatCard
@@ -234,8 +254,8 @@ export function SaasProvisioningPage() {
               const isExpanded = expanded === id;
 
               return (
-                <>
-                  <tr key={id}>
+                <Fragment key={id}>
+                  <tr>
                     <td className="ebim-td">
                       <Link
                         to={`/tenants/${r.tenant_id}`}
@@ -270,6 +290,11 @@ export function SaasProvisioningPage() {
                     </td>
                     <td className="ebim-td tabular-nums">
                       {r.attempt_count}/{r.max_attempts}
+                      {r.last_error_code && status === 'FAILED' ? (
+                        <p className="mt-1 max-w-[200px] truncate text-xs text-danger" title={providerErrorLabel(r.last_error_code) ?? ''}>
+                          {providerErrorLabel(r.last_error_code)}
+                        </p>
+                      ) : null}
                     </td>
                     <td className="ebim-td">{r.requested_by_name ?? '—'}</td>
                     <td className="ebim-td whitespace-nowrap">{formatDateTime(r.requested_at)}</td>
@@ -290,6 +315,7 @@ export function SaasProvisioningPage() {
                           <button
                             type="button"
                             className="ebim-btn-secondary"
+                            disabled={retry.isPending}
                             onClick={() => void runRetry(id)}
                           >
                             Reintentar
@@ -323,6 +349,7 @@ export function SaasProvisioningPage() {
                         <button
                           type="button"
                           className="ebim-btn-ghost"
+                          aria-expanded={isExpanded}
                           onClick={() => setExpanded(isExpanded ? null : id)}
                         >
                           {isExpanded ? 'Ocultar' : 'Detalle'}
@@ -331,13 +358,13 @@ export function SaasProvisioningPage() {
                     </td>
                   </tr>
                   {isExpanded ? (
-                    <tr key={`${id}-detail`}>
+                    <tr>
                       <td className="ebim-td bg-[color:var(--bg)]" colSpan={10}>
                         <RequestDetail request={r as Record<string, unknown>} />
                       </td>
                     </tr>
                   ) : null}
-                </>
+                </Fragment>
               );
             })}
           </DataTable>
@@ -358,14 +385,18 @@ export function SaasProvisioningPage() {
         message={`${cancelTarget?.label ?? ''} quedará cancelada. No se borra nada: la solicitud queda en el historial y se podrá crear una nueva.`}
         confirmLabel="Cancelar solicitud"
         cancelLabel="Volver"
-        onConfirm={() => void confirmCancel()}
+        onConfirm={confirmCancel}
         onCancel={() => setCancelTarget(null)}
       />
     </PageContainer>
   );
 }
 
-/** Detalle de una solicitud: identidad, configuración, errores y timeline. */
+/**
+ * Detalle de una solicitud como UNA operación legible (spec §12): solicitud →
+ * intentos → identidad en el producto (mapping) → error → capacidades, con el
+ * historial al lado. Sólo lectura; las acciones siguen en la fila.
+ */
 function RequestDetail({ request }: { request: Record<string, unknown> }) {
   const id = request.id as string;
   const events = useSaasProvisioningEvents(id);
@@ -374,20 +405,22 @@ function RequestDetail({ request }: { request: Record<string, unknown> }) {
 
   const blockers = preconditions.data?.blockers ?? [];
   const errorCode = request.last_error_code as string | null;
+  const capabilities = (request.capabilities as string[] | null | undefined) ?? [];
+  const mappingStatus = request.mapping_status as TenantProductMappingStatus | null;
 
   return (
     <div className="grid gap-4 py-3 lg:grid-cols-2">
-      <div>
+      <div className="min-w-0">
         <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted">
           Identidad y trazabilidad
         </p>
         <dl className="space-y-1 text-[13px]">
-          <Pair label="Correlación" value={request.correlation_id as string} mono />
-          <Pair label="Idempotencia" value={request.idempotency_key as string} mono />
-          <Pair label="Versión de la solicitud" value={String(request.request_version)} />
+          <Pair label="Correlación" value={(request.correlation_id as string) ?? '—'} mono />
+          <Pair label="Idempotencia" value={(request.idempotency_key as string) ?? '—'} mono />
+          <Pair label="Versión de la solicitud" value={String(request.request_version ?? '—')} />
           <Pair
             label="Política aplicada"
-            value={PROVISIONING_POLICY_LABEL[request.provisioning_policy as ProvisioningPolicy]}
+            value={PROVISIONING_POLICY_LABEL[request.provisioning_policy as ProvisioningPolicy] ?? '—'}
           />
           <Pair
             label="Adaptador"
@@ -404,9 +437,43 @@ function RequestDetail({ request }: { request: Record<string, unknown> }) {
           />
         </dl>
 
+        <p className="mt-4 mb-2 text-xs font-bold uppercase tracking-wide text-muted">Intentos</p>
+        <dl className="space-y-1 text-[13px]">
+          <Pair
+            label="Usados"
+            value={`${String(request.attempt_count ?? 0)} de ${String(request.max_attempts ?? '—')}`}
+          />
+          <Pair
+            label="Solicitada"
+            value={request.requested_at ? formatDateTime(request.requested_at as string) : '—'}
+          />
+          <Pair
+            label="Inicio de la ejecución"
+            value={request.started_at ? formatDateTime(request.started_at as string) : 'Sin ejecutar'}
+          />
+          <Pair
+            label="Finalizada"
+            value={request.completed_at ? formatDateTime(request.completed_at as string) : '—'}
+          />
+          {request.cancelled_at ? (
+            <Pair
+              label="Cancelada"
+              value={`${formatDateTime(request.cancelled_at as string)}${
+                request.cancel_reason ? ` · ${request.cancel_reason as string}` : ''
+              }`}
+            />
+          ) : null}
+        </dl>
+
         <p className="mt-4 mb-2 text-xs font-bold uppercase tracking-wide text-muted">
           Identidad en el producto
         </p>
+        {mappingStatus ? (
+          <p className="mb-1.5 flex flex-wrap items-center gap-2 text-[13px]">
+            <span className="text-muted">Mapping:</span>
+            <Badge tone={mappingTone(mappingStatus)}>{MAPPING_STATUS_LABEL[mappingStatus] ?? mappingStatus}</Badge>
+          </p>
+        ) : null}
         {request.external_tenant_id ? (
           <dl className="space-y-1 text-[13px]">
             <Pair label="Tenant externo" value={request.external_tenant_id as string} mono />
@@ -435,10 +502,13 @@ function RequestDetail({ request }: { request: Record<string, unknown> }) {
             <p className="mt-4 mb-2 text-xs font-bold uppercase tracking-wide text-muted">
               Último error
             </p>
-            <div className="rounded-field border border-danger-soft bg-danger-soft/40 p-3 text-[13px]">
+            <div role="note" className="rounded-field border border-border bg-danger-soft p-3 text-[13px]">
               <p className="font-semibold text-danger">{providerErrorLabel(errorCode)}</p>
+              <p className="mt-0.5 font-mono text-xs text-muted">{errorCode}</p>
               {request.last_error_message ? (
-                <p className="mt-1 text-muted">{request.last_error_message as string}</p>
+                <p className="mt-1 whitespace-pre-wrap break-words text-fg">
+                  {request.last_error_message as string}
+                </p>
               ) : null}
               {request.provider_http_status ? (
                 <p className="mt-1 font-mono text-xs text-muted">
@@ -448,6 +518,21 @@ function RequestDetail({ request }: { request: Record<string, unknown> }) {
             </div>
           </>
         ) : null}
+
+        <p className="mt-4 mb-2 text-xs font-bold uppercase tracking-wide text-muted">
+          Capacidades del contrato
+        </p>
+        {capabilities.length === 0 ? (
+          <p className="text-[13px] text-muted">El contrato no declara capacidades.</p>
+        ) : (
+          <ul className="flex flex-wrap gap-1.5" aria-label="Capacidades del contrato">
+            {capabilities.map((c) => (
+              <li key={c}>
+                <Badge tone="info">{CAPABILITY_LABEL[c] ?? c}</Badge>
+              </li>
+            ))}
+          </ul>
+        )}
 
         <ProductConfigurationForm request={request} />
         <ProvisioningStatusAction request={request} />
@@ -466,12 +551,14 @@ function RequestDetail({ request }: { request: Record<string, unknown> }) {
         ) : null}
       </div>
 
-      <div>
+      <div className="min-w-0">
         <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted">
           Historial de la solicitud
         </p>
         {events.isLoading ? (
           <LoadingState />
+        ) : events.error ? (
+          <ErrorState error={events.error} onRetry={() => void events.refetch()} />
         ) : (events.data ?? []).length === 0 ? (
           <p className="text-[13px] text-muted">Sin eventos.</p>
         ) : (
@@ -483,9 +570,15 @@ function RequestDetail({ request }: { request: Record<string, unknown> }) {
                     {SAAS_PROVISIONING_STATUS_LABEL[e.status as SaasProvisioningStatus]}
                   </Badge>
                   <span className="font-mono text-xs text-muted">{e.action}</span>
-                  <span className="text-xs text-muted">{formatDateTime(e.occurred_at)}</span>
+                  <time className="text-xs text-muted" dateTime={e.occurred_at}>
+                    {formatDateTime(e.occurred_at)}
+                  </time>
+                  {e.attempt ? <span className="text-xs text-muted">Intento {e.attempt}</span> : null}
+                  {e.provider_http_status ? (
+                    <span className="font-mono text-xs text-muted">HTTP {e.provider_http_status}</span>
+                  ) : null}
                 </div>
-                <p className="mt-0.5 text-[13px] text-fg">{e.message}</p>
+                <p className="mt-0.5 break-words text-[13px] text-fg">{e.message}</p>
                 {e.actor_role ? (
                   <p className="text-xs text-muted">Actor: {e.actor_role}</p>
                 ) : null}
@@ -500,8 +593,8 @@ function RequestDetail({ request }: { request: Record<string, unknown> }) {
 
 function Pair({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div className="flex gap-2">
-      <dt className="w-44 shrink-0 text-muted">{label}</dt>
+    <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
+      <dt className="shrink-0 text-muted sm:w-44">{label}</dt>
       <dd className={mono ? 'min-w-0 break-all font-mono text-xs' : 'min-w-0'}>{value}</dd>
     </div>
   );

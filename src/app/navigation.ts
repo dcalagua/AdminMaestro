@@ -6,19 +6,36 @@ import {
   StackIcon, TreeStructureIcon, UsersThreeIcon,
 } from '@phosphor-icons/react';
 import type { PersonaKind } from '@/features/auth/session';
+import type { SessionRoles } from '@/types/domain';
 
 /**
  * Navegación de la consola.
  *
- * El menú se adapta al rol (contrato/prompt fase 9), pero eso es UX, NO
- * seguridad: cada ruta se protege además con `<RequirePersona>` y, sobre todo,
- * cada consulta está filtrada por RLS. Ocultar un menú no protege nada.
+ * El menú se adapta al rol, pero eso es UX, NO seguridad: cada ruta se protege
+ * además con `<RequirePersona>` y, sobre todo, cada consulta está filtrada por
+ * RLS. Ocultar un menú no protege nada.
  *
- * La agrupación sigue el recorrido real de una venta (Fase 14):
- * Plataforma → Comercial → Tenancy → Cobranza → Infraestructura → Gobierno.
- * Antes «Suscripciones» y «Facturación» vivían en un cajón llamado «Finanzas»
- * junto a «Costos», que mezclaba el contrato con el dinero ya cobrado.
+ * Arquitectura de información de negocio (spec §5): Inicio · Clientes y canales ·
+ * Productos y contratos · Finanzas · Operación SaaS · Gobierno. Las URL NO cambian;
+ * sólo la agrupación y las etiquetas.
  */
+export type NavGroup =
+  | 'Inicio'
+  | 'Clientes y canales'
+  | 'Productos y contratos'
+  | 'Finanzas'
+  | 'Operación SaaS'
+  | 'Gobierno';
+
+export const NAV_GROUP_ORDER: NavGroup[] = [
+  'Inicio',
+  'Clientes y canales',
+  'Productos y contratos',
+  'Finanzas',
+  'Operación SaaS',
+  'Gobierno',
+];
+
 export interface NavItem {
   to: string;
   label: string;
@@ -26,64 +43,106 @@ export interface NavItem {
   icon: Icon;
   /** Personas que ven la entrada. Vacío = todas. */
   personas?: PersonaKind[];
-  group: string;
+  group: NavGroup;
+  /** Información financiera: no se ofrece a personal EBIM con alcance sólo técnico. */
+  finance?: boolean;
+  /** Nombre de la ficha de detalle (`/ruta/:id`), para migas y título. */
+  detailLabel?: string;
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  // ---- Plataforma ---------------------------------------------------------
-  { to: '/', label: 'Dashboard', icon: HouseIcon, group: 'Plataforma' },
-  { to: '/products', label: 'Suite SaaS', icon: SquaresFourIcon, group: 'Plataforma' },
-  { to: '/plans', label: 'Planes y licencias', icon: CertificateIcon, group: 'Plataforma' },
-  { to: '/feature-flags', label: 'Feature flags', icon: FlagIcon, group: 'Plataforma' },
-  { to: '/integrations', label: 'Integraciones SaaS', icon: PlugsConnectedIcon, group: 'Plataforma', personas: ['EBIM'] },
+  // ---- Inicio -------------------------------------------------------------
+  { to: '/', label: 'Resumen ejecutivo', icon: HouseIcon, group: 'Inicio' },
 
-  // ---- Comercial ----------------------------------------------------------
-  { to: '/partners', label: 'Partners / Resellers', icon: HandshakeIcon, group: 'Comercial', personas: ['EBIM', 'PARTNER'] },
-  { to: '/customers', label: 'Clientes', icon: BuildingsIcon, group: 'Comercial', personas: ['EBIM', 'PARTNER'] },
-  { to: '/organizations', label: 'Todas las organizaciones', icon: TreeStructureIcon, group: 'Comercial', personas: ['EBIM', 'PARTNER'] },
-  { to: '/sales-agents', label: 'Comerciales', icon: UsersThreeIcon, group: 'Comercial', personas: ['EBIM', 'PARTNER'] },
-  { to: '/attributions', label: 'Atribuciones', icon: LinkIcon, group: 'Comercial' },
-  { to: '/commission-plans', label: 'Planes de comisión', icon: PercentIcon, group: 'Comercial', personas: ['EBIM', 'PARTNER'] },
-  { to: '/commissions', label: 'Comisiones y liquidaciones', icon: HandCoinsIcon, group: 'Comercial' },
+  // ---- Clientes y canales -------------------------------------------------
+  { to: '/customers', label: 'Clientes', icon: BuildingsIcon, group: 'Clientes y canales', personas: ['EBIM', 'PARTNER'] },
+  { to: '/partners', label: 'Partners y canales', icon: HandshakeIcon, group: 'Clientes y canales', personas: ['EBIM', 'PARTNER'] },
+  { to: '/organizations', label: 'Directorio corporativo', icon: TreeStructureIcon, group: 'Clientes y canales', personas: ['EBIM', 'PARTNER'], detailLabel: 'Ficha 360' },
+  { to: '/sales-agents', label: 'Equipo comercial', icon: UsersThreeIcon, group: 'Clientes y canales', personas: ['EBIM', 'PARTNER'] },
+  { to: '/attributions', label: 'Atribuciones', icon: LinkIcon, group: 'Clientes y canales' },
 
-  // ---- Tenancy ------------------------------------------------------------
-  { to: '/onboarding', label: 'Nueva venta', icon: RocketLaunchIcon, group: 'Tenancy', personas: ['EBIM'] },
-  { to: '/tenants', label: 'Tenants', icon: BuildingOfficeIcon, group: 'Tenancy' },
-  { to: '/subscriptions', label: 'Suscripciones y licencias', icon: ArrowsClockwiseIcon, group: 'Tenancy', personas: ['EBIM', 'PARTNER'] },
+  // ---- Productos y contratos ----------------------------------------------
+  { to: '/products', label: 'Suite SaaS', icon: SquaresFourIcon, group: 'Productos y contratos', detailLabel: 'Ficha de producto' },
+  { to: '/plans', label: 'Planes y licencias', icon: CertificateIcon, group: 'Productos y contratos' },
+  { to: '/feature-flags', label: 'Capacidades', icon: FlagIcon, group: 'Productos y contratos' },
+  { to: '/onboarding', label: 'Nueva venta', icon: RocketLaunchIcon, group: 'Productos y contratos', personas: ['EBIM'] },
+  { to: '/tenants', label: 'Tenants', icon: BuildingOfficeIcon, group: 'Productos y contratos', detailLabel: 'Tenant 360' },
+  { to: '/subscriptions', label: 'Contratos y suscripciones', icon: ArrowsClockwiseIcon, group: 'Productos y contratos', personas: ['EBIM', 'PARTNER'], finance: true, detailLabel: 'Contrato 360' },
 
-  // ---- Cobranza -----------------------------------------------------------
-  { to: '/billing', label: 'Facturación y cobros', icon: ReceiptIcon, group: 'Cobranza', personas: ['EBIM', 'PARTNER'] },
-  { to: '/renewals', label: 'Renovaciones y alertas', icon: BellRingingIcon, group: 'Cobranza', personas: ['EBIM', 'PARTNER'] },
-  { to: '/reconciliation', label: 'Reconciliación', icon: ScalesIcon, group: 'Cobranza', personas: ['EBIM'] },
+  // ---- Finanzas -----------------------------------------------------------
+  { to: '/billing', label: 'Facturación y cobros', icon: ReceiptIcon, group: 'Finanzas', personas: ['EBIM', 'PARTNER'], finance: true },
+  { to: '/costs', label: 'Costos y margen', icon: ChartLineUpIcon, group: 'Finanzas', personas: ['EBIM'], finance: true },
+  { to: '/commissions', label: 'Comisiones', icon: HandCoinsIcon, group: 'Finanzas', finance: true },
+  { to: '/commission-plans', label: 'Reglas de comisión', icon: PercentIcon, group: 'Finanzas', personas: ['EBIM', 'PARTNER'], finance: true },
+  { to: '/renewals', label: 'Renovaciones', icon: BellRingingIcon, group: 'Finanzas', personas: ['EBIM', 'PARTNER'], finance: true },
+  { to: '/reconciliation', label: 'Conciliación', icon: ScalesIcon, group: 'Finanzas', personas: ['EBIM'], finance: true },
+  { to: '/regional', label: 'Monedas y FX', icon: CurrencyCircleDollarIcon, group: 'Finanzas', personas: ['EBIM'], finance: true },
 
-  // ---- Infraestructura ----------------------------------------------------
-  { to: '/deployments', label: 'Deployments', icon: CloudArrowUpIcon, group: 'Infraestructura', personas: ['EBIM', 'PARTNER'] },
-  { to: '/provisioning', label: 'Provisioning de infraestructura', icon: HardDrivesIcon, group: 'Infraestructura', personas: ['EBIM', 'PARTNER'] },
-  { to: '/saas-provisioning', label: 'Provisioning SaaS', icon: StackIcon, group: 'Infraestructura', personas: ['EBIM', 'PARTNER'] },
+  // ---- Operación SaaS -----------------------------------------------------
+  { to: '/integrations', label: 'Integraciones', icon: PlugsConnectedIcon, group: 'Operación SaaS', personas: ['EBIM'], detailLabel: 'Ficha de integración' },
+  { to: '/deployments', label: 'Entornos y despliegues', icon: CloudArrowUpIcon, group: 'Operación SaaS', personas: ['EBIM', 'PARTNER'] },
+  { to: '/saas-provisioning', label: 'Altas SaaS', icon: StackIcon, group: 'Operación SaaS', personas: ['EBIM', 'PARTNER'] },
+  { to: '/provisioning', label: 'Solicitudes de infraestructura', icon: HardDrivesIcon, group: 'Operación SaaS', personas: ['EBIM', 'PARTNER'] },
 
   // ---- Gobierno -----------------------------------------------------------
-  { to: '/costs', label: 'Costos y margen', icon: ChartLineUpIcon, group: 'Gobierno', personas: ['EBIM'] },
-  { to: '/regional', label: 'Monedas y FX', icon: CurrencyCircleDollarIcon, group: 'Gobierno', personas: ['EBIM'] },
   { to: '/audit', label: 'Auditoría', icon: ShieldCheckIcon, group: 'Gobierno', personas: ['EBIM', 'PARTNER'] },
   { to: '/settings', label: 'Configuración', icon: GearSixIcon, group: 'Gobierno' },
 ];
 
-export function navItemsFor(persona: PersonaKind): NavItem[] {
-  return NAV_ITEMS.filter((item) => !item.personas || item.personas.includes(persona));
+/**
+ * ¿Se le ofrece información financiera? Personal EBIM cuyo único vínculo es el
+ * plano de provisioning (propietario técnico, rol de provisioning, sin rol de
+ * plataforma) NO: «ser EBIM» no concede finanzas (spec §4). Es UX; la base
+ * (`can_read_finance`, RLS) sigue siendo la autoridad.
+ */
+export function hasFinanceView(persona: PersonaKind, roles: SessionRoles | null | undefined): boolean {
+  if (persona !== 'EBIM') return true;
+  return Boolean(roles?.platformRole);
 }
 
-export function navGroupsFor(persona: PersonaKind): Array<{ group: string; items: NavItem[] }> {
-  const items = navItemsFor(persona);
-  const order: string[] = [];
-  const map = new Map<string, NavItem[]>();
+export function navItemsFor(persona: PersonaKind, options: { finance?: boolean } = {}): NavItem[] {
+  const finance = options.finance ?? true;
+  return NAV_ITEMS.filter(
+    (item) => (!item.personas || item.personas.includes(persona)) && (finance || !item.finance),
+  );
+}
 
-  for (const item of items) {
-    if (!map.has(item.group)) {
-      map.set(item.group, []);
-      order.push(item.group);
-    }
-    map.get(item.group)!.push(item);
+export function navGroupsFor(
+  persona: PersonaKind,
+  options: { finance?: boolean } = {},
+): Array<{ group: NavGroup; items: NavItem[] }> {
+  const items = navItemsFor(persona, options);
+  return NAV_GROUP_ORDER.map((group) => ({ group, items: items.filter((i) => i.group === group) })).filter(
+    (g) => g.items.length > 0,
+  );
+}
+
+export interface RouteMeta {
+  group: NavGroup | null;
+  section: NavItem | null;
+  /** Título humano de la pantalla (o de la ficha). */
+  title: string;
+  isDetail: boolean;
+}
+
+/** Migas y título humano para una ruta (reemplaza a `location.pathname`). */
+export function routeMeta(pathname: string): RouteMeta {
+  if (pathname === '/' || pathname === '') {
+    const home = NAV_ITEMS[0]!;
+    return { group: home.group, section: home, title: home.label, isDetail: false };
   }
+  if (pathname === '/404') return { group: null, section: null, title: 'Página no encontrada', isDetail: false };
+  if (pathname === '/login') return { group: null, section: null, title: 'Ingreso', isDetail: false };
 
-  return order.map((group) => ({ group, items: map.get(group)! }));
+  const segments = pathname.split('/').filter(Boolean);
+  const base = `/${segments[0]}`;
+  const section = NAV_ITEMS.find((i) => i.to === base) ?? null;
+  if (!section) return { group: null, section: null, title: 'Página no encontrada', isDetail: false };
+  const isDetail = segments.length > 1;
+  return {
+    group: section.group,
+    section,
+    title: isDetail ? (section.detailLabel ?? 'Detalle') : section.label,
+    isDetail,
+  };
 }

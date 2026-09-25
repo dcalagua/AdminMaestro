@@ -81,7 +81,7 @@ async function invoiceAndCollect(page: Page, currency: string, total: RegExp, re
 
   const row = page.getByRole('row').filter({ hasText: 'INV-' }).first();
   await expect(row).toContainText(total);
-  await expect(row).toContainText('ISSUED');
+  await expect(row).toContainText(/Emitida|ISSUED/);
 
   await row.getByRole('button', { name: 'Registrar cobro' }).click();
   const dialog = page.getByRole('dialog');
@@ -90,11 +90,12 @@ async function invoiceAndCollect(page: Page, currency: string, total: RegExp, re
   await field(dialog, 'Referencia').fill(reference);
   await dialog.getByRole('button', { name: 'Confirmar cobro' }).click();
   await expect(page.getByText('Cobro registrado')).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByRole('row').filter({ hasText: 'INV-' }).first()).toContainText('PAID', { timeout: 15_000 });
+  await expect(page.getByRole('row').filter({ hasText: 'INV-' }).first()).toContainText(/Pagada|PAID/, { timeout: 15_000 });
 }
 
 async function regionalPanel(page: Page) {
-  await page.goto('/');
+  // Desde la spec 2026-09-25 el panel regional vive en la perspectiva Finanzas.
+  await page.goto('/#finanzas');
   const panel = page.locator('section').filter({ hasText: 'Finanzas regionales' });
   await expect(panel).toBeVisible();
   return panel;

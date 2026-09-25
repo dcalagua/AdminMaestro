@@ -273,12 +273,19 @@ export function useExchangeRates() {
 }
 
 export interface FinanceConsolidatedParams {
+  /** Fecha de las TASAS FX (valuación). No es el período de operaciones. */
   asOf: string;
   groupBy: 'TOTAL' | 'MARKET' | 'PRODUCT' | 'PARTNER';
   marketCode?: string;
   currency?: string;
   saasProductId?: string;
   organizationId?: string;
+  /**
+   * Período transaccional (E03): filtra cobros, costos y comisiones por fecha de
+   * hecho. MRR/ARR son foto actual y el SQL no los filtra por período.
+   */
+  periodStart?: string;
+  periodEnd?: string;
 }
 
 /**
@@ -296,6 +303,8 @@ export function useFinanceConsolidated(params: FinanceConsolidatedParams) {
         p_currency: params.currency || undefined,
         p_saas_product_id: params.saasProductId || undefined,
         p_organization_id: params.organizationId || undefined,
+        p_period_start: params.periodStart || undefined,
+        p_period_end: params.periodEnd || undefined,
       });
       if (error) throw new Error(error.message);
       return data as unknown as FinanceConsolidated;
@@ -521,6 +530,27 @@ export function useInvoices() {
           .select('*, organizations(display_name), invoice_lines(*), payments(*)')
           .order('issue_date', { ascending: false, nullsFirst: false })
           .limit(200),
+      ),
+  });
+}
+
+/**
+ * Facturas de UNA suscripción, con sus pagos. Acotada en el servidor por
+ * contrato: sin el tope de 200 del listado general, así el Contrato 360 no
+ * pierde facturas antiguas cuando el universo de la cuenta crece (E02).
+ */
+export function useSubscriptionInvoices(subscriptionId: string | undefined) {
+  return useQuery({
+    queryKey: ['invoices', 'subscription', subscriptionId],
+    enabled: Boolean(subscriptionId),
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('invoices')
+          .select('*, organizations(display_name), invoice_lines(*), payments(*)')
+          .eq('subscription_id', subscriptionId!)
+          .order('issue_date', { ascending: false, nullsFirst: false })
+          .order('id'),
       ),
   });
 }
