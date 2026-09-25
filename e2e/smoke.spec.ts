@@ -42,13 +42,14 @@ test.describe('Consola EBIM (super admin)', () => {
   });
 
   test('el dashboard muestra indicadores calculados del seed', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: 'Dashboard EBIM' })).toBeVisible();
-    await expect(page.getByText('SaaS activos')).toBeVisible();
-    // "MRR" aparece como tarjeta y como cabecera de tabla: se ancla a la tarjeta.
-    await expect(page.getByText('MRR', { exact: true }).first()).toBeVisible();
-    await expect(page.getByText('Ingreso cobrado').first()).toBeVisible();
-    // Margen por producto con datos reales, no un gráfico vacío.
-    await expect(page.getByText('Margen por producto SaaS')).toBeVisible();
+    // Spec 2026-09-25 §7: el inicio es el «Resumen ejecutivo» con seis KPI.
+    await expect(page.getByRole('heading', { name: 'Resumen ejecutivo', level: 1 })).toBeVisible();
+    await expect(page.locator('[data-kpi]')).toHaveCount(6);
+    await expect(page.locator('[data-kpi="K01"]')).toContainText('MRR vigente');
+    await expect(page.locator('[data-kpi="K02"]')).toContainText('Cobrado del período');
+    // Margen por producto con datos reales, ahora en la perspectiva Finanzas.
+    await page.getByRole('tab', { name: 'Finanzas' }).click();
+    await expect(page.getByText('¿Cómo se compone el margen de cada SaaS?')).toBeVisible();
   });
 
   test('el catálogo lista los 5 SaaS iniciales', async ({ page }) => {
@@ -103,7 +104,7 @@ test.describe('Consola EBIM (super admin)', () => {
 
   test('costos y margen calculan sobre ingreso cobrado', async ({ page }) => {
     await page.getByRole('link', { name: 'Costos y margen' }).click();
-    await expect(page.getByText('Margen bruto').first()).toBeVisible();
+    await expect(page.getByText(/Margen (bruto|gerencial)/i).first()).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Por partner' })).toBeVisible();
   });
 

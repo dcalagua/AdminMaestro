@@ -149,6 +149,26 @@ export function Org360Summary({ organizationId, capabilities }: { organizationId
           detailHref="#contracts"
         />
         <KpiCard
+          id="org-methods"
+          label="Métodos de cobro distintos"
+          temporality="Por suscripción"
+          state={fromQuery(subs, { isEmpty: () => false })}
+          onRetry={() => void subs.refetch()}
+          render={() => {
+            const methods = new Set((subs.data ?? []).map((x) => x.collection_method ?? 'MANUAL'));
+            return (
+              <div>
+                <p className="tabular-nums">{formatNumber(methods.size)}</p>
+                <p className="mt-1 text-xs font-medium text-muted">
+                  {[...methods].map((m) => METHOD_LABEL[m as string] ?? m).join(' · ') || 'Sin contratos'}
+                </p>
+              </div>
+            );
+          }}
+          hint="El método se define por contrato: cada SaaS puede pagarse de otra forma"
+          detailHref="#contracts"
+        />
+        <KpiCard
           id="org-tenants"
           label="Tenants"
           temporality="Registro actual"

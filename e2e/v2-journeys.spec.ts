@@ -191,12 +191,14 @@ test.describe('J7 · Un cliente, dos SaaS, dos métodos de cobro', () => {
 
     // La vista 360 es la demostración principal del Control Plane.
     await expect(page.getByRole('tab', { name: 'Vista 360' })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('Métodos de cobro distintos')).toBeVisible();
+    // Spec 2026-09-25 §11.1: la 360 se organiza por secciones (pestañas).
+    await page.getByRole('tab', { name: 'Productos y contratos' }).click();
     await expect(page.getByText('Cobranza por SaaS')).toBeVisible();
 
     // El mismo cliente, dos métodos distintos, en la misma tabla.
     await expect(page.getByText('Tarjeta (Culqi)').first()).toBeVisible();
     await expect(page.getByText('Orden de Servicio').first()).toBeVisible();
-    await expect(page.getByText('Métodos de cobro distintos')).toBeVisible();
   });
 });
 
@@ -251,7 +253,7 @@ test.describe('J9 · Culqi en MOCK e idempotencia visible', () => {
 
     await expect(page.getByText('charge.failed').first()).toBeVisible({ timeout: 15_000 });
     // La entrega repetida del seed: la idempotencia funcionando, a la vista.
-    await expect(page.getByText('IGNORED').first()).toBeVisible();
+    await expect(page.getByText(/Ignorado \(repetido\)|IGNORED/).first()).toBeVisible();
   });
 });
 
@@ -335,11 +337,17 @@ test.describe('J13 · Vista 360 de organización', () => {
     await page.getByRole('link', { name: 'Ver detalle' }).first().click();
 
     await expect(page.getByRole('tab', { name: 'Vista 360' })).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText('Capacidades y acuerdos')).toBeVisible();
+    // Spec 2026-09-25 §11.1: mismas preguntas, repartidas en secciones con su
+    // propio estado de datos.
+    await expect(page.getByText('Capacidades:')).toBeVisible();
+    await expect(page.getByText('Saldo por cobrar').first()).toBeVisible();
+    await page.getByRole('tab', { name: 'Productos y contratos' }).click();
     await expect(page.getByText('Cobranza por SaaS')).toBeVisible();
-    await expect(page.getByText('Cobros confirmados')).toBeVisible();
-    await expect(page.getByText('Comercial y comisiones')).toBeVisible();
-    await expect(page.getByText('Infraestructura y provisioning')).toBeVisible();
+    await page.getByRole('tab', { name: 'Cobros y saldo' }).click();
+    await expect(page.getByText('Cobrado confirmado').first()).toBeVisible();
+    await page.getByRole('tab', { name: 'Actividad' }).click();
+    await expect(page.getByText('Comisiones asociadas')).toBeVisible();
+    await expect(page.getByText('Solicitudes de infraestructura').first()).toBeVisible();
   });
 });
 

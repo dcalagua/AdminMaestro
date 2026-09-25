@@ -119,7 +119,7 @@ export function OrganizationDetailPage() {
         tabs={[
           {
             id: 'view360',
-            label: 'Resumen',
+            label: 'Vista 360',
             content: <Org360Summary organizationId={o.id} capabilities={capabilities} />,
           },
           {
@@ -149,7 +149,7 @@ export function OrganizationDetailPage() {
           },
           {
             id: 'overview',
-            label: 'Datos y sociedades',
+            label: 'Resumen y sociedades',
             content: (
               <div className="grid gap-4 lg:grid-cols-2">
                 <Card title="Identidad y marca" description="Contrato §4.3: interfaz de branding homologada.">

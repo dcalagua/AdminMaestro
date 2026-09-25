@@ -53,7 +53,7 @@ export function RegionalFinancePanel() {
 
   return (
     <Card
-      title="Consolidado regional · acumulado"
+      title="Finanzas regionales · acumulado sin período"
       description="Todas las fechas (sin filtro de período). NATIVO separa por moneda; CONSOLIDADO convierte cada total a la moneda de reporte con una tasa explícita."
       actions={
         <div role="tablist" aria-label="Modo del tablero financiero" className="flex gap-1">
