@@ -534,6 +534,27 @@ export function useInvoices() {
   });
 }
 
+/**
+ * Facturas de UNA suscripción, con sus pagos. Acotada en el servidor por
+ * contrato: sin el tope de 200 del listado general, así el Contrato 360 no
+ * pierde facturas antiguas cuando el universo de la cuenta crece (E02).
+ */
+export function useSubscriptionInvoices(subscriptionId: string | undefined) {
+  return useQuery({
+    queryKey: ['invoices', 'subscription', subscriptionId],
+    enabled: Boolean(subscriptionId),
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('invoices')
+          .select('*, organizations(display_name), invoice_lines(*), payments(*)')
+          .eq('subscription_id', subscriptionId!)
+          .order('issue_date', { ascending: false, nullsFirst: false })
+          .order('id'),
+      ),
+  });
+}
+
 /* ==========================================================================
    Renovaciones y finanzas (Fases 11-13)
    ========================================================================== */

@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useBillingAlerts, useRenewalDashboard } from '@/services/queries';
+import { Link, useSearchParams } from 'react-router-dom';
+import { useBillingAlerts } from '@/services/queries';
+import { useRenewalPipeline } from '@/services/financeRead';
 import {
   useRefreshBillingAlerts, useApplyDueSuspensions, useSetAlertStatus,
 } from '@/services/mutations';
@@ -8,36 +9,30 @@ import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { usePermissions } from '@/hooks/usePermissions';
 import { StatusTabs } from '@/components/ui/SectionTabs';
 import {
-  PageContainer, Card, DataTable, SearchBar, StatCard, LoadingState, ErrorState, EmptyState, Badge,
+  PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge,
 } from '@/components/ui/primitives';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/toast-context';
 import { businessErrorMessage } from '@/lib/pgError';
-import { formatDate, formatNumber } from '@/lib/format';
+import { formatDate, formatMoney, formatNumber, sumByCurrency } from '@/lib/format';
+import { KpiCard, CurrencyLines } from '@/features/executive/components/StateView';
+import { fromQuery } from '@/features/executive/dataState';
+import { RENEWAL_WINDOWS, type RenewalWindow } from '@/features/executive/kpis';
 
 /**
- * Renovaciones y alertas de cobranza.
+ * Renovaciones y alertas de cobranza (P05).
  *
- * Dos acciones, deliberadamente SEPARADAS:
+ * Tres tipos de acción, deliberadamente SEPARADAS y rotuladas:
  *
- *   «Recalcular»  → materializa el trabajo pendiente. Es idempotente y NO
- *                   cambia el estado de ningún tenant.
- *   «Suspender»   → la única acción que apaga clientes, y solo donde la
- *                   política de cobranza lo autoriza con `auto_suspend`.
+ *   REVISAR   «Visto» / «Resolver» una alerta: sólo cambian la alerta.
+ *   CALCULAR  «Recalcular alertas» materializa el trabajo pendiente. Es
+ *             idempotente y NO cambia el estado de ningún tenant.
+ *   EJECUTAR  «Aplicar suspensiones»: la única que cambia tenants, y sólo donde
+ *             la política tiene `auto_suspend`. La solicitud al producto va en
+ *             DRY_RUN (simulación); el cambio de estado en el Control Plane es real.
  *
- * Están separadas porque un botón que calcula y de paso suspende es un botón
- * que nadie se atreve a pulsar.
+ * Un botón que calcula y de paso suspende es un botón que nadie se atreve a pulsar.
  */
-
-const WINDOW_LABEL: Record<string, string> = {
-  D7: '7 días',
-  D15: '15 días',
-  D30: '30 días',
-  D45: '45 días',
-  D60: '60 días',
-  LEJOS: 'Más de 60',
-  SIN_RENOVACION: 'Sin renovación',
-};
 
 const ALERT_LABEL: Record<string, string> = {
   REQUEST_DOCUMENT: 'Solicitar OS/OC',
@@ -50,19 +45,47 @@ const ALERT_LABEL: Record<string, string> = {
   DOCUMENT_EXPIRING: 'Documento por vencer',
 };
 
+const SEVERITY_LABEL: Record<string, string> = {
+  INFO: 'Informativa',
+  WARNING: 'Advertencia',
+  CRITICAL: 'Crítica',
+};
 const SEVERITY_TONE: Record<string, 'ok' | 'warn' | 'danger' | 'info'> = {
   INFO: 'info',
   WARNING: 'warn',
   CRITICAL: 'danger',
 };
 
+const METHOD_LABEL: Record<string, string> = {
+  CULQI_CARD: 'Tarjeta (Culqi)',
+  SERVICE_ORDER: 'Orden de Servicio',
+  PURCHASE_ORDER: 'Orden de Compra',
+  BANK_TRANSFER: 'Transferencia',
+  MANUAL: 'Manual',
+};
+
 type Filter = 'ALL' | 'CRITICAL' | 'DOCUMENTS' | 'OVERDUE';
+
+function parseWindow(value: string | null): RenewalWindow {
+  const n = Number(value);
+  return (RENEWAL_WINDOWS as readonly number[]).includes(n) ? (n as RenewalWindow) : 30;
+}
+
+function isWithin(days: number | null | undefined, windowDays: number): boolean {
+  return days !== null && days !== undefined && days <= windowDays;
+}
+
+function countWithin(rows: ReadonlyArray<{ days_to_renewal: number | null }>, windowDays: number): number {
+  return rows.filter((r) => isWithin(r.days_to_renewal, windowDays)).length;
+}
 
 export function RenewalsPage() {
   const alerts = useBillingAlerts('OPEN');
-  const renewals = useRenewalDashboard();
+  const pipeline = useRenewalPipeline();
   const perms = usePermissions();
   const toast = useToast();
+  const [params, setParams] = useSearchParams();
+  const windowDays = parseWindow(params.get('ventana'));
 
   const refresh = useRefreshBillingAlerts();
   const suspend = useApplyDueSuspensions();
@@ -94,8 +117,26 @@ export function RenewalsPage() {
     }
   });
 
-  const all = renewals.data ?? [];
+  const all = pipeline.data ?? [];
   const openAlerts = alerts.data ?? [];
+  const inWindow = all.filter((r) => isWithin(r.days_to_renewal, windowDays));
+  const withoutMrr = inWindow.filter((r) => r.current_mrr === null || r.current_mrr === undefined).length;
+  const withoutDate = all.filter((r) => r.renewal_on === null).length;
+
+  const pipelineState = fromQuery(pipeline, { isEmpty: () => false });
+  const alertsState = fromQuery(alerts, { isEmpty: () => false });
+
+  function setWindow(w: RenewalWindow) {
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        if (w === 30) next.delete('ventana');
+        else next.set('ventana', String(w));
+        return next;
+      },
+      { replace: true, preventScrollReset: true },
+    );
+  }
 
   async function doRefresh() {
     try {
@@ -118,8 +159,8 @@ export function RenewalsPage() {
         skipped?: number;
       } | null;
       toast.success(
-        'Suspensiones aplicadas',
-        `${result?.applied ?? 0} aplicada(s), ${result?.skipped ?? 0} omitida(s) por política.`,
+        'Suspensiones registradas (producto en simulación)',
+        `${result?.applied ?? 0} tenant(s) marcados como suspendidos en el Control Plane, con solicitud al producto en DRY_RUN; ${result?.skipped ?? 0} omitida(s) por política.`,
       );
     } catch (error) {
       toast.error('No se pudo suspender', businessErrorMessage(error));
@@ -150,20 +191,19 @@ export function RenewalsPage() {
     }
   }
 
-  const byWindow = (w: string) => all.filter((r) => r.renewal_window === w).length;
-
   return (
     <PageContainer
       title="Renovaciones y alertas"
-      description="El trabajo de cobranza pendiente, calculado a partir del perfil de cobro de cada suscripción."
+      description="Contratos que renuevan pronto y el trabajo de cobranza pendiente, calculado desde el perfil de cobro de cada suscripción."
       actions={
         perms.canManageCommercial ? (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              className="ebim-btn-ghost"
+              className="ebim-btn-secondary"
               onClick={() => void doRefresh()}
               disabled={refresh.isPending}
+              title="Calcula alertas nuevas. No cambia ningún tenant."
             >
               {refresh.isPending ? 'Recalculando…' : 'Recalcular alertas'}
             </button>
@@ -172,49 +212,156 @@ export function RenewalsPage() {
                 type="button"
                 className="ebim-btn-danger"
                 onClick={() => setConfirmSuspend(true)}
+                disabled={suspend.isPending}
               >
-                Aplicar suspensiones
+                Ejecutar suspensiones…
               </button>
             ) : null}
           </div>
         ) : null
       }
     >
-      <div className="mb-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        {(['D7', 'D15', 'D30', 'D45', 'D60'] as const).map((w) => (
-          <StatCard
-            key={w}
-            label={`Renuevan en ${WINDOW_LABEL[w]}`}
-            value={formatNumber(byWindow(w))}
-            tone={w === 'D7' ? 'warn' : 'neutral'}
+      {perms.canManageCommercial ? (
+        <p className="mb-4 rounded-lg bg-info-soft px-3 py-2 text-xs text-info">
+          <strong>Revisar</strong> (Visto, Resolver) y <strong>Recalcular</strong> sólo cambian alertas.{' '}
+          {perms.canManagePlatform ? (
+            <>
+              <strong>Ejecutar suspensiones</strong> cambia tenants a «Suspendido» en el Control Plane donde la política lo
+              autoriza; la orden al producto se envía en <strong>DRY_RUN</strong> (simulación), así que el producto no se
+              apaga desde aquí.
+            </>
+          ) : null}
+        </p>
+      ) : null}
+
+      <Card className="mb-4" title="Ventana de renovación" description="Contratos activos o con pago atrasado cuya próxima renovación cae dentro de los días elegidos, contados desde hoy.">
+        <div role="group" aria-label="Ventana en días" className="grid grid-cols-2 gap-2 border-b border-border p-4 sm:grid-cols-3 lg:grid-cols-5">
+          {RENEWAL_WINDOWS.map((w) => {
+            const active = w === windowDays;
+            return (
+              <button
+                key={w}
+                type="button"
+                aria-pressed={active}
+                className={`rounded-field border px-3 py-2 text-left transition-colors ${
+                  active ? 'border-accent bg-accent-soft text-accent-deep' : 'border-border text-muted hover:text-fg'
+                }`}
+                onClick={() => setWindow(w)}
+              >
+                <span className="block text-[11px] font-bold uppercase tracking-wider">Renuevan en {w} días</span>
+                <span className="mt-0.5 block text-lg font-bold tabular-nums">
+                  {pipeline.data ? formatNumber(countWithin(all, w)) : '…'}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-4">
+          <KpiCard
+            id="renewals-count"
+            label={`Contratos en ventana de ${windowDays} días`}
+            temporality="Foto actual"
+            state={pipelineState}
+            onRetry={() => void pipeline.refetch()}
+            render={() => <span className="tabular-nums">{formatNumber(inWindow.length)} contratos</span>}
+            hint={withoutDate > 0 ? `${formatNumber(withoutDate)} contrato(s) sin fecha de renovación no se cuentan.` : undefined}
           />
-        ))}
-        <StatCard
-          label="Alertas críticas"
-          value={formatNumber(openAlerts.filter((a) => a.severity === 'CRITICAL').length)}
-          tone={openAlerts.some((a) => a.severity === 'CRITICAL') ? 'danger' : 'ok'}
-        />
-      </div>
+          <KpiCard
+            id="renewals-mrr"
+            label="MRR vigente en la ventana"
+            temporality="Foto actual"
+            state={pipelineState}
+            onRetry={() => void pipeline.refetch()}
+            render={() => (
+              <CurrencyLines
+                amounts={sumByCurrency(inWindow, (r) => r.current_mrr, (r) => r.currency)}
+                emptyLabel="Sin MRR vigente"
+              />
+            )}
+            hint={
+              withoutMrr > 0
+                ? `${formatNumber(withoutMrr)} contrato(s) sin recurrente vigente. Por moneda; no es pronóstico de churn.`
+                : 'Por moneda; no es pronóstico de churn.'
+            }
+          />
+          <KpiCard
+            id="renewals-risk"
+            label="Con riesgo de cobro"
+            temporality="Foto actual"
+            state={pipelineState}
+            onRetry={() => void pipeline.refetch()}
+            render={() => (
+              <span className="flex flex-col gap-0.5 text-sm font-semibold">
+                <span>{formatNumber(all.filter((r) => r.is_past_due).length)} con factura vencida</span>
+                <span>{formatNumber(all.filter((r) => r.in_grace).length)} en gracia</span>
+                <span className={all.some((r) => r.suspension_pending) ? 'text-danger' : ''}>
+                  {formatNumber(all.filter((r) => r.suspension_pending).length)} con suspensión pendiente
+                </span>
+              </span>
+            )}
+            hint="Toda la cartera, no sólo la ventana."
+          />
+          <KpiCard
+            id="renewals-critical"
+            label="Alertas críticas abiertas"
+            temporality="Foto actual"
+            state={alertsState}
+            onRetry={() => void alerts.refetch()}
+            render={() => {
+              const critical = openAlerts.filter((a) => a.severity === 'CRITICAL').length;
+              return <span className={`tabular-nums ${critical > 0 ? 'text-danger' : ''}`}>{formatNumber(critical)}</span>;
+            }}
+          />
+        </div>
+        {pipeline.isLoading ? (
+          <LoadingState />
+        ) : pipeline.error ? (
+          <ErrorState error={pipeline.error} onRetry={() => void pipeline.refetch()} />
+        ) : inWindow.length === 0 ? (
+          <EmptyState title={`Ningún contrato renueva en los próximos ${windowDays} días`} description="Amplía la ventana para ver más contratos." />
+        ) : (
+          <DataTable columns={['Suscripción', 'Cliente', 'Producto', 'Renueva', 'Días', 'MRR vigente', 'Método de cobro', 'Estado de cobro']}>
+            {inWindow.map((r) => (
+              <tr key={r.subscription_id as string}>
+                <td className="ebim-td">
+                  <Link className="ebim-link font-mono text-xs" to={`/subscriptions/${r.subscription_id}`}>
+                    {r.subscription_code}
+                  </Link>
+                </td>
+                <td className="ebim-td text-muted">{r.billed_organization_name}</td>
+                <td className="ebim-td">
+                  {r.product_short_name}
+                  {r.tenant_name ? <span className="block text-xs text-muted">{r.tenant_name}</span> : null}
+                </td>
+                <td className="ebim-td whitespace-nowrap text-xs">{formatDate(r.renewal_on)}</td>
+                <td className={`ebim-td text-right tabular-nums ${Number(r.days_to_renewal) <= 7 ? 'font-semibold text-warn' : ''}`}>
+                  {formatNumber(r.days_to_renewal)}
+                </td>
+                <td className="ebim-td text-right tabular-nums">
+                  {r.current_mrr === null ? (
+                    <span className="text-xs text-muted">Sin recurrente vigente</span>
+                  ) : (
+                    formatMoney(Number(r.current_mrr), r.currency)
+                  )}
+                </td>
+                <td className="ebim-td text-xs text-muted">
+                  {r.collection_method ? (METHOD_LABEL[r.collection_method] ?? r.collection_method) : 'Sin perfil (manual)'}
+                </td>
+                <td className="ebim-td">
+                  <div className="flex flex-wrap gap-1">
+                    {r.is_past_due ? <Badge tone="warn">Factura vencida</Badge> : null}
+                    {r.in_grace ? <Badge tone="warn">En gracia</Badge> : null}
+                    {r.suspension_pending ? <Badge tone="danger">Suspensión pendiente</Badge> : null}
+                    {!r.is_past_due && !r.in_grace && !r.suspension_pending ? <Badge tone="ok">Al día</Badge> : null}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </DataTable>
+        )}
+      </Card>
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <StatCard
-          label="Vencidas"
-          value={formatNumber(all.filter((r) => r.is_past_due).length)}
-          tone="warn"
-        />
-        <StatCard
-          label="En gracia"
-          value={formatNumber(all.filter((r) => r.in_grace).length)}
-          tone="warn"
-        />
-        <StatCard
-          label="Suspensión pendiente"
-          value={formatNumber(all.filter((r) => r.suspension_pending).length)}
-          tone={all.some((r) => r.suspension_pending) ? 'danger' : 'ok'}
-        />
-      </div>
-
-      <Card>
+      <Card title="Bandeja de alertas abiertas" description="Trabajo de cobranza para revisar. Marcar o resolver una alerta no cambia contratos ni tenants.">
         <SearchBar
           value={term}
           onChange={setTerm}
@@ -242,9 +389,7 @@ export function RenewalsPage() {
             description="Si acabas de configurar perfiles de cobro, pulsa «Recalcular alertas» para materializarlas."
           />
         ) : (
-          <DataTable
-            columns={['Alerta', 'Suscripción', 'Cliente', 'Producto', 'Actuar antes de', 'Severidad', '']}
-          >
+          <DataTable columns={['Alerta', 'Suscripción', 'Cliente', 'Producto', 'Actuar antes de', 'Severidad', 'Revisar']}>
             {rows.map((a) => {
               const sub = a.subscriptions as {
                 code: string;
@@ -254,8 +399,9 @@ export function RenewalsPage() {
               return (
                 <tr key={a.id}>
                   <td className="ebim-td">
-                    <div className="font-semibold">{a.title}</div>
-                    <div className="text-xs text-muted">{a.message}</div>
+                    <div className="font-semibold">{ALERT_LABEL[a.alert_type as string] ?? a.title}</div>
+                    <div className="text-xs text-muted">{a.title}</div>
+                    {a.message ? <div className="text-xs text-muted">{a.message}</div> : null}
                   </td>
                   <td className="ebim-td">
                     <Link className="ebim-link font-mono text-xs" to={`/subscriptions/${a.subscription_id}`}>
@@ -264,11 +410,9 @@ export function RenewalsPage() {
                   </td>
                   <td className="ebim-td text-muted">{sub?.organizations?.display_name}</td>
                   <td className="ebim-td">{sub?.saas_products?.short_name}</td>
-                  <td className="ebim-td text-xs text-muted">{formatDate(a.due_at)}</td>
+                  <td className="ebim-td whitespace-nowrap text-xs text-muted">{formatDate(a.due_at)}</td>
                   <td className="ebim-td">
-                    <Badge tone={SEVERITY_TONE[a.severity] ?? 'neutral'}>
-                      {ALERT_LABEL[a.alert_type as string] ?? a.alert_type}
-                    </Badge>
+                    <Badge tone={SEVERITY_TONE[a.severity] ?? 'neutral'}>{SEVERITY_LABEL[a.severity] ?? a.severity}</Badge>
                   </td>
                   <td className="ebim-td">
                     {perms.canManageCommercial ? (
@@ -277,6 +421,7 @@ export function RenewalsPage() {
                           type="button"
                           className="ebim-link text-[13px]"
                           onClick={() => void acknowledge(a.id)}
+                          aria-label={`Marcar como vista la alerta ${a.title}`}
                         >
                           Visto
                         </button>
@@ -284,11 +429,14 @@ export function RenewalsPage() {
                           type="button"
                           className="ebim-link text-[13px]"
                           onClick={() => void resolve(a.id)}
+                          aria-label={`Resolver la alerta ${a.title}`}
                         >
                           Resolver
                         </button>
                       </div>
-                    ) : null}
+                    ) : (
+                      <span className="text-xs text-muted">Sólo lectura</span>
+                    )}
                   </td>
                 </tr>
               );
@@ -297,56 +445,12 @@ export function RenewalsPage() {
         )}
       </Card>
 
-      <Card
-        className="mt-4"
-        title="Cartera por ventana de renovación"
-        description="Proyectada desde el inicio y el intervalo de cada suscripción, o desde su fecha de fin si la tiene."
-      >
-        {renewals.isLoading ? (
-          <LoadingState />
-        ) : all.length === 0 ? (
-          <EmptyState title="Sin suscripciones activas" />
-        ) : (
-          <DataTable
-            columns={['Suscripción', 'Cliente', 'Producto', 'Método', 'Renueva', 'Días', 'Estado']}
-          >
-            {all
-              .filter((r) => r.renewal_window !== 'LEJOS')
-              .map((r) => (
-                <tr key={r.subscription_id as string}>
-                  <td className="ebim-td">
-                    <Link className="ebim-link font-mono text-xs" to={`/subscriptions/${r.subscription_id}`}>
-                      {r.subscription_code}
-                    </Link>
-                  </td>
-                  <td className="ebim-td text-muted">{r.billed_organization_name}</td>
-                  <td className="ebim-td">{r.product_short_name}</td>
-                  <td className="ebim-td text-xs text-muted">
-                    {r.collection_method ?? 'Sin perfil (manual)'}
-                  </td>
-                  <td className="ebim-td text-xs">{formatDate(r.renewal_on)}</td>
-                  <td className="ebim-td tabular-nums">{r.days_to_renewal}</td>
-                  <td className="ebim-td">
-                    <div className="flex flex-wrap gap-1">
-                      {r.is_past_due ? <Badge tone="warn">Vencida</Badge> : null}
-                      {r.in_grace ? <Badge tone="warn">En gracia</Badge> : null}
-                      {r.suspension_pending ? <Badge tone="danger">Suspensión</Badge> : null}
-                      {!r.is_past_due && !r.in_grace && !r.suspension_pending ? (
-                        <Badge tone="ok">Al día</Badge>
-                      ) : null}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-          </DataTable>
-        )}
-      </Card>
-
       <ConfirmDialog
         open={confirmSuspend}
-        title="¿Aplicar las suspensiones pendientes?"
-        message="Se suspenderán únicamente los tenants cuya política de cobranza tenga la suspensión automática activada y cuyo periodo de gracia haya terminado. Cada suspensión encola una solicitud SUSPEND_TENANT en DRY_RUN y queda auditada."
-        confirmLabel="Aplicar suspensiones"
+        title="¿Ejecutar las suspensiones pendientes?"
+        message="Sólo afecta a tenants cuya política de cobranza tenga la suspensión automática activada y cuyo período de gracia haya terminado. Cada uno pasa a «Suspendido» en el Control Plane y se encola una solicitud SUSPEND_TENANT en DRY_RUN (simulación: el producto no se apaga desde aquí). Las alertas quedan resueltas y todo se audita."
+        confirmLabel="Ejecutar suspensiones"
+        busy={suspend.isPending}
         onConfirm={doSuspend}
         onCancel={() => setConfirmSuspend(false)}
       />
