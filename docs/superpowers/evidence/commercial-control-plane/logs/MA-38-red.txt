@@ -1,0 +1,74 @@
+
+ RUN  v3.2.7 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1
+
+ ❯ contracts/entitlements/v1/reference-receiver.test.ts (44 tests | 1 failed) 19ms
+   ✓ FIX-ENT-v1 — completitud > 13 fixtures (los 12 del plan §3.1 + tenant no aprovisionado), cada uno con respuestas esperadas 2ms
+   ✓ FIX-ENT-v1 — completitud > todo snapshot salvo el negativo del emisor cumple schema.json (forma y claves obligatorias) 1ms
+   ✓ FIX-ENT-v1 — completitud > ningún fixture lleva precios, montos, monedas ni secretos (salvo el negativo del emisor) 2ms
+   ✓ FIX-ENT-v1 — completitud > 12-forbidden-keys: el EMISOR lo rechaza con FORBIDDEN_KEY 0ms
+   ✓ FIX-ENT-v1 — el receptor de referencia reproduce las respuestas esperadas > 01-baseline-only 1ms
+   ✓ FIX-ENT-v1 — el receptor de referencia reproduce las respuestas esperadas > 02-plan-grants 1ms
+   ✓ FIX-ENT-v1 — el receptor de referencia reproduce las respuestas esperadas > 03-plan-plus-addon 1ms
+   ✓ FIX-ENT-v1 — el receptor de referencia reproduce las respuestas esperadas > 04-addon-removed 1ms
+   ✓ FIX-ENT-v1 — el receptor de referencia reproduce las respuestas esperadas > 05-limit-update 1ms
+   ✓ FIX-ENT-v1 — el receptor de referencia reproduce las respuestas esperadas > 06-app-inactive 0ms
+   ✓ FIX-ENT-v1 — el receptor de referencia reproduce las respuestas esperadas > 07-unknown-capability 0ms
+   ✓ FIX-ENT-v1 — el receptor de referencia reproduce las respuestas esperadas > 08-stale 0ms
+   ✓ FIX-ENT-v1 — el receptor de referencia reproduce las respuestas esperadas > 09-conflict 0ms
+   ✓ FIX-ENT-v1 — el receptor de referencia reproduce las respuestas esperadas > 10-bad-checksum 0ms
+   ✓ FIX-ENT-v1 — el receptor de referencia reproduce las respuestas esperadas > 11-wrong-environment 0ms
+   ✓ FIX-ENT-v1 — el receptor de referencia reproduce las respuestas esperadas > 12-forbidden-keys 0ms
+   ✓ FIX-ENT-v1 — el receptor de referencia reproduce las respuestas esperadas > 13-tenant-not-provisioned 0ms
+   ✓ Transporte del contrato (cada SaaS lo prueba con su JWT real) > scope de lectura o de provisioning en un PUT → 403 INSUFFICIENT_SCOPE 0ms
+   ✓ Transporte del contrato (cada SaaS lo prueba con su JWT real) > jti reutilizado → 401 JTI_REPLAYED, aunque el cuerpo sea un replay legítimo 0ms
+   ✓ Transporte del contrato (cada SaaS lo prueba con su JWT real) > tenant de la ruta distinto del cuerpo → 422 SNAPSHOT_INVALID 0ms
+   ✓ Enforcement last-good: MasterAdmin inalcanzable no detiene lo concedido > sin red, decide con el snapshot aplicado (concede, deniega, límites, compañía) 1ms
+   ✓ Enforcement last-good: MasterAdmin inalcanzable no detiene lo concedido > una revocación solo llega con un snapshot nuevo (04: v2 retira el add-on) 0ms
+   ✓ Enforcement last-good: MasterAdmin inalcanzable no detiene lo concedido > appActive=false bloquea todo, baseline incluida 0ms
+   ✓ Enforcement last-good: MasterAdmin inalcanzable no detiene lo concedido > una capacidad desconocida nunca se concede 0ms
+   ✓ Enforcement last-good: MasterAdmin inalcanzable no detiene lo concedido > un snapshot atrasado (08) no cambia lo aplicado 0ms
+   ✓ MasterAdmin interpreta cada respuesta esperada con el estado correcto (MA-35) > 01-baseline-only#1 0ms
+   ✓ MasterAdmin interpreta cada respuesta esperada con el estado correcto (MA-35) > 02-plan-grants#1 0ms
+   ✓ MasterAdmin interpreta cada respuesta esperada con el estado correcto (MA-35) > 03-plan-plus-addon#1 0ms
+   ✓ MasterAdmin interpreta cada respuesta esperada con el estado correcto (MA-35) > 03-plan-plus-addon#2 0ms
+   ✓ MasterAdmin interpreta cada respuesta esperada con el estado correcto (MA-35) > 04-addon-removed#1 0ms
+   ✓ MasterAdmin interpreta cada respuesta esperada con el estado correcto (MA-35) > 04-addon-removed#2 0ms
+   ✓ MasterAdmin interpreta cada respuesta esperada con el estado correcto (MA-35) > 05-limit-update#1 0ms
+   ✓ MasterAdmin interpreta cada respuesta esperada con el estado correcto (MA-35) > 05-limit-update#2 0ms
+   ✓ MasterAdmin interpreta cada respuesta esperada con el estado correcto (MA-35) > 06-app-inactive#1 0ms
+   ✓ MasterAdmin interpreta cada respuesta esperada con el estado correcto (MA-35) > 07-unknown-capability#1 0ms
+   ✓ MasterAdmin interpreta cada respuesta esperada con el estado correcto (MA-35) > 08-stale#1 0ms
+   ✓ MasterAdmin interpreta cada respuesta esperada con el estado correcto (MA-35) > 08-stale#2 0ms
+   ✓ MasterAdmin interpreta cada respuesta esperada con el estado correcto (MA-35) > 09-conflict#1 0ms
+   ✓ MasterAdmin interpreta cada respuesta esperada con el estado correcto (MA-35) > 09-conflict#2 0ms
+   ✓ MasterAdmin interpreta cada respuesta esperada con el estado correcto (MA-35) > 10-bad-checksum#1 0ms
+   ✓ MasterAdmin interpreta cada respuesta esperada con el estado correcto (MA-35) > 11-wrong-environment#1 0ms
+   ✓ MasterAdmin interpreta cada respuesta esperada con el estado correcto (MA-35) > 12-forbidden-keys#1 0ms
+   ✓ MasterAdmin interpreta cada respuesta esperada con el estado correcto (MA-35) > 13-tenant-not-provisioned#1 0ms
+   × Pin FIX-ENT-v1 > cada archivo coincide con CHECKSUMS.sha256 y CHECKSUMS.sha256 con FIX_ENT_V1_SHA256 4ms
+     → expected '7aab413a145b0e9a165c5f02be4bfda17f886…' to be '__PIN__' // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  contracts/entitlements/v1/reference-receiver.test.ts > Pin FIX-ENT-v1 > cada archivo coincide con CHECKSUMS.sha256 y CHECKSUMS.sha256 con FIX_ENT_V1_SHA256
+AssertionError: expected '7aab413a145b0e9a165c5f02be4bfda17f886…' to be '__PIN__' // Object.is equality
+
+Expected: [32m"__PIN__"[39m
+Received: [31m"7aab413a145b0e9a165c5f02be4bfda17f886a4b46bc2a557eec3eeaed1f65d5"[39m
+
+ ❯ contracts/entitlements/v1/reference-receiver.test.ts:204:103
+    202|       expect(createHash('sha256').update(readFileSync(resolve(DIR, fil…
+    203|     }
+    204|     expect(createHash('sha256').update(readFileSync(resolve(DIR, 'CHEC…
+       |                                                                                                       ^
+    205|   });
+    206| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 43 passed (44)
+   Start at  00:33:05
+   Duration  874ms (transform 70ms, setup 51ms, collect 66ms, tests 19ms, environment 294ms, prepare 44ms)
+

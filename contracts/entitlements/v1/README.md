@@ -70,8 +70,35 @@ Errores: `{error, message, appliedVersion?}`. El cuerpo nunca incluye el snapsho
 
 Operación sin MasterAdmin: el enforcement lee solo el snapshot local; si MasterAdmin cae, el SaaS sigue con el último snapshot válido **sin expiración**.
 
-## 4. Fixtures
+## 4. Fixtures y respuestas esperadas
 
-`fixtures/NN-*.json` = `{description, receiver: {environment, knownCapabilities[], provisionedTenants[]}, steps: [{snapshot, expect}]}`. `expected/put-responses.json` indexa la respuesta esperada de cada paso. Los valores numéricos son **ilustrativos** (productos `fixture.*`), nunca precios. Tenants del rango `00000000-0000-4ccc-8000-0000000000NN`.
+| Archivo | Caso |
+| --- | --- |
+| `fixtures/01-baseline-only.json` | App activa, nada vendido: sellables con `enabled:false` |
+| `fixtures/02-plan-grants.json` | Capacidad, límite y asignación del plan |
+| `fixtures/03-plan-plus-addon.json` | Plan ∪ add-on (COMPANY, MAX, SUM) + replay idéntico → `200 replayed:true` |
+| `fixtures/04-addon-removed.json` | v2 revoca el add-on |
+| `fixtures/05-limit-update.json` | v2 baja un límite |
+| `fixtures/06-app-inactive.json` | `appActive:false` |
+| `fixtures/07-unknown-capability.json` | Código desconocido → `APPLIED_WITH_WARNINGS`, nunca concedido |
+| `fixtures/08-stale.json` | v2 tras v3 → `409 STALE_SNAPSHOT` |
+| `fixtures/09-conflict.json` | Misma versión, otro checksum → `409 VERSION_CONFLICT` |
+| `fixtures/10-bad-checksum.json` | `422 CHECKSUM_MISMATCH` |
+| `fixtures/11-wrong-environment.json` | `422 ENVIRONMENT_MISMATCH` |
+| `fixtures/12-forbidden-keys.json` | Negativo del emisor (`emitterNegative: FORBIDDEN_KEY`); el receptor responde `422 SNAPSHOT_INVALID` |
+| `fixtures/13-tenant-not-provisioned.json` | `404 TENANT_NOT_PROVISIONED` |
 
-`reference-receiver.ts` es un receptor en memoria (solo tests) que implementa §3 y pasa todos los fixtures: los fixtures quedan validados antes de que un SaaS los use.
+Forma de cada fixture: `{id, description, receiver, emitterNegative?, steps: [{step, tenantPath, snapshot}]}`. `receiver` fija la configuración del receptor de prueba: `environment`, `productCode`, `knownCapabilities` (su manifiesto ACTIVE), `baselineCapabilities`, `provisionedTenants`, `enforcementMode`, `writeScope`, `readScope`. Cada fixture se ejecuta sobre un receptor **vacío**, con un token nuevo (`jti` distinto) por petición.
+
+- `expected/put-responses.json`: `responses[<id>][i] = {step, status, body}` para cada PUT, en orden. En errores solo se compara `error` (y `appliedVersion` si aparece); `message` es texto libre.
+- `expected/get-applied.json`: `responses[<id>] = {status, body}` del GET tras el último paso.
+- `"$iso8601"` en un valor esperado = cualquier instante ISO-8601 UTC (`appliedAt`).
+- Valores numéricos **ilustrativos**, producto sintético `fixture`, nunca precios. Tenants `00000000-0000-4ccc-8000-0000000000NN`.
+
+Casos que no dependen del cuerpo y cada receptor prueba con su transporte: scope incorrecto → `403 INSUFFICIENT_SCOPE`; credencial solo de provisioning → `403`; `jti` reutilizado → `401 JTI_REPLAYED`; MasterAdmin inalcanzable → el enforcement sigue decidiendo con el último snapshot aplicado.
+
+`reference-receiver.ts` es un receptor en memoria (solo tests) que implementa §3; `reference-receiver.test.ts` lo ejecuta contra **todos** los fixtures, así que los fixtures quedan validados antes de que un SaaS los use. Los fixtures se generan con `scripts/ccp/generate-entitlement-fixtures.mts` (emisor `buildSnapshot`); la semántica esperada de cada paso está escrita a mano en ese script, no derivada del receptor.
+
+## 5. Fijación (pin)
+
+`CHECKSUMS.sha256` lista el SHA-256 de cada archivo de este directorio (salvo él mismo y los `*.test.ts`). Cada repo copia el directorio y su test `entitlements-fixtures-pin` comprueba (1) cada archivo contra `CHECKSUMS.sha256` y (2) el SHA-256 de `CHECKSUMS.sha256` contra la constante `FIX_ENT_V1_SHA256` publicada en la evidencia de la fase 08 de MasterAdmin.

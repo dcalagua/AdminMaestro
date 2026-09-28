@@ -10,7 +10,7 @@
 -- scripts/ccp/entitlement-snapshot-concurrency.sh (evidencia MA-32).
 -- ============================================================================
 begin;
-select plan(49);
+select plan(50);
 
 create or replace function pg_temp.act_as(p_user uuid)
 returns void language plpgsql as $$
@@ -96,6 +96,9 @@ select is(pg_temp.sha(platform.jcs_canonical('{ "a" : [ 1 , { "c" : "d" , "b" : 
   'c714c03c80a30063e6a5093dddf9460ee48956d2e4e76b96be7039951a63e763', 'JCS whitespace');
 
 -- Fuera del dominio SQL: se rechaza en vez de producir bytes distintos a TS.
+select is(platform.entitlement_checksum('{"schema":"ebim.entitlements/v1","environment":"DEV","controlPlaneTenantId":"00000000-0000-4ccc-8000-000000000003","productCode":"fixture","external":{"tenantId":"fixture-ext-03","organizationId":"fixture-org-03","companyIds":["fixture-co-03a","fixture-co-03b"]},"snapshotVersion":1,"previousVersion":null,"effectiveAt":"2026-10-01T00:00:01Z","issuedAt":"2026-10-01T00:00:11Z","appActive":true,"planCode":"fixture-standard","capabilities":[{"code":"fixture.ai.insights","enabled":false,"scope":{"level":"TENANT"},"sources":[]},{"code":"fixture.promotions","enabled":true,"scope":{"level":"COMPANY","companyIds":["00000000-0000-4ccc-8000-00000000c001","00000000-0000-4ccc-8000-00000000c002"]},"sources":["ADDON"]},{"code":"fixture.reports","enabled":true,"scope":{"level":"TENANT"},"sources":["PLAN"]}],"limits":[{"code":"fixture.users.max","value":25,"unit":"user","enforcement":"HARD","scope":{"level":"TENANT"},"sources":["ADDON","PLAN"]}],"allowances":[{"code":"fixture.docs.monthly","meterCode":"docs","included":150,"unit":"document","period":{"start":"2026-10-01","end":"2026-10-31"},"overageMode":"BLOCK","sources":["ADDON","PLAN"]}],"aiCredits":{"weights":[],"weightsVersion":0},"correlationId":"00000000-0000-4ccc-8000-0000000c0031","idempotencyKey":"ma-ent-v1-611b1bad1c8e026ef277f4ab57632ab06144acee714bef728b8b56825532bfaf","checksum":"sha256:f6d60051140269bd0f27157943fa94e2b3a333f3ad54593357000091c92d7600"}'::jsonb),
+  'sha256:f6d60051140269bd0f27157943fa94e2b3a333f3ad54593357000091c92d7600',
+  'SQL y TS producen el mismo checksum para el fixture dorado 03-plan-plus-addon (FIX-ENT-v1)');
 select throws_ok($$ select platform.jcs_canonical('{"ö":1}') $$, '22023', null, 'Clave no ASCII → error');
 select throws_ok($$ select platform.jcs_canonical('[1e21]') $$, '22023', null, 'Entero ≥ 1e21 → error');
 select throws_ok($$ select platform.jcs_canonical('[9007199254740993]') $$, '22023', null, 'Entero > 2^53 − 1 → error');
