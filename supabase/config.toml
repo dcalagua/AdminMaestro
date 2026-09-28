@@ -453,3 +453,10 @@ verify_jwt = true
 #
 # El canal servidor-a-servidor usa la cabecera `x-provisioning-secret`.
 verify_jwt = true
+
+[functions.entitlement-sync]
+# Jobs push / verify / registry-verify de entitlements (fase 08). SOLO canal
+# servidor: además del JWT exige la clave de servicio en `x-provisioning-secret`
+# (comparación en tiempo constante). No tiene canal humano: la consola usa la
+# acción SYNC_ENTITLEMENTS del orquestador. Runbook: docs/runbooks/entitlement-sync.md.
+verify_jwt = true
