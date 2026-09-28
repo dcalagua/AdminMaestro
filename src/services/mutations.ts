@@ -155,6 +155,15 @@ export function useSetTenantFeature() {
   return useRpc('set_tenant_feature', ['tenant-features', 'feature-flags']);
 }
 
+/**
+ * Otorga o revoca un add-on de tenant (solo EBIM_FINANCE / EBIM_PRODUCT_ADMIN).
+ * Es la única vía: `tenant_addons` no admite escritura directa desde la API
+ * (CCP P0-MA-1). Exige motivo; el backend lo audita.
+ */
+export function useSetTenantAddonActive() {
+  return useRpc('set_tenant_addon_active', ['tenant-features', 'feature-flags']);
+}
+
 /** Suspende el tenant Y encola el trabajo de infraestructura, en una transacción. */
 export function useRequestTenantSuspension() {
   return useRpc('request_tenant_suspension', [

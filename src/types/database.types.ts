@@ -9237,6 +9237,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_tenant_addon_active: {
+        Args: {
+          p_active: boolean
+          p_addon_code: string
+          p_reason: string
+          p_tenant_id: string
+        }
+        Returns: undefined
+      }
       set_tenant_feature: {
         Args: {
           p_enabled: boolean

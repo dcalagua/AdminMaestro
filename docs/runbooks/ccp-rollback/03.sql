@@ -8,6 +8,10 @@
 -- Parte A (MA-02): re-aplica las definiciones previas a 20260928000100
 -- (copias exactas de 20260902000500, 20260902001100, 20260925100000,
 -- 20260913000900 y 20260913001300) y retira los objetos nuevos. No toca datos.
+-- Parte B (MA-03): restaura políticas/GRANT de 20260902000900 y el
+-- set_tenant_feature de 20260907000100; retira set_tenant_addon_active.
+-- Orden inverso de aplicación: B depende de nada de A, pero se deja al final
+-- para poder aplicar solo A si se decide conservar el cierre del P0.
 -- ============================================================================
 begin;
 
@@ -481,6 +485,70 @@ drop view if exists platform.v_discount_sign_legacy_invoices;
 drop function if exists platform.signed_line_amount(platform.charge_kind, numeric);
 
 -- ---- Parte B · autootorgamiento (MA-03) ------------------------------------
--- (se completa en MA-03)
+-- ATENCIÓN: re-abre P0-MA-1. Solo con decisión humana registrada; nunca en QAS
+-- sin esa decisión (plan §5 MA-04).
+drop function if exists platform.set_tenant_addon_active(uuid, text, boolean, text);
+
+create or replace function platform.set_tenant_feature(
+  p_tenant_id   uuid,
+  p_feature_key text,
+  p_enabled     boolean,
+  p_value       jsonb default '{}'::jsonb
+)
+returns void
+language plpgsql
+security definer
+set search_path = platform, pg_catalog
+as $$
+declare
+  v_tenant record;
+begin
+  select * into v_tenant from platform.tenants where id = p_tenant_id;
+  if v_tenant is null then
+    raise exception 'TENANT_NO_ENCONTRADO: %', p_tenant_id using errcode = '23503';
+  end if;
+  if not platform.can_manage_tenant(p_tenant_id) then
+    raise exception 'NO_AUTORIZADO: no administra el tenant %', v_tenant.slug using errcode = '42501';
+  end if;
+  if nullif(trim(coalesce(p_feature_key, '')), '') is null then
+    raise exception 'FEATURE_KEY_REQUERIDA' using errcode = '23502';
+  end if;
+
+  insert into platform.tenant_features (tenant_id, feature_key, enabled, source, value, updated_by)
+  values (p_tenant_id, trim(p_feature_key), p_enabled, 'MANUAL', coalesce(p_value, '{}'::jsonb), auth.uid())
+  on conflict (tenant_id, feature_key) do update
+    set enabled = excluded.enabled,
+        source = 'MANUAL',
+        value = excluded.value,
+        updated_by = excluded.updated_by;
+
+  perform platform.log_audit(
+    'TENANT_FEATURE_SET', 'tenant_feature', p_tenant_id::text || ':' || trim(p_feature_key),
+    v_tenant.customer_organization_id, p_tenant_id,
+    jsonb_build_object('feature_key', trim(p_feature_key), 'enabled', p_enabled)
+  );
+end;
+$$;
+
+grant select, insert, update, delete on platform.tenant_features to authenticated;
+grant select, insert, update, delete on platform.tenant_addons to authenticated;
+
+create policy tenant_features_write on platform.tenant_features
+  for insert to authenticated with check (platform.can_manage_tenant(tenant_id));
+create policy tenant_features_update on platform.tenant_features
+  for update to authenticated
+  using (platform.can_manage_tenant(tenant_id))
+  with check (platform.can_manage_tenant(tenant_id));
+create policy tenant_features_delete on platform.tenant_features
+  for delete to authenticated using (platform.can_manage_tenant(tenant_id));
+
+create policy tenant_addons_write on platform.tenant_addons
+  for insert to authenticated with check (platform.can_manage_tenant(tenant_id));
+create policy tenant_addons_update on platform.tenant_addons
+  for update to authenticated
+  using (platform.can_manage_tenant(tenant_id))
+  with check (platform.can_manage_tenant(tenant_id));
+create policy tenant_addons_delete on platform.tenant_addons
+  for delete to authenticated using (platform.can_manage_tenant(tenant_id));
 
 commit;
