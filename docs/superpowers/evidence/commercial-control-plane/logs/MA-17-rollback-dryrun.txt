@@ -1,0 +1,9 @@
+91
+--- verificación dentro de la transacción ---
+ingest_on=false
+service_can_ingest=false
+finance_can_finalize=false
+aicredits_patched=false
+tables_readable=true
+provisioning_exec=true
+after_rollback_service_can_ingest=true
