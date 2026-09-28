@@ -1,6 +1,5 @@
 $ supabase --version
 2.116.0
-A new version of Supabase CLI is available: v2.118.0 (currently installed v2.116.0)
 We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
 
 $ supabase db --help
@@ -39,7 +38,6 @@ SUBCOMMANDS
   query       Execute a SQL query against the database
   advisors    Checks database for security and performance issues
   schema      Manage database schema
-A new version of Supabase CLI is available: v2.118.0 (currently installed v2.116.0)
 We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
 
 $ supabase test --help
@@ -70,7 +68,6 @@ GLOBAL FLAGS
 SUBCOMMANDS
   db     Tests local database with pgTAP
   new    Create a new test file
-A new version of Supabase CLI is available: v2.118.0 (currently installed v2.116.0)
 We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
 
 $ supabase functions --help
@@ -105,7 +102,6 @@ SUBCOMMANDS
   deploy      Deploy a Function to Supabase
   new         Create a new Function locally
   serve       Serve all Functions locally
-A new version of Supabase CLI is available: v2.118.0 (currently installed v2.116.0)
 We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
 
 $ supabase db lint --help
@@ -170,7 +166,6 @@ SUBCOMMANDS
   test                Run tests on local Supabase containers
   unlink              Unlink a Supabase project
   vanity-subdomains   Manage vanity subdomains
-A new version of Supabase CLI is available: v2.118.0 (currently installed v2.116.0)
 We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
 
 $ supabase db advisors --help
@@ -235,5 +230,4 @@ SUBCOMMANDS
   test                Run tests on local Supabase containers
   unlink              Unlink a Supabase project
   vanity-subdomains   Manage vanity subdomains
-A new version of Supabase CLI is available: v2.118.0 (currently installed v2.116.0)
 We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
