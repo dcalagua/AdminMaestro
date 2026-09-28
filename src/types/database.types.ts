@@ -351,12 +351,14 @@ export type Database = {
       catalog_items: {
         Row: {
           available: boolean
+          billing_model: string
           code: string
           created_at: string
           currency: string
           description: string | null
           id: string
           item_type: string
+          lifecycle_status: string
           name: string
           price_month: number
           saas_product_id: string | null
@@ -365,12 +367,14 @@ export type Database = {
         }
         Insert: {
           available?: boolean
+          billing_model: string
           code: string
           created_at?: string
           currency: string
           description?: string | null
           id?: string
           item_type?: string
+          lifecycle_status: string
           name: string
           price_month?: number
           saas_product_id?: string | null
@@ -379,12 +383,14 @@ export type Database = {
         }
         Update: {
           available?: boolean
+          billing_model?: string
           code?: string
           created_at?: string
           currency?: string
           description?: string | null
           id?: string
           item_type?: string
+          lifecycle_status?: string
           name?: string
           price_month?: number
           saas_product_id?: string | null
@@ -9319,6 +9325,10 @@ export type Database = {
           p_phone: string
         }
         Returns: string
+      }
+      set_catalog_item_lifecycle: {
+        Args: { p_code: string; p_reason: string; p_status: string }
+        Returns: undefined
       }
       set_deployment_health: {
         Args: {

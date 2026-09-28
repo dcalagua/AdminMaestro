@@ -388,6 +388,12 @@ insert into platform.catalog_items (code, name, description, saas_product_id, it
   ('compras_repuestos','Compras de repuestos', 'Integración eSupplier ↔ GMAO para repuestos.', '20000000-0000-4000-a000-000000000004', 'connector', 'org-wide', false, 0.00, 'USD')
 on conflict (code) do nothing;
 
+-- CCP fase 07: los conectores no disponibles son ANUNCIADOS (COMING_SOON), igual
+-- que el backfill de 20260929000300 en entornos migrados. Sin esto, un reset
+-- limpio los dejaría en DRAFT (valor por defecto de un item nuevo no disponible).
+update platform.catalog_items set lifecycle_status = 'COMING_SOON'
+ where code in ('echange_desk', 'compras_repuestos') and lifecycle_status = 'DRAFT';
+
 insert into platform.tenant_addons (tenant_id, addon_code) values
   ('50000000-0000-4000-a000-000000000001', 'licitaciones'),
   ('50000000-0000-4000-a000-000000000007', 'licitaciones'),

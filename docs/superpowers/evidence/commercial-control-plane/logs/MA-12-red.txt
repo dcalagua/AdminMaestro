@@ -1,0 +1,19 @@
+Connecting to local database...
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/30_ccp_catalog_item_prices.test.sql:49: ERROR:  column "lifecycle_status" does not exist
+LINE 2:   (select string_agg(code || ':' || lifecycle_status || ':' ...
+                                            ^
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/30_ccp_catalog_item_prices.test.sql .. 
+# Failed test 1: "catalog_items.lifecycle_status"
+# Failed test 2: "catalog_items.billing_model"
+Dubious, test returned 3 (wstat 768, 0x300)
+Failed 12/12 subtests 
+
+Test Summary Report
+-------------------
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/30_ccp_catalog_item_prices.test.sql (Wstat: 768 (exited 3) Tests: 2 Failed: 2)
+  Failed tests:  1-2
+  Non-zero exit status: 3
+  Parse errors: Bad plan.  You planned 12 tests but ran 2.
+Files=1, Tests=2,  0 wallclock secs ( 0.01 usr  0.01 sys +  0.00 cusr  0.01 csys =  0.03 CPU)
+Result: FAIL
+error running container: exit 1
