@@ -5418,8 +5418,11 @@ export type Database = {
           currency: string
           description: string
           id: string
+          price_ref: string | null
           quantity: number
+          source_type: string
           subscription_id: string
+          tenant_addon_id: string | null
           tenant_id: string | null
           unit_amount: number
           updated_at: string
@@ -5435,8 +5438,11 @@ export type Database = {
           currency: string
           description: string
           id?: string
+          price_ref?: string | null
           quantity?: number
+          source_type?: string
           subscription_id: string
+          tenant_addon_id?: string | null
           tenant_id?: string | null
           unit_amount: number
           updated_at?: string
@@ -5452,8 +5458,11 @@ export type Database = {
           currency?: string
           description?: string
           id?: string
+          price_ref?: string | null
           quantity?: number
+          source_type?: string
           subscription_id?: string
+          tenant_addon_id?: string | null
           tenant_id?: string | null
           unit_amount?: number
           updated_at?: string
