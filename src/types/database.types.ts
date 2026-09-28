@@ -107,6 +107,13 @@ export type Database = {
             foreignKeyName: "audit_logs_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "v_tenant_margin"
             referencedColumns: ["tenant_id"]
           },
@@ -689,6 +696,13 @@ export type Database = {
             foreignKeyName: "commission_events_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commission_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "v_tenant_margin"
             referencedColumns: ["tenant_id"]
           },
@@ -1251,6 +1265,13 @@ export type Database = {
             foreignKeyName: "cost_allocations_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "cost_allocations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "v_tenant_margin"
             referencedColumns: ["tenant_id"]
           },
@@ -1693,6 +1714,13 @@ export type Database = {
             foreignKeyName: "entitlement_desired_state_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "entitlement_desired_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "v_tenant_margin"
             referencedColumns: ["tenant_id"]
           },
@@ -2019,6 +2047,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "invoice_lines_tenant_id_fkey"
@@ -4365,6 +4400,13 @@ export type Database = {
             foreignKeyName: "provisioning_requests_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "provisioning_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "v_tenant_margin"
             referencedColumns: ["tenant_id"]
           },
@@ -4781,6 +4823,13 @@ export type Database = {
             foreignKeyName: "saas_provisioning_requests_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "v_tenant_margin"
             referencedColumns: ["tenant_id"]
           },
@@ -5133,6 +5182,13 @@ export type Database = {
             foreignKeyName: "sales_attributions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "sales_attributions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "v_tenant_margin"
             referencedColumns: ["tenant_id"]
           },
@@ -5478,6 +5534,13 @@ export type Database = {
             referencedColumns: ["code"]
           },
           {
+            foreignKeyName: "subscription_items_catalog_item_code_fkey"
+            columns: ["catalog_item_code"]
+            isOneToOne: false
+            referencedRelation: "v_catalog_item_current_prices"
+            referencedColumns: ["catalog_item_code"]
+          },
+          {
             foreignKeyName: "subscription_items_currency_fk"
             columns: ["currency"]
             isOneToOne: false
@@ -5541,11 +5604,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "subscription_items_tenant_addon_fk"
+            columns: ["tenant_addon_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_addon_history"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "subscription_items_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "subscription_items_tenant_id_fkey"
@@ -5730,6 +5807,13 @@ export type Database = {
             foreignKeyName: "subscriptions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "v_tenant_margin"
             referencedColumns: ["tenant_id"]
           },
@@ -5812,6 +5896,13 @@ export type Database = {
             referencedColumns: ["code"]
           },
           {
+            foreignKeyName: "tenant_addons_addon_code_fkey"
+            columns: ["addon_code"]
+            isOneToOne: false
+            referencedRelation: "v_catalog_item_current_prices"
+            referencedColumns: ["catalog_item_code"]
+          },
+          {
             foreignKeyName: "tenant_addons_approved_by_fkey"
             columns: ["approved_by"]
             isOneToOne: false
@@ -5852,6 +5943,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "tenant_addons_tenant_id_fkey"
@@ -5931,6 +6029,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_deployments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "tenant_deployments_tenant_id_fkey"
@@ -6030,6 +6135,13 @@ export type Database = {
             foreignKeyName: "tenant_entitlement_overrides_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_entitlement_overrides_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "v_tenant_margin"
             referencedColumns: ["tenant_id"]
           },
@@ -6080,6 +6192,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_features_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "tenant_features_tenant_id_fkey"
@@ -6139,6 +6258,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_memberships_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "tenant_memberships_tenant_id_fkey"
@@ -6287,6 +6413,13 @@ export type Database = {
             foreignKeyName: "tenant_product_mappings_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_product_mappings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "v_tenant_margin"
             referencedColumns: ["tenant_id"]
           },
@@ -6325,6 +6458,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "tenant_settings_tenant_id_fkey"
@@ -6683,6 +6823,81 @@ export type Database = {
         }
         Relationships: []
       }
+      v_catalog_item_current_prices: {
+        Row: {
+          amount: number | null
+          billing_interval:
+            | Database["platform"]["Enums"]["billing_interval"]
+            | null
+          billing_model: string | null
+          catalog_item_code: string | null
+          catalog_item_id: string | null
+          catalog_item_name: string | null
+          charge_kind: Database["platform"]["Enums"]["charge_kind"] | null
+          currency: string | null
+          is_current: boolean | null
+          is_scheduled: boolean | null
+          lifecycle_status: string | null
+          market_code: string | null
+          market_id: string | null
+          market_name: string | null
+          price_id: string | null
+          saas_product_id: string | null
+          valid_from: string | null
+          valid_to: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_item_prices_catalog_item_id_fkey"
+            columns: ["catalog_item_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_item_prices_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "catalog_item_prices_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_items_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_items_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "catalog_items_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "catalog_items_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+        ]
+      }
       v_collected_payments: {
         Row: {
           collected_amount: number | null
@@ -6854,6 +7069,13 @@ export type Database = {
             foreignKeyName: "invoice_lines_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "v_tenant_margin"
             referencedColumns: ["tenant_id"]
           },
@@ -6912,6 +7134,123 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_tenant_overview"
             referencedColumns: ["managing_organization_id"]
+          },
+        ]
+      }
+      v_commercial_audit_log: {
+        Row: {
+          action: string | null
+          actor_email: string | null
+          actor_user_id: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: number | null
+          metadata: Json | null
+          occurred_at: string | null
+          organization_id: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          action?: string | null
+          actor_email?: string | null
+          actor_user_id?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: number | null
+          metadata?: Json | null
+          occurred_at?: string | null
+          organization_id?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          action?: string | null
+          actor_email?: string | null
+          actor_user_id?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: number | null
+          metadata?: Json | null
+          occurred_at?: string | null
+          organization_id?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_billing_contact_readiness"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_finance"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_margin"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["customer_organization_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["managing_organization_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_margin"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["tenant_id"]
           },
         ]
       }
@@ -7037,6 +7376,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "commission_events_tenant_id_fkey"
@@ -8145,6 +8491,13 @@ export type Database = {
             foreignKeyName: "subscriptions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "v_tenant_margin"
             referencedColumns: ["tenant_id"]
           },
@@ -8239,6 +8592,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "subscriptions_tenant_id_fkey"
@@ -8449,6 +8809,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "saas_provisioning_requests_tenant_id_fkey"
@@ -8692,6 +9059,13 @@ export type Database = {
             foreignKeyName: "subscriptions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "v_tenant_margin"
             referencedColumns: ["tenant_id"]
           },
@@ -8892,6 +9266,13 @@ export type Database = {
             foreignKeyName: "subscriptions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "v_tenant_margin"
             referencedColumns: ["tenant_id"]
           },
@@ -8946,6 +9327,148 @@ export type Database = {
           },
         ]
       }
+      v_tenant_addon_history: {
+        Row: {
+          active: boolean | null
+          addon_code: string | null
+          addon_name: string | null
+          approved_at: string | null
+          approved_by: string | null
+          billing_model: string | null
+          billing_valid_to: string | null
+          catalog_lifecycle_status: string | null
+          company_id: string | null
+          company_name: string | null
+          currency: string | null
+          effective_from: string | null
+          effective_to: string | null
+          id: string | null
+          request_source: string | null
+          requested_at: string | null
+          requested_by: string | null
+          saas_product_id: string | null
+          status: string | null
+          status_reason: string | null
+          subscription_item_id: string | null
+          tenant_id: string | null
+          tenant_slug: string | null
+          unit_amount: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_items_currency_fk"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "tenant_addons_addon_code_fkey"
+            columns: ["addon_code"]
+            isOneToOne: false
+            referencedRelation: "catalog_items"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "tenant_addons_addon_code_fkey"
+            columns: ["addon_code"]
+            isOneToOne: false
+            referencedRelation: "v_catalog_item_current_prices"
+            referencedColumns: ["catalog_item_code"]
+          },
+          {
+            foreignKeyName: "tenant_addons_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_markets"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_subscription_item_id_fkey"
+            columns: ["subscription_item_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_margin"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenants_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenants_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "tenants_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "tenants_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+        ]
+      }
       v_tenant_costs: {
         Row: {
           allocation_path: string | null
@@ -8957,6 +9480,61 @@ export type Database = {
           tenant_id: string | null
         }
         Relationships: []
+      }
+      v_tenant_entitlements: {
+        Row: {
+          app_active: boolean | null
+          capability_code: string | null
+          capability_id: string | null
+          company_ids: string[] | null
+          desired_dirty: boolean | null
+          desired_revision: number | null
+          enabled: boolean | null
+          enforcement: string | null
+          included: number | null
+          kind: string | null
+          last_change_at: string | null
+          meter_code: string | null
+          period: string | null
+          product_code: string | null
+          saas_product_id: string | null
+          scope_level: string | null
+          sources: string[] | null
+          tenant_id: string | null
+          tenant_slug: string | null
+          unit: string | null
+          value: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenants_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenants_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "tenants_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "tenants_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+        ]
       }
       v_tenant_margin: {
         Row: {
