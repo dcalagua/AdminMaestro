@@ -1,0 +1,414 @@
+/**
+ * E2E LOCAL de la fase 16 (X-07): MasterAdmin REAL → GMAO REAL (+ hub GMAO).
+ *
+ *   GMAO_WT=<worktree del programa en GMAO> \
+ *     node --experimental-transform-types scripts/ccp/gmao-x07-e2e.mts
+ *
+ * MasterAdmin corre su código de producción: el emisor `buildSnapshot`, el cliente M2M
+ * `EntitlementSyncClient` (JWT ES256 con clave generada EN MEMORIA) y los módulos del hub
+ * (`parseHubExport` → `mapHubExport` → `compareHubWithMasterAdmin` → `buildParityAttestation`).
+ *
+ * GMAO corre su receptor de producción (`handleEntitlementsRequest`, lo que despacha
+ * `platform-provisioning/index.ts`; la petición HTTP firmada se le entrega en proceso vía `fetchImpl`
+ * porque el sandbox no permite abrir puertos locales), el núcleo de `charge` con pasarela FALSA que cuenta, y el núcleo
+ * de `hub-commercial-export`, todos contra Postgres REAL en proceso (PGlite, mismo harness que
+ * `supabase/tests/run_ccp16_tests.mjs`: GMAO no puede `db reset`) con la cadena de migraciones del
+ * repo y el rol service_role de verdad. El tenant se da de alta con la RPC de provisioning REAL.
+ * Sin red, sin proyectos remotos, sin pasarelas reales. No imprime claves ni tokens.
+ */
+import { readFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { EntitlementSyncClient, type EntitlementDeliveryContext } from '../../supabase/functions/_shared/entitlements/sync-client.ts';
+import { buildSnapshot } from '../../supabase/functions/_shared/entitlements/snapshot.ts';
+import type { EntitlementSnapshot, GrantedCapability, RegistryCapability } from '../../supabase/functions/_shared/entitlements/types.ts';
+import { parseHubExport } from '../../supabase/functions/_shared/entitlements/hub/hub-export.ts';
+import { mapHubExport } from '../../supabase/functions/_shared/entitlements/hub/hub-mapping.ts';
+import {
+  buildParityAttestation, compareHubWithMasterAdmin, renderHubParityReport,
+} from '../../supabase/functions/_shared/entitlements/hub/hub-parity.ts';
+
+const WT = process.env.GMAO_WT ?? '';
+if (!WT.endsWith('/GMAO/.worktrees/ebim-commercial-control-plane-v1')) {
+  console.error('HARD STOP: GMAO_WT debe apuntar al worktree del programa en GMAO');
+  process.exit(2);
+}
+const PGLITE = join(WT, 'supabase/tests/node_modules/@electric-sql/pglite/dist/index.js');
+if (!existsSync(PGLITE)) {
+  console.error('HARD STOP: falta PGlite en el harness de GMAO (cd supabase/tests && npm install)');
+  process.exit(2);
+}
+
+type Row = Record<string, unknown>;
+const { PGlite } = (await import(PGLITE)) as { PGlite: { create(): Promise<Pg> } };
+interface Pg {
+  exec(sql: string): Promise<unknown>;
+  query<T = Row>(sql: string, params?: unknown[]): Promise<{ rows: T[] }>;
+}
+const gmHandler = (await import(`${WT}/supabase/functions/_shared/entitlements/handler.ts`)) as {
+  handleEntitlementsRequest(req: Request, deps: Row): Promise<Response>;
+};
+const gmConfig = (await import(`${WT}/supabase/functions/_shared/entitlements/config.ts`)) as {
+  resolveEntitlementsConfig(env: (k: string) => string | undefined, prov: Row | null): { ok: boolean };
+};
+const gmStore = (await import(`${WT}/supabase/functions/_shared/entitlements/store.ts`)) as {
+  createEntitlementsStore(client: unknown): unknown;
+};
+const gmM2m = (await import(`${WT}/supabase/functions/platform-provisioning/m2m_auth.ts`)) as {
+  loadM2MConfig(env: (k: string) => string | undefined): Promise<Row & { issuer: string; createScope: string; readScope: string }>;
+};
+const gmCharge = (await import(`${WT}/supabase/functions/charge/core.ts`)) as {
+  createChargeHandler(deps: Row): (req: Request) => Promise<Response>;
+};
+const gmHubExport = (await import(`${WT}/supabase/functions/hub-commercial-export/core.ts`)) as {
+  createHubExportHandler(deps: Row): (req: Request) => Promise<Response>;
+};
+
+const results: string[] = [];
+function check(label: string, ok: boolean, detail = '') {
+  results.push(`${ok ? 'PASS' : 'FAIL'} · ${label}${detail ? ` · ${detail}` : ''}`);
+  console.log(results[results.length - 1]);
+  if (!ok) process.exitCode = 1;
+}
+
+// ── GMAO: Postgres real en proceso con la cadena de migraciones del repo ─────
+const mig = (f: string) => readFileSync(join(WT, 'supabase/migrations', f), 'utf8');
+const harness = (f: string) => readFileSync(join(WT, 'supabase/tests', f), 'utf8');
+const db = await PGlite.create();
+await db.exec(harness('00_base_schema.sql'));
+await db.exec(harness('20_provisioning_base.sql'));
+await db.exec(mig('20260628_tenant_email_config.sql'));
+await db.exec(harness('30_ccp_commercial_base.sql'));
+await db.exec(mig('20260710200000_ai_entitlement_metering.sql'));
+{
+  const guards = mig('20260709150000_rpc_permission_guards.sql');
+  const a = guards.indexOf('-- set_addon → ajustes.editar');
+  await db.exec(guards.slice(a, guards.indexOf('-- set_reading_threshold', a)));
+}
+for (const f of ['20260928200000_ccp_ai_consume_validation.sql', '20260928200100_ccp_set_addon_technical_only.sql',
+  '20260928200200_ccp_reset_ai_usage_service_only.sql', '20260928200300_ccp_secret_column_grants.sql',
+  '20260925001118_platform_provisioning_m2m_capture_live.sql',
+  '20260925001454_platform_provisioning_generic_v1_preprovisioned_admin.sql',
+  '20260925002308_harden_tenant_provisioning_rpc_grants.sql']) await db.exec(mig(f));
+await db.exec(harness('40_ccp_hub_capture.sql'));
+for (const f of ['20261010100000_ccp_commercial_authority.sql', '20261010110000_ccp_gmao_entitlements_receiver.sql',
+  '20261010120000_ccp_gmao_commercial_gate.sql', '20261010130000_ccp_billing_authority_guard.sql',
+  '20261010140000_ccp_hub_commercial_freeze.sql']) await db.exec(mig(f));
+
+let lock: Promise<unknown> = Promise.resolve();
+/** Serializa: PGlite es una sola conexión y el rol se fija por sentencia. */
+function serial<T>(fn: () => Promise<T>): Promise<T> {
+  const run = lock.then(fn, fn);
+  lock = run.catch(() => undefined);
+  return run;
+}
+const asRole = <T = Row>(role: string, sql: string, params: unknown[] = [], sub = '') => serial(async () => {
+  await db.query(`select set_config('request.jwt.claim.sub', $1, false)`, [sub]);
+  await db.exec(`set role ${role}`);
+  try {
+    return (await db.query<T>(sql, params)).rows;
+  } finally {
+    await db.exec('reset role');
+    await db.query(`select set_config('request.jwt.claim.sub', '', false)`);
+  }
+});
+const svc = <T = Row>(sql: string, params: unknown[] = []) => asRole<T>('service_role', sql, params);
+const failsWith = async (fn: () => Promise<unknown>, re: RegExp) => {
+  try { await fn(); return false; } catch (e) { return re.test(String((e as Error).message)); }
+};
+
+/** Cliente `{ rpc }` del store de GMAO sobre PGlite, como service_role (lo que hace PostgREST). */
+const rpc = {
+  async rpc(fn: string, args: Row = {}) {
+    const names = Object.keys(args);
+    const casts = names.map((k, i) => {
+      const v = args[k];
+      return `${k} => $${i + 1}${v !== null && typeof v === 'object' ? '::jsonb' : typeof v === 'boolean' ? '::boolean' : ''}`;
+    });
+    const params = names.map((k) => (args[k] !== null && typeof args[k] === 'object' ? JSON.stringify(args[k]) : args[k]));
+    try {
+      const rows = await svc<{ r: unknown }>(`select platform.${fn}(${casts.join(', ')}) as r`, params);
+      return { data: rows[0]?.r ?? null, error: null };
+    } catch (e) {
+      return { data: null, error: { message: String((e as Error).message).split('\n')[0], code: null } };
+    }
+  },
+};
+
+// ── Claves en memoria ────────────────────────────────────────────────────────
+const pair = (await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify'])) as CryptoKeyPair;
+const pkcs8 = Buffer.from(await crypto.subtle.exportKey('pkcs8', pair.privateKey)).toString('base64');
+const privatePem = [`-----BEGIN ${'PRIVATE'} KEY-----`, pkcs8, `-----END ${'PRIVATE'} KEY-----`].join('\n');
+const spki = Buffer.from(await crypto.subtle.exportKey('spki', pair.publicKey)).toString('base64');
+const publicKeyB64 = Buffer.from(`-----BEGIN PUBLIC KEY-----\n${spki}\n-----END PUBLIC KEY-----\n`).toString('base64');
+
+// ── GMAO: alta REAL, estado legacy ───────────────────────────────────────────
+const CPT = '9f160000-0000-4000-8000-000000000001';
+await db.query(
+  `select platform.m2m_provision_tenant($1::jsonb, $2, 'ma-prov-v1-x07-gmao', '9f160000-0000-4000-8000-0000000000c0'::uuid,
+     'masteradmin-provisioning', 'x07-alta', 'actor-1', 'TECH_LEAD')`,
+  [JSON.stringify({
+    controlPlaneTenantId: CPT,
+    organization: { id: null, slug: 'x07-gmao', name: 'X07 GMAO', code: 'x07-gmao', legalName: null, taxId: null, countryCode: 'PE', currency: null, timezone: 'America/Lima' },
+    company: { id: null, code: 'X07-01', name: 'X07 Planta', legalName: null, taxId: null, countryCode: 'PE', currency: 'PEN' },
+    admin: { email: 'x07@gmao.ebim.test' }, deploymentMode: 'SHARED',
+    context: { tenantName: 'X07 · GMAO', tenantType: 'DEMO', environment: 'DEV', planCode: 'gmao-standard', planName: null, contractVersion: 'v1' },
+  }), 'c'.repeat(64)],
+);
+const TEN = (await db.query<{ t: string }>(`select internal_tenant_id as t from platform.provisioning_requests where control_plane_tenant_id = $1`, [CPT])).rows[0]?.t;
+const OWNER = 'aaaaaaa9-0000-4000-8000-00000000009a';
+await db.exec(`
+  update platform.tenants set plan_code = 'gmao-standard' where id = '${TEN}';
+  insert into platform.tenant_users (tenant_id, auth_user_id, email, role) values ('${TEN}', '${OWNER}', 'owner@x07.ebim.test', 'owner');`);
+await svc(`select platform.ccp_set_ai_entitlement($1, true, 'active', null, 50, 'x07', 'legacy inicial')`, [TEN]);
+const ai = async () => (await asRole<{ r: Row }>('test_user', `select public.ai_consume('report', 1) as r`, [], OWNER))[0].r;
+const a0 = await ai();
+check('0. alta real de GMAO + IA legacy 50/mes; autoridad DUAL_READ decide legacy', Boolean(TEN) && a0.allowed === true && a0.quota === 50,
+  JSON.stringify(a0));
+
+const envMap: Record<string, string> = {
+  EBIM_MASTERADMIN_M2M_ENABLED: 'true',
+  EBIM_MASTERADMIN_M2M_ISSUER: 'masteradmin.ebim',
+  EBIM_MASTERADMIN_M2M_AUDIENCE: 'gmao.ebim',
+  EBIM_MASTERADMIN_M2M_SUBJECT: 'masteradmin-provisioning',
+  EBIM_MASTERADMIN_M2M_ALGORITHM: 'ES256',
+  EBIM_MASTERADMIN_M2M_MAX_TOKEN_LIFETIME: '300',
+  EBIM_MASTERADMIN_M2M_CREATE_SCOPE: 'gmao:tenant:create',
+  EBIM_MASTERADMIN_M2M_READ_SCOPE: 'gmao:tenant:read',
+  EBIM_MASTERADMIN_M2M_PUBLIC_KEY_B64: publicKeyB64,
+  EBIM_MASTERADMIN_M2M_ENTITLEMENTS_WRITE_SCOPE: 'gmao:entitlements:write',
+  EBIM_MASTERADMIN_M2M_ENTITLEMENTS_READ_SCOPE: 'gmao:entitlements:read',
+  EBIM_ENTITLEMENTS_ENVIRONMENT: 'DEV',
+};
+const env = (k: string) => envMap[k];
+const m2m = await gmM2m.loadM2MConfig(env);
+const receiverConfig = gmConfig.resolveEntitlementsConfig(env, m2m);
+check('1. receptor GMAO configurado (mismo M2M de provisioning, scopes propios)', receiverConfig.ok);
+
+// Transporte EN PROCESO (el sandbox no permite abrir puertos locales): el cliente real de MasterAdmin
+// arma y firma la petición HTTP completa; aquí se entrega tal cual al handler real de GMAO.
+const saasFetch = (async (input: string | URL | Request, init?: RequestInit) => {
+  const req = input instanceof Request ? input : new Request(String(input), init);
+  return gmHandler.handleEntitlementsRequest(req,
+    { m2m, config: receiverConfig, openStore: () => gmStore.createEntitlementsStore(rpc), log: () => {} });
+}) as typeof fetch;
+
+// ── MasterAdmin: contexto de entrega ─────────────────────────────────────────
+const SECRET_REF = 'LOCAL_X07_GMAO_M2M_PRIVATE_KEY';
+const ctx = (writeScope = 'gmao:entitlements:write'): EntitlementDeliveryContext => ({
+  tenant: { controlPlaneTenantId: CPT, productCode: 'gmao' },
+  push_enabled: true,
+  enrollment: 'ENROLLED',
+  deployment: { id: 'x07', environment: 'DEV', base_url: 'http://127.0.0.1/functions/v1/platform-provisioning', timeout_ms: 30_000, retry_count: 0 },
+  integration: {
+    id: 'x07-int', type: 'HTTP_M2M', issuer: 'masteradmin.ebim', audience: 'gmao.ebim', subject: 'masteradmin-provisioning',
+    algorithm: 'ES256', token_ttl_seconds: 120,
+    entitlements_path: '/tenants/{controlPlaneTenantId}/entitlements', entitlements_manifest_path: '/entitlements/manifest',
+    entitlements_write_scope: writeScope, entitlements_read_scope: 'gmao:entitlements:read', allowed_hosts: [],
+  },
+  credential: { id: 'x07-cred', type: 'M2M_ASYMMETRIC_JWT', enabled: true, algorithm: 'ES256', token_ttl_seconds: 120, secret_ref: SECRET_REF },
+});
+const client = new EntitlementSyncClient({ secretResolver: (ref) => (ref === SECRET_REF ? privatePem : undefined), sleep: async () => {}, fetchImpl: saasFetch });
+const actor = { id: '10000000-0000-4000-a000-000000000002', role: 'EBIM_FINANCE' };
+
+const manifestFile = JSON.parse(readFileSync(join(WT, 'supabase/functions/_shared/entitlements/ENTITLEMENTS_MANIFEST.json'), 'utf8')) as {
+  capabilities: { code: string; kind: RegistryCapability['kind']; isBaseline: boolean; scopeLevel: 'TENANT' | 'COMPANY'; unit?: string; meterCode?: string; status: RegistryCapability['status'] }[];
+};
+const registry: RegistryCapability[] = manifestFile.capabilities.map((c) => ({
+  code: c.code, kind: c.kind, isBaseline: c.isBaseline, scopeLevel: c.scopeLevel, unit: c.unit ?? null, meterCode: c.meterCode ?? null, status: c.status,
+}));
+let clock = Date.parse('2026-10-10T00:00:00Z');
+async function emit(version: number, features: string[], opts: { appActive?: boolean; planCode?: string | null } = {}): Promise<EntitlementSnapshot> {
+  const granted: GrantedCapability[] = features.map((code) => ({ code, value: null, enforcement: null, included: null, sources: ['PLAN'], companyIds: null }));
+  clock += 60_000;
+  return buildSnapshot({
+    environment: 'DEV', controlPlaneTenantId: CPT, productCode: 'gmao',
+    external: { tenantId: TEN, organizationId: null, companyIds: [] },
+    snapshotVersion: version, previousVersion: version > 1 ? version - 1 : null,
+    effectiveAt: new Date(clock - 1000).toISOString(), issuedAt: new Date(clock).toISOString(),
+    appActive: opts.appActive ?? true, planCode: opts.planCode === undefined ? 'gmao-standard' : opts.planCode,
+    registry, granted, allowancePeriod: { start: '2026-10-01', end: '2026-10-31' },
+    aiCredits: { weights: [], weightsVersion: 0 }, correlationId: crypto.randomUUID(),
+  });
+}
+const auth = (product: string, axis: string, tenant: string | null, state: string, approval: string | null = null) =>
+  svc(`select platform.ccp_set_commercial_authority($1, $2, $3::uuid, $4, 'x07', 'e2e fase 16', $5) as r`, [product, axis, tenant, state, approval]);
+const parity = async () => svc<{ kind: string; severity: string }>(`select kind, severity from platform.ccp_gmao_commercial_parity($1)`, [TEN]);
+
+// ── Escenario: entitlements ──────────────────────────────────────────────────
+const manifest = await client.getManifest(ctx(), actor);
+check('2. MasterAdmin lee el manifiesto GMAO (gmao.core + gmao.ai.assist ACTIVE; créditos IA, límites y addons técnicos DRAFT)',
+  manifest.ok && manifest.activeCodes.slice().sort().join() === 'gmao.ai.assist,gmao.core',
+  manifest.ok ? `${manifest.manifestVersion} · ${manifest.activeCodes.join(',')}` : manifest.errorCode);
+
+const v1 = await emit(1, []);
+check('3. snapshot sin DRAFT ni precios (gmao.ai.requests no se emite: D-03 sin decidir)',
+  !JSON.stringify(v1).includes('gmao.ai.requests') && !/price|amount|currency/i.test(JSON.stringify(v1)));
+const p1 = await client.pushSnapshot(ctx(), v1, actor);
+check('4. emisor real → PUT M2M real → APPLIED', p1.result === 'APPLIED' && p1.appliedVersion === 1, `${p1.result} ${p1.httpStatus}`);
+const a1 = await ai();
+check('5. DUAL_READ: la IA sigue decidiéndose por legacy (50) aunque el snapshot no la conceda', a1.allowed === true && a1.quota === 50);
+// Lectura de evidencia como el operador (las tablas de private no tienen grants para la API).
+const diffs = (await db.query<{ kind: string }>(`select kind from private.gmao_entitlement_shadow_diffs where tenant_id = $1`, [TEN])).rows;
+check('6. DUAL_READ registra la diferencia legacy ↔ snapshot', diffs.some((d) => d.kind === 'CAPABILITY_MISMATCH'), diffs.map((d) => d.kind).join());
+
+const g1 = await client.getApplied(ctx(), actor);
+check('7. GET: misma versión y checksum; modo de contrato DUAL_READ', g1.result === 'OBSERVED' && g1.appliedVersion === 1
+  && g1.appliedChecksum === v1.checksum && g1.enforcementMode === 'DUAL_READ', `${g1.result} ${g1.enforcementMode ?? ''}`);
+const replay = await client.pushSnapshot(ctx(), v1, actor);
+const v2 = await emit(2, ['gmao.ai.assist']);
+const p2 = await client.pushSnapshot(ctx(), v2, actor);
+const stale = await client.pushSnapshot(ctx(), v1, actor);
+const wrong = await client.pushSnapshot(ctx('gmao:tenant:create'), v2, actor);
+check('8. replay idempotente, versión vieja STALE, scope de provisioning rechazado',
+  replay.result === 'REPLAYED' && p2.result === 'APPLIED' && stale.result === 'STALE' && wrong.result === 'REJECTED',
+  `${replay.result}/${p2.result}/${stale.result}/${wrong.result}`);
+
+await auth('gmao', 'ENTITLEMENTS', TEN, 'SHADOW');
+const par2 = await parity();
+check('9. con IA concedida pero sin asignación (D-03) la paridad queda BLOCKING ALLOWANCE_NOT_DEFINED',
+  par2.some((p) => p.kind === 'ALLOWANCE_NOT_DEFINED' && p.severity === 'BLOCKING'), par2.map((p) => p.kind).join());
+check('10. la base impide MASTERADMIN_AUTHORITY sin paridad verde',
+  await failsWith(() => auth('gmao', 'ENTITLEMENTS', TEN, 'MASTERADMIN_AUTHORITY'), /PARITY_NOT_GREEN/));
+
+// Tenant sintético sin IA en ambos lados: corte completo demostrable sin inventar cuotas.
+await svc(`select platform.ccp_set_ai_entitlement($1, false, 'active', null, 50, 'x07', 'sin IA para el corte sintético')`, [TEN]);
+const alerts = (await db.query<{ n: number }>(`select count(*)::int as n from private.commercial_alerts where tenant_id = $1 and kind = 'LEGACY_WRITE'`, [TEN])).rows[0].n;
+check('11. SHADOW: la escritura legacy del plan IA se permite y deja alerta', alerts >= 1, `${alerts} alertas`);
+const v3 = await emit(3, []);
+await client.pushSnapshot(ctx(), v3, actor);
+const par3 = await parity();
+check('12. paridad verde (0 BLOCKING) con legacy y MasterAdmin alineados', par3.every((p) => p.severity !== 'BLOCKING'), par3.map((p) => p.kind).join());
+await auth('gmao', 'ENTITLEMENTS', TEN, 'MASTERADMIN_AUTHORITY');
+const g3 = await client.getApplied(ctx(), actor);
+check('13. MASTERADMIN_AUTHORITY: GET PRIMARY, versión 3', g3.result === 'OBSERVED' && g3.enforcementMode === 'PRIMARY' && g3.appliedVersion === 3,
+  `${g3.enforcementMode ?? ''}`);
+check('14. MASTERADMIN_AUTHORITY: re-habilitar la IA por la vía legacy queda BLOQUEADO en la base',
+  await failsWith(() => svc(`select platform.ccp_set_ai_entitlement($1, true, 'active', null, 9999, 'x07', 'intento')`, [TEN]), /LEGACY_WRITE_BLOCKED/));
+check('15. el plan del tenant ya no se cambia en GMAO',
+  await failsWith(() => db.query(`update platform.tenants set plan_code = 'enterprise' where id = $1`, [TEN]), /LEGACY_WRITE_BLOCKED/));
+const a3 = await ai();
+check('16. el snapshot decide: sin gmao.ai.assist → IA apagada', a3.allowed === false && a3.reason === 'DISABLED', JSON.stringify(a3));
+
+// ── Escenario: cobro (nunca dos cobradores) ──────────────────────────────────
+const gateway = { calls: 0 };
+const chargeHandler = gmCharge.createChargeHandler({
+  authenticate: async () => ({ id: OWNER, email: 'owner@x07.ebim.test' }),
+  tenantId: async () => TEN,
+  role: async () => 'owner',
+  load: async () => ({ mode: 'live', cfg: { provider: 'culqi', secret_key: 'fixture-not-a-secret', currency: 'PEN', enabled: true },
+    item: { price_month: 30, currency: 'PEN', name: 'Pack' } }),
+  recordPayment: async (row: Row) => { await svc(`insert into platform.payments (tenant_id, item_code, amount, currency, status, mode) values ($1, $2, $3, $4, $5, $6)`,
+    [row.tenant_id, row.item_code, row.amount, row.currency, row.status, row.mode]); },
+  activateSubscription: async () => {},
+  billingAuthority: async (tid: string) => (await svc<{ s: string }>(`select platform.ccp_billing_authority($1) as s`, [tid]))[0].s,
+  recordChargeShadow: async (row: Row) => { await svc(`select platform.ccp_record_charge_shadow($1, $2, $3, $4, $5)`, [row.tenant_id, row.item_code, row.amount, row.currency, row.known_defect]); },
+  fetchImpl: (async () => { gateway.calls++; return new Response(JSON.stringify({ source: { last_four: '1111' } }), { status: 201 }); }) as typeof fetch,
+});
+const charge = () => chargeHandler(new Request('https://gmao.test/functions/v1/charge', { method: 'POST', headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({ code: 'gmao_ai_pack', token: 'tkn_fixture' }) }));
+const c0 = await charge();
+check('17. BILLING LEGACY_AUTHORITY: cobra local (pasarela falsa 1 vez)', c0.status === 200 && gateway.calls === 1);
+await auth('gmao', 'BILLING', TEN, 'DUAL_READ');
+await auth('gmao', 'BILLING', TEN, 'SHADOW');
+const c1 = await charge();
+const shadows = (await db.query<{ n: number }>(`select count(*)::int as n from private.billing_shadow_calculations where tenant_id = $1`, [TEN])).rows[0].n;
+check('18. BILLING SHADOW: sigue cobrando local y registra la sombra (sin datos de tarjeta)', c1.status === 200 && gateway.calls === 2 && shadows === 1);
+check('19. BILLING → MASTERADMIN_AUTHORITY exige comparación SHADOW verde',
+  await failsWith(() => auth('gmao', 'BILLING', TEN, 'MASTERADMIN_AUTHORITY'), /BILLING_SHADOW_NOT_GREEN/));
+await svc(`select platform.ccp_record_billing_shadow_comparison($1, '2026-10', 0, $2, 'x07')`, [TEN, `sha256:${'d'.repeat(64)}`]);
+await auth('gmao', 'BILLING', TEN, 'MASTERADMIN_AUTHORITY');
+const c2 = await charge();
+check('20. BILLING MASTERADMIN_AUTHORITY: charge 409 SIN llamar a la pasarela (nunca dos cobradores)',
+  c2.status === 409 && gateway.calls === 2, `${c2.status}`);
+check('21. y la base rechaza cualquier pago/factura local de ese tenant',
+  await failsWith(() => db.query(`insert into platform.invoices (tenant_id, number, amount, currency, status) values ($1, 'F-X07', 30, 'PEN', 'pending')`, [TEN]),
+    /BILLING_AUTHORITY_MASTERADMIN/));
+
+// ── Escenario: hub GMAO → MasterAdmin (export, mapeo, paridad, atestación, congelamiento) ─
+const hubCtx = JSON.parse(readFileSync('supabase/functions/_shared/entitlements/hub/fixtures/hub-context.synthetic.json', 'utf8')) as {
+  registry: Record<string, RegistryCapability[]>;
+};
+const ecoRegistry = hubCtx.registry.ecommerce;
+const sellable = ecoRegistry.filter((c) => c.status === 'ACTIVE' && !c.isBaseline && (c.kind === 'FEATURE' || c.kind === 'AI_FEATURE')).map((c) => c.code).sort();
+const [EC1, EC2] = sellable;
+const ORG = 'd0000000-0000-4000-8000-000000000001';
+const CO = 'd0000000-0000-4000-8000-0000000000c1';
+const MA_ECO_TENANT = '9f160000-0000-4000-8000-0000000000ec';
+await db.exec(`
+  insert into platform.apps (code, name, available) values ('ecommerce', 'eCommerce', true), ('esupplier', 'eSupplier', true);
+  insert into platform.catalog_items (app_code, code, name, category, price_month, currency, available) values
+    ('ecommerce', '${EC1}', 'Uno', 'addon', 0, 'USD', true), ('ecommerce', '${EC2}', 'Dos', 'addon', 0, 'USD', true),
+    ('esupplier', 'esupplier_dorothy', 'Dorothy', 'ai', 49, 'USD', true);
+  insert into platform.organizations (id, name) values ('${ORG}', 'MiQuímica');
+  insert into platform.companies (id, organization_id, name) values ('${CO}', '${ORG}', 'MiQuímica');
+  insert into platform.workspace_apps (tenant_id, app_code, status) values ('${ORG}', 'ecommerce', 'active');`);
+await svc(`select platform.hub_set_addon($1, $2, true)`, [CO, EC1]);
+await svc(`select platform.hub_set_addon($1, $2, true)`, [CO, EC2]);
+
+const HUB_SCOPE = 'gmao:hub:export';
+async function hubToken(): Promise<string> {
+  const b64u = (b: Uint8Array | string) => Buffer.from(b).toString('base64url');
+  const now = Math.floor(Date.now() / 1000);
+  const input = `${b64u(JSON.stringify({ alg: 'ES256', typ: 'JWT' }))}.${b64u(JSON.stringify({
+    iss: 'masteradmin.ebim', aud: 'gmao.ebim', sub: 'masteradmin-provisioning', iat: now, exp: now + 60, jti: crypto.randomUUID(), scope: HUB_SCOPE,
+  }))}`;
+  const sig = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, pair.privateKey, new TextEncoder().encode(input)));
+  return `${input}.${b64u(sig)}`;
+}
+const exportHandler = gmHubExport.createHubExportHandler({ m2m, scope: HUB_SCOPE, environment: 'LOCAL', openRpc: () => rpc, log: () => {} });
+async function fetchExport() {
+  const r = await exportHandler(new Request('https://gmao.test/functions/v1/hub-commercial-export', { headers: { Authorization: `Bearer ${await hubToken()}` } }));
+  return { status: r.status, body: await r.json() as Row };
+}
+const ex1 = await fetchExport();
+check('22. GMAO sirve el export del hub por M2M (scope propio), sin precios ni secretos',
+  ex1.status === 200 && !/price|currency|secret|token/i.test(JSON.stringify(ex1.body)), `${ex1.status}`);
+const parsed = await parseHubExport(ex1.body, { expectedEnvironment: 'LOCAL' });
+const mapping = await mapHubExport(parsed, {
+  products: [{ code: 'ecommerce', hubAppCode: 'ecommerce' }],
+  registry: { ecommerce: ecoRegistry },
+  aliases: [],
+  tenantLinks: [{ productCode: 'ecommerce', organizationId: ORG, tenantId: MA_ECO_TENANT }],
+});
+const state = mapping.legacyTenantState.find((s) => s.productCode === 'ecommerce' && s.organizationId === ORG);
+check('23. MasterAdmin valida checksum/lista blanca y mapea de forma determinista (códigos canónicos, sin inventar)',
+  Boolean(state) && Object.keys(state!.capabilities).sort().join() === [EC1, EC2].join() && mapping.unmapped.length === 0,
+  state ? Object.keys(state.capabilities).join() : 'sin estado');
+const ecoSnapshot = (granted: string[]) => buildSnapshot({
+  environment: 'DEV', controlPlaneTenantId: MA_ECO_TENANT, productCode: 'ecommerce',
+  external: { tenantId: ORG, organizationId: ORG, companyIds: [CO] }, snapshotVersion: 1, previousVersion: null,
+  effectiveAt: '2026-10-10T00:00:00.000Z', issuedAt: '2026-10-10T00:00:01.000Z', appActive: true, planCode: 'ecommerce-pro',
+  registry: ecoRegistry, granted: granted.map((code) => ({ code, value: null, enforcement: null, included: null, sources: ['ADDON'], companyIds: null })),
+  allowancePeriod: { start: '2026-10-01', end: '2026-10-31' }, aiCredits: { weights: [], weightsVersion: 0 }, correlationId: crypto.randomUUID(),
+});
+const red = compareHubWithMasterAdmin(state!, await ecoSnapshot([EC1]), ecoRegistry);
+const redAtt = await buildParityAttestation('ecommerce', [red], String(ex1.body.checksum));
+await auth('hub:ecommerce', 'ENTITLEMENTS', null, 'DUAL_READ');
+await auth('hub:ecommerce', 'ENTITLEMENTS', null, 'SHADOW');
+await svc(`select platform.ccp_record_hub_parity('ecommerce', $1, $2, $3, $4, $5, $6::timestamptz, 'x07')`,
+  [redAtt.blocking, redAtt.warnings, redAtt.tenants, redAtt.exportChecksum, redAtt.reportChecksum, redAtt.ranAt]);
+check('24. paridad dual-read en ROJO (MasterAdmin sin una capacidad del hub) → la base impide congelar el hub',
+  red.verdict === 'BLOCKED' && await failsWith(() => auth('hub:ecommerce', 'ENTITLEMENTS', null, 'MASTERADMIN_AUTHORITY'), /HUB_PARITY_NOT_GREEN/),
+  red.diffs.map((d) => d.type).join());
+const green = compareHubWithMasterAdmin(state!, await ecoSnapshot([EC1, EC2]), ecoRegistry);
+const att = await buildParityAttestation('ecommerce', [green], String(ex1.body.checksum));
+await svc(`select platform.ccp_record_hub_parity('ecommerce', $1, $2, $3, $4, $5, $6::timestamptz, 'x07')`,
+  [att.blocking, att.warnings, att.tenants, att.exportChecksum, att.reportChecksum, att.ranAt]);
+await auth('hub:ecommerce', 'ENTITLEMENTS', null, 'MASTERADMIN_AUTHORITY');
+const report = renderHubParityReport([green], { environment: 'LOCAL', generatedAt: 'x07' });
+check('25. paridad VERDE + atestación → hub:ecommerce en MASTERADMIN_AUTHORITY; reporte sin precios',
+  green.verdict === 'GREEN' && !/price|precio|USD|amount/i.test(report));
+const allowed = (await svc<{ r: { allowed: boolean } }>(`select platform.ccp_hub_write_allowed('ecommerce', $1) as r`, [EC1]))[0].r;
+check('26. el hub congela las escrituras comerciales de eCommerce (RPC y pre-chequeo de platform-register)',
+  allowed.allowed === false && await failsWith(() => svc(`select platform.hub_set_addon($1, $2, false)`, [CO, EC1]), /HUB_COMMERCIAL_FROZEN/));
+await svc(`insert into platform.companies (id, organization_id, name) values ('e0000000-0000-4000-8000-0000000000c1', $1, 'Otra')`, [ORG]);
+check('27. el congelamiento es POR PRODUCTO: eSupplier (LEGACY) sigue escribiendo',
+  !(await failsWith(() => svc(`select platform.hub_set_addon('e0000000-0000-4000-8000-0000000000c1', 'esupplier_dorothy', true)`), /./)));
+const ex2 = await fetchExport();
+check('28. el hub sigue sirviendo el export (lectura) con el producto congelado; identidad intacta', ex2.status === 200);
+await auth('hub:ecommerce', 'ENTITLEMENTS', null, 'SHADOW');
+check('29. rollback de un paso (MASTERADMIN_AUTHORITY → SHADOW) descongela al instante',
+  !(await failsWith(() => svc(`select platform.hub_set_addon($1, $2, false)`, [CO, EC1]), /./)));
+
+const failed = results.filter((r) => r.startsWith('FAIL')).length;
+console.log(`\nX-07 GMAO: ${results.length - failed}/${results.length} PASS`);

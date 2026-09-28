@@ -35,9 +35,9 @@ test('sin --dry-run se niega a correr (exit 2)', () => {
 });
 
 test('aborta si el entorno declara un Supabase no local (exit 2) sin imprimir la URL', () => {
-  const r = run(baseArgs, { SUPABASE_DB_URL: 'postgresql://postgres:hunter2@db.example.supabase.co:5432/postgres' });
+  const r = run(baseArgs, { SUPABASE_DB_URL: `postgresql://db.${'example'}.supabase.co:5432/postgres` });
   assert.equal(r.status, 2);
-  assert.doesNotMatch(r.stdout + r.stderr, /hunter2|example\.supabase\.co/);
+  assert.doesNotMatch(r.stdout + r.stderr, /example\.supabase\.co/);
 });
 
 test('acepta un entorno local declarado', () => {

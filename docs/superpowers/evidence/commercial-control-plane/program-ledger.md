@@ -183,3 +183,70 @@
 - Open (not expanded): pre-MasterAdmin tenants (local `demo`, remote CMH) are `TENANT_NOT_MAPPED` → always LEGACY and no billing SHADOW → adopt before any cutover; 13 DRAFT modules need a server gate to be sellable; MasterAdmin plan codes must match local `plans.code` or need an approved alias (`PLAN_MISMATCH` is BLOCKING); unify `appActive=false` criterion (eExpense withdraws baseline too) before PRIMARY; `billing-run` cron secret compare still non-constant-time (legacy); phase 17 outbox sender + signed ingest; D-03/D-05/D-06/D-14. Operator after GATE C + P-05: SQL + `migration repair` before functions, env vars + MasterAdmin eExpense integration columns; push on explicit order `git -C <eExpenses> push origin feature/ebim-commercial-control-plane-v1`.
 - Evidence: `phase-15-eexpense.md` (+ SaaS evidence), `logs/EX15-07-x07-e2e.txt`.
 - Status: PHASE_15=PASS.
+
+## 2026-09-28 — Phase 16 (GMAO hub migration)
+- LOCAL only.
+  - GMAO worktree `GMAO/.worktrees/ebim-commercial-control-plane-v1`, base = phase 05 head `39e5889`.
+  - PGlite harness; GMAO cannot `db reset`.
+  - No push, no QAS, nothing against `xikbhkfeaosasdltartg` (P-05). Nothing retired.
+- Resume check:
+  - The runner prompt said "resume phase 12", but phases 12–15 were already PASS in this ledger.
+  - The GMAO worktree was clean at `39e5889` and no phase-16 artifacts existed, so phase 16 started from scratch.
+  - Stale note, same as phase 15.
+- `git fetch` still fails in the sandbox (SSH).
+- GMAO commits:
+  - `e5686d4` pin FIX-ENT-v1 + GMAO manifest `2026-10-10.1`
+  - `124a3ab` PUT/GET/manifest dispatch in `platform-provisioning/index.ts` (+29/−1: the single `Deno.serve(createHandler(...))` line became `const provisioningHandler`; protected handler/m2m_auth/contract/service/adapters/errors/tests unchanged)
+  - `01223d8` migrations `20261010100000_ccp_commercial_authority`, `…110000_ccp_gmao_entitlements_receiver`, `…120000_ccp_gmao_commercial_gate`, `…130000_ccp_billing_authority_guard`, `…140000_ccp_hub_commercial_freeze`, plus harness `40_ccp_hub_capture.sql` and `run_ccp16_tests.mjs`
+  - `5f0930d` `charge`, `platform-register`, constant-time `X-EBIM-Service`
+  - `a1a1035` `hub-commercial-export`
+  - `eb3476a` rollback `16.sql`, dry-run, `docs/runbooks/gmao-hub-retirement-checklist.md`
+  - `b19dc4d` evidence
+- MasterAdmin commits:
+  - `b2d62db` hub export parser + deterministic mapping (`GMAO_HUB` alias → canonical → UNMAPPED, never invented, no prices)
+  - `f604866` dual-read parity + attestation + `gmao-hub-import-dryrun.mts`
+  - this commit: `scripts/ccp/gmao-x07-e2e.mts` + dry-run test fix. The synthetic remote URL is now built without userinfo; the secrets scan had flagged it.
+- Design:
+  - **State machine.** `private.commercial_authority` implements `LEGACY_AUTHORITY → DUAL_READ → SHADOW → MASTERADMIN_AUTHORITY → READONLY → RETIRED`.
+    - Per product: `gmao` with axes ENTITLEMENTS/BILLING, optional tenant cohort; `hub:<app>` with ENTITLEMENTS at product level.
+    - One step at a time; the service_role lever requires actor and reason. Tenants without a MasterAdmin mapping are always LEGACY.
+    - Advancing to MASTERADMIN_AUTHORITY is DB-gated: gmao parity green; BILLING also needs entitlements at MA+ and a green SHADOW billing comparison after entering SHADOW; hub needs a green parity attestation recorded after SHADOW.
+    - RETIRED needs `RETIREMENT-APPROVED:<ref>`, READONLY since a previous calendar month, no alerts since. It is terminal.
+  - **Receiver.** Tables in `private` (RLS, zero grants, append-only evidence).
+    - RPCs `platform.ccp_apply/get_entitlements`, `ccp_entitlements_use_jti`, `ccp_gmao_commercial_parity`.
+    - GET maps the authority to the contract enum (MA+ → PRIMARY). No materialization.
+  - **GMAO gate.** `ai_consume`/`ai_entitlement` read the last-good snapshot at MA+.
+    - Fail-closed: `SNAPSHOT_MISSING`, `DISABLED`, `ALLOWANCE_NOT_DEFINED`.
+    - Legacy commercial writes alert in DUAL_READ/SHADOW and are blocked at MA+: `tenant_addons.ai_assist`, lowering/deleting `ai_usage`, `tenants.plan_code`, `subscriptions.plan_id`. This covers `ccp_set_ai_entitlement`/`ccp_reset_ai_usage`, which replace tenant self-grant authority.
+  - **Billing.** Triggers on `payments`/`workspace_subscriptions`/`invoices` (catching unversioned RPCs too) reject local collection at MA+.
+    - `charge` reads the authority BEFORE the gateway: MA+ → 409; unreadable → 503.
+    - In SHADOW it keeps charging locally and records a shadow calculation (spec §15.2).
+  - **Hub.** Allowlisted read-only export (no `price_month`/`currency`, no secrets).
+    - M2M function with its own scope and single-use jti, JCS checksum, keys re-validated in TS.
+    - Per-app freeze trigger on `company_addons`/`workspace_subscriptions` at MA+; alerts in DUAL_READ/SHADOW; unresolvable codes alert and are allowed.
+    - `platform-register` pre-check → 409 `HUB_COMMERCIAL_FROZEN`.
+    - Identity (`org_context`, `upsert_org/company`, `activate_app`) untouched.
+  - **Registry.** `gmao.core` baseline + `gmao.ai.assist` ACTIVE. `gmao.ai.requests` (D-03), 3 limits (D-05) and 3 technical add-ons DRAFT. A tenant with AI cannot reach MA until D-03, by design.
+- Gate:
+  - GMAO:
+    - deno: provisioning 32/32 (INV-1), entitlements 58 (FIX-ENT-v1 golden 13/13), charge 19, platform-register/context 9, hub-commercial-export 9, translate 8; check/lint OK.
+    - SQL: 61/61, provisioning 20/20, ccp05 40/40 (also 40/40 with phase 16 applied), ccp16 48/48 including rollback dry-run.
+    - INV-1 empty. INV-4: no catalog price read or written; the only amount columns are the observed SHADOW charge calculation.
+    - Secret scan PASS: one reviewed negative-test PEM header literal. Web untouched.
+  - MasterAdmin: vitest 1123/1123, hub 82, node:test 15/15, typecheck/eslint/secrets PASS.
+  - X-07 MasterAdmin → GMAO 30/30 (`logs/GM16-07-x07-e2e.txt`): real emitter + M2M client → real GMAO receiver/SQL; charge with a fake counting gateway; hub export → parse → map → red and green parity → attestation → freeze → per-product isolation → rollback.
+- Deviations:
+  - **Hub schema.** The live hub DDL is not in git and no operator export exists. The harness captures hub tables by code usage; migrations 4/5 and 5/5 abort with `CCP16_SCHEMA_DRIFT` if columns are missing. The read-only operator SQL is in the GMAO evidence; live verification is deferred to phase 19.
+  - **State order.** The prompt's order (DUAL_READ before SHADOW) differs from spec §15.1 order. Semantics are documented; the contract enum is unchanged.
+  - **E2E transport.** The sandbox denies `listen` (EPERM), so X-07 delivers the signed HTTP request in-process via the client's `fetchImpl`. `sandbox.network.allowLocalBinding: true` would allow the socket variant.
+  - **Worker branch.** The MasterAdmin hub worker had to commit on its own worktree branch; fast-forwarded by the coordinator.
+- Open (not expanded):
+  - Business decisions D-01/D-03/D-05/D-14 are still open.
+  - `subscribe` still accepts `mode:"live"` from the caller.
+  - `charge` still has no currency conversion (P-06).
+  - `org_context` still lacks `app_active`.
+  - Live `workspace_subscriptions.tenant_id` semantics are unverified (org vs GMAO tenant).
+  - Pre-MasterAdmin tenants must be adopted before any cutover.
+  - `EBIM-ESTADO-GMAO.md` text is left for the operator (GUIDELINES_ROOT is read-only).
+- Status: PHASE_16=PASS.
+
