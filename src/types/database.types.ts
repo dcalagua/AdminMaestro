@@ -407,6 +407,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "catalog_item_prices_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
             foreignKeyName: "catalog_item_prices_market_id_fkey"
             columns: ["market_id"]
             isOneToOne: false
@@ -1609,6 +1616,176 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_tenant_overview"
             referencedColumns: ["saas_product_id"]
+          },
+        ]
+      }
+      entitlement_desired_state: {
+        Row: {
+          created_at: string
+          desired_dirty: boolean
+          desired_revision: number
+          dirty_since: string | null
+          last_change_at: string | null
+          last_change_reason: string | null
+          saas_product_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          desired_dirty?: boolean
+          desired_revision?: number
+          dirty_since?: string | null
+          last_change_at?: string | null
+          last_change_reason?: string | null
+          saas_product_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          desired_dirty?: boolean
+          desired_revision?: number
+          dirty_since?: string | null
+          last_change_at?: string | null
+          last_change_reason?: string | null
+          saas_product_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entitlement_desired_state_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_desired_state_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_desired_state_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_desired_state_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_desired_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_desired_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_margin"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "entitlement_desired_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      entitlement_grants: {
+        Row: {
+          capability_id: string
+          catalog_item_id: string | null
+          close_reason: string | null
+          closed_by: string | null
+          created_at: string
+          created_by: string | null
+          grant_value: Json
+          id: string
+          plan_id: string | null
+          source_type: string
+          updated_at: string
+          valid_from: string
+          valid_to: string | null
+        }
+        Insert: {
+          capability_id: string
+          catalog_item_id?: string | null
+          close_reason?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          grant_value: Json
+          id?: string
+          plan_id?: string | null
+          source_type: string
+          updated_at?: string
+          valid_from?: string
+          valid_to?: string | null
+        }
+        Update: {
+          capability_id?: string
+          catalog_item_id?: string | null
+          close_reason?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          grant_value?: Json
+          id?: string
+          plan_id?: string | null
+          source_type?: string
+          updated_at?: string
+          valid_from?: string
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entitlement_grants_capability_id_fkey"
+            columns: ["capability_id"]
+            isOneToOne: false
+            referencedRelation: "product_capabilities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_grants_catalog_item_id_fkey"
+            columns: ["catalog_item_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_grants_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_grants_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_grants_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -5684,6 +5861,100 @@ export type Database = {
           },
         ]
       }
+      tenant_entitlement_overrides: {
+        Row: {
+          approved_by: string
+          capability_id: string
+          created_at: string
+          expires_at: string
+          grant_value: Json
+          id: string
+          override_type: string
+          reason: string
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          starts_at: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          approved_by: string
+          capability_id: string
+          created_at?: string
+          expires_at: string
+          grant_value?: Json
+          id?: string
+          override_type: string
+          reason: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          starts_at?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          approved_by?: string
+          capability_id?: string
+          created_at?: string
+          expires_at?: string
+          grant_value?: Json
+          id?: string
+          override_type?: string
+          reason?: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          starts_at?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_entitlement_overrides_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_entitlement_overrides_capability_id_fkey"
+            columns: ["capability_id"]
+            isOneToOne: false
+            referencedRelation: "product_capabilities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_entitlement_overrides_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_entitlement_overrides_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_entitlement_overrides_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_margin"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_entitlement_overrides_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
       tenant_features: {
         Row: {
           created_at: string
@@ -8730,6 +9001,10 @@ export type Database = {
         Args: { p_request_id: string }
         Returns: Json
       }
+      close_entitlement_grant: {
+        Args: { p_grant_id: string; p_reason: string; p_valid_to: string }
+        Returns: undefined
+      }
       collections_by_month: {
         Args: { p_from?: string; p_organization_id?: string; p_to?: string }
         Returns: {
@@ -8785,6 +9060,29 @@ export type Database = {
       cost_summary: {
         Args: { p_scope?: string; p_search?: string }
         Returns: Json
+      }
+      create_entitlement_grant: {
+        Args: {
+          p_capability_code: string
+          p_grant_value: Json
+          p_reason?: string
+          p_source_code: string
+          p_source_type: string
+          p_valid_from?: string
+        }
+        Returns: string
+      }
+      create_entitlement_override: {
+        Args: {
+          p_capability_code: string
+          p_expires_at: string
+          p_grant_value: Json
+          p_override_type: string
+          p_reason: string
+          p_starts_at?: string
+          p_tenant_id: string
+        }
+        Returns: string
       }
       create_saas_provisioning_request: {
         Args: {
@@ -9103,6 +9401,10 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: never; Returns: boolean }
+      is_valid_grant_value: {
+        Args: { p_kind: string; p_value: Json }
+        Returns: boolean
+      }
       is_valid_provisioning_base_url: {
         Args: {
           p_env: Database["platform"]["Enums"]["provisioning_environment"]
@@ -9135,6 +9437,14 @@ export type Database = {
           p_entity_type: string
           p_product_id?: string
         }
+        Returns: number
+      }
+      mark_entitlements_dirty: {
+        Args: { p_product_id: string; p_reason: string; p_tenant_id: string }
+        Returns: undefined
+      }
+      mark_entitlements_dirty_for_source: {
+        Args: { p_catalog_item_id: string; p_plan_id: string; p_reason: string }
         Returns: number
       }
       market_id_by_code: { Args: { p_code: string }; Returns: string }
@@ -9393,6 +9703,10 @@ export type Database = {
       reverse_payment: {
         Args: { p_payment_id: string; p_reason: string }
         Returns: Json
+      }
+      revoke_entitlement_override: {
+        Args: { p_override_id: string; p_reason: string }
+        Returns: undefined
       }
       revoke_provisioning_role: { Args: { p_id: string }; Returns: string }
       set_billing_alert_status: {
