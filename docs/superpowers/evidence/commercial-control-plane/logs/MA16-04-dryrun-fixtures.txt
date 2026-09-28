@@ -1,0 +1,132 @@
+# GMAO hub · importación legacy · DRY-RUN
+
+Modo: DRY-RUN (sin conexión a bases, sin escrituras, sin precios). El registro de alias es un paso del operador.
+Entorno del export: LOCAL · generado: 2026-09-28T12:00:00Z
+Checksum del export (GMAO): `sha256:91c4573d04c681ef8c1fecdb4cd5b250f5166d6fb15ea1d34ab29628e6ca2862`
+Checksum del contenido: `sha256:91c4573d04c681ef8c1fecdb4cd5b250f5166d6fb15ea1d34ab29628e6ca2862`
+Checksum del mapeo: `sha256:5f5689c892c77b3f4668d482202aa3cb240a799da0afcf268760ffe70f4abe32`
+
+## Mapeo
+
+| Producto | Ítems hub | ALIAS | CANONICAL | UNMAPPED | Propuestas |
+| --- | --- | --- | --- | --- | --- |
+| ecommerce | 24 | 1 | 23 | 0 | 23 |
+| esupplier | 4 | 3 | 0 | 1 | 0 |
+
+### Códigos sin mapeo
+
+- esupplier · `esupplier_legacy_portal` · NO_ALIAS_NO_CANONICAL · activo en 1 organización(es)
+
+Apps del hub sin producto en el contexto: echange
+Códigos no atribuidos (fuera del catálogo): 0
+
+## SQL para el operador (MasterAdmin, NO se ejecuta aquí)
+
+```sql
+select platform.upsert_capability_alias('ecommerce', 'GMAO_HUB', 'ecommerce.ai.assist', 'ecommerce.ai.assist');
+select platform.upsert_capability_alias('ecommerce', 'GMAO_HUB', 'ecommerce.ai.catalog.copy', 'ecommerce.ai.catalog.copy');
+select platform.upsert_capability_alias('ecommerce', 'GMAO_HUB', 'ecommerce.ai.insights', 'ecommerce.ai.insights');
+select platform.upsert_capability_alias('ecommerce', 'GMAO_HUB', 'ecommerce.analytics.advanced', 'ecommerce.analytics.advanced');
+select platform.upsert_capability_alias('ecommerce', 'GMAO_HUB', 'ecommerce.catalog.advanced', 'ecommerce.catalog.advanced');
+select platform.upsert_capability_alias('ecommerce', 'GMAO_HUB', 'ecommerce.content.cms', 'ecommerce.content.cms');
+select platform.upsert_capability_alias('ecommerce', 'GMAO_HUB', 'ecommerce.content.white_label', 'ecommerce.content.white_label');
+select platform.upsert_capability_alias('ecommerce', 'GMAO_HUB', 'ecommerce.credit.management', 'ecommerce.credit.management');
+select platform.upsert_capability_alias('ecommerce', 'GMAO_HUB', 'ecommerce.customers.b2b', 'ecommerce.customers.b2b');
+select platform.upsert_capability_alias('ecommerce', 'GMAO_HUB', 'ecommerce.fulfillment', 'ecommerce.fulfillment');
+select platform.upsert_capability_alias('ecommerce', 'GMAO_HUB', 'ecommerce.fulfillment.routing', 'ecommerce.fulfillment.routing');
+select platform.upsert_capability_alias('ecommerce', 'GMAO_HUB', 'ecommerce.integrations.enterprise', 'ecommerce.integrations.enterprise');
+select platform.upsert_capability_alias('ecommerce', 'GMAO_HUB', 'ecommerce.inventory.multiwarehouse', 'ecommerce.inventory.multiwarehouse');
+select platform.upsert_capability_alias('ecommerce', 'GMAO_HUB', 'ecommerce.invoicing', 'ecommerce.invoicing');
+select platform.upsert_capability_alias('ecommerce', 'GMAO_HUB', 'ecommerce.orders.advanced', 'ecommerce.orders.advanced');
+select platform.upsert_capability_alias('ecommerce', 'GMAO_HUB', 'ecommerce.payments', 'ecommerce.payments');
+select platform.upsert_capability_alias('ecommerce', 'GMAO_HUB', 'ecommerce.planning.demand', 'ecommerce.planning.demand');  -- capacidad DRAFT
+select platform.upsert_capability_alias('ecommerce', 'GMAO_HUB', 'ecommerce.pricing.lists', 'ecommerce.pricing.lists');
+select platform.upsert_capability_alias('ecommerce', 'GMAO_HUB', 'ecommerce.sales.force', 'ecommerce.sales.force');
+select platform.upsert_capability_alias('ecommerce', 'GMAO_HUB', 'ecommerce.sales.performance', 'ecommerce.sales.performance');
+select platform.upsert_capability_alias('ecommerce', 'GMAO_HUB', 'ecommerce.sales.territory', 'ecommerce.sales.territory');
+select platform.upsert_capability_alias('ecommerce', 'GMAO_HUB', 'ecommerce.trade.assortments', 'ecommerce.trade.assortments');
+select platform.upsert_capability_alias('ecommerce', 'GMAO_HUB', 'ecommerce.trade.quotes', 'ecommerce.trade.quotes');
+```
+
+# Hub GMAO · paridad dual-read hub vs MasterAdmin
+
+Entorno: LOCAL · generado: 2026-09-28T12:30:00Z
+
+Export (contenido): `sha256:91c4573d04c681ef8c1fecdb4cd5b250f5166d6fb15ea1d34ab29628e6ca2862`
+
+Mapeo: `sha256:5f5689c892c77b3f4668d482202aa3cb240a799da0afcf268760ffe70f4abe32`
+
+Solo QUÉ concede cada fuente (app activa, capacidades); nunca cuánto cuesta (D-01).
+GREEN = 0 diferencias bloqueantes. Las capacidades baseline no se comparan.
+
+## Productos
+
+| Producto | Tenants | GREEN | BLOCKED | Bloqueantes | Avisos | Veredicto |
+| --- | --- | --- | --- | --- | --- | --- |
+| ecommerce | 1 | 1 | 0 | 0 | 23 | GREEN |
+| esupplier | 2 | 0 | 2 | 3 | 1 | BLOCKED |
+
+## Tenants
+
+| Producto | Tenant | Organización hub | Bloqueantes | Avisos | Veredicto |
+| --- | --- | --- | --- | --- | --- |
+| ecommerce | a0000000-0000-4000-8000-000000000001 | d0000000-0000-4000-8000-000000000001 | 0 | 23 | GREEN |
+| esupplier | a0000000-0000-4000-8000-000000000002 | e0000000-0000-4000-8000-000000000001 | 2 | 1 | BLOCKED |
+| esupplier | sin vínculo (org e0000000-0000-4000-8000-000000000002) | e0000000-0000-4000-8000-000000000002 | 1 | 0 | BLOCKED |
+
+## Diferencias
+
+| Producto | Tenant | Severidad | Tipo | Capacidad | Códigos hub | Detalle |
+| --- | --- | --- | --- | --- | --- | --- |
+| ecommerce | a0000000-0000-4000-8000-000000000001 | WARNING | DRAFT_CAPABILITY_IN_HUB | ecommerce.planning.demand | ecommerce.planning.demand | capacidad DRAFT en el registro |
+| ecommerce | a0000000-0000-4000-8000-000000000001 | WARNING | HUB_ITEM_UNAVAILABLE_BUT_ACTIVE | ecommerce.ai.assist | ecommerce.ai.assist | ítem no disponible en el catálogo del hub pero activo |
+| ecommerce | a0000000-0000-4000-8000-000000000001 | WARNING | HUB_ITEM_UNAVAILABLE_BUT_ACTIVE | ecommerce.analytics.advanced | ecommerce.analytics.advanced | ítem no disponible en el catálogo del hub pero activo |
+| ecommerce | a0000000-0000-4000-8000-000000000001 | WARNING | HUB_ITEM_UNAVAILABLE_BUT_ACTIVE | ecommerce.catalog.advanced | ecommerce.catalog.advanced | ítem no disponible en el catálogo del hub pero activo |
+| ecommerce | a0000000-0000-4000-8000-000000000001 | WARNING | HUB_ITEM_UNAVAILABLE_BUT_ACTIVE | ecommerce.content.cms | ecommerce.content.cms | ítem no disponible en el catálogo del hub pero activo |
+| ecommerce | a0000000-0000-4000-8000-000000000001 | WARNING | HUB_ITEM_UNAVAILABLE_BUT_ACTIVE | ecommerce.content.white_label | ecommerce.content.white_label | ítem no disponible en el catálogo del hub pero activo |
+| ecommerce | a0000000-0000-4000-8000-000000000001 | WARNING | HUB_ITEM_UNAVAILABLE_BUT_ACTIVE | ecommerce.credit.management | ecommerce.credit.management | ítem no disponible en el catálogo del hub pero activo |
+| ecommerce | a0000000-0000-4000-8000-000000000001 | WARNING | HUB_ITEM_UNAVAILABLE_BUT_ACTIVE | ecommerce.customers.b2b | ecommerce.customers.b2b | ítem no disponible en el catálogo del hub pero activo |
+| ecommerce | a0000000-0000-4000-8000-000000000001 | WARNING | HUB_ITEM_UNAVAILABLE_BUT_ACTIVE | ecommerce.fulfillment | ecommerce.fulfillment | ítem no disponible en el catálogo del hub pero activo |
+| ecommerce | a0000000-0000-4000-8000-000000000001 | WARNING | HUB_ITEM_UNAVAILABLE_BUT_ACTIVE | ecommerce.fulfillment.routing | ecommerce.fulfillment.routing | ítem no disponible en el catálogo del hub pero activo |
+| ecommerce | a0000000-0000-4000-8000-000000000001 | WARNING | HUB_ITEM_UNAVAILABLE_BUT_ACTIVE | ecommerce.integrations.enterprise | ecommerce.integrations.enterprise | ítem no disponible en el catálogo del hub pero activo |
+| ecommerce | a0000000-0000-4000-8000-000000000001 | WARNING | HUB_ITEM_UNAVAILABLE_BUT_ACTIVE | ecommerce.inventory.multiwarehouse | ecommerce.inventory.multiwarehouse | ítem no disponible en el catálogo del hub pero activo |
+| ecommerce | a0000000-0000-4000-8000-000000000001 | WARNING | HUB_ITEM_UNAVAILABLE_BUT_ACTIVE | ecommerce.invoicing | ecommerce.invoicing | ítem no disponible en el catálogo del hub pero activo |
+| ecommerce | a0000000-0000-4000-8000-000000000001 | WARNING | HUB_ITEM_UNAVAILABLE_BUT_ACTIVE | ecommerce.orders.advanced | ecommerce.orders.advanced | ítem no disponible en el catálogo del hub pero activo |
+| ecommerce | a0000000-0000-4000-8000-000000000001 | WARNING | HUB_ITEM_UNAVAILABLE_BUT_ACTIVE | ecommerce.payments | ecommerce.payments | ítem no disponible en el catálogo del hub pero activo |
+| ecommerce | a0000000-0000-4000-8000-000000000001 | WARNING | HUB_ITEM_UNAVAILABLE_BUT_ACTIVE | ecommerce.planning.demand | ecommerce.planning.demand | ítem no disponible en el catálogo del hub pero activo |
+| ecommerce | a0000000-0000-4000-8000-000000000001 | WARNING | HUB_ITEM_UNAVAILABLE_BUT_ACTIVE | ecommerce.pricing.lists | ecommerce.pricing.lists | ítem no disponible en el catálogo del hub pero activo |
+| ecommerce | a0000000-0000-4000-8000-000000000001 | WARNING | HUB_ITEM_UNAVAILABLE_BUT_ACTIVE | ecommerce.promotions | ecommerce.promotions | ítem no disponible en el catálogo del hub pero activo |
+| ecommerce | a0000000-0000-4000-8000-000000000001 | WARNING | HUB_ITEM_UNAVAILABLE_BUT_ACTIVE | ecommerce.sales.force | ecommerce.sales.force | ítem no disponible en el catálogo del hub pero activo |
+| ecommerce | a0000000-0000-4000-8000-000000000001 | WARNING | HUB_ITEM_UNAVAILABLE_BUT_ACTIVE | ecommerce.sales.performance | ecommerce.sales.performance | ítem no disponible en el catálogo del hub pero activo |
+| ecommerce | a0000000-0000-4000-8000-000000000001 | WARNING | HUB_ITEM_UNAVAILABLE_BUT_ACTIVE | ecommerce.sales.territory | ecommerce.sales.territory | ítem no disponible en el catálogo del hub pero activo |
+| ecommerce | a0000000-0000-4000-8000-000000000001 | WARNING | HUB_ITEM_UNAVAILABLE_BUT_ACTIVE | ecommerce.trade.assortments | ecommerce.trade.assortments | ítem no disponible en el catálogo del hub pero activo |
+| ecommerce | a0000000-0000-4000-8000-000000000001 | WARNING | HUB_ITEM_UNAVAILABLE_BUT_ACTIVE | ecommerce.trade.quotes | ecommerce.trade.quotes | ítem no disponible en el catálogo del hub pero activo |
+| esupplier | a0000000-0000-4000-8000-000000000002 | BLOCKING | CAPABILITY_ONLY_IN_HUB | esupplier.companies.extra | esupplier_extra_company | el hub la concede y MasterAdmin no |
+| esupplier | a0000000-0000-4000-8000-000000000002 | BLOCKING | UNMAPPED_ACTIVE_HUB_CODE | — | esupplier_legacy_portal | código activo del hub sin capacidad canónica |
+| esupplier | a0000000-0000-4000-8000-000000000002 | WARNING | COMPANY_SCOPE_PARTIAL | esupplier.sourcing.events | esupplier_sourcing_events | activa en 1 de 2 compañías |
+| esupplier | sin vínculo (org e0000000-0000-4000-8000-000000000002) | BLOCKING | TENANT_NOT_LINKED | — | — | la organización del hub no tiene tenant en MasterAdmin |
+
+## Atestaciones (para platform.ccp_record_hub_parity en GMAO, paso del operador)
+
+<<<ATTESTATIONS
+[
+  {
+    "productCode": "ecommerce",
+    "blocking": 0,
+    "warnings": 23,
+    "tenants": 1,
+    "exportChecksum": "sha256:91c4573d04c681ef8c1fecdb4cd5b250f5166d6fb15ea1d34ab29628e6ca2862",
+    "reportChecksum": "sha256:6b3cd8e83cb68335a3479071c83c509556764537014fafd975ef29ee33bca8e5",
+    "ranAt": "2026-09-28T12:30:00Z"
+  },
+  {
+    "productCode": "esupplier",
+    "blocking": 3,
+    "warnings": 1,
+    "tenants": 2,
+    "exportChecksum": "sha256:91c4573d04c681ef8c1fecdb4cd5b250f5166d6fb15ea1d34ab29628e6ca2862",
+    "reportChecksum": "sha256:8b76ea29f38266259053c51887733041434888e73d543b63369c278727fdd28d",
+    "ranAt": "2026-09-28T12:30:00Z"
+  }
+]
+ATTESTATIONS>>>
