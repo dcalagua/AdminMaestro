@@ -1060,6 +1060,24 @@ export function useProductCapabilities() {
   });
 }
 
+/**
+ * Deseado frente a aplicado por tenant×producto (CCP fase 08). Vista SECURITY
+ * INVOKER: cada operador ve lo que su RLS le deja ver.
+ */
+export function useEntitlementSyncStatus() {
+  return useQuery({
+    queryKey: ['entitlement-sync-status'],
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('v_entitlement_sync_status')
+          .select('*')
+          .order('product_code')
+          .order('tenant_name'),
+      ),
+  });
+}
+
 /** Add-ons del catálogo central con su ciclo de vida y modelo de cobro. */
 export function useCatalogItemsWithLifecycle() {
   return useQuery({

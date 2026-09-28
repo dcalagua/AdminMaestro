@@ -49,10 +49,12 @@ describe('navegación por perfil', () => {
     expect(new Set(grupos).size).toBe(grupos.length);
   });
 
-  it('conserva exactamente las 27 rutas existentes', () => {
-    // CCP fase 07 añade `/catalog/addons` y `/commercial/capabilities`.
+  it('conserva exactamente las 28 rutas existentes', () => {
+    // CCP fase 07 añade `/catalog/addons` y `/commercial/capabilities`;
+    // CCP fase 08 añade `/commercial/entitlement-sync`.
     expect(NAV_ITEMS.map((i) => i.to).sort()).toEqual([
       '/', '/attributions', '/audit', '/billing', '/catalog/addons', '/commercial/capabilities',
+      '/commercial/entitlement-sync',
       '/commission-plans', '/commissions', '/costs',
       '/customers', '/deployments', '/feature-flags', '/integrations', '/onboarding', '/organizations',
       '/partners', '/plans', '/products', '/provisioning', '/reconciliation', '/regional', '/renewals',
@@ -177,6 +179,15 @@ describe('migas y títulos humanos', () => {
     expect(routeMeta('/tenants/abc')).toMatchObject({ group: 'Productos y contratos', title: 'Tenant 360', isDetail: true });
     expect(routeMeta('/organizations/x')).toMatchObject({ title: 'Ficha 360', isDetail: true });
     expect(routeMeta('/subscriptions/x')).toMatchObject({ title: 'Contrato 360' });
+  });
+  it('la sincronización de entitlements es operación de EBIM (CCP fase 08)', () => {
+    expect(navItemsFor('EBIM').map((i) => i.to)).toContain('/commercial/entitlement-sync');
+    for (const persona of ['PARTNER', 'SALES_AGENT', 'TENANT'] as const) {
+      expect(navItemsFor(persona).map((i) => i.to)).not.toContain('/commercial/entitlement-sync');
+    }
+    expect(routeMeta('/commercial/entitlement-sync')).toMatchObject({
+      group: 'Operación SaaS', title: 'Sincronización de entitlements', isDetail: false,
+    });
   });
   it('rutas de dos segmentos del catálogo comercial (CCP fase 07)', () => {
     expect(routeMeta('/catalog/addons')).toMatchObject({

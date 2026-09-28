@@ -82,6 +82,7 @@ export const NAV_ITEMS: NavItem[] = [
 
   // ---- Operación SaaS -----------------------------------------------------
   { to: '/integrations', label: 'Integraciones', icon: PlugsConnectedIcon, group: 'Operación SaaS', personas: ['EBIM'], detailLabel: 'Ficha de integración' },
+  { to: '/commercial/entitlement-sync', label: 'Sincronización de entitlements', icon: ArrowsClockwiseIcon, group: 'Operación SaaS', personas: ['EBIM'] },
   { to: '/deployments', label: 'Entornos y despliegues', icon: CloudArrowUpIcon, group: 'Operación SaaS', personas: ['EBIM', 'PARTNER'] },
   { to: '/saas-provisioning', label: 'Altas SaaS', icon: StackIcon, group: 'Operación SaaS', personas: ['EBIM', 'PARTNER'] },
   { to: '/provisioning', label: 'Solicitudes de infraestructura', icon: HardDrivesIcon, group: 'Operación SaaS', personas: ['EBIM', 'PARTNER'] },

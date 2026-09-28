@@ -1,0 +1,11 @@
+
+ RUN  v3.2.7 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1
+
+ ✓ src/features/commercial/sync/EntitlementSyncPage.test.tsx (7 tests) 325ms
+ ✓ src/app/navigation.test.ts (25 tests) 5ms
+
+ Test Files  2 passed (2)
+      Tests  32 passed (32)
+   Start at  00:41:20
+   Duration  2.18s (transform 148ms, setup 137ms, collect 1.48s, tests 330ms, environment 654ms, prepare 126ms)
+

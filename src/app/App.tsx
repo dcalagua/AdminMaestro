@@ -17,6 +17,7 @@ import { PlansPage } from '@/features/catalog/PlansPage';
 import { FeatureFlagsPage } from '@/features/catalog/FeatureFlagsPage';
 import { AddonsPage } from '@/features/catalog/AddonsPage';
 import { CapabilitiesPage } from '@/features/commercial/capabilities/CapabilitiesPage';
+import { EntitlementSyncPage } from '@/features/commercial/sync/EntitlementSyncPage';
 import { OrganizationsPage } from '@/features/organizations/OrganizationsPage';
 import { OrganizationDetailPage } from '@/features/organizations/OrganizationDetailPage';
 import { PartnersPage } from '@/features/organizations/PartnersPage';
@@ -97,6 +98,19 @@ export function App() {
                       element={
                         <RequirePersona personas={['EBIM']}>
                           <CapabilitiesPage />
+                        </RequirePersona>
+                      }
+                    />
+                    {/*
+                    CCP fase 08. Deseado frente a aplicado; «Sincronizar ahora»
+                    pasa por el orquestador, que autoriza con un booleano de
+                    la base (platform.provisioning.execute del producto).
+                  */}
+                    <Route
+                      path="commercial/entitlement-sync"
+                      element={
+                        <RequirePersona personas={['EBIM']}>
+                          <EntitlementSyncPage />
                         </RequirePersona>
                       }
                     />

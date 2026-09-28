@@ -539,12 +539,13 @@ export interface OrchestratorResult {
  * resuelve el servidor (fase 39). Si el cliente pudiera elegirlo, podría
  * reapuntar la llamada a cualquier sitio y ampliar el alcance del token.
  */
-async function invokeOrchestrator(body: {
-  action: 'PROVISION' | 'CHECK_HEALTH' | 'GET_STATUS';
+async function invokeOrchestrator<T = OrchestratorResult>(body: {
+  action: 'PROVISION' | 'CHECK_HEALTH' | 'GET_STATUS' | 'SYNC_ENTITLEMENTS' | 'GET_ENTITLEMENTS';
   request_id?: string;
   deployment_target_id?: string;
-}): Promise<OrchestratorResult> {
-  const { data, error } = await supabase.functions.invoke<OrchestratorResult>(
+  tenant_id?: string;
+}): Promise<T> {
+  const { data, error } = await supabase.functions.invoke<T>(
     'provisioning-orchestrator',
     { body },
   );
@@ -569,7 +570,43 @@ async function invokeOrchestrator(body: {
     throw new Error(error.message);
   }
 
-  return data ?? {};
+  return (data ?? {}) as T;
+}
+
+/**
+ * Resumen que devuelve el orquestador para SYNC_ENTITLEMENTS / GET_ENTITLEMENTS
+ * (CCP fase 08): estado que decidió la base, y códigos del push y del GET.
+ * Nunca incluye el snapshot ni cuerpos del SaaS.
+ */
+export interface EntitlementSyncSummary {
+  tenant_id: string;
+  saas_product_id: string;
+  state: string;
+  skipped?: string;
+  issued?: boolean;
+  desired_version?: number;
+  push?: { result: string; errorCode: string | null; httpStatus: number | null };
+  verify?: { result: string; errorCode: string | null; httpStatus: number | null; appliedVersion: number | null; status: string | null };
+}
+
+/** «Sincronizar ahora»: emite si hace falta, empuja y verifica por GET. */
+export function useSyncEntitlements() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (tenantId: string) =>
+      invokeOrchestrator<EntitlementSyncSummary>({ action: 'SYNC_ENTITLEMENTS', tenant_id: tenantId }),
+    onSettled: () => invalidate(qc, ['entitlement-sync-status']),
+  });
+}
+
+/** «Verificar»: solo el GET aplicado; no emite ni empuja. */
+export function useVerifyEntitlements() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (tenantId: string) =>
+      invokeOrchestrator<EntitlementSyncSummary>({ action: 'GET_ENTITLEMENTS', tenant_id: tenantId }),
+    onSettled: () => invalidate(qc, ['entitlement-sync-status']),
+  });
 }
 
 export function useProvisionTenant() {

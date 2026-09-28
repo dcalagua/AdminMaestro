@@ -516,6 +516,54 @@ export type Database = {
           },
         ]
       }
+      commercial_cutover_events: {
+        Row: {
+          actor_user_id: string | null
+          axis: string
+          from_state: string
+          id: number
+          occurred_at: string
+          product_integration_id: string
+          reason: string
+          to_state: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          axis: string
+          from_state: string
+          id?: never
+          occurred_at?: string
+          product_integration_id: string
+          reason: string
+          to_state: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          axis?: string
+          from_state?: string
+          id?: never
+          occurred_at?: string
+          product_integration_id?: string
+          reason?: string
+          to_state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commercial_cutover_events_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_cutover_events_product_integration_id_fkey"
+            columns: ["product_integration_id"]
+            isOneToOne: false
+            referencedRelation: "product_integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commission_events: {
         Row: {
           amount: number
@@ -1814,6 +1862,416 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "plans"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      entitlement_registry_checks: {
+        Row: {
+          checked_at: string
+          drift: boolean
+          id: number
+          manifest_version: string | null
+          missing_in_manifest: string[]
+          missing_in_registry: string[]
+          saas_product_id: string
+        }
+        Insert: {
+          checked_at?: string
+          drift: boolean
+          id?: never
+          manifest_version?: string | null
+          missing_in_manifest?: string[]
+          missing_in_registry?: string[]
+          saas_product_id: string
+        }
+        Update: {
+          checked_at?: string
+          drift?: boolean
+          id?: never
+          manifest_version?: string | null
+          missing_in_manifest?: string[]
+          missing_in_registry?: string[]
+          saas_product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entitlement_registry_checks_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_registry_checks_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_registry_checks_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_registry_checks_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+        ]
+      }
+      entitlement_snapshots: {
+        Row: {
+          checksum: string
+          content_checksum: string
+          correlation_id: string
+          created_at: string
+          desired_revision: number
+          document: Json
+          effective_at: string
+          id: string
+          idempotency_key: string
+          issued_at: string
+          previous_version: number | null
+          saas_product_id: string
+          size_bytes: number
+          snapshot_version: number
+          tenant_id: string
+        }
+        Insert: {
+          checksum: string
+          content_checksum: string
+          correlation_id: string
+          created_at?: string
+          desired_revision?: number
+          document: Json
+          effective_at: string
+          id?: string
+          idempotency_key: string
+          issued_at?: string
+          previous_version?: number | null
+          saas_product_id: string
+          size_bytes: number
+          snapshot_version: number
+          tenant_id: string
+        }
+        Update: {
+          checksum?: string
+          content_checksum?: string
+          correlation_id?: string
+          created_at?: string
+          desired_revision?: number
+          document?: Json
+          effective_at?: string
+          id?: string
+          idempotency_key?: string
+          issued_at?: string
+          previous_version?: number | null
+          saas_product_id?: string
+          size_bytes?: number
+          snapshot_version?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entitlement_snapshots_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_snapshots_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_snapshots_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_snapshots_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_snapshots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_snapshots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "entitlement_snapshots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_margin"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "entitlement_snapshots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      entitlement_sync_attempts: {
+        Row: {
+          detail: Json
+          error_code: string | null
+          http_status: number | null
+          id: number
+          occurred_at: string
+          operation: string
+          outcome: string
+          saas_product_id: string
+          snapshot_version: number | null
+          state_after: string | null
+          state_before: string | null
+          tenant_id: string
+          worker: string | null
+        }
+        Insert: {
+          detail?: Json
+          error_code?: string | null
+          http_status?: number | null
+          id?: never
+          occurred_at?: string
+          operation: string
+          outcome: string
+          saas_product_id: string
+          snapshot_version?: number | null
+          state_after?: string | null
+          state_before?: string | null
+          tenant_id: string
+          worker?: string | null
+        }
+        Update: {
+          detail?: Json
+          error_code?: string | null
+          http_status?: number | null
+          id?: never
+          occurred_at?: string
+          operation?: string
+          outcome?: string
+          saas_product_id?: string
+          snapshot_version?: number | null
+          state_after?: string | null
+          state_before?: string | null
+          tenant_id?: string
+          worker?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entitlement_sync_attempts_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_attempts_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_attempts_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_attempts_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_attempts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_attempts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_attempts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_margin"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_attempts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      entitlement_sync_state: {
+        Row: {
+          applied_checksum: string | null
+          applied_status: string
+          applied_version: number | null
+          cohort_state: string | null
+          consecutive_failures: number
+          created_at: string
+          desired_checksum: string | null
+          desired_version: number | null
+          last_push_at: string | null
+          last_push_result: string | null
+          last_pushed_version: number | null
+          last_verified_at: string | null
+          lease_owner: string | null
+          lease_until: string | null
+          next_attempt_at: string
+          pushing_version: number | null
+          saas_product_id: string
+          state: string
+          state_changed_at: string
+          state_reason: string | null
+          tenant_id: string
+          unknown_capabilities: string[]
+          updated_at: string
+        }
+        Insert: {
+          applied_checksum?: string | null
+          applied_status?: string
+          applied_version?: number | null
+          cohort_state?: string | null
+          consecutive_failures?: number
+          created_at?: string
+          desired_checksum?: string | null
+          desired_version?: number | null
+          last_push_at?: string | null
+          last_push_result?: string | null
+          last_pushed_version?: number | null
+          last_verified_at?: string | null
+          lease_owner?: string | null
+          lease_until?: string | null
+          next_attempt_at?: string
+          pushing_version?: number | null
+          saas_product_id: string
+          state?: string
+          state_changed_at?: string
+          state_reason?: string | null
+          tenant_id: string
+          unknown_capabilities?: string[]
+          updated_at?: string
+        }
+        Update: {
+          applied_checksum?: string | null
+          applied_status?: string
+          applied_version?: number | null
+          cohort_state?: string | null
+          consecutive_failures?: number
+          created_at?: string
+          desired_checksum?: string | null
+          desired_version?: number | null
+          last_push_at?: string | null
+          last_push_result?: string | null
+          last_pushed_version?: number | null
+          last_verified_at?: string | null
+          lease_owner?: string | null
+          lease_until?: string | null
+          next_attempt_at?: string
+          pushing_version?: number | null
+          saas_product_id?: string
+          state?: string
+          state_changed_at?: string
+          state_reason?: string | null
+          tenant_id?: string
+          unknown_capabilities?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entitlement_sync_state_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_state_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_state_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_state_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_margin"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["tenant_id"]
           },
         ]
       }
@@ -3472,7 +3930,14 @@ export type Database = {
           create_path_template: string | null
           create_scope: string | null
           created_at: string
+          cutover_state_billing: string
+          cutover_state_entitlements: string
           enabled: boolean
+          entitlements_manifest_path: string | null
+          entitlements_path: string | null
+          entitlements_push_enabled: boolean
+          entitlements_read_scope: string | null
+          entitlements_write_scope: string | null
           health_path_template: string | null
           id: string
           integration_type: Database["platform"]["Enums"]["integration_type"]
@@ -3489,6 +3954,7 @@ export type Database = {
           subject: string
           token_ttl_seconds: number | null
           updated_at: string
+          usage_ingest_enabled: boolean
         }
         Insert: {
           adapter_key?: Database["platform"]["Enums"]["integration_adapter"]
@@ -3501,7 +3967,14 @@ export type Database = {
           create_path_template?: string | null
           create_scope?: string | null
           created_at?: string
+          cutover_state_billing?: string
+          cutover_state_entitlements?: string
           enabled?: boolean
+          entitlements_manifest_path?: string | null
+          entitlements_path?: string | null
+          entitlements_push_enabled?: boolean
+          entitlements_read_scope?: string | null
+          entitlements_write_scope?: string | null
           health_path_template?: string | null
           id?: string
           integration_type: Database["platform"]["Enums"]["integration_type"]
@@ -3518,6 +3991,7 @@ export type Database = {
           subject?: string
           token_ttl_seconds?: number | null
           updated_at?: string
+          usage_ingest_enabled?: boolean
         }
         Update: {
           adapter_key?: Database["platform"]["Enums"]["integration_adapter"]
@@ -3530,7 +4004,14 @@ export type Database = {
           create_path_template?: string | null
           create_scope?: string | null
           created_at?: string
+          cutover_state_billing?: string
+          cutover_state_entitlements?: string
           enabled?: boolean
+          entitlements_manifest_path?: string | null
+          entitlements_path?: string | null
+          entitlements_push_enabled?: boolean
+          entitlements_read_scope?: string | null
+          entitlements_write_scope?: string | null
           health_path_template?: string | null
           id?: string
           integration_type?: Database["platform"]["Enums"]["integration_type"]
@@ -3547,6 +4028,7 @@ export type Database = {
           subject?: string
           token_ttl_seconds?: number | null
           updated_at?: string
+          usage_ingest_enabled?: boolean
         }
         Relationships: [
           {
@@ -7636,6 +8118,94 @@ export type Database = {
           },
         ]
       }
+      v_entitlement_sync_status: {
+        Row: {
+          applied_checksum: string | null
+          applied_status: string | null
+          applied_version: number | null
+          cohort_state: string | null
+          consecutive_failures: number | null
+          cutover_state_entitlements: string | null
+          desired_checksum: string | null
+          desired_dirty: boolean | null
+          desired_version: number | null
+          integration_code: string | null
+          last_push_at: string | null
+          last_push_result: string | null
+          last_pushed_version: number | null
+          last_verified_at: string | null
+          next_attempt_at: string | null
+          product_code: string | null
+          product_name: string | null
+          push_enabled: boolean | null
+          saas_product_id: string | null
+          state: string | null
+          state_changed_at: string | null
+          state_reason: string | null
+          tenant_id: string | null
+          tenant_name: string | null
+          tenant_slug: string | null
+          unknown_capabilities: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entitlement_sync_state_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_state_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_state_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_state_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_margin"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
       v_finance_facts: {
         Row: {
           amount: number | null
@@ -9610,6 +10180,7 @@ export type Database = {
         Args: { p_product_id: string; p_reason?: string }
         Returns: undefined
       }
+      assert_entitlement_sync_service: { Args: never; Returns: undefined }
       attach_tenant_to_target: {
         Args: {
           p_deployment_target_id: string
@@ -9651,6 +10222,10 @@ export type Database = {
         Returns: boolean
       }
       can_manage_tenant: { Args: { p_tenant: string }; Returns: boolean }
+      can_read_entitlement_sync: {
+        Args: { p_tenant_id: string }
+        Returns: boolean
+      }
       can_read_finance: { Args: never; Returns: boolean }
       can_read_saas_provisioning: {
         Args: { p_request_id: string }
@@ -9658,6 +10233,7 @@ export type Database = {
       }
       can_read_tenant: { Args: { p_tenant: string }; Returns: boolean }
       can_run_provisioning: { Args: never; Returns: boolean }
+      can_sync_entitlements: { Args: { p_tenant_id: string }; Returns: boolean }
       cancel_commercial_document: {
         Args: { p_document_id: string; p_reason?: string }
         Returns: undefined
@@ -9673,6 +10249,57 @@ export type Database = {
       check_provisioning_preconditions: {
         Args: { p_request_id: string }
         Returns: Json
+      }
+      claim_entitlement_push_for: {
+        Args: {
+          p_lease_seconds?: number
+          p_product_id: string
+          p_tenant_id: string
+          p_worker: string
+        }
+        Returns: {
+          attempt: number
+          checksum: string
+          document: Json
+          saas_product_id: string
+          snapshot_version: number
+          tenant_id: string
+        }[]
+      }
+      claim_entitlement_pushes: {
+        Args: { p_lease_seconds?: number; p_limit?: number; p_worker: string }
+        Returns: {
+          attempt: number
+          checksum: string
+          document: Json
+          saas_product_id: string
+          snapshot_version: number
+          tenant_id: string
+        }[]
+      }
+      claim_entitlement_verification_for: {
+        Args: {
+          p_lease_seconds?: number
+          p_product_id: string
+          p_tenant_id: string
+          p_worker: string
+        }
+        Returns: boolean
+      }
+      claim_entitlement_verifications: {
+        Args: {
+          p_lease_seconds?: number
+          p_limit?: number
+          p_resample_after?: string
+          p_worker: string
+        }
+        Returns: {
+          desired_checksum: string
+          desired_version: number
+          saas_product_id: string
+          state: string
+          tenant_id: string
+        }[]
       }
       close_entitlement_grant: {
         Args: { p_grant_id: string; p_reason: string; p_valid_to: string }
@@ -9738,6 +10365,16 @@ export type Database = {
           p_provisioning_status?: Database["platform"]["Enums"]["deployment_target_status"]
           p_retry_count?: number
           p_timeout_ms?: number
+        }
+        Returns: string
+      }
+      configure_entitlements_integration: {
+        Args: {
+          p_entitlements_path: string
+          p_integration_id: string
+          p_manifest_path: string
+          p_read_scope: string
+          p_write_scope: string
         }
         Returns: string
       }
@@ -9912,6 +10549,80 @@ export type Database = {
           p_tenant_id?: string
         }
         Returns: string
+      }
+      entitlement_checksum: { Args: { p_document: Json }; Returns: string }
+      entitlement_delivery_context: {
+        Args: { p_product_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      entitlement_gate_state: {
+        Args: { p_product_id: string; p_tenant_id: string }
+        Returns: string
+      }
+      entitlement_integration_for: {
+        Args: { p_product_id: string; p_tenant_id: string }
+        Returns: string
+      }
+      entitlement_is_pushable: {
+        Args: { p_failures: number; p_state: string }
+        Returns: boolean
+      }
+      entitlement_issue_candidates: {
+        Args: { p_limit?: number; p_sweep?: boolean }
+        Returns: {
+          saas_product_id: string
+          tenant_id: string
+        }[]
+      }
+      entitlement_push_transition: {
+        Args: { p_failures: number; p_result: string }
+        Returns: {
+          failures: number
+          state: string
+        }[]
+      }
+      entitlement_registry_drift: {
+        Args: { p_product_id: string }
+        Returns: boolean
+      }
+      entitlement_registry_targets: {
+        Args: never
+        Returns: {
+          product_integration_id: string
+          saas_product_id: string
+          tenant_id: string
+        }[]
+      }
+      entitlement_retry_delay: { Args: { p_failures: number }; Returns: string }
+      entitlement_snapshot_content: {
+        Args: { p_at: string; p_product_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      entitlement_verify_failure_transition: {
+        Args: { p_failures: number; p_result: string; p_state: string }
+        Returns: {
+          failures: number
+          state: string
+        }[]
+      }
+      entitlement_verify_verdict: {
+        Args: {
+          p_applied_checksum: string
+          p_applied_status: string
+          p_applied_version: number
+          p_desired_checksum: string
+          p_desired_version: number
+          p_registry_drift: boolean
+        }
+        Returns: string
+      }
+      entitlements_enrollment: {
+        Args: { p_product_id: string; p_tenant_id: string }
+        Returns: string
+      }
+      entitlements_push_enabled: {
+        Args: { p_product_id: string; p_tenant_id: string }
+        Returns: boolean
       }
       evaluate_provisioning_policy: {
         Args: {
@@ -10111,10 +10822,19 @@ export type Database = {
         }
         Returns: boolean
       }
+      issue_entitlement_snapshot: {
+        Args: {
+          p_effective_at?: string
+          p_product_id: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
       issue_subscription_invoice: {
         Args: { p_period_start?: string; p_subscription_id: string }
         Returns: Json
       }
+      jcs_canonical: { Args: { p_value: Json }; Returns: string }
       jsonb_deep_merge: { Args: { a: Json; b: Json }; Returns: Json }
       log_audit: {
         Args: {
@@ -10126,6 +10846,20 @@ export type Database = {
           p_tenant_id?: string
         }
         Returns: number
+      }
+      log_entitlement_sync_attempt: {
+        Args: {
+          p_detail: Json
+          p_operation: string
+          p_outcome: string
+          p_product_id: string
+          p_state_after: string
+          p_state_before: string
+          p_tenant_id: string
+          p_version: number
+          p_worker: string
+        }
+        Returns: undefined
       }
       log_provisioning_config_change: {
         Args: {
@@ -10266,6 +11000,33 @@ export type Database = {
         }
         Returns: undefined
       }
+      record_entitlement_push_result: {
+        Args: {
+          p_outcome: Json
+          p_product_id: string
+          p_tenant_id: string
+          p_version: number
+          p_worker: string
+        }
+        Returns: string
+      }
+      record_entitlement_registry_check: {
+        Args: {
+          p_codes: string[]
+          p_manifest_version: string
+          p_product_id: string
+        }
+        Returns: boolean
+      }
+      record_entitlement_verify_result: {
+        Args: {
+          p_observed: Json
+          p_product_id: string
+          p_tenant_id: string
+          p_worker: string
+        }
+        Returns: string
+      }
       record_provisioning_event: {
         Args: {
           p_action: string
@@ -10279,6 +11040,14 @@ export type Database = {
         Returns: number
       }
       refresh_billing_alerts: { Args: { p_as_of?: string }; Returns: number }
+      refresh_entitlement_gates_for_integration: {
+        Args: { p_integration_id: string }
+        Returns: number
+      }
+      refresh_entitlement_sync_state: {
+        Args: { p_product_id: string; p_tenant_id: string }
+        Returns: string
+      }
       refresh_tenant_features: {
         Args: { p_tenant_id: string }
         Returns: number
@@ -10481,6 +11250,15 @@ export type Database = {
         }
         Returns: string
       }
+      set_commercial_cutover_state: {
+        Args: {
+          p_axis: string
+          p_integration_id: string
+          p_reason: string
+          p_to_state: string
+        }
+        Returns: string
+      }
       set_deployment_health: {
         Args: {
           p_deployment_target_id: string
@@ -10488,6 +11266,10 @@ export type Database = {
           p_health: Database["platform"]["Enums"]["deployment_health"]
         }
         Returns: Database["platform"]["Enums"]["deployment_health"]
+      }
+      set_entitlements_push_enabled: {
+        Args: { p_enabled: boolean; p_integration_id: string; p_reason: string }
+        Returns: boolean
       }
       set_exchange_rate: {
         Args: {
