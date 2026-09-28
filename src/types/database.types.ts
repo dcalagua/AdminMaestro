@@ -285,6 +285,69 @@ export type Database = {
           },
         ]
       }
+      capability_aliases: {
+        Row: {
+          alias_code: string
+          alias_source: string
+          capability_id: string
+          created_at: string
+          id: string
+          saas_product_id: string
+        }
+        Insert: {
+          alias_code: string
+          alias_source: string
+          capability_id: string
+          created_at?: string
+          id?: string
+          saas_product_id: string
+        }
+        Update: {
+          alias_code?: string
+          alias_source?: string
+          capability_id?: string
+          created_at?: string
+          id?: string
+          saas_product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capability_aliases_capability_id_fkey"
+            columns: ["capability_id"]
+            isOneToOne: false
+            referencedRelation: "product_capabilities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capability_aliases_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capability_aliases_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "capability_aliases_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "capability_aliases_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+        ]
+      }
       catalog_items: {
         Row: {
           available: boolean
@@ -3025,6 +3088,92 @@ export type Database = {
           description?: string
         }
         Relationships: []
+      }
+      product_capabilities: {
+        Row: {
+          code: string
+          combine_rule: string | null
+          created_at: string
+          description: string | null
+          id: string
+          introduced_in_contract: string | null
+          is_baseline: boolean
+          kind: string
+          manifest_version: string | null
+          meter_code: string | null
+          name: string
+          saas_product_id: string
+          scope_level: string
+          status: string
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          combine_rule?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          introduced_in_contract?: string | null
+          is_baseline?: boolean
+          kind: string
+          manifest_version?: string | null
+          meter_code?: string | null
+          name: string
+          saas_product_id: string
+          scope_level?: string
+          status?: string
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          combine_rule?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          introduced_in_contract?: string | null
+          is_baseline?: boolean
+          kind?: string
+          manifest_version?: string | null
+          meter_code?: string | null
+          name?: string
+          saas_product_id?: string
+          scope_level?: string
+          status?: string
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_capabilities_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_capabilities_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "product_capabilities_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "product_capabilities_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+        ]
       }
       product_integrations: {
         Row: {
@@ -8809,6 +8958,10 @@ export type Database = {
         Args: { p_code: string; p_product: string }
         Returns: boolean
       }
+      import_capability_manifest: {
+        Args: { p_manifest: Json; p_product_code: string }
+        Returns: Json
+      }
       integration_capabilities: {
         Args: {
           p_adapter_key: Database["platform"]["Enums"]["integration_adapter"]
@@ -9327,6 +9480,15 @@ export type Database = {
           p_white_label?: boolean
         }
         Returns: undefined
+      }
+      upsert_capability_alias: {
+        Args: {
+          p_alias_code: string
+          p_alias_source: string
+          p_capability_code: string
+          p_product_code: string
+        }
+        Returns: string
       }
       upsert_catalog_item: {
         Args: {
