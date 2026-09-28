@@ -8,7 +8,7 @@
 -- todos aquí).
 -- ============================================================================
 begin;
-select plan(96);
+select plan(127);
 
 create or replace function pg_temp.act_as(p_user uuid)
 returns void language plpgsql as $$
@@ -148,6 +148,32 @@ select pg_temp.act_as_postgres();
 insert into platform.tenant_product_mappings
   (tenant_id, saas_product_id, deployment_target_id, external_tenant_id, status, provisioned_at, registered_manually)
 values (pg_temp.alpha(), pg_temp.esup(), '40000000-0000-4000-a000-00000000000a', 'ext-alpha', 'ACTIVE', now(), true);
+-- Integración HTTP_M2M de eSupplier en DEV para alpha (dentro del rollback).
+insert into platform.product_integrations
+  (id, saas_product_id, code, name, integration_type, contract_version, issuer, audience, subject, algorithm,
+   token_ttl_seconds, create_scope, read_scope, create_path_template, status_path_template, provisioning_policy,
+   enabled, status)
+values ('70000000-0000-4000-a000-0000000000e1', pg_temp.esup(), 'esupplier-m2m-dev', 'eSupplier · M2M DEV (test)',
+        'HTTP_M2M', 'v1', 'masteradmin.ebim', 'esupplier.ebim', 'masteradmin-provisioning', 'ES256', 300,
+        'esupplier:tenant:create', 'esupplier:tenant:read', '/tenants', '/tenants/{controlPlaneTenantId}', 'MANUAL',
+        true, 'READY');
+insert into platform.credential_profiles
+  (id, code, name, saas_product_id, type, environment, secret_ref, algorithm, issuer, audience, token_ttl_seconds, enabled)
+values ('71000000-0000-4000-a000-0000000000e1', 'esupplier-dev-m2m-test', 'eSupplier DEV M2M (test)', pg_temp.esup(),
+        'M2M_ASYMMETRIC_JWT', 'DEV', 'LOCAL_ESUPPLIER_M2M_PRIVATE_KEY', 'ES256', 'masteradmin.ebim', 'esupplier.ebim', 300, true);
+update platform.deployment_targets
+   set product_integration_id = '70000000-0000-4000-a000-0000000000e1',
+       credential_profile_id = '71000000-0000-4000-a000-0000000000e1',
+       base_url = 'http://127.0.0.1:54999'
+ where id = '40000000-0000-4000-a000-00000000000a';
+-- Parte 1: integración ya configurada y con el kill-switch encendido (la parte 2 prueba cómo se llega aquí).
+update platform.product_integrations
+   set entitlements_path = '/tenants/{controlPlaneTenantId}/entitlements',
+       entitlements_manifest_path = '/entitlements/manifest',
+       entitlements_write_scope = 'esupplier:entitlements:write',
+       entitlements_read_scope = 'esupplier:entitlements:read',
+       entitlements_push_enabled = true
+ where id = '70000000-0000-4000-a000-0000000000e1';
 
 -- ---------------------------------------------------------------------------
 -- NOT_PROVISIONED / NOT_ENROLLED
@@ -370,6 +396,144 @@ select is((select count(*)::int from platform.entitlement_sync_attempts where te
   'omega no ve la bitácora de alpha');
 select pg_temp.act_as('10000000-0000-4000-a000-0000000000ff');
 select is((select count(*)::int from platform.entitlement_sync_state), 0, 'Sin rol no ve nada');
+
+-- ============================================================================
+-- PARTE 2 (MA-34) · product_integrations: eje de cutover y kill-switch
+-- Spec §3.2 (columnas nuevas), §15 (un paso adelante o atrás), §18 (kill-switch).
+-- ============================================================================
+select pg_temp.act_as_postgres();
+select is((select count(*)::int from platform.product_integrations
+            where id <> '70000000-0000-4000-a000-0000000000e1'
+              and (cutover_state_entitlements <> 'LEGACY_ONLY' or cutover_state_billing <> 'BILLING_LEGACY'
+               or entitlements_push_enabled or usage_ingest_enabled
+               or entitlements_path is not null or entitlements_manifest_path is not null
+               or entitlements_write_scope is not null or entitlements_read_scope is not null)),
+  0, 'Integraciones existentes: LEGACY_ONLY / BILLING_LEGACY, kill-switch apagado, sin rutas ni scopes');
+select throws_ok($$ update platform.product_integrations set entitlements_path = '/tenants/../x'
+                     where id = '70000000-0000-4000-a000-000000000003' $$,
+  '23514', null, 'Ruta de entitlements insegura → CHECK');
+select throws_ok($$ update platform.product_integrations set cutover_state_entitlements = 'PRIMARY'
+                     where id = '70000000-0000-4000-a000-000000000003' $$,
+  '23514', null, 'Estado de cutover fuera del catálogo → CHECK');
+
+update platform.product_integrations
+   set entitlements_path = null, entitlements_manifest_path = null, entitlements_write_scope = null,
+       entitlements_read_scope = null, entitlements_push_enabled = false
+ where id = '70000000-0000-4000-a000-0000000000e1';
+update platform.entitlement_sync_state set cohort_state = null
+ where tenant_id = pg_temp.alpha() and saas_product_id = pg_temp.esup();
+
+select pg_temp.act_as_service();
+select is(platform.refresh_entitlement_sync_state(pg_temp.alpha(), pg_temp.esup()), 'NOT_ENROLLED',
+  'Sin cohorte, manda el eje de la integración: LEGACY_ONLY → NOT_ENROLLED');
+
+-- Autoridad
+select pg_temp.act_as('10000000-0000-4000-a000-000000000009');
+select throws_ok($$ select platform.set_commercial_cutover_state('70000000-0000-4000-a000-0000000000e1', 'ENTITLEMENTS', 'SHADOW', 'x') $$,
+  '42501', null, 'Un admin de tenant no mueve el cutover');
+select throws_ok($$ select platform.configure_entitlements_integration('70000000-0000-4000-a000-0000000000e1',
+                     '/tenants/{controlPlaneTenantId}/entitlements', '/entitlements/manifest', 'esupplier:entitlements:write',
+                     'esupplier:entitlements:read') $$,
+  '42501', null, 'Un admin de tenant no configura la integración');
+select throws_ok($$ select platform.set_entitlements_push_enabled('70000000-0000-4000-a000-0000000000e1', true, 'x') $$,
+  '42501', null, 'Un admin de tenant no toca el kill-switch');
+select pg_temp.act_as('10000000-0000-4000-a000-0000000000ff');
+select throws_ok($$ select platform.set_commercial_cutover_state('70000000-0000-4000-a000-0000000000e1', 'ENTITLEMENTS', 'SHADOW', 'x') $$,
+  '42501', null, 'Sin rol tampoco');
+
+-- Configuración incompleta no sale de LEGACY_ONLY.
+select pg_temp.act_as('10000000-0000-4000-a000-000000000002');
+select throws_ok($$ select platform.set_commercial_cutover_state('70000000-0000-4000-a000-0000000000e1', 'ENTITLEMENTS', 'SHADOW', 'Piloto') $$,
+  '23514', null, 'Sin ruta ni scopes de entitlements no se enrola (CONFIG_ENTITLEMENTS_INCOMPLETA)');
+select throws_ok($$ select platform.configure_entitlements_integration('70000000-0000-4000-a000-0000000000e1',
+                     '/tenants/{controlPlaneTenantId}/entitlements', '/entitlements/manifest', 'esupplier:tenant:create',
+                     'esupplier:entitlements:read') $$,
+  '23514', null, 'El scope de escritura no puede ser el de provisioning (scopes separados, spec §8.1)');
+select lives_ok($$ select platform.configure_entitlements_integration('70000000-0000-4000-a000-0000000000e1',
+                     '/tenants/{controlPlaneTenantId}/entitlements', '/entitlements/manifest', 'esupplier:entitlements:write',
+                     'esupplier:entitlements:read') $$,
+  'El product admin configura rutas y scopes de entitlements');
+select throws_ok($$ select platform.set_commercial_cutover_state('70000000-0000-4000-a000-0000000000e1', 'ENTITLEMENTS', 'SHADOW', '  ') $$,
+  '23514', null, 'Motivo obligatorio');
+select throws_ok($$ select platform.set_commercial_cutover_state('70000000-0000-4000-a000-0000000000e1', 'ENTITLEMENTS', 'DUAL_READ', 'Salto') $$,
+  '23514', null, 'No se salta un paso (LEGACY_ONLY → DUAL_READ)');
+select is(platform.set_commercial_cutover_state('70000000-0000-4000-a000-0000000000e1', 'ENTITLEMENTS', 'SHADOW', 'Piloto DEV'),
+  'SHADOW', 'LEGACY_ONLY → SHADOW');
+select is((select count(*)::int from platform.commercial_cutover_events
+            where product_integration_id = '70000000-0000-4000-a000-0000000000e1' and axis = 'ENTITLEMENTS'
+              and from_state = 'LEGACY_ONLY' and to_state = 'SHADOW' and reason = 'Piloto DEV'
+              and actor_user_id = '10000000-0000-4000-a000-000000000002'),
+  1, 'La transición queda en commercial_cutover_events con actor y motivo');
+
+select pg_temp.act_as_postgres();
+select is((select state from pg_temp.st()), 'PENDING_PUSH',
+  'Enrolar la integración reevalúa las puertas de sus tenants: NOT_ENROLLED → PENDING_PUSH');
+
+-- Kill-switch: apagado por defecto, nada se empuja.
+select pg_temp.act_as_service();
+select is((select count(*)::int from platform.claim_entitlement_pushes('w1', 10, 120)), 0,
+  'Kill-switch apagado: no se empuja aunque esté PENDING_PUSH');
+select pg_temp.act_as('10000000-0000-4000-a000-000000000003');
+select is(platform.set_entitlements_push_enabled('70000000-0000-4000-a000-0000000000e1', true, 'Habilitar piloto'),
+  true, 'Finanzas puede operar el kill-switch');
+select pg_temp.act_as_service();
+select is((select count(*)::int from platform.claim_entitlement_pushes('w1', 10, 120)), 1, 'Con el kill-switch encendido, sí');
+select pg_temp.act_as('10000000-0000-4000-a000-000000000002');
+select is(platform.set_entitlements_push_enabled('70000000-0000-4000-a000-0000000000e1', false, 'Revocación masiva no deseada'),
+  false, 'El product admin apaga el kill-switch');
+select is((select count(*)::int from platform.commercial_cutover_events
+            where product_integration_id = '70000000-0000-4000-a000-0000000000e1' and axis = 'PUSH_KILL_SWITCH'),
+  2, 'Cada cambio del kill-switch queda registrado');
+
+-- Contexto de entrega: solo servidor, sin valores de secreto.
+select throws_ok($$ select platform.entitlement_delivery_context(pg_temp.alpha(), pg_temp.esup()) $$,
+  '42501', null, 'Un humano no lee el contexto de entrega');
+select pg_temp.act_as_service();
+select is((select jsonb_build_object(
+              'env', c -> 'deployment' ->> 'environment', 'base', c -> 'deployment' ->> 'base_url',
+              'path', c -> 'integration' ->> 'entitlements_path', 'w', c -> 'integration' ->> 'entitlements_write_scope',
+              'r', c -> 'integration' ->> 'entitlements_read_scope', 'aud', c -> 'integration' ->> 'audience',
+              'ref', c -> 'credential' ->> 'secret_ref', 'push', c ->> 'push_enabled',
+              'provisioning_scope', c -> 'integration' ? 'create_scope')
+             from platform.entitlement_delivery_context(pg_temp.alpha(), pg_temp.esup()) c),
+  jsonb_build_object('env', 'DEV', 'base', 'http://127.0.0.1:54999', 'path', '/tenants/{controlPlaneTenantId}/entitlements',
+                     'w', 'esupplier:entitlements:write', 'r', 'esupplier:entitlements:read', 'aud', 'esupplier.ebim',
+                     'ref', 'LOCAL_ESUPPLIER_M2M_PRIVATE_KEY', 'push', 'false', 'provisioning_scope', false),
+  'Contexto: destino, rutas y scopes de entitlements, NOMBRE del secreto; sin scopes de provisioning');
+
+-- Avanzar exige que la cohorte esté IN_SYNC; retroceder siempre se puede.
+select pg_temp.act_as('10000000-0000-4000-a000-000000000002');
+select throws_ok($$ select platform.set_commercial_cutover_state('70000000-0000-4000-a000-0000000000e1', 'ENTITLEMENTS', 'DUAL_READ', 'Avance') $$,
+  '23514', null, 'SHADOW → DUAL_READ exige todos los tenants IN_SYNC (COHORTE_NO_SINCRONIZADA)');
+select pg_temp.act_as_postgres();
+update platform.entitlement_sync_state
+   set state = 'IN_SYNC', pushing_version = null, lease_owner = null, lease_until = null
+ where tenant_id = pg_temp.alpha() and saas_product_id = pg_temp.esup();
+select pg_temp.act_as('10000000-0000-4000-a000-000000000002');
+select is(platform.set_commercial_cutover_state('70000000-0000-4000-a000-0000000000e1', 'ENTITLEMENTS', 'DUAL_READ', 'Cohorte IN_SYNC'),
+  'DUAL_READ', 'SHADOW → DUAL_READ con la cohorte IN_SYNC');
+select is(platform.set_commercial_cutover_state('70000000-0000-4000-a000-0000000000e1', 'ENTITLEMENTS', 'SHADOW', 'Rollback'),
+  'SHADOW', 'Un paso atrás siempre se permite');
+select pg_temp.act_as_postgres();
+update platform.product_integrations set cutover_state_entitlements = 'MASTERADMIN_PRIMARY'
+ where id = '70000000-0000-4000-a000-0000000000e1';
+select pg_temp.act_as('10000000-0000-4000-a000-000000000001');
+select throws_ok($$ select platform.set_commercial_cutover_state('70000000-0000-4000-a000-0000000000e1', 'ENTITLEMENTS', 'LEGACY_RETIRED', 'Fin') $$,
+  '23514', null, 'LEGACY_RETIRED no se alcanza en este programa (ni siquiera el super admin)');
+
+-- Eje de facturación: finanzas.
+select pg_temp.act_as('10000000-0000-4000-a000-00000000000a');
+select throws_ok($$ select platform.set_commercial_cutover_state('70000000-0000-4000-a000-0000000000e1', 'BILLING', 'BILLING_SHADOW', 'x') $$,
+  '42501', null, 'El admin de omega no mueve el eje de facturación');
+select pg_temp.act_as('10000000-0000-4000-a000-000000000003');
+select is(platform.set_commercial_cutover_state('70000000-0000-4000-a000-0000000000e1', 'BILLING', 'BILLING_SHADOW', 'Shadow DEV'),
+  'BILLING_SHADOW', 'Finanzas: BILLING_LEGACY → BILLING_SHADOW');
+
+select pg_temp.act_as_postgres();
+select throws_ok($$ delete from platform.commercial_cutover_events $$, '55000', null, 'commercial_cutover_events es append-only');
+select is((select string_agg(r || ':' || has_table_privilege(r, 'platform.commercial_cutover_events', 'insert,update,delete'), ',' order by r)
+             from unnest(array['anon', 'authenticated']) r),
+  'anon:false,authenticated:false', 'Sin escritura directa del historial de cutover');
 
 select * from finish();
 rollback;

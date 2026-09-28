@@ -1,0 +1,15 @@
+Connecting to local database...
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/36_ccp_entitlement_sync_state.test.sql:384: ERROR:  column "cutover_state_entitlements" does not exist
+LINE 2:             where cutover_state_entitlements <> 'LEGACY_ONLY...
+                          ^
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/36_ccp_entitlement_sync_state.test.sql .. 
+Dubious, test returned 3 (wstat 768, 0x300)
+All 96 subtests passed 
+
+Test Summary Report
+-------------------
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/36_ccp_entitlement_sync_state.test.sql (Wstat: 768 (exited 3) Tests: 96 Failed: 0)
+  Non-zero exit status: 3
+Files=1, Tests=96,  1 wallclock secs ( 0.03 usr  0.05 sys +  0.00 cusr  0.05 csys =  0.13 CPU)
+Result: FAIL
+error running container: exit 1
