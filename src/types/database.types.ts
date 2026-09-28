@@ -9130,6 +9130,24 @@ export type Database = {
         Args: { p_as_of?: string }
         Returns: number
       }
+      compute_entitlements: {
+        Args: { p_at?: string; p_product_id: string; p_tenant_id: string }
+        Returns: {
+          capability_code: string
+          capability_id: string
+          company_ids: string[]
+          enabled: boolean
+          enforcement: string
+          included: number
+          kind: string
+          meter_code: string
+          period: string
+          scope_level: string
+          sources: string[]
+          unit: string
+          value: number
+        }[]
+      }
       configure_deployment_provisioning: {
         Args: {
           p_base_url?: string
@@ -9500,6 +9518,10 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: never; Returns: boolean }
+      is_tenant_app_active: {
+        Args: { p_product_id: string; p_tenant_id: string }
+        Returns: boolean
+      }
       is_valid_grant_value: {
         Args: { p_kind: string; p_value: Json }
         Returns: boolean

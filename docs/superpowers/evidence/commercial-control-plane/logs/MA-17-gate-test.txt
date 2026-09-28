@@ -1,0 +1,92 @@
+
+> ebim-control-plane@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1
+
+stderr | src/app/AppearanceProvider.test.tsx > Apariencia compartida > cambiar el modo desde Configuración actualiza el Shell y el documento
+An update to AppearanceProvider inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+stderr | src/app/AppearanceProvider.test.tsx > Apariencia compartida > cambiar la densidad conserva los controles y actualiza data-density
+An update to AppearanceProvider inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ ✓ src/app/AppearanceProvider.test.tsx (7 tests) 153ms
+ ✓ src/features/deployments/ProvisioningStatusAction.test.tsx (9 tests) 265ms
+ ✓ src/features/deployments/ProductConfigurationForm.test.tsx (7 tests) 421ms
+ ✓ src/features/billing/PeriodInvoiceAction.test.tsx (13 tests) 556ms
+ ✓ src/features/catalog/PlansPage.test.tsx (4 tests) 333ms
+ ✓ src/features/deployments/SaasProvisioningPage.test.tsx (2 tests) 421ms
+   ✓ SaasProvisioningPage > renderizar y abrir el detalle no ejecuta ninguna acción ni Edge Function  362ms
+ ✓ src/features/catalog/ProductsPage.test.tsx (4 tests) 444ms
+ ✓ src/components/ui/dialogs-tabs.test.tsx (12 tests) 819ms
+ ✓ supabase/functions/_shared/provisioning/adapters/http-m2m.generic-golden.test.ts (12 tests) 47ms
+ ✓ supabase/functions/_shared/provisioning/adapters/ewm-v1.test.ts (62 tests) 86ms
+ ✓ supabase/functions/_shared/provisioning/adapters/http-m2m.test.ts (24 tests) 57ms
+ ✓ supabase/functions/_shared/provisioning/m2m.test.ts (33 tests) 102ms
+ ✓ src/features/auth/session-isolation.test.tsx (2 tests) 164ms
+ ✓ src/features/organizations/OrganizationsPage.test.tsx (4 tests) 405ms
+ ✓ supabase/functions/_shared/payments/money.test.ts (34 tests) 19ms
+ ✓ supabase/functions/_shared/provisioning/replay.test.ts (8 tests) 6ms
+ ✓ src/features/commercial/commissionRuleText.test.ts (3 tests) 13ms
+ ✓ src/lib/multicurrency.regression.test.ts (7 tests) 96ms
+ ✓ src/services/financeConsolidated.test.tsx (3 tests) 68ms
+ ✓ src/features/deployments/contractAdapters.test.ts (9 tests) 56ms
+ ✓ src/lib/provisioning.test.ts (39 tests) 7ms
+ ✓ src/features/organizations/Organization360.test.tsx (3 tests) 222ms
+ ✓ src/features/billing/CostsPage.test.tsx (3 tests) 239ms
+ ✓ src/features/commercial/CommissionsPage.test.tsx (3 tests) 189ms
+ ✓ src/lib/format.test.ts (17 tests) 19ms
+ ✓ src/features/platform/IntegrationsPage.test.tsx (4 tests) 383ms
+ ✓ supabase/functions/_shared/provisioning/cors.test.ts (10 tests) 44ms
+ ✓ src/lib/regional.test.ts (15 tests) 6ms
+ ✓ supabase/functions/_shared/provisioning/response.test.ts (32 tests) 3ms
+ ✓ src/features/billing/BillingPage.test.tsx (5 tests) 428ms
+ ✓ src/lib/consolidated.test.ts (8 tests) 11ms
+ ✓ src/components/ui/PagedTable.test.tsx (7 tests) 578ms
+ ✓ src/features/settings/AuditPage.test.tsx (5 tests) 529ms
+ ✓ src/features/dashboard/DashboardPage.test.tsx (8 tests) 506ms
+ ✓ src/app/AppShell.test.tsx (7 tests) 1069ms
+ ✓ src/lib/export.test.ts (10 tests) 4ms
+ ✓ supabase/functions/_shared/provisioning/errors.test.ts (30 tests) 3ms
+ ✓ supabase/functions/_shared/payments/recurring-amount.test.ts (24 tests) 4ms
+ ✓ supabase/functions/_shared/provisioning/url-guard.test.ts (60 tests) 7ms
+ ✓ src/features/executive/executive-contracts.test.ts (22 tests) 4ms
+ ✓ supabase/functions/_shared/payments/culqi-mapping.test.ts (23 tests) 4ms
+ ✓ supabase/functions/_shared/provisioning/retry.test.ts (33 tests) 3ms
+ ✓ supabase/functions/_shared/provisioning/registry.test.ts (30 tests) 10ms
+ ✓ src/features/auth/session.test.ts (16 tests) 3ms
+ ✓ src/features/deployments/DeploymentsPage.test.tsx (1 test) 196ms
+ ✓ src/app/tokens.test.ts (38 tests) 3ms
+ ✓ supabase/functions/_shared/provisioning/status.test.ts (11 tests) 3ms
+ ✓ src/features/auth/LoginPage.test.tsx (4 tests) 272ms
+ ✓ supabase/functions/_shared/provisioning/actions.test.ts (9 tests) 4ms
+ ✓ src/lib/billing.test.ts (6 tests) 3ms
+ ✓ src/features/tenants/tenantDimensions.test.ts (8 tests) 3ms
+ ✓ supabase/functions/_shared/provisioning/fingerprint.test.ts (2 tests) 7ms
+ ✓ src/features/platform/targetHealth.test.ts (4 tests) 2ms
+ ✓ src/app/navigation.test.ts (22 tests) 3ms
+
+ Test Files  54 passed (54)
+      Tests  778 passed (778)
+   Start at  23:00:27
+   Duration  9.28s (transform 4.60s, setup 6.20s, collect 63.38s, tests 9.30s, environment 45.55s, prepare 4.36s)
+
