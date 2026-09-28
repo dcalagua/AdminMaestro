@@ -150,6 +150,18 @@ describe('Diccionario KPI', () => {
     }
   });
 
+  it('K01 MRR resta el DISCOUNT recurrente una sola vez (CCP P-01), no lo excluye', () => {
+    expect(KPI_DICTIONARY.K01.excludes).not.toMatch(/DISCOUNT/);
+    expect(KPI_DICTIONARY.K01.includes).toMatch(/DISCOUNT recurrente vigente resta/);
+  });
+
+  it('la documentación financiera describe el mismo signo de DISCOUNT', () => {
+    for (const path of ['docs/finance/EXECUTIVE_KPI_DICTIONARY.md', 'docs/finance/COST_MARGIN_MODEL.md']) {
+      const doc = readFileSync(resolve(process.cwd(), path), 'utf8');
+      expect(doc).toContain('DISCOUNT resta de MRR y de la factura una sola vez');
+    }
+  });
+
   it('el documento legible nombra cada KPI y su fuente', () => {
     const doc = readFileSync(resolve(process.cwd(), 'docs/finance/EXECUTIVE_KPI_DICTIONARY.md'), 'utf8');
     for (const k of Object.values(KPI_DICTIONARY)) {

@@ -224,6 +224,13 @@ export type Database = {
             foreignKeyName: "billing_alerts_invoice_id_fkey"
             columns: ["invoice_id"]
             isOneToOne: false
+            referencedRelation: "v_discount_sign_legacy_invoices"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "billing_alerts_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
             referencedRelation: "v_invoice_balances"
             referencedColumns: ["invoice_id"]
           },
@@ -1648,6 +1655,13 @@ export type Database = {
             foreignKeyName: "invoice_lines_invoice_id_fkey"
             columns: ["invoice_id"]
             isOneToOne: false
+            referencedRelation: "v_discount_sign_legacy_invoices"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
             referencedRelation: "v_invoice_balances"
             referencedColumns: ["invoice_id"]
           },
@@ -2766,6 +2780,13 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "v_commission_detail"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_discount_sign_legacy_invoices"
             referencedColumns: ["invoice_id"]
           },
           {
@@ -6576,6 +6597,119 @@ export type Database = {
         }
         Relationships: []
       }
+      v_discount_sign_legacy_invoices: {
+        Row: {
+          currency: string | null
+          customer_organization_id: string | null
+          invoice_id: string | null
+          issue_date: string | null
+          legacy_total: number | null
+          number: string | null
+          signed_total: number | null
+          status: Database["platform"]["Enums"]["invoice_status"] | null
+          subscription_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_currency_fk"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "invoices_customer_organization_id_fkey"
+            columns: ["customer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_organization_id_fkey"
+            columns: ["customer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_billing_contact_readiness"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_organization_id_fkey"
+            columns: ["customer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_finance"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_organization_id_fkey"
+            columns: ["customer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_margin"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_organization_id_fkey"
+            columns: ["customer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["customer_organization_id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_organization_id_fkey"
+            columns: ["customer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["managing_organization_id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_renewal_dashboard"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_renewal_pipeline"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_collection"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_documents"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_mrr"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["subscription_id"]
+          },
+        ]
+      }
       v_finance_facts: {
         Row: {
           amount: number | null
@@ -9128,6 +9262,13 @@ export type Database = {
           p_sales_agent_id: string
         }
         Returns: string
+      }
+      signed_line_amount: {
+        Args: {
+          p_amount: number
+          p_charge_kind: Database["platform"]["Enums"]["charge_kind"]
+        }
+        Returns: number
       }
       subscription_due_items: {
         Args: { p_period_start: string; p_subscription_id: string }
