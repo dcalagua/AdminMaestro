@@ -7,7 +7,7 @@
 -- y valores QA; todo se revierte (rollback).
 -- ============================================================================
 begin;
-select plan(24);
+select plan(34);
 
 create or replace function pg_temp.act_as(p_user uuid)
 returns void language plpgsql as $$
@@ -184,6 +184,74 @@ select pg_temp.act_as('10000000-0000-4000-a000-0000000000ff');
 select is(pg_temp.truth(pg_temp.alpha()), '∅', 'authenticated sin rol no ve nada');
 select pg_temp.act_as('10000000-0000-4000-a000-000000000009');
 select ok(pg_temp.truth(pg_temp.alpha()) like 'esupplier.qa.ai.copilot:true:OVERRIDE,%', 'El admin de alpha ve los suyos');
+
+-- ===========================================================================
+-- MA-18 · tenant_features = read model derivado (source ENTITLEMENT)
+-- ===========================================================================
+create or replace function pg_temp.features(p_tenant uuid) returns text language sql as $$
+  select coalesce(string_agg(feature_key || ':' || source || ':' || enabled, ',' order by feature_key), '∅')
+    from platform.tenant_features where tenant_id = p_tenant
+$$;
+create or replace function pg_temp.effective_keys(p_tenant uuid) returns text language sql as $$
+  select coalesce(string_agg(capability_code, ',' order by capability_code), '∅')
+    from platform.compute_entitlements(p_tenant, '20000000-0000-4000-a000-000000000001', now())
+$$;
+
+select pg_temp.act_as_postgres();
+select is(
+  (select string_agg(p.proname || ':' || p.prosecdef || ':'
+            || has_function_privilege('anon', p.oid, 'execute') || ':'
+            || has_function_privilege('authenticated', p.oid, 'execute'), ',' order by p.proname)
+     from pg_proc p where p.pronamespace = 'platform'::regnamespace
+      and p.proname in ('refresh_tenant_features', 'materialize_tenant_features')),
+  'materialize_tenant_features:true:false:false,refresh_tenant_features:true:false:true',
+  'La materialización es interna; refresh es una RPC con gate');
+select is(
+  (select string_agg(feature_key, ',' order by feature_key) from platform.tenant_features
+    where tenant_id = pg_temp.alpha() and source = 'ENTITLEMENT'),
+  pg_temp.effective_keys(pg_temp.alpha()),
+  'Cada cambio comercial dejó tenant_features = entitlements efectivos (sin refresh manual)');
+select is(
+  (select string_agg(feature_key || ':' || source, ',' order by feature_key) from platform.tenant_features
+    where tenant_id = pg_temp.alpha() and source <> 'ENTITLEMENT'),
+  'homologacion:PLAN,licitaciones:PLAN,ocr:ADDON',
+  'Las filas legacy (PLAN/ADDON) no se tocan');
+select is(
+  (select value from platform.tenant_features where tenant_id = pg_temp.alpha() and feature_key = 'esupplier.qa.users.max'),
+  '{"kind": "LIMIT", "unit": "user", "scope": "TENANT", "value": 100, "sources": ["OVERRIDE", "PLAN"], "enforcement": "HARD"}'::jsonb,
+  'El valor materializado lleva límite, enforcement y fuentes (sin precios)');
+
+-- Un override MANUAL (set_tenant_feature, auditado) no se pisa.
+select pg_temp.act_as('10000000-0000-4000-a000-000000000003');
+select platform.set_tenant_feature(pg_temp.alpha(), 'esupplier.qa.tenders', false, '{}'::jsonb);
+select platform.refresh_tenant_features(pg_temp.alpha());
+select is(
+  (select source || ':' || enabled from platform.tenant_features where tenant_id = pg_temp.alpha() and feature_key = 'esupplier.qa.tenders'),
+  'MANUAL:false', 'Una fila MANUAL no la pisa el read model');
+
+-- Una capacidad que deja de estar concedida desaparece del read model.
+select platform.revoke_entitlement_override(
+  (select id from platform.tenant_entitlement_overrides
+    where tenant_id = pg_temp.alpha() and override_type = 'GRANT' and revoked_at is null
+      and capability_id = (select id from platform.product_capabilities where code = 'esupplier.qa.ai.copilot')), 'Fin piloto QA');
+select pg_temp.act_as_postgres();
+select is(
+  (select count(*)::int from platform.tenant_features where tenant_id = pg_temp.alpha() and feature_key = 'esupplier.qa.ai.copilot'),
+  0, 'Revocar el override retira la fila derivada');
+
+-- Autoridad.
+select pg_temp.act_as('10000000-0000-4000-a000-000000000009');
+select throws_ok($$ select platform.refresh_tenant_features('50000000-0000-4000-a000-000000000001') $$,
+  '42501', null, 'TENANT_ADMIN no refresca el read model');
+select throws_ok($$ insert into platform.tenant_features (tenant_id, feature_key, enabled, source)
+                    values ('50000000-0000-4000-a000-000000000001', 'esupplier.qa.hack', true, 'ENTITLEMENT') $$,
+  '42501', null, 'Nadie de la API escribe tenant_features (tampoco como ENTITLEMENT)');
+select pg_temp.act_as('10000000-0000-4000-a000-000000000002');
+select throws_ok($$ select platform.refresh_tenant_features('50000000-0000-4000-a000-0000000000fe') $$,
+  '23503', null, 'Tenant inexistente');
+select pg_temp.act_as('10000000-0000-4000-a000-00000000000a');
+select is((select count(*)::int from platform.tenant_features where tenant_id = pg_temp.alpha()), 0,
+  'El read model respeta RLS: omega no ve los features de alpha');
 
 select * from finish();
 rollback;

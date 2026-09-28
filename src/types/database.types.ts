@@ -9569,6 +9569,10 @@ export type Database = {
         Returns: number
       }
       market_id_by_code: { Args: { p_code: string }; Returns: string }
+      materialize_tenant_features: {
+        Args: { p_tenant_id: string }
+        Returns: number
+      }
       my_attributed_org_ids: { Args: never; Returns: string[] }
       my_attributed_tenant_ids: { Args: never; Returns: string[] }
       my_direct_tenant_ids: { Args: never; Returns: string[] }
@@ -9697,6 +9701,10 @@ export type Database = {
         Returns: number
       }
       refresh_billing_alerts: { Args: { p_as_of?: string }; Returns: number }
+      refresh_tenant_features: {
+        Args: { p_tenant_id: string }
+        Returns: number
+      }
       register_manual_provisioning: {
         Args: {
           p_external_company_id?: string
