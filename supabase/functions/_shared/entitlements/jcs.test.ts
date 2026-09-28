@@ -80,3 +80,15 @@ describe('entitlementChecksum', () => {
     expect(await entitlementChecksum({ a: [1, 2] })).not.toBe(await entitlementChecksum({ a: [2, 1] }));
   });
 });
+
+describe('espejo SQL (platform.jcs_canonical)', () => {
+  it('el pgTAP 35 prueba exactamente los vectores sqlDomain de jcs-vectors.json', () => {
+    const pgtap = readFileSync(resolve(process.cwd(), 'supabase/tests/35_ccp_entitlement_snapshots.test.sql'), 'utf8');
+    const sqlVectors = VECTORS.filter((v) => v.sqlDomain);
+    expect(sqlVectors.length).toBeGreaterThanOrEqual(8);
+    for (const v of sqlVectors) {
+      expect(pgtap, `falta el vector ${v.id} en el pgTAP 35`).toContain(`'${v.sha256}'`);
+      expect(pgtap).toContain(`platform.jcs_canonical('${v.input}')`);
+    }
+  });
+});

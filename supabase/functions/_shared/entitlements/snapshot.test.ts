@@ -181,6 +181,7 @@ describe('assertSnapshotSafe — nada comercial ni secreto (spec §7.2 reglas 6 
 
   it.each([
     ['correo', 'admin@cliente.pe'],
+    // secrets-scan:allow encabezado PEM sin clave: el test exige que el emisor lo RECHACE
     ['PEM', '-----BEGIN PRIVATE KEY-----'],
     ['JWT', 'eyJhbGciOiJFUzI1NiJ9.eyJzdWIiOiJ4In0.c2ln'],
   ])('valor con forma de %s → FORBIDDEN_VALUE', (_label, value) => {
