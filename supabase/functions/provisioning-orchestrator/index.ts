@@ -36,6 +36,9 @@ import {
   type ProvisioningContext,
   type ProvisioningEnvironment,
 } from '../_shared/provisioning/index.ts';
+import { EntitlementSyncClient } from '../_shared/entitlements/sync-client.ts';
+import { createRpcSyncStore, SyncStoreError } from '../_shared/entitlements/sync-store.ts';
+import { readTenantNow, syncTenantNow } from '../_shared/entitlements/sync-flow.ts';
 
 /**
  * Lo ÚNICO que el cliente aporta. `source`, `adapter` o cualquier otra clave
@@ -46,6 +49,8 @@ interface RequestBody {
   action?: unknown;
   request_id?: string;
   deployment_target_id?: string;
+  /** Fase 08: SYNC_ENTITLEMENTS / GET_ENTITLEMENTS actúan sobre un tenant. */
+  tenant_id?: string;
 }
 
 function adminClient(url: string, key: string) {
@@ -171,6 +176,9 @@ Deno.serve(withCors(async (req: Request) => {
   }
   if (action === 'REPLAY_CERTIFICATION') {
     return await certifyReplay(admin, body.request_id!, actorId, actorRole);
+  }
+  if (action === 'SYNC_ENTITLEMENTS' || action === 'GET_ENTITLEMENTS') {
+    return await entitlements(admin, action, body.tenant_id, actorId, actorRole);
   }
 
   return await provision(admin, body.request_id!, actorId, actorRole);
@@ -702,4 +710,46 @@ async function checkHealth(
   });
 
   return json({ health, detail, actor: { id: actorId, role: actorRole } });
+}
+
+// ---------------------------------------------------------------------------
+// Entitlements (SYNC_ENTITLEMENTS / GET_ENTITLEMENTS) — fase 08, aditivo
+// ---------------------------------------------------------------------------
+// Canal propio (contrato entitlements.v1): contexto de entrega, scopes y
+// estados distintos de provisioning. PROVISION, GET_STATUS y
+// REPLAY_CERTIFICATION no pasan por aquí ni cambian. SYNC emite el snapshot si
+// hace falta, lo empuja y lo verifica por GET; GET solo verifica. El estado lo
+// decide la base; la respuesta lleva códigos y versiones, nunca cuerpos.
+// ---------------------------------------------------------------------------
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function entitlements(
+  admin: AdminClient,
+  action: 'SYNC_ENTITLEMENTS' | 'GET_ENTITLEMENTS',
+  tenantId: string | undefined,
+  actorId: string | null,
+  actorRole: string,
+): Promise<Response> {
+  if (typeof tenantId !== 'string' || !UUID_RE.test(tenantId)) {
+    return json({ error: 'PARAMETRO_REQUERIDO: tenant_id' }, 400);
+  }
+  const { data: tenant } = await admin.from('tenants').select('saas_product_id').eq('id', tenantId).maybeSingle();
+  const productId = (tenant as { saas_product_id?: string } | null)?.saas_product_id;
+  if (!productId) {
+    return json({ error: 'TENANT_NO_ENCONTRADO' }, 404);
+  }
+
+  const store = createRpcSyncStore(admin);
+  const client = new EntitlementSyncClient({ secretResolver });
+  const actor = { id: actorId, role: actorRole };
+  const worker = `orchestrator:${crypto.randomUUID()}`;
+  try {
+    const summary = action === 'SYNC_ENTITLEMENTS'
+      ? await syncTenantNow(store, client, tenantId, productId, actor, worker)
+      : await readTenantNow(store, client, tenantId, productId, actor, worker);
+    return json(summary);
+  } catch (error) {
+    const code = error instanceof SyncStoreError ? error.code : 'ERROR_INTERNO';
+    return json({ error: code, tenant_id: tenantId }, error instanceof SyncStoreError ? 409 : 500);
+  }
 }
