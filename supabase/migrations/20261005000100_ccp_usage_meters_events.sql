@@ -69,6 +69,9 @@ create table platform.usage_meters (
 );
 
 create unique index usage_meters_product_code_uk on platform.usage_meters (saas_product_id, code);
+create index usage_meters_capability_ix on platform.usage_meters (capability_id) where capability_id is not null;
+create index usage_meters_created_by_ix on platform.usage_meters (created_by) where created_by is not null;
+create index usage_meters_billable_by_ix on platform.usage_meters (billable_decided_by) where billable_decided_by is not null;
 create trigger usage_meters_set_updated_at before update on platform.usage_meters
   for each row execute function platform.set_updated_at();
 
@@ -109,6 +112,8 @@ create table platform.usage_ingest_credentials (
 );
 
 create unique index usage_ingest_credentials_issuer_uk on platform.usage_ingest_credentials (issuer, environment);
+create index usage_ingest_credentials_product_ix on platform.usage_ingest_credentials (saas_product_id);
+create index usage_ingest_credentials_created_by_ix on platform.usage_ingest_credentials (created_by) where created_by is not null;
 create trigger usage_ingest_credentials_set_updated_at before update on platform.usage_ingest_credentials
   for each row execute function platform.set_updated_at();
 
@@ -247,6 +252,10 @@ alter table platform.m2m_jti_replay enable row level security;
 alter table platform.m2m_jti_replay force row level security;
 revoke all on platform.m2m_jti_replay from public, anon, authenticated;
 grant select, insert, delete on platform.m2m_jti_replay to service_role;
+-- Solo el servidor (service_role omite RLS). La política explícita deja
+-- constancia de que ningún rol humano lee ni escribe jti (00_structure §3).
+create policy m2m_jti_replay_no_humans on platform.m2m_jti_replay
+  for select to authenticated using (false);
 
 -- true = jti nuevo (consumido ahora); false = ya usado. Purga oportunista de
 -- lo vencido hace más de 10 minutos (TTL ≤ 300 s + skew).

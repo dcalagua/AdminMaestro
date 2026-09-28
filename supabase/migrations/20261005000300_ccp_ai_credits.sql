@@ -59,6 +59,7 @@ create table platform.ai_credit_weights (
     capability_id with =, tstzrange(valid_from, coalesce(valid_to, 'infinity'::timestamptz)) with &&)
 );
 create index ai_credit_weights_capability_ix on platform.ai_credit_weights (capability_id, valid_from);
+create index ai_credit_weights_created_by_ix on platform.ai_credit_weights (created_by) where created_by is not null;
 
 comment on table platform.ai_credit_weights is
   'Créditos EBIM por unidad de cada capacidad AI_FEATURE, con vigencia (spec §12.1). Configuración '
@@ -127,6 +128,10 @@ create table platform.ai_credit_policies (
   constraint ai_credit_policies_no_overlap exclude using gist (
     coalesce(plan_id, catalog_item_id) with =, daterange(valid_from, valid_to) with &&)
 );
+create index ai_credit_policies_product_ix on platform.ai_credit_policies (saas_product_id);
+create index ai_credit_policies_plan_ix on platform.ai_credit_policies (plan_id) where plan_id is not null;
+create index ai_credit_policies_item_ix on platform.ai_credit_policies (catalog_item_id) where catalog_item_id is not null;
+create index ai_credit_policies_created_by_ix on platform.ai_credit_policies (created_by) where created_by is not null;
 
 comment on table platform.ai_credit_policies is
   'Política de créditos IA por plan o add-on (spec §12). Campos comerciales nullable = no decidido '
@@ -188,6 +193,11 @@ create unique index ai_credit_ledger_key_uk on platform.ai_credit_ledger (tenant
 create unique index ai_credit_ledger_reverses_uk on platform.ai_credit_ledger (reverses_entry_id) where reverses_entry_id is not null;
 create index ai_credit_ledger_balance_ix on platform.ai_credit_ledger (tenant_id, pool_key, period_start);
 create index ai_credit_ledger_aggregate_ix on platform.ai_credit_ledger (usage_aggregate_id) where usage_aggregate_id is not null;
+create index ai_credit_ledger_product_ix on platform.ai_credit_ledger (saas_product_id);
+create index ai_credit_ledger_capability_ix on platform.ai_credit_ledger (capability_id) where capability_id is not null;
+create index ai_credit_ledger_weight_ix on platform.ai_credit_ledger (weight_id) where weight_id is not null;
+create index ai_credit_ledger_policy_ix on platform.ai_credit_ledger (policy_id) where policy_id is not null;
+create index ai_credit_ledger_created_by_ix on platform.ai_credit_ledger (created_by) where created_by is not null;
 
 comment on table platform.ai_credit_ledger is
   'Ledger append-only de créditos IA (spec §12.3). El saldo es derivado (v_ai_credit_balances); '

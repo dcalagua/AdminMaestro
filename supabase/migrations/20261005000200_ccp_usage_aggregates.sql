@@ -71,6 +71,9 @@ create table platform.usage_period_aggregates (
 
 create unique index usage_period_aggregates_uk on platform.usage_period_aggregates (tenant_id, meter_id, period_start);
 create index usage_period_aggregates_status_ix on platform.usage_period_aggregates (status, period_start);
+create index usage_period_aggregates_meter_ix on platform.usage_period_aggregates (meter_id);
+create index usage_period_aggregates_product_ix on platform.usage_period_aggregates (saas_product_id);
+create index usage_period_aggregates_finalized_by_ix on platform.usage_period_aggregates (finalized_by) where finalized_by is not null;
 create trigger usage_period_aggregates_set_updated_at before update on platform.usage_period_aggregates
   for each row execute function platform.set_updated_at();
 
@@ -143,6 +146,8 @@ create table platform.usage_alerts (
 );
 create index usage_alerts_aggregate_ix on platform.usage_alerts (aggregate_id);
 create index usage_alerts_created_ix on platform.usage_alerts (created_at desc);
+create index usage_alerts_tenant_ix on platform.usage_alerts (tenant_id) where tenant_id is not null;
+create index usage_alerts_product_ix on platform.usage_alerts (saas_product_id) where saas_product_id is not null;
 
 create trigger usage_alerts_no_update_delete before update or delete on platform.usage_alerts
   for each row execute function platform.usage_append_only();
