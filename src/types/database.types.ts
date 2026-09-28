@@ -348,6 +348,73 @@ export type Database = {
           },
         ]
       }
+      catalog_item_prices: {
+        Row: {
+          amount: number
+          billing_interval: Database["platform"]["Enums"]["billing_interval"]
+          catalog_item_id: string
+          charge_kind: Database["platform"]["Enums"]["charge_kind"]
+          created_at: string
+          created_by: string | null
+          currency: string
+          id: string
+          market_id: string | null
+          updated_at: string
+          valid_from: string
+          valid_to: string | null
+        }
+        Insert: {
+          amount: number
+          billing_interval?: Database["platform"]["Enums"]["billing_interval"]
+          catalog_item_id: string
+          charge_kind?: Database["platform"]["Enums"]["charge_kind"]
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          id?: string
+          market_id?: string | null
+          updated_at?: string
+          valid_from?: string
+          valid_to?: string | null
+        }
+        Update: {
+          amount?: number
+          billing_interval?: Database["platform"]["Enums"]["billing_interval"]
+          catalog_item_id?: string
+          charge_kind?: Database["platform"]["Enums"]["charge_kind"]
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          market_id?: string | null
+          updated_at?: string
+          valid_from?: string
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_item_prices_catalog_item_id_fkey"
+            columns: ["catalog_item_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_item_prices_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_item_prices_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalog_items: {
         Row: {
           available: boolean
@@ -8780,6 +8847,28 @@ export type Database = {
         }
         Returns: string
       }
+      current_catalog_item_price: {
+        Args: {
+          p_as_of?: string
+          p_billing_interval: Database["platform"]["Enums"]["billing_interval"]
+          p_catalog_item_id: string
+          p_charge_kind: Database["platform"]["Enums"]["charge_kind"]
+          p_currency: string
+          p_market_id: string
+        }
+        Returns: number
+      }
+      current_catalog_item_price_id: {
+        Args: {
+          p_as_of?: string
+          p_billing_interval: Database["platform"]["Enums"]["billing_interval"]
+          p_catalog_item_id: string
+          p_charge_kind: Database["platform"]["Enums"]["charge_kind"]
+          p_currency: string
+          p_market_id: string
+        }
+        Returns: string
+      }
       current_plan_price: {
         Args: {
           p_as_of?: string
@@ -9329,6 +9418,18 @@ export type Database = {
       set_catalog_item_lifecycle: {
         Args: { p_code: string; p_reason: string; p_status: string }
         Returns: undefined
+      }
+      set_catalog_item_price: {
+        Args: {
+          p_amount: number
+          p_billing_interval: Database["platform"]["Enums"]["billing_interval"]
+          p_catalog_item_code: string
+          p_charge_kind: Database["platform"]["Enums"]["charge_kind"]
+          p_currency: string
+          p_market_code: string
+          p_valid_from?: string
+        }
+        Returns: string
       }
       set_deployment_health: {
         Args: {

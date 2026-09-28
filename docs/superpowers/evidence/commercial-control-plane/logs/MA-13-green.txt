@@ -1,0 +1,5 @@
+Connecting to local database...
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/30_ccp_catalog_item_prices.test.sql .. ok
+All tests successful.
+Files=1, Tests=46,  1 wallclock secs ( 0.01 usr  0.01 sys +  0.00 cusr  0.01 csys =  0.03 CPU)
+Result: PASS
