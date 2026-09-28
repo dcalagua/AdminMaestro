@@ -62,6 +62,7 @@ export const CHARGE_KIND_LABEL: Record<string, string> = {
   ADDON: 'Addon',
   PROFESSIONAL_SERVICES: 'Servicios profesionales',
   DISCOUNT: 'Descuento',
+  USAGE_OVERAGE: 'Exceso de uso',
 };
 
 export function chargeKindLabel(kind: string | null | undefined): string {

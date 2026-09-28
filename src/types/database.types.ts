@@ -9667,6 +9667,7 @@ export type Database = {
         | "ADDON"
         | "PROFESSIONAL_SERVICES"
         | "DISCOUNT"
+        | "USAGE_OVERAGE"
       collection_method:
         | "CULQI_CARD"
         | "SERVICE_ORDER"
@@ -9947,6 +9948,7 @@ export const Constants = {
         "ADDON",
         "PROFESSIONAL_SERVICES",
         "DISCOUNT",
+        "USAGE_OVERAGE",
       ],
       collection_method: [
         "CULQI_CARD",

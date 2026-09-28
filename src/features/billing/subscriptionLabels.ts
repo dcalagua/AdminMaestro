@@ -38,6 +38,7 @@ export const CHARGE_KIND_LABEL: Record<string, string> = {
   ADDON: 'Complemento',
   PROFESSIONAL_SERVICES: 'Servicios profesionales',
   DISCOUNT: 'Descuento',
+  USAGE_OVERAGE: 'Exceso de uso',
 };
 
 const MONTH_FACTOR: Record<string, number> = { MONTHLY: 1, QUARTERLY: 1 / 3, YEARLY: 1 / 12 };
