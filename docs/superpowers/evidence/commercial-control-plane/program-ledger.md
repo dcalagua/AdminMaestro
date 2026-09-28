@@ -32,3 +32,15 @@
 - Supabase docs finding: new functions get EXECUTE for PUBLIC by default and anon/authenticated share default privileges → explicit revoke/grant on every new or redefined function.
 - Evidence: `phase-03-masteradmin-p0.md`, `logs/MA-0*-*`, `supabase-cli-masteradmin.txt`, rollback `docs/runbooks/ccp-rollback/03.sql`.
 - Status: PHASE_03=PASS.
+
+## 2026-09-27 — Phase 04 (eExpense P0)
+- LOCAL only. eExpense worktree `eExpenses/.worktrees/ebim-commercial-control-plane-v1` created on `feature/ebim-commercial-control-plane-v1` from `f282dc4` (`git fetch origin` failed inside the sandbox — SSH; cached `dev == origin/dev == f282dc4`, same as phase 00). `.worktrees/` and the `web/node_modules` symlink excluded via `.git/info/exclude`. No push (eExpense rule: local commits only).
+- Local DB: `supabase db start/reset --local --workdir $TMPDIR/eexpense-ccp` (config copy, DB port 55822; ports 54321/54322 taken by another stack). Repo `config.toml` untouched. Nothing against `uvjmdphlnpyhtohobvzx`.
+- Commits (eExpense): `d5c3a3e` EX-00 · `a5ecaa7` EX-01 · `b9223af` EX-02 · `7e410c5` EX-03 · `5e2a436` EX-04 · `03d6e03` EX-05 · `3e5ac28` EX-06 · `090645e` EX-07/08 evidence.
+- Migrations: `20260928100000_ccp_commercial_columns_lockdown.sql`, `20260928100100_ccp_addon_requests.sql`. Tests: `ccp_commercial_columns_test.sql` (41), `ccp_addon_requests_test.sql` (16), vitest +60 (requireTenantActor, aiEndpointsAuth, whatsappInboundSignature, billingWebhook, platformSubscribe, billingRunCharacterization).
+- Gate: vitest 120/120 · typecheck/build OK · deno check 14/14 · pgTAP 41/41, 16/16, provisioning 44/44 · INV-1 protected diff empty · INV-4 plans/addons hash unchanged · advisors: no new findings · rollback dry-run OK.
+- Supabase docs finding: `verify_jwt` accepts any valid project JWT (incl. legacy anon) → handlers must resolve the user with `auth.getUser(token)`; new publishable/secret keys are not JWTs.
+- Deviations: (1) shared `serveForTenantActor` wrapper + per-function wiring tests instead of 10 `core.ts` extractions; (2) platform superadmin passes without an active tenant (console calls `fiscal-validate`); (3) EX-05 also closes tenant self-DELETE/INSERT (RED showed a tenant admin could delete its tenant) and gates `white_label` on the add-on; guards read JWT claims so SECURITY DEFINER RPCs can't bypass; (4) new `addon_requests` queue for EX-06; (5) legacy billing characterization by source hash + patterns; (6) own NULL-handling bug in the guard caught by pgTAP before commit.
+- Open (recorded, not expanded): AI add-on entitlement gating server-side → phase 15; hub `platform-register subscribe` → phase 05; `billing-run` non-constant-time cron secret compare and client-set `tenant_billing.payment_status` (legacy, migration target); 4 pre-existing deno type errors in `whatsapp-inbound`; add-ons UI request flow verified by typecheck/build only (no browser run).
+- Deploy prerequisites for a future GATE C + P-05: `BILLING_WEBHOOK_SECRET` before deploying `billing-webhook` (else 503 by design; Culqi needs a signing relay); Twilio auth token in `tenant_whatsapp.auth_token`.
+- Status: PHASE_04=PASS.
