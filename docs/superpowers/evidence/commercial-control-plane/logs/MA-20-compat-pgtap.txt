@@ -1,0 +1,12 @@
+26_ccp_preservation.test.sql .......... ok
+29_ccp_capabilities.test.sql .......... ok
+30_ccp_catalog_item_prices.test.sql ... ok
+31_ccp_entitlement_grants.test.sql .... ok
+33_ccp_compute_entitlements.test.sql .. 
+# Failed test 27: "Las filas legacy (PLAN/ADDON) no se tocan"
+#         have: esupplier.qa.manual:MANUAL,homologacion:PLAN,licitaciones:PLAN,ocr:ADDON
+#         want: homologacion:PLAN,licitaciones:PLAN,ocr:ADDON
+# Looks like you failed 1 test of 34
+Files=5, Tests=182,  0 wallclock secs ( 0.03 usr  0.03 sys +  0.02 cusr  0.03 csys =  0.11 CPU)
+Result: FAIL
+Nota: el único fallo (33 #27) es la fila MANUAL 'esupplier.qa.manual' que este ensayo añadió a propósito al estado legacy; demuestra que el read model no toca filas MANUAL. En un reset limpio 33 pasa 34/34.
