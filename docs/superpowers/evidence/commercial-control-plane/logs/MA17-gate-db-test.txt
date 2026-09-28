@@ -41,7 +41,7 @@ Connecting to local database...
 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/39_ccp_usage_aggregates.test.sql .......... ok
 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/40_ccp_ai_credits.test.sql ................ ok
 All tests successful.
-Files=41, Tests=1581,  4 wallclock secs ( 0.13 usr  0.07 sys +  0.19 cusr  0.14 csys =  0.53 CPU)
+Files=41, Tests=1581,  7 wallclock secs ( 0.30 usr  0.11 sys +  0.24 cusr  0.29 csys =  0.94 CPU)
 Result: PASS
 A new version of Supabase CLI is available: v2.118.0 (currently installed v2.116.0)
 We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

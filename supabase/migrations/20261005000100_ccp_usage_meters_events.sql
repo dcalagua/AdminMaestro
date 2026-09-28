@@ -85,7 +85,7 @@ revoke all on platform.usage_meters from public, anon, authenticated;
 grant select on platform.usage_meters to authenticated;
 grant select on platform.usage_meters to service_role;
 create policy usage_meters_select on platform.usage_meters
-  for select to authenticated using (auth.uid() is not null);
+  for select to authenticated using ((select auth.uid()) is not null);
 
 -- ---------------------------------------------------------------------------
 -- 2. usage_ingest_credentials (clave pública del SaaS, por referencia)

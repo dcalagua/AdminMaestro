@@ -94,7 +94,7 @@ revoke all on platform.ai_credit_weights from public, anon, authenticated;
 grant select on platform.ai_credit_weights to authenticated;
 grant select on platform.ai_credit_weights to service_role;
 create policy ai_credit_weights_select on platform.ai_credit_weights
-  for select to authenticated using (auth.uid() is not null);
+  for select to authenticated using ((select auth.uid()) is not null);
 
 -- ---------------------------------------------------------------------------
 -- 2. ai_credit_policies
