@@ -15,6 +15,8 @@ import { ProductsPage } from '@/features/catalog/ProductsPage';
 import { ProductDetailPage } from '@/features/catalog/ProductDetailPage';
 import { PlansPage } from '@/features/catalog/PlansPage';
 import { FeatureFlagsPage } from '@/features/catalog/FeatureFlagsPage';
+import { AddonsPage } from '@/features/catalog/AddonsPage';
+import { CapabilitiesPage } from '@/features/commercial/capabilities/CapabilitiesPage';
 import { OrganizationsPage } from '@/features/organizations/OrganizationsPage';
 import { OrganizationDetailPage } from '@/features/organizations/OrganizationDetailPage';
 import { PartnersPage } from '@/features/organizations/PartnersPage';
@@ -84,6 +86,28 @@ export function App() {
                     <Route path="products/:productId" element={<ProductDetailPage />} />
                     <Route path="plans" element={<PlansPage />} />
                     <Route path="feature-flags" element={<FeatureFlagsPage />} />
+                    {/*
+                    CCP fase 07. El registro de capacidades es gobierno de
+                    producto de EBIM; los add-ons llevan tarifas, así que se
+                    protegen como el resto de pantallas financieras. Ambas son
+                    UX: RLS y las RPC son la autoridad.
+                  */}
+                    <Route
+                      path="commercial/capabilities"
+                      element={
+                        <RequirePersona personas={['EBIM']}>
+                          <CapabilitiesPage />
+                        </RequirePersona>
+                      }
+                    />
+                    <Route
+                      path="catalog/addons"
+                      element={
+                        <RequirePersona personas={['EBIM', 'PARTNER']}>
+                          <RequireFinanceView><AddonsPage /></RequireFinanceView>
+                        </RequirePersona>
+                      }
+                    />
 
                     <Route
                       path="organizations"

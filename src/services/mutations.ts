@@ -82,6 +82,24 @@ export function useUpsertCatalogItem() {
   return useRpc('upsert_catalog_item', ['catalog-items']);
 }
 
+/*
+ * CCP fase 07 · catálogo comercial. Importar un manifiesto es de producto
+ * (EBIM_PRODUCT_ADMIN); cambiar el ciclo de vida de un add-on, también; fijar
+ * su tarifa es de finanzas. La base decide y audita; la UI solo ofrece.
+ */
+export function useImportCapabilityManifest() {
+  return useRpc('import_capability_manifest', ['capabilities', 'tenant-entitlements']);
+}
+
+export function useSetCatalogItemLifecycle() {
+  return useRpc('set_catalog_item_lifecycle', ['catalog-items', 'catalog-item-prices']);
+}
+
+/** Versiona la tarifa del add-on en un mercado: cierra la vigente y abre otra. */
+export function useSetCatalogItemPrice() {
+  return useRpc('set_catalog_item_price', ['catalog-item-prices']);
+}
+
 /* ==========================================================================
    Organizaciones, partners y sociedades
    ========================================================================== */
@@ -161,7 +179,9 @@ export function useSetTenantFeature() {
  * comercial y suspender/reanudar/baja inmediata es de finanzas. El backend
  * decide la autoridad y audita cada transición; la UI solo muestra.
  */
-const TENANT_ADDON_KEYS = ['tenant-addons', 'tenant-features', 'feature-flags', 'subscription-items'];
+const TENANT_ADDON_KEYS = [
+  'tenant-addons', 'tenant-entitlements', 'tenant-features', 'feature-flags', 'subscription-items',
+];
 
 export function useRequestTenantAddon() {
   return useRpc('request_tenant_addon', TENANT_ADDON_KEYS);
