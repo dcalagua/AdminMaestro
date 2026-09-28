@@ -155,13 +155,44 @@ export function useSetTenantFeature() {
   return useRpc('set_tenant_feature', ['tenant-features', 'feature-flags']);
 }
 
-/**
- * Otorga o revoca un add-on de tenant (solo EBIM_FINANCE / EBIM_PRODUCT_ADMIN).
- * Es la única vía: `tenant_addons` no admite escritura directa desde la API
- * (CCP P0-MA-1). Exige motivo; el backend lo audita.
+/*
+ * Ciclo de vida de add-ons de tenant (CCP fase 07, spec §6.2). `tenant_addons`
+ * no admite escritura directa: solicitar nunca activa, aprobar/cancelar es
+ * comercial y suspender/reanudar/baja inmediata es de finanzas. El backend
+ * decide la autoridad y audita cada transición; la UI solo muestra.
  */
-export function useSetTenantAddonActive() {
-  return useRpc('set_tenant_addon_active', ['tenant-features', 'feature-flags']);
+const TENANT_ADDON_KEYS = ['tenant-addons', 'tenant-features', 'feature-flags', 'subscription-items'];
+
+export function useRequestTenantAddon() {
+  return useRpc('request_tenant_addon', TENANT_ADDON_KEYS);
+}
+
+export function useApproveTenantAddon() {
+  return useRpc('approve_tenant_addon', TENANT_ADDON_KEYS);
+}
+
+export function useRejectTenantAddon() {
+  return useRpc('reject_tenant_addon', TENANT_ADDON_KEYS);
+}
+
+export function useScheduleCancelTenantAddon() {
+  return useRpc('schedule_cancel_tenant_addon', TENANT_ADDON_KEYS);
+}
+
+export function useReactivateTenantAddon() {
+  return useRpc('reactivate_tenant_addon', TENANT_ADDON_KEYS);
+}
+
+export function useSuspendTenantAddon() {
+  return useRpc('suspend_tenant_addon', TENANT_ADDON_KEYS);
+}
+
+export function useResumeTenantAddon() {
+  return useRpc('resume_tenant_addon', TENANT_ADDON_KEYS);
+}
+
+export function useCancelTenantAddon() {
+  return useRpc('cancel_tenant_addon', TENANT_ADDON_KEYS);
 }
 
 /** Suspende el tenant Y encola el trabajo de infraestructura, en una transacción. */

@@ -394,13 +394,15 @@ on conflict (code) do nothing;
 update platform.catalog_items set lifecycle_status = 'COMING_SOON'
  where code in ('echange_desk', 'compras_repuestos') and lifecycle_status = 'DRAFT';
 
-insert into platform.tenant_addons (tenant_id, addon_code) values
-  ('50000000-0000-4000-a000-000000000001', 'licitaciones'),
-  ('50000000-0000-4000-a000-000000000007', 'licitaciones'),
-  ('50000000-0000-4000-a000-000000000007', 'white_label'),
-  ('50000000-0000-4000-a000-000000000007', 'sla_premium'),
-  ('50000000-0000-4000-a000-000000000007', 'multi_country'),
-  ('50000000-0000-4000-a000-00000000000d', 'sla_premium')
+-- CCP fase 07: add-ons contratados antes del ciclo de vida = ACTIVE (igual que el
+-- backfill de 20260929000600 en entornos migrados). Una fila sin estado nacería REQUESTED.
+insert into platform.tenant_addons (tenant_id, addon_code, status, request_source, effective_from) values
+  ('50000000-0000-4000-a000-000000000001', 'licitaciones', 'ACTIVE', 'LEGACY_BACKFILL', now()),
+  ('50000000-0000-4000-a000-000000000007', 'licitaciones', 'ACTIVE', 'LEGACY_BACKFILL', now()),
+  ('50000000-0000-4000-a000-000000000007', 'white_label', 'ACTIVE', 'LEGACY_BACKFILL', now()),
+  ('50000000-0000-4000-a000-000000000007', 'sla_premium', 'ACTIVE', 'LEGACY_BACKFILL', now()),
+  ('50000000-0000-4000-a000-000000000007', 'multi_country', 'ACTIVE', 'LEGACY_BACKFILL', now()),
+  ('50000000-0000-4000-a000-00000000000d', 'sla_premium', 'ACTIVE', 'LEGACY_BACKFILL', now())
 on conflict do nothing;
 
 -- ---------------------------------------------------------------------------

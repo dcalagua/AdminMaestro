@@ -94,8 +94,10 @@ select ok(
   and has_table_privilege('authenticated', 'platform.tenant_features', 'select'),
   'authenticated conserva SELECT (filtrado por RLS)');
 
-select has_function('platform', 'set_tenant_addon_active', array['uuid', 'text', 'boolean', 'text'],
-  'Existe platform.set_tenant_addon_active(tenant, addon_code, active, reason)');
+-- Fase 07 (MA-16): la RPC temporal set_tenant_addon_active se retiró; otorgar un
+-- add-on es ahora approve_tenant_addon dentro del ciclo de vida auditado (test 32).
+select has_function('platform', 'approve_tenant_addon', array['uuid', 'text'],
+  'Existe platform.approve_tenant_addon(tenant_addon_id, reason) (sustituye a set_tenant_addon_active)');
 
 select is(
   (select string_agg(p.proname || ':' || p.prosecdef || ':'
@@ -106,8 +108,8 @@ select is(
             ',' order by p.proname)
      from pg_proc p
     where p.pronamespace = 'platform'::regnamespace
-      and p.proname in ('set_tenant_addon_active', 'set_tenant_feature')),
-  'set_tenant_addon_active:true:false:false:true:true,set_tenant_feature:true:false:false:true:true',
+      and p.proname in ('approve_tenant_addon', 'set_tenant_feature')),
+  'approve_tenant_addon:true:false:false:true:true,set_tenant_feature:true:false:false:true:true',
   'RPCs DEFINER con search_path fijo, sin EXECUTE para PUBLIC ni anon');
 
 -- ---------------------------------------------------------------------------
@@ -200,70 +202,86 @@ select is(
   1, 'set_tenant_feature deja audit_logs con el actor');
 
 -- ---------------------------------------------------------------------------
--- set_tenant_addon_active: única vía de otorgar/revocar un add-on
+-- Otorgar un add-on = approve_tenant_addon (fase 07). Nadie se autoaprueba.
+-- Solicitudes QA creadas directamente; tarifas QA para poder aprobar. Todo se
+-- revierte (rollback).
 -- ---------------------------------------------------------------------------
+select pg_temp.act_as_postgres();
+insert into platform.catalog_item_prices (catalog_item_id, market_id, charge_kind, billing_interval, amount, currency, valid_from)
+select ci.id, m.id, 'ADDON', 'MONTHLY', 1.00, 'USD', current_date
+  from platform.catalog_items ci cross join platform.markets m
+ where ci.code in ('consolidation', 'licitaciones') and m.code = 'PE';
+insert into platform.tenant_addons (tenant_id, addon_code, status, request_source)
+values (pg_temp.alpha(), 'consolidation', 'REQUESTED', 'TENANT'),
+       (pg_temp.cliente_p1(), 'consolidation', 'REQUESTED', 'TENANT');
+create or replace function pg_temp.req(p_tenant uuid, p_code text) returns uuid language sql as $$
+  select id from platform.tenant_addons where tenant_id = p_tenant and addon_code = p_code
+   order by requested_at desc, created_at desc limit 1
+$$;
+
 select pg_temp.act_as_anon();
-select throws_ok($$ select platform.set_tenant_addon_active('50000000-0000-4000-a000-000000000001', 'consolidation', true, 'QA') $$,
-  '42501', null, 'anon no ejecuta set_tenant_addon_active');
+select throws_ok($$ select platform.approve_tenant_addon(pg_temp.req('50000000-0000-4000-a000-000000000001', 'consolidation'), 'QA') $$,
+  '42501', null, 'anon no ejecuta approve_tenant_addon');
 
 select pg_temp.act_as('10000000-0000-4000-a000-0000000000ff');
-select throws_ok($$ select platform.set_tenant_addon_active('50000000-0000-4000-a000-000000000001', 'consolidation', true, 'QA') $$,
+select throws_ok($$ select platform.approve_tenant_addon(pg_temp.req('50000000-0000-4000-a000-000000000001', 'consolidation'), 'QA') $$,
   '42501', null, 'authenticated sin rol no se otorga add-ons');
 
 select pg_temp.act_as('10000000-0000-4000-a000-000000000009');
-select throws_ok($$ select platform.set_tenant_addon_active('50000000-0000-4000-a000-000000000001', 'consolidation', true, 'QA') $$,
+select throws_ok($$ select platform.approve_tenant_addon(pg_temp.req('50000000-0000-4000-a000-000000000001', 'consolidation'), 'QA') $$,
   '42501', null, 'TENANT_ADMIN no se otorga add-ons');
 
 select pg_temp.act_as('10000000-0000-4000-a000-00000000000c');
-select throws_ok($$ select platform.set_tenant_addon_active('50000000-0000-4000-a000-000000000002', 'consolidation', true, 'QA') $$,
+select throws_ok($$ select platform.approve_tenant_addon(pg_temp.req('50000000-0000-4000-a000-000000000002', 'consolidation'), 'QA') $$,
   '42501', null, 'ORG_ADMIN del cliente no se otorga add-ons');
 
 select pg_temp.act_as('10000000-0000-4000-a000-000000000004');
-select throws_ok($$ select platform.set_tenant_addon_active('50000000-0000-4000-a000-000000000002', 'consolidation', true, 'QA') $$,
+select throws_ok($$ select platform.approve_tenant_addon(pg_temp.req('50000000-0000-4000-a000-000000000002', 'consolidation'), 'QA') $$,
   '42501', null, 'PARTNER_ADMIN no otorga add-ons a los tenants que gestiona');
 
 select pg_temp.act_as('10000000-0000-4000-a000-000000000008');
-select throws_ok($$ select platform.set_tenant_addon_active('50000000-0000-4000-a000-000000000001', 'consolidation', true, 'QA') $$,
+select throws_ok($$ select platform.approve_tenant_addon(pg_temp.req('50000000-0000-4000-a000-000000000001', 'consolidation'), 'QA') $$,
   '42501', null, 'El comercial no otorga add-ons');
 
 select pg_temp.act_as('10000000-0000-4000-a000-000000000002');
-select lives_ok($$ select platform.set_tenant_addon_active('50000000-0000-4000-a000-000000000001', 'consolidation', true, 'Alta comercial QA') $$,
+select lives_ok($$ select platform.approve_tenant_addon(pg_temp.req('50000000-0000-4000-a000-000000000001', 'consolidation'), 'Alta comercial QA') $$,
   'EBIM_PRODUCT_ADMIN otorga un add-on disponible');
 
 select pg_temp.act_as('10000000-0000-4000-a000-000000000003');
-select lives_ok($$ select platform.set_tenant_addon_active('50000000-0000-4000-a000-000000000001', 'licitaciones', false, 'Baja comercial QA') $$,
+select lives_ok($$ select platform.cancel_tenant_addon(pg_temp.req('50000000-0000-4000-a000-000000000001', 'licitaciones'), 'Baja comercial QA') $$,
   'EBIM_FINANCE revoca un add-on');
 
 select pg_temp.act_as('10000000-0000-4000-a000-000000000001');
-select lives_ok($$ select platform.set_tenant_addon_active('50000000-0000-4000-a000-000000000001', 'licitaciones', true, 'Reactivación QA') $$,
-  'Super admin reactiva un add-on');
+select set_config('ccp.req28', platform.request_tenant_addon(pg_temp.alpha(), 'licitaciones', null, 'Reactivación QA')::text, true);
+select lives_ok($$ select platform.approve_tenant_addon(current_setting('ccp.req28')::uuid, 'Reactivación QA') $$,
+  'Super admin reactiva un add-on (fila nueva)');
 
 select pg_temp.act_as_postgres();
 select is(
-  (select string_agg(addon_code || '=' || active, ',' order by addon_code) from platform.tenant_addons
+  (select string_agg(addon_code || '=' || active, ',' order by addon_code, active) from platform.tenant_addons
     where tenant_id = pg_temp.alpha()),
-  'consolidation=true,licitaciones=true', 'Estado resultante de los add-ons del tenant');
+  'consolidation=true,licitaciones=false,licitaciones=true', 'Estado resultante de los add-ons del tenant (con historia)');
 select is(
-  (select string_agg(metadata ->> 'addon_code' || ':' || coalesce(metadata ->> 'previous_active', '') || '>' || (metadata ->> 'active')
-                     || ':' || (metadata ->> 'reason'), ',' order by id)
+  (select string_agg(metadata ->> 'addon_code' || ':' || action || ':' || (metadata ->> 'reason'), ',' order by id)
      from platform.audit_logs
-    where action = 'TENANT_ADDON_SET' and tenant_id = pg_temp.alpha()),
-  'consolidation:>true:Alta comercial QA,licitaciones:true>false:Baja comercial QA,licitaciones:false>true:Reactivación QA',
-  'Cada cambio de add-on queda en audit_logs con estado previo, nuevo y motivo');
+    where action like 'TENANT_ADDON_%' and tenant_id = pg_temp.alpha()),
+  'consolidation:TENANT_ADDON_APPROVED:Alta comercial QA,licitaciones:TENANT_ADDON_CANCELLED:Baja comercial QA,'
+  || 'licitaciones:TENANT_ADDON_REQUESTED:Reactivación QA,licitaciones:TENANT_ADDON_APPROVED:Reactivación QA',
+  'Cada cambio de add-on queda en audit_logs con acción y motivo');
 select is(
-  (select count(*)::int from platform.audit_logs where action = 'TENANT_ADDON_SET' and actor_user_id is null),
+  (select count(*)::int from platform.audit_logs where action like 'TENANT_ADDON_%' and actor_user_id is null),
   0, 'Todo cambio de add-on tiene actor');
 
 select pg_temp.act_as('10000000-0000-4000-a000-000000000002');
-select throws_ok($$ select platform.set_tenant_addon_active('50000000-0000-4000-a000-000000000001', 'echange_desk', true, 'QA') $$,
+select throws_ok($$ select platform.request_tenant_addon('50000000-0000-4000-a000-000000000001', 'echange_desk', null, 'QA') $$,
   '23514', null, 'Un item de catálogo no disponible no se otorga');
-select lives_ok($$ select platform.set_tenant_addon_active('50000000-0000-4000-a000-000000000001', 'consolidation', false, 'QA') $$,
+select lives_ok($$ select platform.schedule_cancel_tenant_addon(pg_temp.req('50000000-0000-4000-a000-000000000001', 'consolidation'), 'QA') $$,
   'Revocar siempre es posible');
-select throws_ok($$ select platform.set_tenant_addon_active('50000000-0000-4000-a000-000000000001', 'consolidation', true, '  ') $$,
+select throws_ok($$ select platform.approve_tenant_addon(pg_temp.req('50000000-0000-4000-a000-000000000002', 'consolidation'), '  ') $$,
   '23502', null, 'El motivo es obligatorio');
-select throws_ok($$ select platform.set_tenant_addon_active('50000000-0000-4000-a000-000000000001', 'no_existe', true, 'QA') $$,
+select throws_ok($$ select platform.request_tenant_addon('50000000-0000-4000-a000-000000000001', 'no_existe', null, 'QA') $$,
   '23503', null, 'Un add-on inexistente se rechaza');
-select throws_ok($$ select platform.set_tenant_addon_active('50000000-0000-4000-a000-0000000000fe', 'consolidation', true, 'QA') $$,
+select throws_ok($$ select platform.request_tenant_addon('50000000-0000-4000-a000-0000000000fe', 'consolidation', null, 'QA') $$,
   '23503', null, 'Un tenant inexistente se rechaza');
 
 select pg_temp.act_as_postgres();

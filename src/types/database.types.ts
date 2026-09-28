@@ -5534,6 +5534,13 @@ export type Database = {
             referencedColumns: ["subscription_id"]
           },
           {
+            foreignKeyName: "subscription_items_tenant_addon_fk"
+            columns: ["tenant_addon_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_addons"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "subscription_items_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -5740,7 +5747,19 @@ export type Database = {
           activated_at: string
           active: boolean
           addon_code: string
+          approved_at: string | null
+          approved_by: string | null
+          company_id: string | null
           created_at: string
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          request_source: string
+          requested_at: string
+          requested_by: string | null
+          status: string
+          status_reason: string | null
+          subscription_item_id: string | null
           tenant_id: string
           updated_at: string
         }
@@ -5748,7 +5767,19 @@ export type Database = {
           activated_at?: string
           active?: boolean
           addon_code: string
+          approved_at?: string | null
+          approved_by?: string | null
+          company_id?: string | null
           created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          request_source?: string
+          requested_at?: string
+          requested_by?: string | null
+          status?: string
+          status_reason?: string | null
+          subscription_item_id?: string | null
           tenant_id: string
           updated_at?: string
         }
@@ -5756,7 +5787,19 @@ export type Database = {
           activated_at?: string
           active?: boolean
           addon_code?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          company_id?: string | null
           created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          request_source?: string
+          requested_at?: string
+          requested_by?: string | null
+          status?: string
+          status_reason?: string | null
+          subscription_item_id?: string | null
           tenant_id?: string
           updated_at?: string
         }
@@ -5767,6 +5810,41 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_items"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "tenant_addons_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_markets"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_subscription_item_id_fkey"
+            columns: ["subscription_item_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_items"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "tenant_addons_tenant_id_fkey"
@@ -8946,6 +9024,10 @@ export type Database = {
         Args: { p_document_id: string; p_notes?: string; p_valid_to?: string }
         Returns: undefined
       }
+      approve_tenant_addon: {
+        Args: { p_reason: string; p_tenant_addon_id: string }
+        Returns: Json
+      }
       archive_saas_product: {
         Args: { p_product_id: string; p_reason?: string }
         Returns: undefined
@@ -9006,6 +9088,10 @@ export type Database = {
         Args: { p_reason?: string; p_request_id: string }
         Returns: string
       }
+      cancel_tenant_addon: {
+        Args: { p_reason: string; p_tenant_addon_id: string }
+        Returns: undefined
+      }
       check_provisioning_preconditions: {
         Args: { p_request_id: string }
         Returns: Json
@@ -9039,6 +9125,10 @@ export type Database = {
           p_resources?: Json
         }
         Returns: Json
+      }
+      complete_scheduled_addon_cancellations: {
+        Args: { p_as_of?: string }
+        Returns: number
       }
       configure_deployment_provisioning: {
         Args: {
@@ -9547,6 +9637,10 @@ export type Database = {
         Args: { p_request_id: string }
         Returns: Json
       }
+      reactivate_tenant_addon: {
+        Args: { p_reason: string; p_tenant_addon_id: string }
+        Returns: undefined
+      }
       receivables_aging: {
         Args: { p_organization_id?: string }
         Returns: {
@@ -9633,6 +9727,10 @@ export type Database = {
         Args: { p_document_id: string; p_reason: string }
         Returns: undefined
       }
+      reject_tenant_addon: {
+        Args: { p_reason: string; p_tenant_addon_id: string }
+        Returns: undefined
+      }
       reporting_settings: {
         Args: never
         Returns: {
@@ -9649,6 +9747,15 @@ export type Database = {
           p_subscription_id: string
           p_valid_from?: string
           p_valid_to?: string
+        }
+        Returns: string
+      }
+      request_tenant_addon: {
+        Args: {
+          p_addon_code: string
+          p_company_id?: string
+          p_reason?: string
+          p_tenant_id: string
         }
         Returns: string
       }
@@ -9700,6 +9807,10 @@ export type Database = {
         Args: { p_currency: string; p_market_id: string }
         Returns: string
       }
+      resume_tenant_addon: {
+        Args: { p_reason: string; p_tenant_addon_id: string }
+        Returns: undefined
+      }
       retry_provisioning_request: {
         Args: { p_request_id: string }
         Returns: string
@@ -9718,6 +9829,14 @@ export type Database = {
         Returns: undefined
       }
       revoke_provisioning_role: { Args: { p_id: string }; Returns: string }
+      schedule_cancel_tenant_addon: {
+        Args: {
+          p_effective_to?: string
+          p_reason: string
+          p_tenant_addon_id: string
+        }
+        Returns: string
+      }
       set_billing_alert_status: {
         Args: {
           p_alert_id: string
@@ -9824,15 +9943,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      set_tenant_addon_active: {
-        Args: {
-          p_active: boolean
-          p_addon_code: string
-          p_reason: string
-          p_tenant_id: string
-        }
-        Returns: undefined
-      }
       set_tenant_feature: {
         Args: {
           p_enabled: boolean
@@ -9882,6 +9992,10 @@ export type Database = {
           valid_to: string
         }[]
       }
+      suspend_tenant_addon: {
+        Args: { p_reason: string; p_tenant_addon_id: string }
+        Returns: undefined
+      }
       to_reporting_amount: {
         Args: {
           p_amount: number
@@ -9902,6 +10016,42 @@ export type Database = {
           reporting_amount: number
           reporting_currency: string
         }[]
+      }
+      transition_tenant_addon: {
+        Args: {
+          p_action: string
+          p_from: string[]
+          p_patch?: Json
+          p_reason: string
+          p_tenant_addon_id: string
+          p_to: string
+        }
+        Returns: {
+          activated_at: string
+          active: boolean
+          addon_code: string
+          approved_at: string | null
+          approved_by: string | null
+          company_id: string | null
+          created_at: string
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          request_source: string
+          requested_at: string
+          requested_by: string | null
+          status: string
+          status_reason: string | null
+          subscription_item_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tenant_addons"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       update_tenant: {
         Args: {
