@@ -1,0 +1,6 @@
+== ANTES
+snapshots=4 sync_rows=1 attempts=10 events=0 push_on=0 enrolled=1 svc_issue=true svc_claim=true auth_can_sync=true auth_read_view=true provisioning_ctx_svc=true states=PENDING_PUSH
+== DENTRO de la transacción (script aplicado, commit sustituido por rollback)
+snapshots=4 sync_rows=1 attempts=10 events=1 push_on=0 enrolled=0 svc_issue=false svc_claim=false auth_can_sync=false auth_read_view=true provisioning_ctx_svc=true states=NOT_ENROLLED
+== DESPUÉS del rollback de la transacción
+snapshots=4 sync_rows=1 attempts=10 events=0 push_on=0 enrolled=1 svc_issue=true svc_claim=true auth_can_sync=true auth_read_view=true provisioning_ctx_svc=true states=PENDING_PUSH

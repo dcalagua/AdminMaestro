@@ -1,0 +1,21 @@
+== git diff --stat 346aa72 -- supabase/functions/_shared/provisioning supabase/functions/provisioning-orchestrator supabase/functions/provisioning-worker e2e/v4-*
+ .../functions/_shared/provisioning/actions.test.ts | 31 ++++++++++++++
+ supabase/functions/_shared/provisioning/actions.ts | 21 +++++++--
+ .../functions/provisioning-orchestrator/index.ts   | 50 ++++++++++++++++++++++
+ 3 files changed, 99 insertions(+), 3 deletions(-)
+== líneas eliminadas en esos archivos (debe ser 0 salvo la unión de tipo de actions.ts)
+-export type OrchestratorAction = 'PROVISION' | 'CHECK_HEALTH' | 'GET_STATUS' | 'REPLAY_CERTIFICATION';
+-const ROUTED: readonly OrchestratorAction[] = ['CHECK_HEALTH', 'GET_STATUS', 'REPLAY_CERTIFICATION'];
+-  bodyField: 'request_id' | 'deployment_target_id';
+== archivos dorados (deben estar vacíos)
+supabase/functions/_shared/provisioning/adapters/http-m2m.generic-golden.test.ts: 0 líneas de diff
+supabase/functions/_shared/provisioning/adapters/ewm-v1.test.ts: 0 líneas de diff
+supabase/functions/_shared/provisioning/adapters/ewm-v1.ts: 0 líneas de diff
+supabase/functions/_shared/provisioning/adapters/http-m2m.ts: 0 líneas de diff
+supabase/functions/_shared/provisioning/types.ts: 0 líneas de diff
+supabase/functions/_shared/provisioning/m2m.ts: 0 líneas de diff
+supabase/functions/_shared/provisioning/url-guard.ts: 0 líneas de diff
+supabase/functions/_shared/provisioning/retry.ts: 0 líneas de diff
+e2e/v4-generic-orchestrator-golden.spec.ts: 0 líneas de diff
+== migraciones de provisioning (v4) sin cambios
+(vacío = sin cambios)
