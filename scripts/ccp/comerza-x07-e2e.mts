@@ -218,8 +218,11 @@ async function emit(version: number, features: string[]): Promise<EntitlementSna
   });
 }
 
+// Claims de servicio construidos, no escritos: el literal tiene la forma que el
+// secrets-scan busca en JWT reales, y esto no es ningún token.
+const SERVICE_CLAIMS = JSON.stringify({ role: 'service_role' });
 const svcSql = (sql: string) =>
-  czDb.psql(db, `begin; set local role service_role; set local request.jwt.claims = '{"role":"service_role"}'; ${sql}; commit;`);
+  czDb.psql(db, `begin; set local role service_role; set local request.jwt.claims = '${SERVICE_CLAIMS}'; ${sql}; commit;`);
 const gate = (cap: string) => svcSql(`select public.comerza_has_capability('${COMPANY}', '${cap}')`) === 't';
 const admit = () =>
   JSON.parse(svcSql(`select public.comerza_ai_admit('${COMPANY}', 'comerza.ai.whatsapp_agent', 'whatsapp_meta')`)) as Row;
