@@ -1,0 +1,14 @@
+[INFO] Building wms-api 0.1.0-SNAPSHOT
+[INFO] --- surefire:3.5.6:test (default-test) @ wms-api ---
+[INFO] Tests run: 1512, Failures: 0, Errors: 0, Skipped: 1
+[INFO] --- failsafe:3.5.6:integration-test (default) @ wms-api ---
+[INFO] --- failsafe:3.5.6:verify (default) @ wms-api ---
+[INFO] BUILD SUCCESS
+[INFO] Total time:  25.020 s
+[INFO] Building wms-api 0.1.0-SNAPSHOT
+[INFO] --- failsafe:3.5.6:integration-test (default-cli) @ wms-api ---
+[INFO] Tests run: 1535, Failures: 0, Errors: 0, Skipped: 0
+[INFO] --- failsafe:3.5.6:verify (default-cli) @ wms-api ---
+[INFO] BUILD SUCCESS
+[INFO] Total time:  10:24 min
+EXIT=0

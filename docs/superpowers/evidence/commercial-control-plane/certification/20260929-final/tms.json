@@ -1,0 +1,314 @@
+{
+  "product": "tms",
+  "legacyAuthority": "entitlements SHADOW (V52); sin biller ni precio local; registro vacío (solo baseline tms.core)",
+  "checks": {
+    "1": {
+      "label": "canonical MasterAdmin mapping",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:01:59Z",
+          "endedAt": "2026-09-29T08:02:03Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "tms:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:03:56Z",
+          "endedAt": "2026-09-29T08:04:01Z",
+          "log": "logs/tms-x07.txt"
+        }
+      ]
+    },
+    "2": {
+      "label": "desired entitlement generated",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:01:59Z",
+          "endedAt": "2026-09-29T08:02:03Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:05Z",
+          "endedAt": "2026-09-29T08:02:06Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "tms:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:03:56Z",
+          "endedAt": "2026-09-29T08:04:01Z",
+          "log": "logs/tms-x07.txt"
+        }
+      ]
+    },
+    "3": {
+      "label": "SaaS applied same version/checksum",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "tms:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:03:56Z",
+          "endedAt": "2026-09-29T08:04:01Z",
+          "log": "logs/tms-x07.txt"
+        }
+      ]
+    },
+    "4": {
+      "label": "GET same applied state",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:05Z",
+          "endedAt": "2026-09-29T08:02:06Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "tms:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:03:56Z",
+          "endedAt": "2026-09-29T08:04:01Z",
+          "log": "logs/tms-x07.txt"
+        }
+      ]
+    },
+    "5": {
+      "label": "tenant self-grant denied",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:01:59Z",
+          "endedAt": "2026-09-29T08:02:03Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "tms:suite",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:05:23Z",
+          "endedAt": "2026-09-29T08:05:23Z",
+          "log": "logs/tms-suite.txt"
+        }
+      ],
+      "note": "sin capacidades vendibles; tms_app deny-all sobre las tablas de entitlements"
+    },
+    "6": {
+      "label": "add/remove/downgrade version transition",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "tms:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:03:56Z",
+          "endedAt": "2026-09-29T08:04:01Z",
+          "log": "logs/tms-x07.txt"
+        }
+      ]
+    },
+    "7": {
+      "label": "offline last-good",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "tms:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:03:56Z",
+          "endedAt": "2026-09-29T08:04:01Z",
+          "log": "logs/tms-x07.txt"
+        }
+      ]
+    },
+    "8": {
+      "label": "drift reconciled",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:05Z",
+          "endedAt": "2026-09-29T08:02:06Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "tms:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:03:56Z",
+          "endedAt": "2026-09-29T08:04:01Z",
+          "log": "logs/tms-x07.txt"
+        }
+      ]
+    },
+    "9": {
+      "label": "usage event accepted once",
+      "status": "N/A",
+      "reason": "TMS no tiene medidor aprobado (fase 17)"
+    },
+    "10": {
+      "label": "duplicate deduped",
+      "status": "N/A",
+      "reason": "TMS no tiene medidor aprobado (fase 17)"
+    },
+    "11": {
+      "label": "allowance/credit arithmetic",
+      "status": "N/A",
+      "reason": "sin asignaciones ni créditos"
+    },
+    "12": {
+      "label": "no duplicate billing",
+      "status": "N/A",
+      "reason": "sin biller local"
+    },
+    "13": {
+      "label": "local price/billing authority stage explicit",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "tms:suite",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:05:23Z",
+          "endedAt": "2026-09-29T08:05:23Z",
+          "log": "logs/tms-suite.txt"
+        }
+      ],
+      "note": "entitlements SHADOW (V52); sin biller ni precio local; registro vacío (solo baseline tms.core)"
+    },
+    "14": {
+      "label": "technical configuration still works",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "tms:suite",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:05:23Z",
+          "endedAt": "2026-09-29T08:05:23Z",
+          "log": "logs/tms-suite.txt"
+        }
+      ]
+    },
+    "15": {
+      "label": "CREATE/REPLAY/GET provisioning regression green",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:provisioning-golden",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:03Z",
+          "endedAt": "2026-09-29T08:02:05Z",
+          "log": "logs/masteradmin-provisioning-golden.txt"
+        },
+        {
+          "ref": "tms:suite",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:05:23Z",
+          "endedAt": "2026-09-29T08:05:23Z",
+          "log": "logs/tms-suite.txt"
+        }
+      ]
+    }
+  },
+  "criteria": {
+    "1": {
+      "met": true,
+      "reason": "P0 del §1.4 cerrados en fases 03–06 con test"
+    },
+    "2": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "tms:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:03:56Z",
+          "endedAt": "2026-09-29T08:04:01Z",
+          "log": "logs/tms-x07.txt"
+        }
+      ]
+    },
+    "3": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:01:59Z",
+          "endedAt": "2026-09-29T08:02:03Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "tms:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:03:56Z",
+          "endedAt": "2026-09-29T08:04:01Z",
+          "log": "logs/tms-x07.txt"
+        }
+      ]
+    },
+    "4": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:05Z",
+          "endedAt": "2026-09-29T08:02:06Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "tms:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:03:56Z",
+          "endedAt": "2026-09-29T08:04:01Z",
+          "log": "logs/tms-x07.txt"
+        }
+      ]
+    },
+    "5": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "tms:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:03:56Z",
+          "endedAt": "2026-09-29T08:04:01Z",
+          "log": "logs/tms-x07.txt"
+        }
+      ]
+    },
+    "6": {
+      "met": false,
+      "reason": "entitlements sembrado en SHADOW, no MASTERADMIN_PRIMARY; avanzar requiere D-14 (ventanas de observación) y además: criterio appActive=false: TMS suspende la operación y otros productos solo lo comercial"
+    },
+    "7": {
+      "met": true,
+      "reason": "sin medidores ACTIVE: no aplica"
+    },
+    "8": {
+      "met": true,
+      "reason": "sin biller local: no aplica (spec §19.1(8))"
+    }
+  },
+  "gaps": [
+    {
+      "class": "HUMAN_DECISION",
+      "text": "ADR 017 y V52 deben renumerarse al integrar ramas TMS no fusionadas"
+    }
+  ],
+  "synchronized": false,
+  "blockers": [
+    "§19.1(6) entitlements sembrado en SHADOW, no MASTERADMIN_PRIMARY; avanzar requiere D-14 (ventanas de observación) y además: criterio appActive=false: TMS suspende la operación y otros productos solo lo comercial"
+  ]
+}

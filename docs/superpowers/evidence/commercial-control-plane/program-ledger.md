@@ -319,3 +319,37 @@
   - The `USAGE_OVERAGE` invoice line belongs to phase 18.
 - Evidence: `phase-17-usage.md` (+ SaaS evidence), `logs/MA17-*`, `logs/MA-54-usage-ingest-e2e.txt`, `logs/MA17-X07-usage-e2e.txt`.
 - Status: PHASE_17=PASS.
+
+
+## 2026-09-29 — Phase 18 (billing integration + LOCAL 8-app certification)
+- LOCAL only.
+  - No push, no QAS/PRD, no `link`/`db push`/`functions deploy`/`secrets set`, nothing against remote Supabase.
+  - Culqi live untouched. No price, plan or tax was invented.
+- MasterAdmin commits:
+  - `1ab13a6` MA-60: finalized-aggregate usage/overage invoice lines, once per closed period, and corrected DISCOUNT.
+  - `be7d220` MA-61: recurring discounts subtracted from the card plan; gateway limits on variable amounts documented.
+  - `d2e279d` / `d8b0c16` MA-62: harness `certify-local.sh` + `summarize.mjs`, run from empty databases.
+  - This commit: the final run, the matrix and this entry.
+- Three invocations.
+  - The first two returned while the EWM/TMS Java suites were still running, so they recorded no final result.
+  - The third found no live Maven process. It ran the missing verifiers in the foreground; the IT half went past the tool limit and was waited on synchronously until `EXIT=`.
+- Root causes resolved:
+  - **EWM `YardVisitIT` 24 errors.** Phase 17's classification ("pre-existing NeoRetailSeedSmokeIT pollution") was **wrong**.
+    - The base `7c086e8` runs the full IT suite at 1525/0/0.
+    - The cause: `PlatformEntitlementsIT` (phase 10) has its own `@TestPropertySource` context, which makes 12 cached Hikari pools (11 at the base). `YardVisitIT`'s Flyway then gets "too many clients".
+    - Fix: EWM `601ebb5` adds `@DirtiesContext(AFTER_CLASS)`, test only.
+    - Result: unit 1512/0/0 (1 skipped), IT **1535/0/0**.
+  - **TMS `IdentityResolutionIntegrationTest` 10 errors.** A Flyway V13 deadlock under Testcontainers, not code.
+    - With the repo mechanism `TMS_TEST_DB_URL` on disposable PostGIS 17 (as in phase 12), the suite is **2103/0/0**, 1 skipped (opt-in bridge).
+    - The container `tms_ccp18_pg` was removed.
+- MasterAdmin gate (MA-60/61): pgTAP 1647/1647 after a local reset, vitest 1190/1190, typecheck/lint/build/deno check, node:test 15/15, secrets PASS, no new advisors.
+- Certification `certification/20260929-final/`:
+  - All 27 steps exit 0.
+  - The 15 checks are PASS or N/A (with reason) in all 8 products. See `DEV_SYNCHRONIZATION_MATRIX.md`.
+- Spec §19.1 verdict: **NOT SYNCHRONIZED ×8**. This comes from governance criteria, not from failing tests.
+  - (6) every product is seeded in SHADOW (GMAO DUAL_READ), not `MASTERADMIN_PRIMARY`.
+  - (8) eExpense/GMAO billers are still `LEGACY_AUTHORITY`.
+  - D-14 says no mode advances without explicit human approval, so the program did not advance any mode.
+  - Per-product prerequisites are listed in the matrix.
+- `certification/20260929T060259Z-DISCARDED-load-and-residue/` (untracked) is the run discarded because of residue from a previous run. `d8b0c16` fixed that.
+- Status: PHASE_18=BLOCKED (human gate D-14 + per-product cutover prerequisites). No functional defect remains open.

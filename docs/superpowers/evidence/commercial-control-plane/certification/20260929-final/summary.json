@@ -1,0 +1,192 @@
+{
+  "generatedAt": "2026-09-29T08:07:27.156Z",
+  "products": {
+    "ecommerce": {
+      "synchronized": false,
+      "checks": {
+        "1": "PASS",
+        "2": "PASS",
+        "3": "PASS",
+        "4": "PASS",
+        "5": "PASS",
+        "6": "PASS",
+        "7": "PASS",
+        "8": "PASS",
+        "9": "PASS",
+        "10": "PASS",
+        "11": "PASS",
+        "12": "N/A",
+        "13": "PASS",
+        "14": "PASS",
+        "15": "PASS"
+      },
+      "blockers": [
+        "§19.1(6) entitlements sembrado en SHADOW, no MASTERADMIN_PRIMARY; avanzar requiere D-14 (ventanas de observación) y además: unificar criterio appActive=false (eCommerce cierra operación)"
+      ]
+    },
+    "ewm": {
+      "synchronized": false,
+      "checks": {
+        "1": "PASS",
+        "2": "PASS",
+        "3": "PASS",
+        "4": "PASS",
+        "5": "PASS",
+        "6": "PASS",
+        "7": "PASS",
+        "8": "PASS",
+        "9": "PASS",
+        "10": "PASS",
+        "11": "N/A",
+        "12": "N/A",
+        "13": "PASS",
+        "14": "PASS",
+        "15": "PASS"
+      },
+      "blockers": [
+        "§19.1(6) entitlements sembrado en SHADOW, no MASTERADMIN_PRIMARY; avanzar requiere D-14 (ventanas de observación) y además: bloqueo server-side de admin_set_agent en PRIMARY exige migración Supabase autorizada (Dennis); unificar appActive=false"
+      ]
+    },
+    "comerza": {
+      "synchronized": false,
+      "checks": {
+        "1": "PASS",
+        "2": "PASS",
+        "3": "PASS",
+        "4": "PASS",
+        "5": "PASS",
+        "6": "PASS",
+        "7": "PASS",
+        "8": "PASS",
+        "9": "PASS",
+        "10": "PASS",
+        "11": "N/A",
+        "12": "N/A",
+        "13": "PASS",
+        "14": "PASS",
+        "15": "PASS"
+      },
+      "blockers": [
+        "§19.1(6) entitlements sembrado en SHADOW, no MASTERADMIN_PRIMARY; avanzar requiere D-14 (ventanas de observación) y además: decidir tope del proveedor compartido; unificar appActive=false"
+      ]
+    },
+    "tms": {
+      "synchronized": false,
+      "checks": {
+        "1": "PASS",
+        "2": "PASS",
+        "3": "PASS",
+        "4": "PASS",
+        "5": "PASS",
+        "6": "PASS",
+        "7": "PASS",
+        "8": "PASS",
+        "9": "N/A",
+        "10": "N/A",
+        "11": "N/A",
+        "12": "N/A",
+        "13": "PASS",
+        "14": "PASS",
+        "15": "PASS"
+      },
+      "blockers": [
+        "§19.1(6) entitlements sembrado en SHADOW, no MASTERADMIN_PRIMARY; avanzar requiere D-14 (ventanas de observación) y además: criterio appActive=false: TMS suspende la operación y otros productos solo lo comercial"
+      ]
+    },
+    "esupplier": {
+      "synchronized": false,
+      "checks": {
+        "1": "PASS",
+        "2": "PASS",
+        "3": "PASS",
+        "4": "PASS",
+        "5": "PASS",
+        "6": "PASS",
+        "7": "PASS",
+        "8": "PASS",
+        "9": "PASS",
+        "10": "PASS",
+        "11": "PASS",
+        "12": "N/A",
+        "13": "PASS",
+        "14": "PASS",
+        "15": "PASS"
+      },
+      "blockers": [
+        "§19.1(6) entitlements sembrado en SHADOW, no MASTERADMIN_PRIMARY; avanzar requiere D-14 (ventanas de observación) y además: adoptar tenants legacy sin mapping de provisioning (o PRIMARY por tenant); unificar appActive=false; P-08"
+      ]
+    },
+    "echange": {
+      "synchronized": false,
+      "checks": {
+        "1": "PASS",
+        "2": "PASS",
+        "3": "PASS",
+        "4": "PASS",
+        "5": "PASS",
+        "6": "PASS",
+        "7": "PASS",
+        "8": "PASS",
+        "9": "PASS",
+        "10": "PASS",
+        "11": "N/A",
+        "12": "N/A",
+        "13": "PASS",
+        "14": "PASS",
+        "15": "PASS"
+      },
+      "blockers": [
+        "§19.1(6) entitlements sembrado en SHADOW, no MASTERADMIN_PRIMARY; avanzar requiere D-14 (ventanas de observación) y además: adoptar tenants pre-MasterAdmin; unificar appActive=false"
+      ]
+    },
+    "eexpense": {
+      "synchronized": false,
+      "checks": {
+        "1": "PASS",
+        "2": "PASS",
+        "3": "PASS",
+        "4": "PASS",
+        "5": "PASS",
+        "6": "PASS",
+        "7": "PASS",
+        "8": "PASS",
+        "9": "PASS",
+        "10": "PASS",
+        "11": "PASS",
+        "12": "PASS",
+        "13": "PASS",
+        "14": "PASS",
+        "15": "PASS"
+      },
+      "blockers": [
+        "§19.1(6) entitlements sembrado en SHADOW, no MASTERADMIN_PRIMARY; avanzar requiere D-14 (ventanas de observación) y además: adoptar tenants pre-MasterAdmin; P-05: sin QAS separado de producción",
+        "§19.1(8) biller local en LEGACY_AUTHORITY; BILLING_SHADOW con diff 0 solo se demuestra dentro del X-07 (D-14)"
+      ]
+    },
+    "gmao": {
+      "synchronized": false,
+      "checks": {
+        "1": "PASS",
+        "2": "PASS",
+        "3": "PASS",
+        "4": "PASS",
+        "5": "PASS",
+        "6": "PASS",
+        "7": "PASS",
+        "8": "PASS",
+        "9": "PASS",
+        "10": "PASS",
+        "11": "PASS",
+        "12": "PASS",
+        "13": "PASS",
+        "14": "PASS",
+        "15": "PASS"
+      },
+      "blockers": [
+        "§19.1(6) entitlements sembrado en DUAL_READ, no MASTERADMIN_PRIMARY; avanzar requiere D-14 (ventanas de observación) y además: D-03 (tenant con IA no puede llegar a MA sin decidir gmao.ai.requests); P-05: sin QAS separado; esquema vivo del hub sin verificar",
+        "§19.1(8) biller local en LEGACY_AUTHORITY; SHADOW de facturación solo dentro del X-07 (D-14)"
+      ]
+    }
+  },
+  "allSynchronized": false
+}

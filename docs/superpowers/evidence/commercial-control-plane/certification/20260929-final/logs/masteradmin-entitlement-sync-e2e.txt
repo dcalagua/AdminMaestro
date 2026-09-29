@@ -1,0 +1,23 @@
+(node:35579) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS · 1. issue emite v1 para el tenant enrolado · PENDING_PUSH|1|-|0
+PASS ·    estado PENDING_PUSH v1 · PENDING_PUSH|1|-|0
+PASS · 2. push: PUT aceptado (el checksum SQL pasó la verificación TS previa al envío) · [{"tenant_id":"50000000-0000-4000-a000-000000000001","saas_product_id":"20000000-0000-4000-a000-000000000001","state":"AWAITING_VERIFY","result":"APPLIED","errorCode":null}]
+PASS ·    tras el PUT: AWAITING_VERIFY, applied sin tocar · AWAITING_VERIFY|1|-|0
+PASS · 3. verify: el GET confirma v1 → IN_SYNC · IN_SYNC|1|1|0
+PASS ·    el SaaS decide con lo aplicado: reports concedida, límite 25
+PASS · 4. cambio comercial (DENY) → issue v2 → push → verify en un solo "all" · IN_SYNC|2|2|0
+PASS ·    revocación aplicada en el SaaS: reports denegada
+PASS · 5. SYNC_ENTITLEMENTS sin cambios: no emite ni empuja, re-verifica IN_SYNC · {"tenant_id":"50000000-0000-4000-a000-000000000001","saas_product_id":"20000000-0000-4000-a000-000000000001","state":"IN_SYNC","issued":false,"desired_version":2,"verify":{"result":"OBSERVED","errorCode":null,"httpStatus":200,"appliedVersion":2,"status":"APPLIED"}}
+PASS · 6. re-envío de la misma versión: el SaaS responde replayed (idempotente) · [{"tenant_id":"50000000-0000-4000-a000-000000000001","saas_product_id":"20000000-0000-4000-a000-000000000001","state":"AWAITING_VERIFY","result":"REPLAYED","errorCode":null}]
+PASS ·    y el GET vuelve a IN_SYNC v2 · IN_SYNC|2|2|0
+PASS · 7. SaaS caído: 503 → RETRYABLE, PENDING_PUSH con 1 fallo y backoff · PENDING_PUSH|3|2|1
+PASS ·    el SaaS sigue decidiendo con su último snapshot (v2) mientras tanto
+PASS ·    SaaS de vuelta: v3 aplicada y verificada · IN_SYNC|3|3|0
+PASS · 8. registry-verify: manifiesto = registro → sin drift · [{"saas_product_id":"20000000-0000-4000-a000-000000000001","product_integration_id":"70000000-0000-4000-a000-0000000000e2","drift":false,"errorCode":null}]
+PASS · 9. kill-switch apagado: v4 se emite pero no se empuja · PENDING_PUSH|4|3|0
+PASS ·    el SaaS conserva v3 (límite 25)
+PASS · 10. cada petición llevó un jti distinto (un solo uso) · 12 peticiones
+PASS ·     PUT solo con scope de escritura, GET solo con scope de lectura · PUT esupplier:entitlements:write, GET esupplier:entitlements:read
+PASS ·     bitácora sin tokens ni claves · 10|0
+E2E: 20/20 PASS

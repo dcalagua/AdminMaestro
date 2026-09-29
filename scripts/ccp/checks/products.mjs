@@ -102,7 +102,8 @@ export const PRODUCTS = {
     },
     criteria: { 6: CUTOVER('SHADOW', ['bloqueo server-side de admin_set_agent en PRIMARY exige migración Supabase autorizada (Dennis)', 'unificar appActive=false']),
       7: { steps: ['ewm:suite'] }, 8: NO_BILLER },
-    gaps: [{ class: 'PRE_EXISTING', text: 'aislamiento del harness de IT (YardVisitIT contaminado por NeoRetailSeedSmokeIT)' }],
+    // YardVisitIT («too many clients»): el pool del contexto propio de PlatformEntitlementsIT; cerrado en EWM 601ebb5.
+    gaps: [],
   }),
   comerza: product({
     code: 'comerza', x07: 'x07', steps: { suite: ['test-db'] },

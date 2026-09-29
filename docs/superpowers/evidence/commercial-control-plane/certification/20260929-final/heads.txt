@@ -1,0 +1,10 @@
+stamp=20260929T080054Z
+head.masteradmin=d8b0c16b33ec9525902b8756a9f32fc033239ebe dirty=1
+head.ecommerce=e82bd2e0ecc71a18cb15c33f2432117cc6b40ff7 dirty=0
+head.ewm=601ebb5d47919f9cf2d598f412b43027dbb1ce30 dirty=0
+head.comerza=0ee753717d69651321f11e74113b401484bd9775 dirty=0
+head.tms=9397ff556458fa937536da4bf51c77b6b6fc2ca2 dirty=0
+head.esupplier=86021dbc661c9db163035ce0a48c613817a98e2e dirty=0
+head.echange=916264b2cfe782290266401c25780a6a0b32f14f dirty=0
+head.eexpense=f2389dc0f4bc3c9ab3edaee3f8e742aa3056bcc6 dirty=0
+head.gmao=587e94a3ea2f9cd47768d6728f1391ce2429e183 dirty=0
