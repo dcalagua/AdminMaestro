@@ -28,7 +28,12 @@
 #   TMS_TEST_DB_URL (PostGIS 17 desechable) evita el timeout de Testcontainers (fase 12).
 # Variables opcionales: JAVA_HOME (JDK 21; por defecto temurin-21),
 #   COMERZA_DB_CONTAINER (comerza_ccp_db), ECHANGE_DB_CONTAINER
-#   (supabase_db_echange-ccp14), EEXPENSE_DB_CONTAINER (supabase_db_eexpense-ccp).
+#   (supabase_db_echange-ccp14), EEXPENSE_DB_CONTAINER (supabase_db_eexpense-ccp),
+#   ECHANGE_WORKDIR / EEXPENSE_WORKDIR (workdirs desechables de esos stacks).
+# Parte de bases VACÍAS: `supabase db reset --local` de MasterAdmin y de los stacks
+# desechables de eChange/eExpense (sus X-07 y pgTAP cuentan filas y el outbox es
+# append-only: una corrida anterior deja residuo). Se niega si las migraciones del
+# workdir difieren de las del worktree del programa.
 # Sale 0 si todos los pasos ejecutados salen 0; el veredicto SYNCHRONIZED lo
 # decide summarize.mjs contra spec §19.1 (incluye criterios que no son tests).
 # ============================================================================
@@ -57,6 +62,8 @@ export JAVA_HOME="${JAVA_HOME:-/Library/Java/JavaVirtualMachines/temurin-21.jdk/
 COMERZA_DB_CONTAINER="${COMERZA_DB_CONTAINER:-comerza_ccp_db}"
 ECHANGE_DB_CONTAINER="${ECHANGE_DB_CONTAINER:-supabase_db_echange-ccp14}"
 EEXPENSE_DB_CONTAINER="${EEXPENSE_DB_CONTAINER:-supabase_db_eexpense-ccp}"
+ECHANGE_WORKDIR="${ECHANGE_WORKDIR:-/tmp/claude-501/echange-ccp14}"
+EEXPENSE_WORKDIR="${EEXPENSE_WORKDIR:-/tmp/claude-501/eexpense-ccp}"
 
 wt() { case "$1" in
   ewm) echo "$EBIM/IACLAUDE/WMS-by-EBIM/$WTN" ;;
@@ -104,6 +111,20 @@ export SUPABASE_URL SUPABASE_DB_URL SUPABASE_SERVICE_ROLE_KEY
 } > "$OUT/heads.txt"
 
 X07="node --experimental-transform-types"
+
+# ---- 0b · bases vacías (solo stacks LOCALES) --------------------------------------
+# reset_workdir <producto> <workdir>: el workdir desechable debe tener las migraciones del worktree.
+reset_workdir() {
+  if ! diff -rq "$(wt "$1")/supabase/migrations" "$2/supabase/migrations" >/dev/null 2>&1; then
+    echo "HARD STOP: migraciones de $2 difieren de $(wt "$1")" >&2
+    printf '%s\tdb-reset\t2\t-\t-\t-\n' "$1" >> "$STEPS"
+    return 0
+  fi
+  run "$1" db-reset "$2" -- supabase db reset --local --workdir "$2"
+}
+run masteradmin db-reset "$ROOT" -- supabase db reset --local
+wants echange && reset_workdir echange "$ECHANGE_WORKDIR"
+wants eexpense && reset_workdir eexpense "$EEXPENSE_WORKDIR"
 
 # ---- 1 · MasterAdmin --------------------------------------------------------
 run masteradmin pgtap "$ROOT" -- supabase test db
