@@ -1,0 +1,10 @@
+
+ RUN  v3.2.7 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1
+
+ ✓ supabase/functions/_shared/payments/recurring-amount.test.ts (29 tests) 5ms
+
+ Test Files  1 passed (1)
+      Tests  29 passed (29)
+   Start at  00:15:52
+   Duration  865ms (transform 39ms, setup 56ms, collect 21ms, tests 5ms, environment 340ms, prepare 51ms)
+

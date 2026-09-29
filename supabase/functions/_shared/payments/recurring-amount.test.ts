@@ -173,6 +173,53 @@ describe('recurringCardAmount · V3.2 importe futuro', () => {
   });
 });
 
+/*
+ * CCP fase 18 · La pasarela solo domicilia un importe FIJO por intervalo.
+ * Uso, exceso de créditos, compras de créditos y correctivos son variables o
+ * únicos: nunca entran en el Plan recurrente (se cobran con la factura del
+ * período, docs/finance/USAGE_BILLING.md). Y el DISCOUNT recurrente resta,
+ * igual que en la factura (CCP P-01): antes se sumaba al Plan.
+ */
+describe('recurringCardAmount · CCP fase 18 (importes variables y DISCOUNT)', () => {
+  const LICENSE = { charge_kind: 'LICENSE', billing_interval: 'MONTHLY', amount: 100, valid_from: '2026-01-01', valid_to: null };
+
+  it('un DISCOUNT recurrente (magnitud positiva) resta del Plan, como en la factura', () => {
+    expect(recurringCardAmount([
+      LICENSE,
+      { charge_kind: 'DISCOUNT', billing_interval: 'MONTHLY', amount: 10, valid_from: '2026-01-01', valid_to: null },
+    ], 'MONTHLY', AS_OF)).toEqual({ ok: true, amountMinor: 9000, amount: '90.00' });
+  });
+
+  it('la forma negativa del DISCOUNT resta lo mismo: nunca dos veces', () => {
+    expect(recurringCardAmount([
+      LICENSE,
+      { charge_kind: 'DISCOUNT', billing_interval: 'MONTHLY', amount: -10, valid_from: '2026-01-01', valid_to: null },
+    ], 'MONTHLY', AS_OF)).toEqual({ ok: true, amountMinor: 9000, amount: '90.00' });
+  });
+
+  it('un DISCOUNT que anula el cargo no deja un Plan en cero', () => {
+    expect(recurringCardAmount([
+      LICENSE,
+      { charge_kind: 'DISCOUNT', billing_interval: 'MONTHLY', amount: 100, valid_from: '2026-01-01', valid_to: null },
+    ], 'MONTHLY', AS_OF)).toEqual({ ok: false, error: 'SIN_IMPORTE_RECURRENTE' });
+  });
+
+  it('caracterización: correctivos y compras de créditos (ONE_TIME) nunca se domicilian', () => {
+    expect(recurringCardAmount([
+      LICENSE,
+      { charge_kind: 'DISCOUNT', billing_interval: 'ONE_TIME', amount: 30, valid_from: '2026-09-01', valid_to: null },
+      { charge_kind: 'CREDIT_PURCHASE', billing_interval: 'ONE_TIME', amount: 250, valid_from: '2026-09-01', valid_to: null },
+    ], 'MONTHLY', AS_OF)).toEqual({ ok: true, amountMinor: 10000, amount: '100.00' });
+  });
+
+  it('caracterización: un DISCOUNT recurrente que empieza más adelante vuelve variable el Plan (fail-safe)', () => {
+    expect(recurringCardAmount([
+      LICENSE,
+      { charge_kind: 'DISCOUNT', billing_interval: 'MONTHLY', amount: 10, valid_from: '2026-11-01', valid_to: null },
+    ], 'MONTHLY', AS_OF)).toEqual({ ok: false, error: 'MONTO_RECURRENTE_FUTURO_VARIABLE', changesOn: '2026-11-01' });
+  });
+});
+
 describe('mensajes al usuario', () => {
   it('explican el motivo sin detalles del proveedor', () => {
     expect(RECURRING_ERROR_MESSAGES.CADENCIA_MIXTA_NO_DOMICILIABLE).toBe(
