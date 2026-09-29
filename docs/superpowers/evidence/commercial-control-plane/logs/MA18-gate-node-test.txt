@@ -1,0 +1,23 @@
+✔ sin --dry-run se niega a correr (exit 2) (77.149416ms)
+✔ aborta si el entorno declara un Supabase no local (exit 2) sin imprimir la URL (81.53775ms)
+✔ acepta un entorno local declarado (99.574458ms)
+✔ sobre los fixtures: resumen, reporte, SQL de operador y atestaciones, sin precios (77.133375ms)
+✔ dos corridas con la misma fecha dan la misma salida (150.317042ms)
+✔ un export con precio se rechaza entero (exit 1, HUB_EXPORT_FORBIDDEN_KEY) (76.497333ms)
+✔ un export de otro entorno se rechaza (exit 1) (72.839375ms)
+✔ acepta el stack local por 127.0.0.1 y localhost (13.64825ms)
+✔ aborta con exit 2 si no hay destino declarado (9.9915ms)
+✔ aborta con exit 2 ante una URL remota de Supabase (9.675542ms)
+✔ aborta con exit 2 ante el ref remoto conocido jivgwrczgdpsuvqcwqku (9.63675ms)
+✔ aborta con exit 2 ante el ref remoto conocido uvjmdphlnpyhtohobvzx (10.031166ms)
+✔ aborta con exit 2 ante el ref remoto conocido xikbhkfeaosasdltartg (10.183416ms)
+✔ aborta si el ref aparece aunque el host sea local (p. ej. en la ruta) (11.345834ms)
+✔ no imprime el valor completo de las variables (9.889458ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 675.346125

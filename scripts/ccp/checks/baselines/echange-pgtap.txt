@@ -1,0 +1,14 @@
+# eChange · 10 aserciones pgTAP que fallan en la base DEV ORIGINAL 3d6f34e (antes del programa),
+# idénticas en HEAD. Evidencia: eChange docs/superpowers/evidence/commercial-control-plane/logs/
+# EC17-R1-original-base-3d6f34e-sql.txt. Causa: las migraciones solo revocan EXECUTE de PUBLIC y los
+# default privileges de Supabase dejan EXECUTE a anon/authenticated. Backlog de seguridad de eChange.
+`anon` no puede pedir la linea de tiempo de un caso cualquiera con la llave publica
+Ni `authenticated`: es `security definer`, asi que RLS no la frena y solo la usa el portal
+GRANT· authenticated NO puede: la Mesa tiene la suya, con su propia puerta
+GRANT· anon NO puede
+GRANT· anon NO puede: no la necesita y es parte de una frontera de seguridad
+authenticated NO puede listar pendientes vencidos
+anon NO puede listar pendientes vencidos
+authenticated NO puede purgar
+anon NO puede purgar
+llamar el barrido con el rol de un usuario da permission denied

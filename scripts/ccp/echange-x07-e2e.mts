@@ -306,10 +306,12 @@ check('18. offline: sin MasterAdmin ni receptor HTTP, la puerta sigue con el las
 
 // Uso: un caso nuevo y una llamada IA quedan en el outbox, atribuidos, sin contenido y no facturables.
 const ticket = psql(`insert into public.tickets (organization_id, company_id, raw_text) values ('${ORG}', '${CO}', 'x07 no imprime') returning id`);
-const caso = psql(`select meter_code || '|' || control_plane_tenant_id || '|' || billable || '|' || status || '|' || (internal = '{}'::jsonb)
+// Fase 17 (eChange 5b879b9): la bolsa de casos no tiene medidor aprobado (D-05/D-06) → el evento
+// queda registrado localmente pero nace DEAD NOT_A_METER y nunca se envía a MasterAdmin.
+const caso = psql(`select meter_code || '|' || control_plane_tenant_id || '|' || billable || '|' || status || '|' || coalesce(last_error_code, '') || '|' || (internal = '{}'::jsonb)
                      from privado.usage_outbox where subject_ref = '${ticket}'`);
-check('19. caso nuevo → evento echange.cases con controlPlaneTenantId, billable=false, PENDING, sin contenido',
-  caso === `echange.cases|${CPT}|false|PENDING|true`, caso);
+check('19. caso nuevo → evento echange.cases con controlPlaneTenantId, billable=false, DEAD NOT_A_METER (sin medidor aprobado, no se envía), sin contenido',
+  caso === `echange.cases|${CPT}|false|DEAD|NOT_A_METER|true`, caso);
 const eventId = crypto.randomUUID();
 const ia = svcSql(`select public.echange_registrar_uso_ia(${literal({ eventId, occurredAt: new Date(clock).toISOString(),
   organizationId: ORG, companyId: CO, functionName: 'ai-monthly-report', capabilityCode: REPORTES, outcome: 'SUCCEEDED',
