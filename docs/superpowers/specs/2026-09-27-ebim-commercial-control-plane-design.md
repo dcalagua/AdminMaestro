@@ -433,6 +433,8 @@ Los tres corren como edge function de MasterAdmin con service_role y se invocan 
 | Suspensión por impago | Según D-07; mecanismo manual | Snapshot con `appActive=true` y capacidades sellables `enabled:false`. El baseline se mantiene salvo decisión contraria |
 | Baja de la app (`appActive=false`) | Por solicitud comercial | El SaaS bloquea el acceso operativo. **Los datos no se borran** |
 
+> **Enmienda D-14 (decisión humana, 2026-09-29; aprobada para DEV/LOCAL).** `appActive=false` retira las capacidades y entitlements **comerciales** del SaaS. Por sí solo **no** bloquea la aplicación operativa; el baseline no comercial se mantiene. El apagado operativo completo es una política aparte, fuera del alcance de este programa. La fila anterior queda como historia de la especificación revisada en GATE A. Los textos anclados por checksum de FIX-ENT-v1 no se editan; cada ADR de producto registra la enmienda.
+
 **Semántica obligatoria de revocación en el SaaS:**
 
 1. **Los datos nunca se borran por pérdida de entitlement.** Se bloquean las escrituras y el uso nuevo; la lectura histórica se mantiene salvo decisión contraria (D-08).
@@ -755,7 +757,7 @@ Hasta que un humano las decida, cada una queda como configuración vacía y el s
 | D-11 | Si `USAGE_OVERAGE` y los DISCOUNT correctivos afectan la base de comisión | Sin cambios: el overage no comisiona salvo configuración y el DISCOUNT no reduce |
 | D-12 | Aceptar la desviación del contrato §2.6 para ingest de uso (credencial por producto + validación de mapping) | Ingest desactivado hasta aprobación |
 | D-13 | Nota de crédito fiscal y tratamiento de impuestos por país (IGV, IVA, etc.) | Fuera del alcance; `tax_amount` como hoy |
-| D-14 | Duración de las ventanas de observación de shadow y dual-read por entorno | No se avanza de estado sin aprobación humana explícita |
+| D-14 | Duración de las ventanas de observación de shadow y dual-read por entorno | No se avanza de estado sin aprobación humana explícita — **APROBADA para DEV/LOCAL (2026-09-29)**: los productos pueden pasar a `MASTERADMIN_PRIMARY` con paridad y seguridad en verde. eExpense/GMAO solo avanzan a `BILLING_SHADOW` con diff 0. Los tenants legacy se adoptan solo con un mapping determinista. Sigue pendiente para QAS/PRD |
 | D-15 | Precio y paquete de los códigos "próximamente" (`travel_advanced`, `sap_integration`, `echange_voice`, …) y de los 24 ítems eCommerce con `price_month=0` en el hub | `lifecycle_status=COMING_SOON`/`DRAFT`, no activables |
 
 ---
