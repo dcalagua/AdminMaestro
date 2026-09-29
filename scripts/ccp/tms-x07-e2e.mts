@@ -21,6 +21,11 @@
  *
  * TMS no registra capacidades vendibles: el registro que importa MasterAdmin del
  * manifiesto queda vacío, así que los snapshots sólo llevan `appActive`.
+ *
+ * D-14 (2026-09-29, DEV/LOCAL): `appActive=false` retira lo comercial y la
+ * operación continúa (regla 1). La fase final "D14" lleva el modo de TMS a
+ * PRIMARY a nivel PRODUCT, un paso por vez y con motivo, verifica por GET y NO
+ * revierte; con CCP_EVIDENCE_DIR escribe `d14-tms.json` (`d14-evidence.mts`).
  */
 import { spawn } from 'node:child_process';
 import { existsSync, mkdtempSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
@@ -29,6 +34,7 @@ import path from 'node:path';
 import { EntitlementSyncClient, type EntitlementDeliveryContext } from '../../supabase/functions/_shared/entitlements/sync-client.ts';
 import { buildSnapshot } from '../../supabase/functions/_shared/entitlements/snapshot.ts';
 import type { EntitlementSnapshot, RegistryCapability } from '../../supabase/functions/_shared/entitlements/types.ts';
+import { countChecks, D14_REASON, writeD14Evidence, type D14Evidence } from './d14-evidence.mts';
 
 const WT = process.env.TMS_WT ?? '';
 if (!WT.endsWith('/TMS/.worktrees/ebim-commercial-control-plane-v1') || !process.env.JAVA_HOME) {
@@ -161,7 +167,12 @@ async function emit(version: number, appActive: boolean, planCode: string | null
     correlationId: crypto.randomUUID(),
   });
 }
-const access = async () => (await tms({ kind: 'access', organizationId: ORG })) as { allowed: boolean; reason: string };
+type Access = { operational: boolean; commercial: boolean; reason: string; mode: string };
+const access = async (organizationId = ORG) => (await tms({ kind: 'access', organizationId })) as Access;
+type ModeStep = { from?: string; to?: string; value?: string; productMode?: string; reason?: string; error?: string };
+const mode = async (scope: string, to: string, reason: string | null = D14_REASON) =>
+  (await tms({ kind: 'mode', scope, mode: to, tenant: CPT, reason })) as ModeStep;
+let d14: Omit<D14Evidence, 'checks'> | null = null;
 
 try {
   // ── Escenario ──────────────────────────────────────────────────────────────
@@ -173,20 +184,20 @@ try {
   const v1 = await emit(1, true);
   const p0 = await client.pushSnapshot(ctx(), v1, actor);
   const a0 = await access();
-  check('2. SHADOW (sembrado): APPLIED, el snapshot no decide', p0.result === 'APPLIED' && a0.allowed && a0.reason === 'NOT_ENFORCED',
+  check('2. SHADOW (sembrado): APPLIED, el snapshot no decide', p0.result === 'APPLIED' && a0.operational && a0.commercial && a0.reason === 'NOT_ENFORCED',
     `${p0.result} ${a0.reason}`);
   check('   el snapshot no lleva capacidades, límites ni asignaciones (registro vacío)',
     v1.capabilities.length === 0 && v1.limits.length === 0 && v1.allowances.length === 0);
 
-  const m1 = await tms({ kind: 'mode', scope: CPT, mode: 'DUAL_READ', tenant: CPT });
-  const m2 = await tms({ kind: 'mode', scope: CPT, mode: 'PRIMARY', tenant: CPT });
+  const m1 = await mode(CPT, 'DUAL_READ', 'X-07 cohorte del tenant (fase 12)');
+  const m2 = await mode(CPT, 'PRIMARY', 'X-07 cohorte del tenant (fase 12)');
   check('   cohorte del tenant: SHADOW → DUAL_READ → PRIMARY', m1.value === 'DUAL_READ' && m2.value === 'PRIMARY');
 
   const g1 = await client.getApplied(ctx(), actor);
   check('3. GET: misma versión y checksum, PRIMARY', g1.result === 'OBSERVED' && g1.appliedVersion === 1 && g1.appliedChecksum === v1.checksum && g1.enforcementMode === 'PRIMARY',
     `${g1.appliedVersion} ${g1.enforcementMode}`);
   const a1 = await access();
-  check('4. acceso comercial de la organización: permitido (APP_ACTIVE)', a1.allowed && a1.reason === 'APP_ACTIVE', a1.reason);
+  check('4. superficie comercial activa y operación permitida (APP_ACTIVE)', a1.commercial && a1.operational && a1.reason === 'APP_ACTIVE', a1.reason);
 
   const p1r = await client.pushSnapshot(ctx(), v1, actor);
   check('5. replay idempotente → REPLAYED', p1r.result === 'REPLAYED' && p1r.appliedVersion === 1, p1r.result);
@@ -194,8 +205,9 @@ try {
   const v2 = await emit(2, false);
   const p2 = await client.pushSnapshot(ctx(), v2, actor);
   const a2 = await access();
-  check('6. v2 appActive=false → APPLIED y acceso suspendido (APP_INACTIVE)', p2.result === 'APPLIED' && !a2.allowed && a2.reason === 'APP_INACTIVE',
-    `${p2.result} ${a2.reason}`);
+  check('6. v2 appActive=false → APPLIED, lo comercial retirado (APP_INACTIVE) y la operación continúa (D-14 regla 1)',
+    p2.result === 'APPLIED' && !a2.commercial && a2.reason === 'APP_INACTIVE' && a2.operational,
+    `${p2.result} ${a2.reason} operational=${a2.operational}`);
 
   const stale = await client.pushSnapshot(ctx(), v1, actor);
   check('7. v1 tras v2 → STALE (409)', stale.result === 'STALE' && stale.httpStatus === 409 && stale.appliedVersion === 2, `${stale.result} ${stale.errorCode}`);
@@ -215,14 +227,80 @@ try {
   const drift = await client.getApplied(ctx(), actor);
   check('11. reconciliación: el GET delata deriva (aplicado v2 ≠ deseado v3)', drift.appliedVersion === 2 && drift.appliedChecksum !== v3.checksum);
   const a3 = await access();
-  check('    mientras tanto decide el last-good v2 (sigue suspendido, sin llamar a MasterAdmin)', !a3.allowed && a3.reason === 'APP_INACTIVE');
+  check('    mientras tanto decide el last-good v2 (lo comercial sigue retirado, la operación sigue; sin llamar a MasterAdmin)',
+    !a3.commercial && a3.reason === 'APP_INACTIVE' && a3.operational);
   const p3 = await client.pushSnapshot(ctx(), v3, actor);
   const g3 = await client.getApplied(ctx(), actor);
   const a4 = await access();
-  check('12. push de v3 → GET en sincronía y acceso restablecido', p3.result === 'APPLIED' && g3.appliedVersion === 3 && g3.appliedChecksum === v3.checksum && a4.allowed,
+  check('12. push de v3 → GET en sincronía y superficie comercial restablecida',
+    p3.result === 'APPLIED' && g3.appliedVersion === 3 && g3.appliedChecksum === v3.checksum && a4.commercial && a4.operational && a4.reason === 'APP_ACTIVE',
     `${p3.result} v${g3.appliedVersion} ${a4.reason}`);
 
   check('13. un jti distinto por petición M2M', jtis.length > 0 && new Set(jtis).size === jtis.length, `${jtis.length} peticiones`);
+
+  // ── D14: entitlements → PRIMARY a nivel PRODUCT (DEV/LOCAL), sin rollback ───
+  const parityBlocking = countChecks(results).failed;
+  const transitions: string[] = [];
+  const noReason = await mode('PRODUCT', 'DUAL_READ', null);
+  const jump = await mode('PRODUCT', 'PRIMARY');
+  check('D14.1 el cambio de modo exige motivo y un paso por vez (SHADOW → PRIMARY rechazado)',
+    !!noReason.error && !!jump.error && !noReason.to && !jump.to, `${noReason.error} | ${jump.error}`);
+  for (const to of ['DUAL_READ', 'PRIMARY']) {
+    const step = await mode('PRODUCT', to);
+    if (step.to) transitions.push(`PRODUCT:${step.from}->${step.to}`);
+    check(`D14.2 PRODUCT → ${to} con motivo D-14`, !step.error && step.to === to && step.productMode === to && step.reason === D14_REASON,
+      step.error ?? `${step.from}→${step.to}`);
+  }
+  const d14Get = await client.getApplied(ctx(), actor);
+  check('D14.3 GET: PRIMARY con la versión y el checksum del último deseado (v3, appActive=true)',
+    d14Get.result === 'OBSERVED' && d14Get.enforcementMode === 'PRIMARY' && d14Get.appliedVersion === 3 && d14Get.appliedChecksum === v3.checksum && v3.appActive === true,
+    `${d14Get.enforcementMode} v${d14Get.appliedVersion}`);
+  const aFinal = await access();
+  check('D14.4 organización mapeada en PRIMARY: superficie comercial activa, operación permitida',
+    aFinal.mode === 'PRIMARY' && aFinal.reason === 'APP_ACTIVE' && aFinal.commercial && aFinal.operational, `${aFinal.mode} ${aFinal.reason}`);
+  const unmapped = await access(crypto.randomUUID());
+  check('D14.5 organización no mapeada: NOT_UNDER_CONTROL_PLANE, comportamiento legacy intacto con PRODUCT=PRIMARY',
+    unmapped.reason === 'NOT_UNDER_CONTROL_PLANE' && unmapped.commercial && unmapped.operational, unmapped.reason);
+  const mapped = [CPT];
+  const modes = (await tms({ kind: 'modes', tenant: CPT })) as { productMode?: string; tenantMode?: string };
+  const finalMode = modes.tenantMode ?? 'UNKNOWN';
+  const productMode = modes.productMode ?? 'UNKNOWN';
+  check('D14.6 estado final sin rollback: PRODUCT=PRIMARY y el tenant mapeado en PRIMARY', productMode === 'PRIMARY' && finalMode === 'PRIMARY',
+    `PRODUCT=${productMode} tenant=${finalMode}`);
+  d14 = {
+    product: 'tms',
+    entitlements: {
+      scope: 'PRODUCT',
+      productScopeMode: productMode,
+      finalMode,
+      transitions,
+      mappedTenants: mapped.length,
+      mappedTenantsPrimary: d14Get.enforcementMode === 'PRIMARY' ? mapped.length : 0,
+      getVerified: {
+        appliedVersion: d14Get.appliedVersion ?? -1,
+        appliedChecksum: d14Get.appliedChecksum ?? '',
+        enforcementMode: d14Get.enforcementMode ?? '',
+        desiredChecksum: v3.checksum,
+      },
+      legacyWrite: {
+        status: 'NO_LEGACY_PATH',
+        evidence: 'TMS PlatformEntitlementsIntegrationTest.runtimeRoleIsLockedOut (PostgreSQL 17): tms_app gets 42501 on SELECT of the 6 V52 tables and on UPDATE/INSERT of tms.platform_entitlement_mode and UPDATE/DELETE of tms.platform_entitlement_applied; modes move only by operator SQL under the V52 guard trigger (modesMoveOneStep)',
+      },
+      parityBlocking,
+    },
+    appActiveFalse: {
+      commercialDenied: !a2.commercial && a2.reason === 'APP_INACTIVE' && !a3.commercial,
+      operationalContinues: a2.operational && a3.operational,
+      evidence: 'X-07 pasos 6 y 11 (acceso de TMS: commercial=false, operational=true, APP_INACTIVE) y 12 (v3 restablece); TMS CommercialAccessSecurityTest.inactiveOrganizationStillOperates y CommercialAccessGateAdapterTest (el gate nunca rechaza por hechos comerciales)',
+    },
+    legacyTenants: [{
+      id: 'tms.organization code=DEMO',
+      label: 'DEMO - Demo Organization (TMS supabase/seeds/local_dev_seed.sql)',
+      resolution: 'UNRESOLVED',
+      reason: 'no deterministic MasterAdmin mapping evidence; NOT_UNDER_CONTROL_PLANE keeps legacy behavior',
+    }],
+    billing: null,
+  };
 } catch (e) {
   check('escenario sin excepciones', false, (e as Error).message);
 } finally {
@@ -233,5 +311,11 @@ try {
   if (!ok) console.log(bridgeLog.split('\n').filter((l) => /ERROR|Caused|FAIL/.test(l)).slice(0, 20).join('\n'));
   const left = readdirSync(box).filter((f) => f.endsWith('.req.json'));
   if (left.length) console.log(`peticiones sin atender: ${left.length}`);
+  if (d14) {
+    const file = writeD14Evidence({ ...d14, checks: countChecks(results) });
+    console.log(file ? `evidencia D14: ${file}` : 'evidencia D14: sin CCP_EVIDENCE_DIR, no se escribe');
+  } else {
+    check('D14. fase D14 completa', false, 'la fase D14 no llegó a ejecutarse');
+  }
   console.log(`\n${results.filter((r) => r.startsWith('PASS')).length}/${results.length} PASS`);
 }

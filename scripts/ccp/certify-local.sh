@@ -34,8 +34,13 @@
 # desechables de eChange/eExpense (sus X-07 y pgTAP cuentan filas y el outbox es
 # append-only: una corrida anterior deja residuo). Se niega si las migraciones del
 # workdir difieren de las del worktree del programa.
+# D-14 (DEV/LOCAL, aprobada 2026-09-29): la fase D14 de cada X-07 hace la
+# transición gobernada del producto (entitlements → PRIMARY; eExpense/GMAO
+# facturación → BILLING_SHADOW con diff calculado por MasterAdmin), NO la revierte,
+# verifica por GET y deja evidencia en $OUT/d14/. El último paso
+# (masteradmin:d14-axes) avanza el eje de MasterAdmin solo con esa evidencia en verde.
 # Sale 0 si todos los pasos ejecutados salen 0; el veredicto SYNCHRONIZED lo
-# decide summarize.mjs contra spec §19.1 (incluye criterios que no son tests).
+# decide summarize.mjs contra spec §19.1 (pasos + evidencia D-14).
 # ============================================================================
 set -u
 
@@ -77,7 +82,8 @@ wt() { case "$1" in
   masteradmin) echo "$ROOT" ;;
 esac; }
 
-mkdir -p "$OUT/logs"
+mkdir -p "$OUT/logs" "$OUT/d14"
+export CCP_EVIDENCE_DIR="$OUT/d14"
 STEPS="$OUT/steps.tsv"
 [ -f "$STEPS" ] || printf 'product\tstep\trc\tstarted_at\tended_at\tlog\n' > "$STEPS"
 
@@ -187,6 +193,9 @@ if wants gmao; then
   run gmao x07 "$ROOT" -- env GMAO_WT="$(wt gmao)" $X07 scripts/ccp/gmao-x07-e2e.mts
 fi
 
+# ---- 2c · D-14: eje de MasterAdmin tras la evidencia SaaS en verde -------------
+run masteradmin d14-axes "$ROOT" -- env CCP_D14_PRODUCTS="$ONLY" $X07 scripts/ccp/d14-masteradmin-axes.mts
+
 unset SUPABASE_SERVICE_ROLE_KEY
 
 # ---- 2b · suites ejecutadas aparte (--record) ----------------------------------
@@ -200,5 +209,5 @@ for r in "${RECORDS[@]+"${RECORDS[@]}"}"; do
 done
 
 # ---- 3 · veredicto por producto ------------------------------------------------
-node "$ROOT/scripts/ccp/checks/summarize.mjs" "$OUT"
+node --experimental-transform-types "$ROOT/scripts/ccp/checks/summarize.mjs" "$OUT"
 awk -F'\t' 'NR > 1 && $3 != 0 { bad = 1 } END { exit bad }' "$STEPS"

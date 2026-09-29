@@ -7,14 +7,17 @@
 //   · los 15 checks del prompt 18: PASS si TODOS los pasos que lo evidencian
 //     salieron 0; FAIL si alguno falló; NOT_RUN si falta un paso; N/A con
 //     motivo cuando el producto no tiene esa superficie;
-//   · los criterios de spec §19.1 que NO son tests (modo de cutover, D-14,
-//     prerequisitos humanos) desde products.mjs;
+//   · los criterios de spec §19.1: por pasos, por evidencia D-14
+//     (<corrida>/d14/d14-<producto>.json + d14-masteradmin.json; §19.1(6),
+//     §19.1(8) y la regla 2 de appActive) o fijos con motivo (products.mjs);
 //   · synchronized = todos los checks PASS/N/A ∧ criterios §19.1 cumplidos.
 // No inventa: un criterio sin evidencia queda NOT_MET.
 // ============================================================================
-import { readFileSync, writeFileSync } from 'node:fs';
+// Se ejecuta con `node --experimental-transform-types` (importa la puerta .mts).
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { CHECKS, PRODUCTS } from './products.mjs';
+import { billingBlockers, entitlementBlockers } from '../d14-evidence.mts';
 
 const out = process.argv[2];
 if (!out) {
@@ -35,6 +38,27 @@ function evaluate(refs) {
   return { status: 'PASS', evidence: found };
 }
 
+const readJson = (f) => (existsSync(f) ? JSON.parse(readFileSync(f, 'utf8')) : null);
+const maAxes = readJson(join(out, 'd14', 'd14-masteradmin.json'));
+
+// Criterio derivado de la evidencia D-14: pasos en verde ∧ evidencia SaaS ∧ eje de MasterAdmin.
+function evaluateD14(code, c, ev) {
+  const r = evaluate(c.steps);
+  const blockers = r.status === 'PASS' ? [] : [`pasos: ${r.status}`];
+  const axis = maAxes?.products?.[code]?.after;
+  if (c.d14 === 'entitlements') {
+    blockers.push(...entitlementBlockers(ev));
+    if (axis?.entitlements !== 'MASTERADMIN_PRIMARY') blockers.push(`eje MasterAdmin de entitlements en ${axis?.entitlements ?? 'desconocido'}`);
+  } else if (c.d14 === 'billing') {
+    blockers.push(...billingBlockers(ev));
+    if (axis?.billing !== 'BILLING_SHADOW') blockers.push(`eje MasterAdmin de facturación en ${axis?.billing ?? 'desconocido'}`);
+  } else if (c.d14 === 'appActive') {
+    if (!ev) blockers.push('sin evidencia D-14 del X-07');
+    else if (!ev.appActiveFalse.commercialDenied || !ev.appActiveFalse.operationalContinues) blockers.push('appActive=false no cumple la regla 2');
+  }
+  return { met: blockers.length === 0, reason: blockers.length ? blockers.join('; ') : c.label, evidence: r.evidence };
+}
+
 const summary = { generatedAt: new Date().toISOString(), products: {} };
 for (const [code, product] of Object.entries(PRODUCTS)) {
   const checks = {};
@@ -48,7 +72,9 @@ for (const [code, product] of Object.entries(PRODUCTS)) {
       checks[id] = { label, ...evaluate(spec.steps), note: spec.note };
     }
   }
+  const ev = readJson(join(out, 'd14', `d14-${code}.json`));
   const criteria = Object.fromEntries(Object.entries(product.criteria).map(([id, c]) => {
+    if (c.d14) return [id, evaluateD14(code, c, ev)];
     if (!c.steps) return [id, c];
     const r = evaluate(c.steps);
     return [id, { met: r.status === 'PASS', reason: c.reason ?? `pasos: ${r.status}`, evidence: r.evidence }];
@@ -58,6 +84,14 @@ for (const [code, product] of Object.entries(PRODUCTS)) {
   const result = {
     product: code,
     legacyAuthority: product.legacyAuthority,
+    d14: ev && {
+      entitlements: { scope: ev.entitlements.scope, saasFinalMode: ev.entitlements.finalMode, productScopeMode: ev.entitlements.productScopeMode,
+        masteradminAxis: maAxes?.products?.[code]?.after?.entitlements ?? null, getVerified: ev.entitlements.getVerified,
+        legacyWrite: ev.entitlements.legacyWrite },
+      billing: ev.billing && { ...ev.billing, masteradminAxis: maAxes?.products?.[code]?.after?.billing ?? null },
+      appActiveFalse: ev.appActiveFalse,
+      legacyTenants: ev.legacyTenants,
+    },
     checks,
     criteria,
     gaps: product.gaps,
@@ -70,6 +104,9 @@ for (const [code, product] of Object.entries(PRODUCTS)) {
   writeFileSync(join(out, `${code}.json`), JSON.stringify(result, null, 2) + '\n');
   summary.products[code] = {
     synchronized: result.synchronized,
+    d14: result.d14 && { entitlements: `${result.d14.entitlements.saasFinalMode} (${result.d14.entitlements.scope}) / MA ${result.d14.entitlements.masteradminAxis}`,
+      billing: result.d14.billing ? `${result.d14.billing.authority} / MA ${result.d14.billing.masteradminAxis}, mismatches ${result.d14.billing.comparison.mismatches}` : null,
+      unresolvedLegacyTenants: result.d14.legacyTenants.filter((t) => t.resolution === 'UNRESOLVED').length },
     checks: Object.fromEntries(Object.entries(checks).map(([id, c]) => [id, c.status])),
     blockers: result.blockers,
   };
