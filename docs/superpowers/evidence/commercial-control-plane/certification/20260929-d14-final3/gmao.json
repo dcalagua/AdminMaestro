@@ -1,0 +1,514 @@
+{
+  "product": "gmao",
+  "legacyAuthority": "biller local charge; private.commercial_authority por producto/eje/tenant; hub:<app>=LEGACY_AUTHORITY (hub fuera de 8/8, spec §19.2)",
+  "d14": {
+    "entitlements": {
+      "scope": "PRODUCT",
+      "saasFinalMode": "MASTERADMIN_AUTHORITY",
+      "productScopeMode": "MASTERADMIN_AUTHORITY",
+      "masteradminAxis": "MASTERADMIN_PRIMARY",
+      "getVerified": {
+        "appliedVersion": 6,
+        "appliedChecksum": "sha256:f08fe3cfccf5db284ae8a5cf67883cfe1f5127b0288cb19f61dedd1eb2452c54",
+        "enforcementMode": "PRIMARY",
+        "desiredChecksum": "sha256:f08fe3cfccf5db284ae8a5cf67883cfe1f5127b0288cb19f61dedd1eb2452c54"
+      },
+      "legacyWrite": {
+        "status": "BLOCKED",
+        "evidence": "platform.ccp_set_ai_entitlement → LEGACY_WRITE_BLOCKED (D14.5)"
+      }
+    },
+    "billing": {
+      "authority": "BILLING_SHADOW",
+      "comparison": {
+        "computedBy": "masteradmin",
+        "mismatches": 0,
+        "reportChecksum": "sha256:8cab8b95a68ff7b6d5ea9561a53749ff3b9ced1532a24bef1630fedf8d81002b",
+        "negativeDetected": true,
+        "period": "2026-10"
+      },
+      "gatewayCalls": 2,
+      "duplicateCharge": false,
+      "masteradminAuthorityReached": false,
+      "masteradminAxis": "BILLING_SHADOW"
+    },
+    "appActiveFalse": {
+      "commercialDenied": true,
+      "operationalContinues": true,
+      "evidence": "v5 appActive=false: gmao.ai.assist no concedido, ai_consume DISABLED; gmao.core concedido, work_orders INSERT ok, APP_ACTIVE_MISMATCH WARNING (D14.3)"
+    },
+    "legacyTenants": [
+      {
+        "id": "9f160000-0000-4000-8000-0000000000f0",
+        "label": "X07 GMAO legacy (sin alta de MasterAdmin)",
+        "resolution": "UNRESOLVED",
+        "reason": "tenant del harness GMAO sin provisioning de MasterAdmin (sin mapping determinista): sigue LEGACY_AUTHORITY"
+      }
+    ]
+  },
+  "checks": {
+    "1": {
+      "label": "canonical MasterAdmin mapping",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:01:54Z",
+          "endedAt": "2026-09-29T17:01:58Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "gmao:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:26Z",
+          "endedAt": "2026-09-29T17:05:37Z",
+          "log": "logs/gmao-x07.txt"
+        }
+      ]
+    },
+    "2": {
+      "label": "desired entitlement generated",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:01:54Z",
+          "endedAt": "2026-09-29T17:01:58Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:00Z",
+          "endedAt": "2026-09-29T17:02:01Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "gmao:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:26Z",
+          "endedAt": "2026-09-29T17:05:37Z",
+          "log": "logs/gmao-x07.txt"
+        }
+      ]
+    },
+    "3": {
+      "label": "SaaS applied same version/checksum",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "gmao:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:26Z",
+          "endedAt": "2026-09-29T17:05:37Z",
+          "log": "logs/gmao-x07.txt"
+        }
+      ]
+    },
+    "4": {
+      "label": "GET same applied state",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:00Z",
+          "endedAt": "2026-09-29T17:02:01Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "gmao:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:26Z",
+          "endedAt": "2026-09-29T17:05:37Z",
+          "log": "logs/gmao-x07.txt"
+        }
+      ]
+    },
+    "5": {
+      "label": "tenant self-grant denied",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:01:54Z",
+          "endedAt": "2026-09-29T17:01:58Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "gmao:sql",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:04:30Z",
+          "endedAt": "2026-09-29T17:05:25Z",
+          "log": "logs/gmao-sql.txt"
+        },
+        {
+          "ref": "gmao:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:26Z",
+          "endedAt": "2026-09-29T17:05:37Z",
+          "log": "logs/gmao-x07.txt"
+        }
+      ]
+    },
+    "6": {
+      "label": "add/remove/downgrade version transition",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "gmao:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:26Z",
+          "endedAt": "2026-09-29T17:05:37Z",
+          "log": "logs/gmao-x07.txt"
+        }
+      ]
+    },
+    "7": {
+      "label": "offline last-good",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "gmao:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:26Z",
+          "endedAt": "2026-09-29T17:05:37Z",
+          "log": "logs/gmao-x07.txt"
+        }
+      ]
+    },
+    "8": {
+      "label": "drift reconciled",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:00Z",
+          "endedAt": "2026-09-29T17:02:01Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "gmao:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:26Z",
+          "endedAt": "2026-09-29T17:05:37Z",
+          "log": "logs/gmao-x07.txt"
+        }
+      ]
+    },
+    "9": {
+      "label": "usage event accepted once",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:usage-x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:01Z",
+          "endedAt": "2026-09-29T17:02:05Z",
+          "log": "logs/masteradmin-usage-x07.txt"
+        },
+        {
+          "ref": "gmao:sql",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:04:30Z",
+          "endedAt": "2026-09-29T17:05:25Z",
+          "log": "logs/gmao-sql.txt"
+        }
+      ]
+    },
+    "10": {
+      "label": "duplicate deduped",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:usage-x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:01Z",
+          "endedAt": "2026-09-29T17:02:05Z",
+          "log": "logs/masteradmin-usage-x07.txt"
+        },
+        {
+          "ref": "gmao:sql",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:04:30Z",
+          "endedAt": "2026-09-29T17:05:25Z",
+          "log": "logs/gmao-sql.txt"
+        }
+      ]
+    },
+    "11": {
+      "label": "allowance/credit arithmetic",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:01:54Z",
+          "endedAt": "2026-09-29T17:01:58Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "gmao:deno",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:25Z",
+          "endedAt": "2026-09-29T17:05:26Z",
+          "log": "logs/gmao-deno.txt"
+        }
+      ],
+      "note": "ALLOWANCE_NOT_DEFINED fail-closed; cuota desde snapshot"
+    },
+    "12": {
+      "label": "no duplicate billing",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:01:54Z",
+          "endedAt": "2026-09-29T17:01:58Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "gmao:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:26Z",
+          "endedAt": "2026-09-29T17:05:37Z",
+          "log": "logs/gmao-x07.txt"
+        },
+        {
+          "ref": "gmao:deno",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:25Z",
+          "endedAt": "2026-09-29T17:05:26Z",
+          "log": "logs/gmao-deno.txt"
+        }
+      ],
+      "note": "en SHADOW el charge local es el único cobrador y MasterAdmin no emite (X-07); charge → 409 en MA+ lo certifican gmao:sql y gmao:deno (D-14 regla 5: la corrida no pasa por MA)"
+    },
+    "13": {
+      "label": "local price/billing authority stage explicit",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "gmao:sql",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:04:30Z",
+          "endedAt": "2026-09-29T17:05:25Z",
+          "log": "logs/gmao-sql.txt"
+        },
+        {
+          "ref": "gmao:deno",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:25Z",
+          "endedAt": "2026-09-29T17:05:26Z",
+          "log": "logs/gmao-deno.txt"
+        }
+      ],
+      "note": "biller local charge; private.commercial_authority por producto/eje/tenant; hub:<app>=LEGACY_AUTHORITY (hub fuera de 8/8, spec §19.2)"
+    },
+    "14": {
+      "label": "technical configuration still works",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "gmao:sql",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:04:30Z",
+          "endedAt": "2026-09-29T17:05:25Z",
+          "log": "logs/gmao-sql.txt"
+        },
+        {
+          "ref": "gmao:deno",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:25Z",
+          "endedAt": "2026-09-29T17:05:26Z",
+          "log": "logs/gmao-deno.txt"
+        }
+      ]
+    },
+    "15": {
+      "label": "CREATE/REPLAY/GET provisioning regression green",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:provisioning-golden",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:01:58Z",
+          "endedAt": "2026-09-29T17:02:00Z",
+          "log": "logs/masteradmin-provisioning-golden.txt"
+        },
+        {
+          "ref": "gmao:sql",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:04:30Z",
+          "endedAt": "2026-09-29T17:05:25Z",
+          "log": "logs/gmao-sql.txt"
+        },
+        {
+          "ref": "gmao:deno",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:25Z",
+          "endedAt": "2026-09-29T17:05:26Z",
+          "log": "logs/gmao-deno.txt"
+        }
+      ]
+    }
+  },
+  "criteria": {
+    "1": {
+      "met": true,
+      "reason": "P0 del §1.4 cerrados en fases 03–06 con test"
+    },
+    "2": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "gmao:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:26Z",
+          "endedAt": "2026-09-29T17:05:37Z",
+          "log": "logs/gmao-x07.txt"
+        }
+      ]
+    },
+    "3": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:01:54Z",
+          "endedAt": "2026-09-29T17:01:58Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "gmao:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:26Z",
+          "endedAt": "2026-09-29T17:05:37Z",
+          "log": "logs/gmao-x07.txt"
+        }
+      ]
+    },
+    "4": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:00Z",
+          "endedAt": "2026-09-29T17:02:01Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "gmao:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:26Z",
+          "endedAt": "2026-09-29T17:05:37Z",
+          "log": "logs/gmao-x07.txt"
+        }
+      ]
+    },
+    "5": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "gmao:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:26Z",
+          "endedAt": "2026-09-29T17:05:37Z",
+          "log": "logs/gmao-x07.txt"
+        }
+      ]
+    },
+    "6": {
+      "met": true,
+      "reason": "MASTERADMIN_PRIMARY (SaaS y MasterAdmin) verificado por GET; escritura legacy negada server-side",
+      "evidence": [
+        {
+          "ref": "gmao:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:26Z",
+          "endedAt": "2026-09-29T17:05:37Z",
+          "log": "logs/gmao-x07.txt"
+        },
+        {
+          "ref": "masteradmin:d14-axes",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:37Z",
+          "endedAt": "2026-09-29T17:05:39Z",
+          "log": "logs/masteradmin-d14-axes.txt"
+        }
+      ]
+    },
+    "7": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:usage-x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:01Z",
+          "endedAt": "2026-09-29T17:02:05Z",
+          "log": "logs/masteradmin-usage-x07.txt"
+        }
+      ]
+    },
+    "8": {
+      "met": true,
+      "reason": "BILLING_SHADOW con diff material 0 calculado por MasterAdmin; sin doble cobro",
+      "evidence": [
+        {
+          "ref": "gmao:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:26Z",
+          "endedAt": "2026-09-29T17:05:37Z",
+          "log": "logs/gmao-x07.txt"
+        },
+        {
+          "ref": "masteradmin:d14-axes",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:37Z",
+          "endedAt": "2026-09-29T17:05:39Z",
+          "log": "logs/masteradmin-d14-axes.txt"
+        },
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:01:54Z",
+          "endedAt": "2026-09-29T17:01:58Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        }
+      ]
+    },
+    "D14-2": {
+      "met": true,
+      "reason": "appActive=false retira lo comercial, no la operación",
+      "evidence": [
+        {
+          "ref": "gmao:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:26Z",
+          "endedAt": "2026-09-29T17:05:37Z",
+          "log": "logs/gmao-x07.txt"
+        }
+      ]
+    }
+  },
+  "gaps": [
+    {
+      "class": "LOCAL_INFRA_ONLY",
+      "text": "sin esquema base versionado: `db reset` imposible; PGlite sobre el esquema capturado es el harness"
+    }
+  ],
+  "synchronized": true,
+  "blockers": []
+}

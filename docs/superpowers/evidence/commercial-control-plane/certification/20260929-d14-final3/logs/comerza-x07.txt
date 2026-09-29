@@ -1,0 +1,31 @@
+(node:50515) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS · 0. tenant aprovisionado por platform_provision_tenant · CREATED
+PASS · 1. receptor Comerza configurado (fail-closed si faltara algo)
+PASS · 2. MasterAdmin lee el manifiesto de Comerza (1 código ACTIVE; Vitrina y ERP DRAFT) · 2026-10-03.1 comerza.ai.whatsapp_agent
+PASS · D14.0 tenant mapeado → PRIMARY un paso por vez, con motivo D-14 (el PRODUCTO sigue en SHADOW) · 9f110000-0000-4000-8000-000000000001: SHADOW→DUAL_READ · 9f110000-0000-4000-8000-000000000001: DUAL_READ→PRIMARY
+PASS · 3. el snapshot no lleva DRAFT: solo el agente, con enabled explícito
+PASS · 4. emisor real → PUT M2M real → APPLIED · APPLIED 200
+PASS · 5. GET: misma versión y checksum, PRIMARY · 1 PRIMARY
+PASS · 6. gate de servidor: sin contrato, el agente NO se admite (Gemini no se llama) · SIN_ENTITLEMENT
+PASS ·    cero comisión ≠ add-ons gratis: Vitrina y ERP apagados
+PASS · 7. v2 concede el agente → APPLIED y admitido · APPLIED
+PASS · 8. replay idempotente → REPLAYED · REPLAYED
+PASS · 9. v1 tras v2 → STALE (409) · STALE STALE_SNAPSHOT
+PASS · 10. misma versión, otro contenido → CONFLICT (409) · CONFLICT VERSION_CONFLICT
+PASS · 11. credencial con scope de provisioning → 403 REJECTED · 403 INSUFFICIENT_SCOPE
+PASS · 12. SaaS no disponible → RETRYABLE, nada aplicado · RETRYABLE 503
+PASS · 13. reconciliación: el GET delata deriva (aplicado v2 ≠ deseado v3)
+PASS · 14. offline: sin MasterAdmin ni receptor, el gate sigue con el last-good v2
+PASS · 15. v3 revoca el agente; los flags del tenant en true no lo reviven
+PASS · D14.1 appActive=false (v4 con el agente): lo comercial se retira (APP_INACTIVA); lo operativo no depende de app_active · APPLIED · APP_INACTIVA · lectores=commercial_capability_decision,platform_apply_entitlements · policies=0
+PASS · D14.2 v5 appActive=true vuelve a conceder el agente → APPLIED y admitido · APPLIED
+PASS · D14.3 COHORT: todo tenant sincronizado por MasterAdmin en PRIMARY; el PRODUCTO sigue en SHADOW (lo heredan las sociedades sin alta) · 10/10 · PRODUCT SHADOW
+PASS · D14.3b altas nunca sincronizadas: fuera de la cohorte, siguen en el modo del PRODUCTO (no se fuerzan) · 5 altas sin snapshot
+PASS · D14.4 GET final: PRIMARY, versión y checksum = último deseado (v5, appActive=true) · OBSERVED v5 PRIMARY
+PASS · D14.5 estado final: el camino legacy no concede (flags del tenant en true → sin Vitrina/ERP) y el tenant no escribe modo, snapshot ni legacy_grant · flags=true|true · denegado / denegado / denegado
+PASS · D14.6 sociedades sin alta de MasterAdmin: misma decisión que antes (SHADOW · LEGACY · agente por legacy_grant) · d1000000-0000-4000-8000-000000000001:SHADOW:LEGACY:true,d1000000-0000-4000-8000-000000000002:SHADOW:LEGACY:true
+PASS · D14.7 paridad: decisión comercial local = snapshot v5 en cada capacidad ACTIVE · sin diferencias
+evidencia D-14: /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/docs/superpowers/evidence/commercial-control-plane/certification/20260929-d14-final3/d14/d14-comerza.json
+
+26/26 PASS

@@ -1,0 +1,60 @@
+{
+  "schema": "ebim.ccp.d14-cutover/v1",
+  "environment": "LOCAL_DEV",
+  "writtenAt": "2026-09-29T17:04:30.828Z",
+  "product": "eexpense",
+  "entitlements": {
+    "scope": "PRODUCT",
+    "productScopeMode": "PRIMARY",
+    "finalMode": "PRIMARY",
+    "transitions": [
+      "PRODUCT:SHADOW->DUAL_READ",
+      "PRODUCT:DUAL_READ->PRIMARY",
+      "tenant:SHADOW->DUAL_READ",
+      "tenant:DUAL_READ->PRIMARY"
+    ],
+    "mappedTenants": 1,
+    "mappedTenantsPrimary": 1,
+    "getVerified": {
+      "appliedVersion": 7,
+      "appliedChecksum": "sha256:7aea16f9ba8226fa5460a5d249a68faabf2902ad29db0d94133a5bb9bd4efe91",
+      "enforcementMode": "PRIMARY",
+      "desiredChecksum": "sha256:7aea16f9ba8226fa5460a5d249a68faabf2902ad29db0d94133a5bb9bd4efe91"
+    },
+    "legacyWrite": {
+      "status": "BLOCKED",
+      "evidence": "tenant_addons INSERT → LEGACY_WRITE_BLOCKED (D14.3)"
+    },
+    "parityBlocking": 0
+  },
+  "appActiveFalse": {
+    "commercialDenied": true,
+    "operationalContinues": true,
+    "evidence": "v6 appActive=false: card_reconcile/fraud_vision/ai_copilot negados; ai_capture (baseline) y cfo_insights (núcleo) concedidos; tenants.status=active; APP_INACTIVE_LOCAL_ACTIVE WARNING (D14.10)"
+  },
+  "legacyTenants": [
+    {
+      "id": "d55a930c-01af-49c4-b0ae-e687eebe4a8f",
+      "label": "demo",
+      "resolution": "UNRESOLVED",
+      "reason": "seed `demo` de eExpense: sin evidencia de mapping con MasterAdmin (D-14 regla 4); sigue LEGACY"
+    }
+  ],
+  "billing": {
+    "authority": "BILLING_SHADOW",
+    "comparison": {
+      "computedBy": "masteradmin",
+      "mismatches": 0,
+      "reportChecksum": "sha256:9f67da55182534fa1453807697a3170574b26a3f3d5517824a21eab59aba5276",
+      "negativeDetected": true,
+      "period": "2026-10"
+    },
+    "gatewayCalls": 0,
+    "duplicateCharge": false,
+    "masteradminAuthorityReached": false
+  },
+  "checks": {
+    "passed": 39,
+    "failed": 0
+  }
+}

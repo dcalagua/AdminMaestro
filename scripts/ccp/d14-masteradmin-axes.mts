@@ -52,7 +52,14 @@ for (const p of PRODUCTS) {
   const before = axisState(id);
   let transitions: string[] = [];
   if (blockers.length === 0) {
-    transitions = advanceAxis(id, 'ENTITLEMENTS', 'MASTERADMIN_PRIMARY', `${D14_REASON}; evidencia ${path.basename(file)}`);
+    // Una negativa de la RPC (p. ej. COHORTE_NO_SINCRONIZADA) deja este producto en rojo,
+    // pero no impide registrar los demás.
+    try {
+      transitions = advanceAxis(id, 'ENTITLEMENTS', 'MASTERADMIN_PRIMARY', `${D14_REASON}; evidencia ${path.basename(file)}`);
+    } catch (e) {
+      const msg = String((e as { stderr?: string }).stderr || (e as Error).message).split('\n')[0];
+      blockers.push(`RPC rechazó el avance: ${msg}`);
+    }
   }
   const after = axisState(id);
   const cohort = cohortOf(id);

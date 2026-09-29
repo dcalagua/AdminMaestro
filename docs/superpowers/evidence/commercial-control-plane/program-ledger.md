@@ -353,3 +353,45 @@
   - Per-product prerequisites are listed in the matrix.
 - `certification/20260929T060259Z-DISCARDED-load-and-residue/` (untracked) is the run discarded because of residue from a previous run. `d8b0c16` fixed that.
 - Status: PHASE_18=BLOCKED (human gate D-14 + per-product cutover prerequisites). No functional defect remains open.
+
+## 2026-09-29 — Phase 18 resilient supervisor, attempt 1 (D-14 APPROVED for DEV/LOCAL)
+- Found on entry:
+  - D-14 work was already committed: MasterAdmin `f7c1bdf`, `980931e`, `e3ee747`, `9669c41`, `c9ff5c8`; EWM `88ec8c7`/`60167c2`; TMS `19875b2`/`3369f94`.
+  - The D-14 certification `certification/20260929-d14-final/` was killed during its first step (`masteradmin db-reset`) when the print-mode session exited. It recorded zero steps. It has been renamed `20260929T092338Z-DISCARDED-d14-killed-during-reset/` (untracked).
+  - No verifier or certification process was alive.
+- Java suites were not rerun. They are green at the current code heads, and only docs commits came after them. They go into the run through `--record`:
+  - EWM: `EW18-05-full-verify.txt` @ `88ec8c7`, unit 1512/0/0, IT 1535/0/0, `EXIT=0`.
+  - TMS: `TM18-05-full-it.txt` @ `19875b2`, 2114/0/0 with 1 skipped, `EXIT=0`.
+- Relaunched only the missing certification, fully detached with its own session via `setsid`:
+  - PID 31231.
+  - Output: `certification/20260929-d14-final2/`. Progress goes to `runner.log`, and `runner.done` gets `CERTIFY_EXIT=<n>` when it ends.
+  - It got past the MasterAdmin `db-reset` (where the previous run died).
+- Next attempt: do not relaunch while PID 31231 or `certify-local.sh` is alive. Once `runner.done` exists, collect `steps.tsv`, the summaries and `d14/`, then finalize the matrix.
+- Status: PHASE18_WORK_IN_PROGRESS.
+
+## 2026-09-29 — Phase 18 resilient supervisor, attempt 2 (D-14 APPROVED — DEV/LOCAL only)
+- **D-14: APPROVED for DEV/LOCAL only.**
+  - Entitlements → MASTERADMIN_PRIMARY once parity/security are green.
+  - `appActive=false` denies commercial capabilities only, never operational access.
+  - EWM server-side legacy-write block approved.
+  - Legacy tenants are adopted only with a deterministic mapping.
+  - eExpense/GMAO billing stops at BILLING_SHADOW, with diff 0 required.
+  - No QAS/PRD, no push/merge/publish, no remote Supabase.
+- Found on entry:
+  - The run launched in attempt 1 had just finished its product steps at `gmao · x07`. No duplicate was started.
+  - It then ended `CERTIFY_EXIT=1`: `masteradmin · d14-axes` failed at eSupplier with `COHORTE_NO_SINCRONIZADA: 1 tenants … no están IN_SYNC`. The script threw, so eChange/eExpense/GMAO were never evaluated.
+- Root cause (harness, not product):
+  - `entitlement-sync-e2e` step 9 deliberately ends with the kill-switch off: v4 is issued, not pushed. That leaves MasterAdmin's only *enabled* eSupplier integration (`esupplier-e2e-local`) with synthetic tenant `50000000-…0001` in `PENDING_PUSH`.
+  - The D-14 cohort guard of `set_commercial_cutover_state` refused PRIMARY. The guard was correct and was not bypassed or weakened.
+- Fix (test/harness only, MasterAdmin):
+  - `entitlement-sync-e2e` adds step 9b. The kill-switch goes back on, and the retained v4 is delivered without being re-issued → `IN_SYNC|4|4|0`, and the SaaS applies limit 40. The e2e is now 22/22.
+  - `d14-masteradmin-axes` records an RPC refusal as a per-product blocker instead of aborting the loop.
+- Rerun from empty DBs:
+  - Output `certification/20260929-d14-final3/` (stamp `20260929T170038Z`). Java suites were recorded, not rerun: EWM `EW18-05` IT 1535/0/0; TMS `TM18-05` 2114/0/0.
+  - **29/29 steps exit 0, `CERTIFY_EXIT=0`**. d14-axes 24/24. All 8 `SYNCHRONIZED`.
+  - SaaS D-14 checks: eCommerce 28, EWM 26, Comerza 26, TMS 25, eSupplier 26, eChange 30, eExpense 39, GMAO 41, all with 0 failures.
+  - eExpense/GMAO `BILLING_SHADOW` mismatches 0 (period 2026-10), no duplicate charge. MASTERADMIN_AUTHORITY not reached (correct).
+- Legacy tenants: 22 in total, all `UNRESOLVED`. None had a deterministic mapping, so none was adopted and nothing was invented. They stay under the product-scope mode (P-08 pending).
+- Discarded run: `20260929T165402Z-DISCARDED-d14-axes-cohort-fixture-pending/` (untracked).
+- Matrix: `DEV_SYNCHRONIZATION_MATRIX.md` rewritten for the D-14 final state; §19.1 (6) and (8) are met.
+- Status: **PHASE_18=PASS — DEV_ALL_8_SYNCHRONIZED=YES** (LOCAL/DEV only; QAS still behind GATE C).

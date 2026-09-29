@@ -1,0 +1,214 @@
+{
+  "generatedAt": "2026-09-29T17:05:40.013Z",
+  "products": {
+    "ecommerce": {
+      "synchronized": true,
+      "d14": {
+        "entitlements": "PRIMARY (PRODUCT) / MA MASTERADMIN_PRIMARY",
+        "billing": null,
+        "unresolvedLegacyTenants": 1
+      },
+      "checks": {
+        "1": "PASS",
+        "2": "PASS",
+        "3": "PASS",
+        "4": "PASS",
+        "5": "PASS",
+        "6": "PASS",
+        "7": "PASS",
+        "8": "PASS",
+        "9": "PASS",
+        "10": "PASS",
+        "11": "PASS",
+        "12": "N/A",
+        "13": "PASS",
+        "14": "PASS",
+        "15": "PASS"
+      },
+      "blockers": []
+    },
+    "ewm": {
+      "synchronized": true,
+      "d14": {
+        "entitlements": "PRIMARY (COHORT) / MA MASTERADMIN_PRIMARY",
+        "billing": null,
+        "unresolvedLegacyTenants": 2
+      },
+      "checks": {
+        "1": "PASS",
+        "2": "PASS",
+        "3": "PASS",
+        "4": "PASS",
+        "5": "PASS",
+        "6": "PASS",
+        "7": "PASS",
+        "8": "PASS",
+        "9": "PASS",
+        "10": "PASS",
+        "11": "N/A",
+        "12": "N/A",
+        "13": "PASS",
+        "14": "PASS",
+        "15": "PASS"
+      },
+      "blockers": []
+    },
+    "comerza": {
+      "synchronized": true,
+      "d14": {
+        "entitlements": "PRIMARY (COHORT) / MA MASTERADMIN_PRIMARY",
+        "billing": null,
+        "unresolvedLegacyTenants": 2
+      },
+      "checks": {
+        "1": "PASS",
+        "2": "PASS",
+        "3": "PASS",
+        "4": "PASS",
+        "5": "PASS",
+        "6": "PASS",
+        "7": "PASS",
+        "8": "PASS",
+        "9": "PASS",
+        "10": "PASS",
+        "11": "N/A",
+        "12": "N/A",
+        "13": "PASS",
+        "14": "PASS",
+        "15": "PASS"
+      },
+      "blockers": []
+    },
+    "tms": {
+      "synchronized": true,
+      "d14": {
+        "entitlements": "PRIMARY (PRODUCT) / MA MASTERADMIN_PRIMARY",
+        "billing": null,
+        "unresolvedLegacyTenants": 1
+      },
+      "checks": {
+        "1": "PASS",
+        "2": "PASS",
+        "3": "PASS",
+        "4": "PASS",
+        "5": "PASS",
+        "6": "PASS",
+        "7": "PASS",
+        "8": "PASS",
+        "9": "N/A",
+        "10": "N/A",
+        "11": "N/A",
+        "12": "N/A",
+        "13": "PASS",
+        "14": "PASS",
+        "15": "PASS"
+      },
+      "blockers": []
+    },
+    "esupplier": {
+      "synchronized": true,
+      "d14": {
+        "entitlements": "PRIMARY (COHORT) / MA MASTERADMIN_PRIMARY",
+        "billing": null,
+        "unresolvedLegacyTenants": 1
+      },
+      "checks": {
+        "1": "PASS",
+        "2": "PASS",
+        "3": "PASS",
+        "4": "PASS",
+        "5": "PASS",
+        "6": "PASS",
+        "7": "PASS",
+        "8": "PASS",
+        "9": "PASS",
+        "10": "PASS",
+        "11": "PASS",
+        "12": "N/A",
+        "13": "PASS",
+        "14": "PASS",
+        "15": "PASS"
+      },
+      "blockers": []
+    },
+    "echange": {
+      "synchronized": true,
+      "d14": {
+        "entitlements": "PRIMARY (PRODUCT) / MA MASTERADMIN_PRIMARY",
+        "billing": null,
+        "unresolvedLegacyTenants": 13
+      },
+      "checks": {
+        "1": "PASS",
+        "2": "PASS",
+        "3": "PASS",
+        "4": "PASS",
+        "5": "PASS",
+        "6": "PASS",
+        "7": "PASS",
+        "8": "PASS",
+        "9": "PASS",
+        "10": "PASS",
+        "11": "N/A",
+        "12": "N/A",
+        "13": "PASS",
+        "14": "PASS",
+        "15": "PASS"
+      },
+      "blockers": []
+    },
+    "eexpense": {
+      "synchronized": true,
+      "d14": {
+        "entitlements": "PRIMARY (PRODUCT) / MA MASTERADMIN_PRIMARY",
+        "billing": "BILLING_SHADOW / MA BILLING_SHADOW, mismatches 0",
+        "unresolvedLegacyTenants": 1
+      },
+      "checks": {
+        "1": "PASS",
+        "2": "PASS",
+        "3": "PASS",
+        "4": "PASS",
+        "5": "PASS",
+        "6": "PASS",
+        "7": "PASS",
+        "8": "PASS",
+        "9": "PASS",
+        "10": "PASS",
+        "11": "PASS",
+        "12": "PASS",
+        "13": "PASS",
+        "14": "PASS",
+        "15": "PASS"
+      },
+      "blockers": []
+    },
+    "gmao": {
+      "synchronized": true,
+      "d14": {
+        "entitlements": "MASTERADMIN_AUTHORITY (PRODUCT) / MA MASTERADMIN_PRIMARY",
+        "billing": "BILLING_SHADOW / MA BILLING_SHADOW, mismatches 0",
+        "unresolvedLegacyTenants": 1
+      },
+      "checks": {
+        "1": "PASS",
+        "2": "PASS",
+        "3": "PASS",
+        "4": "PASS",
+        "5": "PASS",
+        "6": "PASS",
+        "7": "PASS",
+        "8": "PASS",
+        "9": "PASS",
+        "10": "PASS",
+        "11": "PASS",
+        "12": "PASS",
+        "13": "PASS",
+        "14": "PASS",
+        "15": "PASS"
+      },
+      "blockers": []
+    }
+  },
+  "allSynchronized": true
+}

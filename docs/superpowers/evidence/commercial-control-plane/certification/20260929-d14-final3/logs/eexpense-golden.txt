@@ -1,0 +1,15 @@
+
+ RUN  v3.2.7 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eExpenses/.worktrees/ebim-commercial-control-plane-v1/web
+
+ ✓ src/edge/platformEntitlementsGolden.test.ts (14 tests) 3352ms
+   ✓ FIX-ENT-v1 golden contra el handler y las RPC reales (base desechable) > 03-plan-plus-addon  311ms
+   ✓ FIX-ENT-v1 golden contra el handler y las RPC reales (base desechable) > 04-addon-removed  323ms
+   ✓ FIX-ENT-v1 golden contra el handler y las RPC reales (base desechable) > 05-limit-update  334ms
+   ✓ FIX-ENT-v1 golden contra el handler y las RPC reales (base desechable) > 08-stale  306ms
+   ✓ FIX-ENT-v1 golden contra el handler y las RPC reales (base desechable) > 09-conflict  322ms
+
+ Test Files  1 passed (1)
+      Tests  14 passed (14)
+   Start at  12:04:21
+   Duration  3.56s (transform 40ms, setup 0ms, collect 48ms, tests 3.35s, environment 0ms, prepare 39ms)
+

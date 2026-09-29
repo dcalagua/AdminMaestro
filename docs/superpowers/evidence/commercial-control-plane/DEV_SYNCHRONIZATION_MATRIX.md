@@ -1,26 +1,29 @@
-# DEV synchronization matrix — Phase 18 (LOCAL, program branches)
+# DEV synchronization matrix — Phase 18 (LOCAL/DEV, program branches, D-14 APPROVED)
 
-- Run: `certification/20260929-final/` (stamp `20260929T080054Z`), produced by
+- Run: `certification/20260929-d14-final3/` (stamp `20260929T170038Z`), produced by
   `scripts/ccp/certify-local.sh --record ewm suite … --record tms suite …`, verdict by
-  `scripts/ccp/checks/summarize.mjs` against spec §19.1.
+  `scripts/ccp/checks/summarize.mjs` against spec §19.1 (steps + D-14 evidence).
+- **Verdict: `DEV_ALL_8_SYNCHRONIZED=YES`** — all 8 products `SYNCHRONIZED`, `CERTIFY_EXIT=0`.
+- D-14 human decision: **APPROVED for DEV/LOCAL only** (spec amendment `c9ff5c8`).
 - LOCAL only.
   - Every database started empty: `supabase db reset --local` for MasterAdmin and for the disposable eChange/eExpense stacks.
-  - No QAS, no PRD, no push, no `link`/`db push`/`functions deploy`/`secrets set`.
-- Every one of the 27 steps exited 0 (`steps.tsv`).
+  - No QAS, no PRD, no push/merge/publish, no `link`/`db push`/`functions deploy`/`secrets set`, no remote Supabase mutation.
+- All 29 steps exited 0 (`steps.tsv`), including the final `masteradmin · d14-axes` (24/24 PASS).
+- Superseded run: `20260929-final/` (pre-D-14, verdict NOT_SYNCHRONIZED by governance only).
 
 ## Heads certified
 
 | Repo | Head (`feature/ebim-commercial-control-plane-v1`) |
 | --- | --- |
-| MasterAdmin | `d8b0c16` (+ this closure commit; billing MA-60 `1ab13a6`, MA-61 `be7d220`) |
-| eCommerce | `e82bd2e` |
-| EWM | `601ebb5` |
+| MasterAdmin | `c9ff5c8` + the closure commit (e2e fixture step 9b, d14-axes resilience, this matrix) |
+| eCommerce | `708d53c` |
+| EWM | `60167c2` |
 | Comerza | `0ee7537` |
-| TMS | `9397ff5` |
+| TMS | `3369f94` |
 | eSupplier | `86021db` |
 | eChange | `916264b` |
-| eExpense | `f2389dc` |
-| GMAO | `587e94a` |
+| eExpense | `f2f2934` |
+| GMAO | `40933e5` |
 
 ## The 15 Phase 18 checks
 
@@ -43,60 +46,65 @@ P = PASS, N/A = the product has no such surface (reason in `<product>.json`).
 | 13 | local price/billing authority stage explicit | P | P | P | P | P | P | P | P |
 | 14 | technical configuration still works | P | P | P | P | P | P | P | P |
 | 15 | CREATE/REPLAY/GET provisioning regression | P | P | P | P | P | P | P | P |
+| | **totals** | 14P/1 | 13P/2 | 13P/2 | 11P/4 | 14P/1 | 13P/2 | 15P | 15P |
 
 - ¹ TMS has no approved meter (phase 17).
 - ² No ALLOWANCE or credits are registered in the SaaS (D-03/D-05). Nothing was invented.
 - ³ There is no local commercial biller. MasterAdmin claims each finalized aggregate once (pgTAP 41).
 
-## Legacy authority state (check 13)
+## D-14 final state (DEV/LOCAL)
 
-| Product | Entitlements | Billing |
-| --- | --- | --- |
-| eCommerce | SHADOW | no local biller (Culqi belongs to the tenant storefront) |
-| EWM | SHADOW (V49) | no local biller |
-| Comerza | SHADOW | no biller/price; `billable=false` by CHECK |
-| TMS | SHADOW (V52) | no biller/price |
-| eSupplier | SHADOW | no biller; `plans.monthly_price` is informational legacy |
-| eChange | SHADOW | no biller |
-| eExpense | SHADOW | `LEGACY_AUTHORITY` (local `billing-run` active) |
-| GMAO | DUAL_READ | `LEGACY_AUTHORITY` (local `charge` active); hub:`<app>` = LEGACY_AUTHORITY |
+SaaS evidence: `d14/d14-<product>.json`. MasterAdmin axes: `d14/d14-masteradmin.json` (24/24).
+
+| Product | SaaS entitlements (scope → final) | MasterAdmin entitlements axis | Billing axis | Legacy commercial write in PRIMARY | Parity blocking | `appActive=false`: commercial denied / operation continues | SaaS D-14 checks |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| eCommerce | PRODUCT → PRIMARY | MASTERADMIN_PRIMARY | BILLING_LEGACY (no local biller) | BLOCKED | 0 | yes / yes | 28/0 |
+| EWM | COHORT → PRIMARY | MASTERADMIN_PRIMARY | BILLING_LEGACY (no local biller) | BLOCKED (server-side, approved EWM migration) | 0 | yes / yes | 26/0 |
+| Comerza | COHORT → PRIMARY | MASTERADMIN_PRIMARY | BILLING_LEGACY (`billable=false`) | BLOCKED | 0 | yes / yes | 26/0 |
+| TMS | PRODUCT → PRIMARY | MASTERADMIN_PRIMARY | BILLING_LEGACY (no biller/price) | no legacy write path | 0 | yes / yes | 25/0 |
+| eSupplier | COHORT → PRIMARY | MASTERADMIN_PRIMARY (cohort 1/1 IN_SYNC) | BILLING_LEGACY | BLOCKED | 0 | yes / yes | 26/0 |
+| eChange | PRODUCT → PRIMARY | MASTERADMIN_PRIMARY | BILLING_LEGACY | BLOCKED | 0 | yes / yes | 30/0 |
+| eExpense | PRODUCT → PRIMARY | MASTERADMIN_PRIMARY | **BILLING_SHADOW**: diff 0, period 2026-10, report `sha256:9f67da55…5276`, 0 gateway calls | BLOCKED | 0 | yes / yes | 39/0 |
+| GMAO | PRODUCT → MASTERADMIN_AUTHORITY (= contract PRIMARY) | MASTERADMIN_PRIMARY | **BILLING_SHADOW**: diff 0, period 2026-10, report `sha256:8cab8b95…002b`, no duplicate charge | BLOCKED | 0 | yes / yes | 41/0 |
+
+- Every transition went through the governed RPC one step at a time (`LEGACY_ONLY → SHADOW → DUAL_READ → MASTERADMIN_PRIMARY`), with the D-14 reason and append-only history. None was forced.
+- Billing stopped at `BILLING_SHADOW` for eExpense/GMAO (`masteradminAuthorityReached=false`). The local billers remain the collectors, as D-14 requires.
+- **Legacy tenants** (eCommerce 1, EWM 2, Comerza 2, TMS 1, eSupplier 1, eChange 13, eExpense 1, GMAO 1): all `UNRESOLVED`.
+  - None has a deterministic mapping (no ACTIVE provisioning record and no plan/price/quota/add-on evidence).
+  - Under D-14 rule 4 they were **not** adopted and no commercial value was invented.
+  - They stay in legacy under the product-scope mode and are excluded from the PRIMARY cohort. P-08 (LEGACY_BACKFILL) remains the path to adopt them.
 
 ## Final acceptance items
 
 | Item | Evidence |
 | --- | --- |
-| desired/applied version + checksum | checks 2–4 in all 8. The GET is verified by `entitlement-sync-e2e` and by each X-07 |
+| desired/applied version + checksum | checks 2–4 in all 8; GET verified by `entitlement-sync-e2e` (22/22) and each X-07 D-14 `getVerified` |
 | add/remove/downgrade | check 6 in all 8 (X-07: v1→v2→v3, STALE and CONFLICT → 409) |
-| self-grant denied | check 5 in all 8 (pgTAP + product suite / X-07 legacy write blocked in PRIMARY) |
+| self-grant denied | check 5 in all 8; legacy writes BLOCKED in PRIMARY (table above) |
 | offline last-good | check 7 in all 8 (MasterAdmin unreachable → the gate keeps the last-good) |
 | drift reconciliation | check 8 in all 8 (GET exposes applied ≠ desired → push → IN_SYNC) |
 | usage + dedupe | checks 9–10 in 7 of 8 (TMS N/A). `usage-x07`: real sender → real `usage-ingest` → `DUPLICATE` |
 | allowance/credit arithmetic | check 11 in eCommerce, eSupplier, eExpense, GMAO, plus MasterAdmin pgTAP 33–41 |
-| no double billing | check 12: eExpense (X-07 21) and GMAO (`charge` → 409). The MasterAdmin usage line references the FINALIZED aggregate, once per closed period (MA-60) |
-| legacy authority state | check 13 (table above) |
+| no double billing | check 12: eExpense and GMAO (`duplicateCharge=false`). The MasterAdmin usage line references the FINALIZED aggregate, once per closed period (MA-60) |
+| billing ≥ BILLING_SHADOW, diff 0 | eExpense and GMAO: mismatches 0, computed by MasterAdmin, negative control detected |
 | original CREATE/REPLAY/GET | check 15: provisioning adapter golden (INV-1, unedited) + product suites |
 
-## Full suites per repo (this run)
+## Full suites per repo
 
 | Repo | Result |
 | --- | --- |
 | MasterAdmin | from empty DB: pgTAP all green. MA gate: pgTAP 1647/1647, vitest 1190/1190, typecheck/lint/build/deno check, node:test 15/15, secrets PASS, no new advisors |
-| MasterAdmin e2e | `provisioning-golden`, `entitlement-sync-e2e`, `usage-x07` exit 0 |
+| MasterAdmin e2e | `provisioning-golden`, `entitlement-sync-e2e` 22/22, `usage-x07`, `d14-axes` 24/24, all exit 0 |
 | eCommerce | `test:db` + X-07 exit 0 |
-| EWM | `./mvnw -B clean verify`, run as `clean verify -DskipITs` then `failsafe:integration-test failsafe:verify`: unit 1512/0/0 (1 skipped), **IT 1535/0/0**. X-07 exit 0 |
-| Comerza | `test:db`, from-zero rebuild with seed, and X-07 exit 0 |
-| TMS | `./mvnw -o -B clean test` on disposable PostGIS 17 (`TMS_TEST_DB_URL`): **2103/0/0**, 1 skipped (opt-in X-07 bridge). X-07 exit 0 |
+| EWM | recorded `EW18-05-full-verify.txt` @ `88ec8c7`: unit 1512/0/0 (1 skipped), **IT 1535/0/0**, `EXIT=0`. X-07 exit 0 |
+| Comerza | `test:db`, from-zero rebuild with seed, X-07 exit 0 |
+| TMS | recorded `TM18-05-full-it.txt` @ `19875b2`: **2114/0/0**, 1 skipped (opt-in bridge), `EXIT=0`. X-07 exit 0 |
 | eSupplier | SQL + golden, X-07 exit 0 |
-| eChange | pgTAP (against the pre-existing baseline of 10, identical at `3d6f34e`), golden/parity, X-07 exit 0 |
+| eChange | pgTAP (pre-existing baseline of 10 at `3d6f34e`, unchanged), golden/parity, X-07 exit 0 |
 | eExpense | pgTAP, golden, X-07 exit 0 |
-| GMAO | PGlite SQL (5 runners), `deno test`, X-07 exit 0 |
+| GMAO | PGlite SQL, `deno test` 160/0, X-07 exit 0 |
 
-### Java suite root causes resolved in this phase
-
-- **EWM `YardVisitIT` (24 errors)** is fixed in EWM `601ebb5`. Phase 17 had classified it as pre-existing harness pollution by `NeoRetailSeedSmokeIT`. Re-measured, that turned out to be wrong: the base `7c086e8` runs the full IT suite at 1525/0/0.
-  - The real cause: `@TestPropertySource` gives `PlatformEntitlementsIT` (added in phase 10) its own Spring context with its own Hikari pool. That leaves 12 cached pools against the shared PostgreSQL (11 at the base), and `YardVisitIT`'s Flyway gets "too many clients".
-  - The fix is `@DirtiesContext(AFTER_CLASS)`, test only. The result is IT 1535/0/0.
-- **TMS `IdentityResolutionIntegrationTest` (10 errors)** is not a code defect. The earlier Phase 18 run used Testcontainers and hit a Flyway V13 deadlock. With the repo's documented mechanism (`TMS_TEST_DB_URL`, as in phase 12), the suite is 2103/0/0 on the same code (`9397ff5` only adds docs over `f009380`).
+The Java suites were not rerun. Only docs commits came after the recorded heads (`60167c2` over `88ec8c7`, `3369f94` over `19875b2`).
 
 ## Spec §19.1 verdict
 
@@ -107,23 +115,16 @@ P = PASS, N/A = the product has no such surface (reason in `<product>.json`).
 | (3) registry | met ×8 |
 | (4) state IN_SYNC by GET | met ×8 |
 | (5) enforcement | met ×8 |
-| **(6) cutover `MASTERADMIN_PRIMARY` + legacy writes blocked** | **NOT met ×8**: seeded in SHADOW (GMAO DUAL_READ) |
+| (6) cutover `MASTERADMIN_PRIMARY` + legacy writes blocked | **met ×8** (DEV/LOCAL, D-14) |
 | (7) usage | met (TMS: N/A) |
-| **(8) billing ≥ `BILLING_SHADOW`, diff 0** | met / N/A in 6. **NOT met in eExpense and GMAO** (`LEGACY_AUTHORITY`; SHADOW with diff 0 is shown only inside X-07) |
+| (8) billing ≥ `BILLING_SHADOW`, diff 0 | **met**: eExpense/GMAO SHADOW diff 0; N/A in the other 6 |
 
-These are not test failures. The spec (§ modes table, D-14) says no mode advances "sin aprobación humana explícita" (without explicit human approval). Moving a product to `MASTERADMIN_PRIMARY` or `BILLING_SHADOW` without D-14 would violate the approved spec. The program does not make that decision.
+## Out of scope / still open (not blocking DEV)
 
-### What must happen before `DEV_ALL_8_SYNCHRONIZED=YES` can be issued
-
-| Product | Required |
-| --- | --- |
-| all | D-14 approved (observation windows per environment) and a human authorization per product/axis |
-| all | a single `appActive=false` criterion (TMS suspends operation; others only the commercial side) |
-| EWM | authorized Supabase migration for the server-side block of `admin_set_agent` in PRIMARY |
-| Comerza | decide the shared-provider cap |
-| eSupplier | adopt legacy tenants with no provisioning mapping (or PRIMARY per tenant); P-08 |
-| eChange / eExpense | adopt pre-MasterAdmin tenants |
-| eExpense / GMAO | move billing to `BILLING_SHADOW` with a diff-0 report for a certified period; P-05 (no QAS separate from production) |
-| GMAO | D-03 (`gmao.ai.requests`); verify the live hub schema |
-
-Then re-run `scripts/ccp/certify-local.sh --with-java-suites` (or with `--record`).
+- QAS (GATE C `PROMOTE_COMMERCIAL_CONTROL_PLANE_TO_QAS=YES`) and PRD: not touched.
+- `BILLING_AUTHORITY` for eExpense/GMAO: not authorized by D-14.
+- Adopting legacy tenants (P-08), D-02/D-03/D-04/D-05/D-06/D-12 business decisions, and usage ingest ON: still open.
+- Backlog outside the program:
+  - eChange DEFINER grants (10 pre-existing pgTAP);
+  - eCommerce `storage_buckets` from-zero portability;
+  - GMAO live hub schema verification (phase 19).

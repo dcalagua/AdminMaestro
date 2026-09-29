@@ -233,6 +233,15 @@ const killed = (await job({ job: 'all' })) as { issue: { issued: number }; push:
 check('9. kill-switch apagado: v4 se emite pero no se empuja', killed.issue.issued === 1 && killed.push.claimed === 0 && state().startsWith('PENDING_PUSH|4|3'), state());
 check('   el SaaS conserva v3 (límite 25)', receiver.limit(ALPHA, 'esupplier.e2e.users.max') === 25);
 
+// Kill-switch encendido de nuevo: la v4 retenida se entrega y verifica. Además deja
+// la cohorte de esta integración IN_SYNC, que es lo que exige la guarda D-14 de
+// set_commercial_cutover_state cuando certify-local avanza el eje después.
+sql(`update platform.product_integrations set entitlements_push_enabled = true where id = '${INTEGRATION}'`);
+const resumed = (await job({ job: 'all' })) as { issue: { issued: number }; push: { claimed: number } };
+check('9b. kill-switch encendido: la v4 retenida se entrega sin re-emitir → IN_SYNC v4',
+  resumed.issue.issued === 0 && resumed.push.claimed === 1 && state().startsWith('IN_SYNC|4|4|0'), state());
+check('    el SaaS aplica v4 (límite 40)', receiver.limit(ALPHA, 'esupplier.e2e.users.max') === 40);
+
 check('10. cada petición llevó un jti distinto (un solo uso)', new Set(jtis).size === jtis.length, `${jtis.length} peticiones`);
 check('    PUT solo con scope de escritura, GET solo con scope de lectura',
   seenScopes.every((s) => (s.startsWith('PUT ') ? s === 'PUT esupplier:entitlements:write' : s === 'GET esupplier:entitlements:read')),

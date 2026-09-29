@@ -1,0 +1,425 @@
+{
+  "product": "comerza",
+  "legacyAuthority": "sin biller ni precio local; billable=false por CHECK",
+  "d14": {
+    "entitlements": {
+      "scope": "COHORT",
+      "saasFinalMode": "PRIMARY",
+      "productScopeMode": "SHADOW",
+      "masteradminAxis": "MASTERADMIN_PRIMARY",
+      "getVerified": {
+        "appliedVersion": 5,
+        "appliedChecksum": "sha256:8dd0871b32d7825b4d650570e4687e893690e47442fd88f8452589e46b43bc7c",
+        "enforcementMode": "PRIMARY",
+        "desiredChecksum": "sha256:8dd0871b32d7825b4d650570e4687e893690e47442fd88f8452589e46b43bc7c"
+      },
+      "legacyWrite": {
+        "status": "BLOCKED",
+        "evidence": "D14.5 (estado final PRIMARY): flags del tenant vitrina/erp_connector=true en config_layers no conceden (decisión SNAPSHOT, commercial=false); el rol authenticated recibe permission denied al fijar el modo y al escribir operator.entitlement_snapshot_applied y operator.entitlement_capabilities.legacy_grant; check 15: los flags no reviven un agente revocado."
+      }
+    },
+    "billing": null,
+    "appActiveFalse": {
+      "commercialDenied": true,
+      "operationalContinues": true,
+      "evidence": "D14.1: v4 appActive=false con el agente → comerza_ai_admit reason=APP_INACTIVA; app_active solo lo leen commercial_capability_decision,platform_apply_entitlements; policies RLS que lo leen=0; sociedad y configuración intactas."
+    },
+    "legacyTenants": [
+      {
+        "id": "d1000000-0000-4000-8000-000000000002",
+        "label": "Andina Retail Ecuador Cía. Ltda.",
+        "resolution": "UNRESOLVED",
+        "reason": "Sin alta en operator.platform_provisionings ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4): sigue en legacy (legacy_grant) bajo el modo del PRODUCTO (SHADOW)."
+      },
+      {
+        "id": "d1000000-0000-4000-8000-000000000001",
+        "label": "Andina Retail Perú S.A.C.",
+        "resolution": "UNRESOLVED",
+        "reason": "Sin alta en operator.platform_provisionings ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4): sigue en legacy (legacy_grant) bajo el modo del PRODUCTO (SHADOW)."
+      }
+    ]
+  },
+  "checks": {
+    "1": {
+      "label": "canonical MasterAdmin mapping",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:01:54Z",
+          "endedAt": "2026-09-29T17:01:58Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "comerza:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:03:49Z",
+          "endedAt": "2026-09-29T17:03:54Z",
+          "log": "logs/comerza-x07.txt"
+        }
+      ]
+    },
+    "2": {
+      "label": "desired entitlement generated",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:01:54Z",
+          "endedAt": "2026-09-29T17:01:58Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:00Z",
+          "endedAt": "2026-09-29T17:02:01Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "comerza:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:03:49Z",
+          "endedAt": "2026-09-29T17:03:54Z",
+          "log": "logs/comerza-x07.txt"
+        }
+      ]
+    },
+    "3": {
+      "label": "SaaS applied same version/checksum",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "comerza:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:03:49Z",
+          "endedAt": "2026-09-29T17:03:54Z",
+          "log": "logs/comerza-x07.txt"
+        }
+      ]
+    },
+    "4": {
+      "label": "GET same applied state",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:00Z",
+          "endedAt": "2026-09-29T17:02:01Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "comerza:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:03:49Z",
+          "endedAt": "2026-09-29T17:03:54Z",
+          "log": "logs/comerza-x07.txt"
+        }
+      ]
+    },
+    "5": {
+      "label": "tenant self-grant denied",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:01:54Z",
+          "endedAt": "2026-09-29T17:01:58Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "comerza:test-db",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:39Z",
+          "endedAt": "2026-09-29T17:03:14Z",
+          "log": "logs/comerza-test-db.txt"
+        },
+        {
+          "ref": "comerza:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:03:49Z",
+          "endedAt": "2026-09-29T17:03:54Z",
+          "log": "logs/comerza-x07.txt"
+        }
+      ],
+      "note": "X-07 15: flags del tenant en true no reviven un agente revocado"
+    },
+    "6": {
+      "label": "add/remove/downgrade version transition",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "comerza:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:03:49Z",
+          "endedAt": "2026-09-29T17:03:54Z",
+          "log": "logs/comerza-x07.txt"
+        }
+      ]
+    },
+    "7": {
+      "label": "offline last-good",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "comerza:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:03:49Z",
+          "endedAt": "2026-09-29T17:03:54Z",
+          "log": "logs/comerza-x07.txt"
+        }
+      ]
+    },
+    "8": {
+      "label": "drift reconciled",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:00Z",
+          "endedAt": "2026-09-29T17:02:01Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "comerza:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:03:49Z",
+          "endedAt": "2026-09-29T17:03:54Z",
+          "log": "logs/comerza-x07.txt"
+        }
+      ]
+    },
+    "9": {
+      "label": "usage event accepted once",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:usage-x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:01Z",
+          "endedAt": "2026-09-29T17:02:05Z",
+          "log": "logs/masteradmin-usage-x07.txt"
+        },
+        {
+          "ref": "comerza:test-db",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:39Z",
+          "endedAt": "2026-09-29T17:03:14Z",
+          "log": "logs/comerza-test-db.txt"
+        }
+      ]
+    },
+    "10": {
+      "label": "duplicate deduped",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:usage-x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:01Z",
+          "endedAt": "2026-09-29T17:02:05Z",
+          "log": "logs/masteradmin-usage-x07.txt"
+        },
+        {
+          "ref": "comerza:test-db",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:39Z",
+          "endedAt": "2026-09-29T17:03:14Z",
+          "log": "logs/comerza-test-db.txt"
+        }
+      ]
+    },
+    "11": {
+      "label": "allowance/credit arithmetic",
+      "status": "N/A",
+      "reason": "sin ALLOWANCE ni créditos registrados para Comerza (D-03/D-05)"
+    },
+    "12": {
+      "label": "no duplicate billing",
+      "status": "N/A",
+      "reason": "sin biller local"
+    },
+    "13": {
+      "label": "local price/billing authority stage explicit",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "comerza:test-db",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:39Z",
+          "endedAt": "2026-09-29T17:03:14Z",
+          "log": "logs/comerza-test-db.txt"
+        }
+      ],
+      "note": "sin biller ni precio local; billable=false por CHECK"
+    },
+    "14": {
+      "label": "technical configuration still works",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "comerza:test-db",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:39Z",
+          "endedAt": "2026-09-29T17:03:14Z",
+          "log": "logs/comerza-test-db.txt"
+        }
+      ]
+    },
+    "15": {
+      "label": "CREATE/REPLAY/GET provisioning regression green",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:provisioning-golden",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:01:58Z",
+          "endedAt": "2026-09-29T17:02:00Z",
+          "log": "logs/masteradmin-provisioning-golden.txt"
+        },
+        {
+          "ref": "comerza:test-db",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:39Z",
+          "endedAt": "2026-09-29T17:03:14Z",
+          "log": "logs/comerza-test-db.txt"
+        }
+      ]
+    }
+  },
+  "criteria": {
+    "1": {
+      "met": true,
+      "reason": "P0 del §1.4 cerrados en fases 03–06 con test"
+    },
+    "2": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "comerza:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:03:49Z",
+          "endedAt": "2026-09-29T17:03:54Z",
+          "log": "logs/comerza-x07.txt"
+        }
+      ]
+    },
+    "3": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:01:54Z",
+          "endedAt": "2026-09-29T17:01:58Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "comerza:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:03:49Z",
+          "endedAt": "2026-09-29T17:03:54Z",
+          "log": "logs/comerza-x07.txt"
+        }
+      ]
+    },
+    "4": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:00Z",
+          "endedAt": "2026-09-29T17:02:01Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "comerza:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:03:49Z",
+          "endedAt": "2026-09-29T17:03:54Z",
+          "log": "logs/comerza-x07.txt"
+        }
+      ]
+    },
+    "5": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "comerza:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:03:49Z",
+          "endedAt": "2026-09-29T17:03:54Z",
+          "log": "logs/comerza-x07.txt"
+        }
+      ]
+    },
+    "6": {
+      "met": true,
+      "reason": "MASTERADMIN_PRIMARY (SaaS y MasterAdmin) verificado por GET; escritura legacy negada server-side",
+      "evidence": [
+        {
+          "ref": "comerza:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:03:49Z",
+          "endedAt": "2026-09-29T17:03:54Z",
+          "log": "logs/comerza-x07.txt"
+        },
+        {
+          "ref": "masteradmin:d14-axes",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:37Z",
+          "endedAt": "2026-09-29T17:05:39Z",
+          "log": "logs/masteradmin-d14-axes.txt"
+        }
+      ]
+    },
+    "7": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:usage-x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:01Z",
+          "endedAt": "2026-09-29T17:02:05Z",
+          "log": "logs/masteradmin-usage-x07.txt"
+        }
+      ]
+    },
+    "8": {
+      "met": true,
+      "reason": "sin biller local: no aplica (spec §19.1(8))"
+    },
+    "D14-2": {
+      "met": true,
+      "reason": "appActive=false retira lo comercial, no la operación",
+      "evidence": [
+        {
+          "ref": "comerza:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:03:49Z",
+          "endedAt": "2026-09-29T17:03:54Z",
+          "log": "logs/comerza-x07.txt"
+        }
+      ]
+    }
+  },
+  "gaps": [
+    {
+      "class": "HUMAN_DECISION",
+      "text": "tope del proveedor IA compartido (operator.ai_provider_budget) sin decidir: control operativo, no comercial; sin fila cuenta y no corta. No es prerequisito de cutover"
+    }
+  ],
+  "synchronized": true,
+  "blockers": []
+}

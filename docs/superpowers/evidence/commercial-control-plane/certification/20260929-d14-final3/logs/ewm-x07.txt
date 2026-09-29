@@ -1,0 +1,31 @@
+(node:47691) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS · 0. puente EWM arriba (cadena M2M real + receptor real)
+PASS · 1. MasterAdmin lee el manifiesto de EWM (7 agentes ACTIVE) · 2026-09-28.1
+PASS ·    cohorte del contrato: SHADOW → DUAL_READ → PRIMARY (un paso por vez)
+PASS · 2. emisor real → PUT M2M real → APPLIED · APPLIED 200
+PASS · 3. GET: misma versión y checksum, PRIMARY · 1 PRIMARY
+PASS · 4. gate de servidor EWM: copilot y slotting sí, anomaly no; company_ai_agents materializada · {"wms_copilot":true,"ai_erp_reconcile":false,"ai_cycle_count":false,"ai_slotting":true,"ai_replenishment":false,"ai_anomaly":false,"ai_wave_optimizer":false}
+PASS · 5. replay idempotente → REPLAYED · REPLAYED
+PASS · 6. v2 revoca slotting → APPLIED y gate cerrado · APPLIED
+PASS · 7. v1 tras v2 → STALE (409) · STALE STALE_SNAPSHOT
+PASS · 8. misma versión, otro contenido → CONFLICT (409) · CONFLICT VERSION_CONFLICT
+PASS · 9. credencial con scope de provisioning → 403 REJECTED · 403 HTTP_403
+PASS · 10. EWM no disponible → RETRYABLE, nada aplicado · RETRYABLE 503
+PASS · 11. reconciliación: el GET delata deriva (aplicado v2 ≠ deseado v3)
+PASS ·     mientras tanto el gate sigue con el last-good v2 (sin llamar a MasterAdmin)
+PASS · 12. push de v3 → GET en sincronía (versión y checksum)
+PASS · 13. escritura legada (admin_set_agent) en PRIMARY: detectada y revertida; el gate nunca la concedió · diferencias=1
+PASS · 14. appActive=false → APPLIED y ningún agente concedido · APPLIED
+PASS ·     appActive=false no borra datos ni corta el canal: filas conservadas y GET OBSERVED v4 · 7 filas, GET OBSERVED v4
+PASS · 15. un jti distinto por petición M2M · 13 peticiones
+PASS · D14.1 cohorte del contrato en PRIMARY, un paso por vez; PRODUCT sigue en SHADOW · eventos=[SHADOW→DUAL_READ, DUAL_READ→PRIMARY] fase D14=[ya PRIMARY] PRODUCT=SHADOW
+PASS · D14.2 último deseado (v5, appActive=true) → GET: PRIMARY, versión y checksum iguales · APPLIED · GET PRIMARY v5
+PASS · D14.3 paridad: company_ai_agents materializada = gate del snapshot (0 diferencias) · diferencias=0
+PASS · D14.4 escritura legada BLOQUEADA en PRIMARY: prueba SQL de la guardia de EWM · rc=0 # 23 ok, 0 fail
+PASS · D14.5 defensa en profundidad: el paso 13 (la reconciliación revierte la escritura legada) pasó
+PASS · 16. puente EWM terminó limpio · exit=0
+PASS · D14 fase completa (evidencia armada)
+evidencia D-14: /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/docs/superpowers/evidence/commercial-control-plane/certification/20260929-d14-final3/d14/d14-ewm.json
+
+26/26 PASS
