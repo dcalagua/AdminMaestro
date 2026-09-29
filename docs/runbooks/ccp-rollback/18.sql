@@ -470,4 +470,13 @@ begin
 end;
 $$;
 
+-- ---------------------------------------------------------------------------
+-- 20261008000300_ccp_billing_shadow_comparison (D-14, BILLING_SHADOW)
+-- Solo se revoca: la tabla append-only queda como evidencia de las
+-- comparaciones ya hechas. El eje de facturación vuelve un paso con
+-- set_commercial_cutover_state(<integración>, 'BILLING', 'BILLING_LEGACY', '<motivo>').
+-- ---------------------------------------------------------------------------
+revoke execute on function platform.record_billing_shadow_comparison(text, uuid, date, jsonb, text) from authenticated, service_role;
+revoke execute on function platform.billing_shadow_expected_lines(text, uuid, date) from authenticated, service_role;
+
 commit;
