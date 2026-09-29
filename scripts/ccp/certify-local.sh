@@ -193,7 +193,7 @@ if wants eexpense; then
 fi
 if wants gmao; then
   # GMAO no puede `db reset` (esquema base no versionado): PGlite sobre el esquema capturado es su harness.
-  run gmao sql "$(wt gmao)/supabase/tests" -- sh -c 'node run_tests.mjs && node run_provisioning_tests.mjs && node run_ccp_tests.mjs && node run_ccp16_tests.mjs && node run_ccp17_tests.mjs'
+  run gmao sql "$(wt gmao)/supabase/tests" -- sh -c 'node run_tests.mjs && node run_provisioning_tests.mjs && node run_ccp_tests.mjs && node run_ccp16_tests.mjs && node run_ccp17_tests.mjs && node run_ccp18_tests.mjs'
   run gmao deno "$(wt gmao)/supabase/functions" -- deno test -A
   run gmao x07 "$ROOT" -- env GMAO_WT="$(wt gmao)" $X07 scripts/ccp/gmao-x07-e2e.mts
 fi

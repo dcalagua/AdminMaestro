@@ -15,8 +15,16 @@
  * `supabase/tests/run_ccp16_tests.mjs`: GMAO no puede `db reset`) con la cadena de migraciones del
  * repo y el rol service_role de verdad. El tenant se da de alta con la RPC de provisioning REAL.
  * Sin red, sin proyectos remotos, sin pasarelas reales. No imprime claves ni tokens.
+ *
+ * Fase 18 · D-14 (DEV/LOCAL): el cobro usa el dataset SINTÉTICO `fixtures/d14-billing-cert.json`
+ * (ítems de catálogo propios en PGlite + suscripción SANDBOX en MasterAdmin LOCAL (regla §2.2: DEMO no admite contrato recurrente activo; SANDBOX es no productivo y no facturable por uso, INV-7), SUPABASE_DB_URL).
+ * La comparación BILLING_SHADOW la calcula MasterAdmin (`platform.record_billing_shadow_comparison`)
+ * y su resultado (id, mismatches, checksum) se registra en GMAO — nunca un literal. La facturación
+ * termina en SHADOW y nunca pasa por MASTERADMIN_AUTHORITY en esta corrida (regla 5);
+ * entitlements terminan en MASTERADMIN_AUTHORITY (producto + tenant), sin rollback.
  */
 import { readFileSync, existsSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import { EntitlementSyncClient, type EntitlementDeliveryContext } from '../../supabase/functions/_shared/entitlements/sync-client.ts';
 import { buildSnapshot } from '../../supabase/functions/_shared/entitlements/snapshot.ts';
@@ -26,10 +34,16 @@ import { mapHubExport } from '../../supabase/functions/_shared/entitlements/hub/
 import {
   buildParityAttestation, compareHubWithMasterAdmin, renderHubParityReport,
 } from '../../supabase/functions/_shared/entitlements/hub/hub-parity.ts';
+import { advanceAxis, axisState, ensureCcpIntegration, FINANCE, maDbUrl, maSql } from './d14-masteradmin.mts';
+import { countChecks, D14_REASON, writeD14Evidence, type D14Evidence, type LegacyTenant } from './d14-evidence.mts';
 
 const WT = process.env.GMAO_WT ?? '';
 if (!WT.endsWith('/GMAO/.worktrees/ebim-commercial-control-plane-v1')) {
   console.error('HARD STOP: GMAO_WT debe apuntar al worktree del programa en GMAO');
+  process.exit(2);
+}
+try { maDbUrl(); } catch (e) {
+  console.error(String((e as Error).message), '(la fase D14 compara contra MasterAdmin LOCAL: SUPABASE_DB_URL=postgresql://postgres:postgres@127.0.0.1:54422/postgres)');
   process.exit(2);
 }
 const PGLITE = join(WT, 'supabase/tests/node_modules/@electric-sql/pglite/dist/index.js');
@@ -92,7 +106,8 @@ for (const f of ['20260928200000_ccp_ai_consume_validation.sql', '20260928200100
 await db.exec(harness('40_ccp_hub_capture.sql'));
 for (const f of ['20261010100000_ccp_commercial_authority.sql', '20261010110000_ccp_gmao_entitlements_receiver.sql',
   '20261010120000_ccp_gmao_commercial_gate.sql', '20261010130000_ccp_billing_authority_guard.sql',
-  '20261010140000_ccp_hub_commercial_freeze.sql']) await db.exec(mig(f));
+  '20261010140000_ccp_hub_commercial_freeze.sql', '20261017100000_ccp_gmao_usage_outbox.sql',
+  '20261018100000_ccp_d14_app_active_commercial_only.sql', '20261018110000_ccp_d14_billing_comparison_masteradmin.sql']) await db.exec(mig(f));
 
 let lock: Promise<unknown> = Promise.resolve();
 /** Serializa: PGlite es una sola conexión y el rol se fija por sentencia. */
@@ -230,8 +245,8 @@ async function emit(version: number, features: string[], opts: { appActive?: boo
     aiCredits: { weights: [], weightsVersion: 0 }, correlationId: crypto.randomUUID(),
   });
 }
-const auth = (product: string, axis: string, tenant: string | null, state: string, approval: string | null = null) =>
-  svc(`select platform.ccp_set_commercial_authority($1, $2, $3::uuid, $4, 'x07', 'e2e fase 16', $5) as r`, [product, axis, tenant, state, approval]);
+const auth = (product: string, axis: string, tenant: string | null, state: string, approval: string | null = null, reason = 'e2e fase 16') =>
+  svc(`select platform.ccp_set_commercial_authority($1, $2, $3::uuid, $4, 'x07', $6, $5) as r`, [product, axis, tenant, state, approval, reason]);
 const parity = async () => svc<{ kind: string; severity: string }>(`select kind, severity from platform.ccp_gmao_commercial_parity($1)`, [TEN]);
 
 // ── Escenario: entitlements ──────────────────────────────────────────────────
@@ -289,14 +304,32 @@ check('15. el plan del tenant ya no se cambia en GMAO',
 const a3 = await ai();
 check('16. el snapshot decide: sin gmao.ai.assist → IA apagada', a3.allowed === false && a3.reason === 'DISABLED', JSON.stringify(a3));
 
-// ── Escenario: cobro (nunca dos cobradores) ──────────────────────────────────
+// ── Escenario: cobro (nunca dos cobradores) · dataset SINTÉTICO D-14 ─────────
+const CERT = JSON.parse(readFileSync(new URL('./fixtures/d14-billing-cert.json', import.meta.url), 'utf8'));
+const GC = CERT.products.gmao;
+const PERIOD: string = CERT.period;
+const lit = (v: string) => `'${v.replace(/'/g, "''")}'`;
+// Biller local de GMAO configurado con el dataset (catálogo propio de certificación; ningún ítem real).
+await db.query(`insert into platform.apps (code, name, available) values ($1, 'GMAO', true) on conflict (code) do nothing`, [GC.local.appCode]);
+for (const it of GC.local.catalogItems) {
+  await db.query(`insert into platform.catalog_items (app_code, code, name, category, price_month, currency, available)
+                  values ($1, $2, $3, $4, $5, $6, true)`, [GC.local.appCode, it.code, it.name, it.category, it.priceMonth, it.currency]);
+}
+await db.query(`insert into platform.payment_config (id, provider, secret_key, currency, enabled) values (1, $1, $2, $3, true)`,
+  [GC.local.paymentConfig.provider, GC.local.paymentConfig.secretKey, GC.local.paymentConfig.currency]);
+await db.query(`update platform.tenants set billing_mode = 'live' where id = $1`, [TEN]);
+
 const gateway = { calls: 0 };
+// Mismas lecturas que charge/index.ts (billing_mode, payment_config, catalog_items), contra PGlite.
 const chargeHandler = gmCharge.createChargeHandler({
   authenticate: async () => ({ id: OWNER, email: 'owner@x07.ebim.test' }),
   tenantId: async () => TEN,
   role: async () => 'owner',
-  load: async () => ({ mode: 'live', cfg: { provider: 'culqi', secret_key: 'fixture-not-a-secret', currency: 'PEN', enabled: true },
-    item: { price_month: 30, currency: 'PEN', name: 'Pack' } }),
+  load: async (tid: string, code: string) => ({
+    mode: (await svc<{ m: string }>(`select billing_mode as m from platform.tenants where id = $1`, [tid]))[0]?.m,
+    cfg: (await svc(`select provider, secret_key, currency, enabled from platform.payment_config where id = 1`))[0],
+    item: (await svc(`select price_month, currency, name from platform.catalog_items where code = $1 limit 1`, [code]))[0],
+  }),
   recordPayment: async (row: Row) => { await svc(`insert into platform.payments (tenant_id, item_code, amount, currency, status, mode) values ($1, $2, $3, $4, $5, $6)`,
     [row.tenant_id, row.item_code, row.amount, row.currency, row.status, row.mode]); },
   activateSubscription: async () => {},
@@ -304,25 +337,109 @@ const chargeHandler = gmCharge.createChargeHandler({
   recordChargeShadow: async (row: Row) => { await svc(`select platform.ccp_record_charge_shadow($1, $2, $3, $4, $5)`, [row.tenant_id, row.item_code, row.amount, row.currency, row.known_defect]); },
   fetchImpl: (async () => { gateway.calls++; return new Response(JSON.stringify({ source: { last_four: '1111' } }), { status: 201 }); }) as typeof fetch,
 });
-const charge = () => chargeHandler(new Request('https://gmao.test/functions/v1/charge', { method: 'POST', headers: { 'content-type': 'application/json' },
-  body: JSON.stringify({ code: 'gmao_ai_pack', token: 'tkn_fixture' }) }));
-const c0 = await charge();
-check('17. BILLING LEGACY_AUTHORITY: cobra local (pasarela falsa 1 vez)', c0.status === 200 && gateway.calls === 1);
+const charge = (code: string) => chargeHandler(new Request('https://gmao.test/functions/v1/charge', { method: 'POST', headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({ code, token: 'tkn_fixture' }) }));
+const [PLAN_ITEM, EXTRA_ITEM] = GC.local.catalogItems.map((i: { code: string }) => i.code);
+const c0 = await charge(PLAN_ITEM);
+check('17. BILLING LEGACY_AUTHORITY: cobra local el ítem sintético (pasarela falsa 1 vez)', c0.status === 200 && gateway.calls === 1);
 await auth('gmao', 'BILLING', TEN, 'DUAL_READ');
 await auth('gmao', 'BILLING', TEN, 'SHADOW');
-const c1 = await charge();
+const callsBeforeShadow = gateway.calls;
+const c1 = await charge(PLAN_ITEM);
+const c1b = await charge(EXTRA_ITEM);
+const shadowGatewayCalls = gateway.calls - callsBeforeShadow;
 const shadows = (await db.query<{ n: number }>(`select count(*)::int as n from private.billing_shadow_calculations where tenant_id = $1`, [TEN])).rows[0].n;
-check('18. BILLING SHADOW: sigue cobrando local y registra la sombra (sin datos de tarjeta)', c1.status === 200 && gateway.calls === 2 && shadows === 1);
+check('18. BILLING SHADOW: el cobro local sigue siendo el ÚNICO cobrador (2 cargos → 2 llamadas) y registra la sombra (sin tarjeta)',
+  c1.status === 200 && c1b.status === 200 && shadowGatewayCalls === 2 && shadows === 2, `pasarela=${shadowGatewayCalls} sombras=${shadows}`);
 check('19. BILLING → MASTERADMIN_AUTHORITY exige comparación SHADOW verde',
   await failsWith(() => auth('gmao', 'BILLING', TEN, 'MASTERADMIN_AUTHORITY'), /BILLING_SHADOW_NOT_GREEN/));
-await svc(`select platform.ccp_record_billing_shadow_comparison($1, '2026-10', 0, $2, 'x07')`, [TEN, `sha256:${'d'.repeat(64)}`]);
-await auth('gmao', 'BILLING', TEN, 'MASTERADMIN_AUTHORITY');
-const c2 = await charge();
-check('20. BILLING MASTERADMIN_AUTHORITY: charge 409 SIN llamar a la pasarela (nunca dos cobradores)',
-  c2.status === 409 && gateway.calls === 2, `${c2.status}`);
-check('21. y la base rechaza cualquier pago/factura local de ese tenant',
-  await failsWith(() => db.query(`insert into platform.invoices (tenant_id, number, amount, currency, status) values ($1, 'F-X07', 30, 'PEN', 'pending')`, [TEN]),
-    /BILLING_AUTHORITY_MASTERADMIN/));
+check('19b. GMAO ya no acepta un resultado fabricado (sha256:ddd… / sin id de MasterAdmin)',
+  await failsWith(() => svc(`select platform.ccp_record_billing_shadow_comparison($1, $2, 0, $3, 'x07', $4::uuid)`,
+    [TEN, PERIOD, `sha256:${'d'.repeat(64)}`, randomUUID()]), /CHECKSUM_INVALIDO/)
+  && await failsWith(() => svc(`select platform.ccp_record_billing_shadow_comparison($1, $2, 0, $3, 'x07', null)`,
+    [TEN, PERIOD, `sha256:${'0123456789abcdef'.repeat(4)}`]), /MASTERADMIN_COMPARISON_REQUIRED/));
+
+// ── D14 · MasterAdmin LOCAL: tenant SANDBOX + plan + suscripción ACTIVE del dataset (idempotente) ─
+type MaCmp = { id: string; mismatches: number; green: boolean; reportChecksum: string; expectedTotal: number; localTotal: number; periodStart: string; diffs: unknown[] };
+function maCertSetup(product: string): { subscriptionId: string; transitions: string[]; integrationId: string } {
+  const f = CERT.products[product].masteradmin;
+  const org = CERT.masteradmin.customerOrganizationId;
+  const meta = `'{"certification":"D-14","synthetic":true,"nonBillable":true}'::jsonb`;
+  maSql(`insert into platform.plans (id, code, name, saas_product_id, description, metadata)
+         select ${lit(f.plan.id)}, ${lit(f.plan.code)}, ${lit(f.plan.name)}, p.id, 'Plan SINTÉTICO de certificación D-14 (DEV/LOCAL)', ${meta}
+           from platform.saas_products p where p.code = ${lit(product)}
+         on conflict do nothing`);
+  maSql(`insert into platform.tenants (id, slug, name, saas_product_id, customer_organization_id, tenant_type, admin_email, metadata)
+         select ${lit(f.tenant.id)}, ${lit(f.tenant.slug)}, ${lit(f.tenant.name)}, p.id, ${lit(org)}, 'SANDBOX', ${lit(f.tenant.adminEmail)}, ${meta}
+           from platform.saas_products p where p.code = ${lit(product)}
+         on conflict do nothing`);
+  maSql(`insert into platform.subscriptions (id, code, billed_organization_id, saas_product_id, tenant_id, plan_id, market_id, status,
+           billing_interval, currency, quantity, started_on, notes, metadata)
+         select ${lit(f.subscription.id)}, ${lit(f.subscription.code)}, ${lit(org)}, p.id, ${lit(f.tenant.id)}, ${lit(f.plan.id)},
+                (select id from platform.markets where code = ${lit(CERT.masteradmin.market)}), 'ACTIVE', 'MONTHLY',
+                ${lit(CERT.products[product].currency)}, 1, ${lit(f.subscription.startedOn)}::date, 'Certificación D-14 (sintético, SANDBOX, no facturable)', ${meta}
+           from platform.saas_products p where p.code = ${lit(product)}
+         on conflict do nothing`);
+  const ok = maSql(`select count(*) from platform.subscriptions s join platform.tenants t on t.id = s.tenant_id join platform.plans pl on pl.id = s.plan_id
+                     where s.id = ${lit(f.subscription.id)} and s.status = 'ACTIVE' and t.id = ${lit(f.tenant.id)} and t.tenant_type = 'SANDBOX'
+                       and pl.code = ${lit(f.plan.code)}`);
+  if (ok !== '1') throw new Error(`dataset D-14 de ${product}: suscripción/tenant/plan de MasterAdmin no coinciden con el fixture`);
+  const want = f.items.map((i: Row) => [i.chargeKind, Number(i.quantity).toFixed(2), Number(i.unitAmount).toFixed(2), CERT.products[product].currency,
+    i.billingInterval, i.catalogItemCode ?? '', i.validFrom, ''].join('|')).sort().join(';');
+  const have = maSql(`select coalesce(string_agg(concat_ws('|', charge_kind, quantity, unit_amount, currency, billing_interval,
+                        coalesce(catalog_item_code, ''), valid_from, coalesce(valid_to::text, '')), ';' order by 1), '')
+                        from (select charge_kind::text, quantity, unit_amount, currency, billing_interval::text, catalog_item_code, valid_from, valid_to
+                                from platform.subscription_items where subscription_id = ${lit(f.subscription.id)}) x`);
+  const haveSorted = have ? have.split(';').sort().join(';') : '';
+  if (haveSorted !== want) {
+    if (maSql(`select count(*) from platform.invoices where subscription_id = ${lit(f.subscription.id)}`) !== '0') {
+      throw new Error(`dataset D-14 de ${product}: la suscripción SANDBOX tiene facturas; no se reescriben sus líneas`);
+    }
+    maSql(`delete from platform.subscription_items where subscription_id = ${lit(f.subscription.id)}`);
+    for (const i of f.items) {
+      maSql(`select platform.upsert_subscription_item(${lit(f.subscription.id)}, ${lit(i.chargeKind)}::platform.charge_kind, ${lit(i.description)},
+               ${Number(i.quantity)}, ${Number(i.unitAmount)}, ${lit(i.billingInterval)}::platform.billing_interval, ${lit(CERT.products[product].currency)},
+               null, ${i.catalogItemCode ? lit(i.catalogItemCode) : 'null'}, ${lit(i.validFrom)}::date)`, { user: FINANCE });
+    }
+  }
+  const integrationId = ensureCcpIntegration(product);
+  const transitions = advanceAxis(integrationId, 'BILLING', 'BILLING_SHADOW', D14_REASON);
+  return { subscriptionId: f.subscription.id, transitions, integrationId };
+}
+function maCompare(product: string, tenantId: string, local: Row, actor: string): MaCmp {
+  return JSON.parse(maSql(`select platform.record_billing_shadow_comparison(${lit(product)}, ${lit(tenantId)}::uuid, ${lit(`${PERIOD}-01`)}::date,
+    ${lit(JSON.stringify(local))}::jsonb, ${lit(actor)})`, { service: true })) as MaCmp;
+}
+const maGm = maCertSetup('gmao');
+check('D14.B1 MasterAdmin LOCAL: tenant SANDBOX + plan + suscripción ACTIVE sintéticos; eje de facturación en BILLING_SHADOW',
+  axisState(maGm.integrationId).billing === 'BILLING_SHADOW', maGm.transitions.join(',') || 'ya en BILLING_SHADOW');
+// Lado local: lo que calculó el cobro local de GMAO en SHADOW (tabla append-only), traducido con el mapeo del fixture.
+const since = (await db.query<{ t: string }>(`select entered_at::text as t from private.commercial_authority where scope_key = $1`, [`gmao:BILLING:${TEN}`])).rows[0].t;
+const calc = (await db.query<{ item_code: string; n: number; amount: string; currency: string }>(
+  `select item_code, count(*)::int as n, sum(local_amount)::text as amount, min(local_currency) as currency
+     from private.billing_shadow_calculations where tenant_id = $1 and calculated_at >= $2::timestamptz group by item_code order by item_code`, [TEN, since])).rows;
+const localLines = calc.map((r) => ({ itemCode: GC.itemMap[r.item_code] ?? `local:${r.item_code}`, quantity: r.n, amount: Number(r.amount), currency: r.currency }));
+const local = { source: 'gmao.charge.shadow', currency: GC.currency, lines: localLines };
+const maTen = GC.masteradmin.tenant.id;
+// Negativo primero: una línea local +0.01 → MasterAdmin la detecta; GMAO la registra y NO la toma por verde.
+const perturbed = { ...local, lines: localLines.map((l, i) => (i === 0 ? { ...l, amount: Math.round((l.amount + 0.01) * 100) / 100 } : l)) };
+const maRed = maCompare('gmao', maTen, perturbed, 'x07 GMAO D-14 (negativo)');
+await svc(`select platform.ccp_record_billing_shadow_comparison($1, $2, $3, $4, 'x07 D-14', $5::uuid)`, [TEN, PERIOD, maRed.mismatches, maRed.reportChecksum, maRed.id]);
+check('D14.B2 negativo: +0.01 en una línea local → MasterAdmin cuenta la diferencia y GMAO sigue sin paridad de cobro',
+  maRed.mismatches > 0 && maRed.green === false && await failsWith(() => auth('gmao', 'BILLING', TEN, 'MASTERADMIN_AUTHORITY'), /BILLING_SHADOW_NOT_GREEN/),
+  `${maRed.mismatches} · ${JSON.stringify(maRed.diffs)}`);
+const maGreen = maCompare('gmao', maTen, local, 'x07 GMAO D-14');
+await svc(`select platform.ccp_record_billing_shadow_comparison($1, $2, $3, $4, 'x07 D-14', $5::uuid)`, [TEN, PERIOD, maGreen.mismatches, maGreen.reportChecksum, maGreen.id]);
+check('D14.B3 MasterAdmin calcula la comparación del dataset: diff material 0 (plan + soporte, al centavo) y GMAO la registra con su id y checksum',
+  maGreen.mismatches === 0 && maGreen.green === true && /^sha256:[0-9a-f]{64}$/.test(maGreen.reportChecksum) && localLines.length === GC.masteradmin.items.length,
+  `mismatches=${maGreen.mismatches} ${maGreen.reportChecksum} MA=${maGreen.expectedTotal} local=${maGreen.localTotal}`);
+const maInvoices = () => Number(maSql(`select count(distinct i.id) from platform.invoices i left join platform.invoice_lines l on l.invoice_id = i.id where i.subscription_id = ${lit(maGm.subscriptionId)} or l.tenant_id = ${lit(maTen)}`));
+check('D14.B4 BILLING_SHADOW: MasterAdmin no emitió ninguna factura para el tenant SANDBOX', maInvoices() === 0);
+// D-14 regla 5: la facturación NO avanza a MASTERADMIN_AUTHORITY en esta corrida (ni de forma transitoria).
+// La guarda "nunca dos cobradores" en MASTERADMIN_AUTHORITY (charge 409 sin pasarela, triggers de pagos/
+// facturas) la certifican run_ccp16_tests / run_ccp18_tests y deno test de GMAO.
+const billingFinal = (await svc<{ s: string }>(`select platform.ccp_billing_authority($1) as s`, [TEN]))[0].s;
+check('21b. D-14 regla 5: el eje de cobro queda en SHADOW (nunca MASTERADMIN_AUTHORITY en esta corrida)', billingFinal === 'SHADOW');
 
 // ── Escenario: hub GMAO → MasterAdmin (export, mapeo, paridad, atestación, congelamiento) ─
 const hubCtx = JSON.parse(readFileSync('supabase/functions/_shared/entitlements/hub/fixtures/hub-context.synthetic.json', 'utf8')) as {
@@ -409,6 +526,97 @@ check('28. el hub sigue sirviendo el export (lectura) con el producto congelado;
 await auth('hub:ecommerce', 'ENTITLEMENTS', null, 'SHADOW');
 check('29. rollback de un paso (MASTERADMIN_AUTHORITY → SHADOW) descongela al instante',
   !(await failsWith(() => svc(`select platform.hub_set_addon($1, $2, false)`, [CO, EC1]), /./)));
+
+// ── D14 · entitlements → MASTERADMIN_AUTHORITY también a nivel PRODUCTO (DEV/LOCAL), sin rollback ─
+// Los tenants sin alta de MasterAdmin resuelven SIEMPRE LEGACY_AUTHORITY (private.ccp_authority), así que
+// el ámbito PRODUCT no cambia a ningún tenant legacy; la guarda exige paridad verde de TODOS los mapeados.
+// Tenant legacy SIN alta de MasterAdmin (como los tenants previos a MasterAdmin): IA legacy activa.
+const LEG = '9f160000-0000-4000-8000-0000000000f0';
+const LEG_OWNER = 'aaaaaaa9-0000-4000-8000-0000000000f0';
+await db.exec(`insert into platform.tenants (id, name) values ('${LEG}', 'X07 GMAO legacy (sin alta de MasterAdmin)');
+  insert into platform.tenant_users (tenant_id, auth_user_id, email, role) values ('${LEG}', '${LEG_OWNER}', 'owner@legacy.x07.ebim.test', 'owner');`);
+await svc(`select platform.ccp_set_ai_entitlement($1, true, 'active', null, 50, 'x07', 'tenant legacy del harness')`, [LEG]);
+const aiLegacy = async () => (await asRole<{ r: Row }>('test_user', `select public.ai_consume('report', 1) as r`, [], LEG_OWNER))[0].r;
+const legBefore = await aiLegacy();
+const unmapped = (await db.query<{ id: string; name: string }>(`select t.id, t.name from platform.tenants t
+   where not exists (select 1 from platform.provisioning_requests r where r.internal_tenant_id = t.id and r.status = 'ACTIVE') order by t.name`)).rows;
+const unmappedBefore = await Promise.all(unmapped.map(async (t) => (await db.query<{ a: string }>(`select private.ccp_authority('gmao', 'ENTITLEMENTS', $1) as a`, [t.id])).rows[0].a));
+const d14Transitions: string[] = [];
+for (const to of ['SHADOW', 'MASTERADMIN_AUTHORITY']) {
+  const r = (await auth('gmao', 'ENTITLEMENTS', null, to, null, D14_REASON))[0].r as Row;
+  d14Transitions.push(`PRODUCT:${r.from}->${r.to}`);
+}
+const productState = (await db.query<{ s: string }>(`select state as s from private.commercial_authority where scope_key = 'gmao:ENTITLEMENTS:*'`)).rows[0].s;
+check('D14.1 PRODUCT gmao/ENTITLEMENTS → MASTERADMIN_AUTHORITY un paso por vez con la guarda de paridad de toda la cohorte',
+  productState === 'MASTERADMIN_AUTHORITY', d14Transitions.join(','));
+const unmappedAfter = await Promise.all(unmapped.map(async (t) => (await db.query<{ a: string }>(`select private.ccp_authority('gmao', 'ENTITLEMENTS', $1) as a`, [t.id])).rows[0].a));
+const legAfter = await aiLegacy();
+check('D14.2 tenants sin alta de MasterAdmin: siguen LEGACY_AUTHORITY con PRODUCT en MASTERADMIN_AUTHORITY (su IA legacy 50/mes intacta)',
+  unmapped.length >= 1 && unmappedAfter.every((a) => a === 'LEGACY_AUTHORITY') && unmappedBefore.join() === unmappedAfter.join()
+    && legBefore.allowed === true && legAfter.allowed === true && legAfter.quota === 50, `${unmapped.length} sin alta`);
+
+// appActive=false retira lo comercial, no la operación (regla 2). D-03 sigue sin decidir: sin asignación IA.
+const v4 = await emit(4, ['gmao.ai.assist']);
+await client.pushSnapshot(ctx(), v4, actor);
+const grantsAi = async () => (await db.query<{ g: boolean }>(`select private.gmao_snapshot_grants(snapshot, 'gmao.ai.assist') as g from private.gmao_entitlement_snapshot_applied where tenant_id = $1`, [TEN])).rows[0].g;
+const aiOn = await grantsAi();
+const v5 = await emit(5, ['gmao.ai.assist'], { appActive: false });
+const p5 = await client.pushSnapshot(ctx(), v5, actor);
+const a5 = await ai();
+const coreOn = (await db.query<{ g: boolean }>(`select private.gmao_snapshot_grants(snapshot, 'gmao.core') as g from private.gmao_entitlement_snapshot_applied where tenant_id = $1`, [TEN])).rows[0].g;
+const wo = await asRole<{ t: string }>('test_user', `insert into public.work_orders (title) values ('OT X-07 con appActive=false') returning tenant_id as t`, [], OWNER);
+const par5 = await parity();
+const commercialDenied = aiOn === true && p5.result === 'APPLIED' && (await grantsAi()) === false && a5.allowed === false && a5.reason === 'DISABLED';
+const operationalContinues = coreOn === true && wo[0]?.t === TEN
+  && par5.some((p) => p.kind === 'APP_ACTIVE_MISMATCH' && p.severity === 'WARNING') && par5.every((p) => p.severity !== 'BLOCKING');
+check('D14.3 appActive=false: gmao.ai.assist negado (IA DISABLED) y la operación sigue (gmao.core, OT creada; paridad solo WARNING)',
+  commercialDenied && operationalContinues, `ai=${JSON.stringify(a5)} parity=${par5.map((p) => `${p.kind}:${p.severity}`).join(',')}`);
+const v6 = await emit(6, []);
+const p6 = await client.pushSnapshot(ctx(), v6, actor);
+const g6 = await client.getApplied(ctx(), actor);
+check('D14.4 GET final: PRIMARY con la versión y el checksum del último deseado (v6, appActive=true)',
+  p6.result === 'APPLIED' && g6.result === 'OBSERVED' && g6.enforcementMode === 'PRIMARY' && g6.appliedVersion === 6 && g6.appliedChecksum === v6.checksum,
+  `${g6.enforcementMode} v${g6.appliedVersion}`);
+const legacyBlocked = await failsWith(() => svc(`select platform.ccp_set_ai_entitlement($1, true, 'active', null, 9999, 'x07', 'D-14 negativo')`, [TEN]), /LEGACY_WRITE_BLOCKED/);
+check('D14.5 estado final: la escritura comercial legacy (plan IA) queda BLOQUEADA en la base', legacyBlocked);
+const parFinal = await parity();
+const parityBlocking = parFinal.filter((p) => p.severity === 'BLOCKING').length;
+check('D14.6 paridad final sin BLOCKING', parityBlocking === 0, parFinal.map((p) => p.kind).join(',') || 'sin diferencias');
+const mapped = (await db.query<{ t: string; a: string }>(`select r.internal_tenant_id as t, private.ccp_authority('gmao', 'ENTITLEMENTS', r.internal_tenant_id) as a
+    from platform.provisioning_requests r where r.status = 'ACTIVE' and r.internal_tenant_id is not null`)).rows;
+const billingEnd = (await svc<{ s: string }>(`select platform.ccp_billing_authority($1) as s`, [TEN]))[0].s;
+check('D14.7 estado final sin rollback: ENTITLEMENTS MASTERADMIN_AUTHORITY (producto y cohorte), BILLING SHADOW; MasterAdmin sin facturas',
+  mapped.length >= 1 && mapped.every((m) => m.a === 'MASTERADMIN_AUTHORITY') && billingEnd === 'SHADOW' && maInvoices() === 0
+    && axisState(maGm.integrationId).billing === 'BILLING_SHADOW');
+
+const legacyTenants: LegacyTenant[] = unmapped.map((t) => ({ id: t.id, label: t.name, resolution: 'UNRESOLVED',
+  reason: 'tenant del harness GMAO sin provisioning de MasterAdmin (sin mapping determinista): sigue LEGACY_AUTHORITY' }));
+const d14: D14Evidence = {
+  product: 'gmao',
+  entitlements: {
+    scope: 'PRODUCT', productScopeMode: productState, finalMode: mapped.every((m) => m.a === 'MASTERADMIN_AUTHORITY') ? 'MASTERADMIN_AUTHORITY' : 'MIXED',
+    transitions: ['tenant:SHADOW->MASTERADMIN_AUTHORITY (paso 13)', ...d14Transitions],
+    mappedTenants: mapped.length, mappedTenantsPrimary: mapped.filter((m) => m.a === 'MASTERADMIN_AUTHORITY').length,
+    getVerified: { appliedVersion: g6.appliedVersion ?? -1, appliedChecksum: g6.appliedChecksum ?? '', enforcementMode: g6.enforcementMode ?? '', desiredChecksum: v6.checksum },
+    legacyWrite: { status: legacyBlocked ? 'BLOCKED' : 'NO_LEGACY_PATH', evidence: legacyBlocked ? 'platform.ccp_set_ai_entitlement → LEGACY_WRITE_BLOCKED (D14.5)' : '' },
+    parityBlocking,
+  },
+  appActiveFalse: { commercialDenied, operationalContinues,
+    evidence: 'v5 appActive=false: gmao.ai.assist no concedido, ai_consume DISABLED; gmao.core concedido, work_orders INSERT ok, APP_ACTIVE_MISMATCH WARNING (D14.3)' },
+  legacyTenants,
+  billing: {
+    authority: billingEnd === 'SHADOW' ? 'BILLING_SHADOW' : billingEnd,
+    comparison: { computedBy: 'masteradmin', mismatches: maGreen.mismatches, reportChecksum: maGreen.reportChecksum,
+      negativeDetected: maRed.mismatches > 0, period: PERIOD },
+    gatewayCalls: shadowGatewayCalls,
+    duplicateCharge: !(maInvoices() === 0 && gateway.calls === callsBeforeShadow + shadowGatewayCalls),
+    masteradminAuthorityReached: false,
+  },
+  checks: countChecks(results),
+};
+const file = writeD14Evidence({ ...d14, checks: countChecks(results) });
+console.log(file ? `evidencia D14: ${file}` : 'evidencia D14: sin CCP_EVIDENCE_DIR, no se escribe');
+console.log(`D14 GMAO · comparación MasterAdmin: mismatches=${maGreen.mismatches} ${maGreen.reportChecksum} · negativo=${maRed.mismatches} ${maRed.reportChecksum}`);
 
 const failed = results.filter((r) => r.startsWith('FAIL')).length;
 console.log(`\nX-07 GMAO: ${results.length - failed}/${results.length} PASS`);

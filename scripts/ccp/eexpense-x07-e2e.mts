@@ -17,13 +17,22 @@
  * `commercialParity.ts`) y el eje de facturación (`billing-run/core.ts` con pasarelas FALSAS que
  * cuentan) se ejercitan contra esa base.
  *
- * El tenant se da de alta con la RPC de provisioning REAL de eExpense y se borra al final. Sin red
- * externa, sin pasarelas reales, sin proyectos remotos. No imprime claves ni tokens.
+ * El tenant se da de alta con la RPC de provisioning REAL de eExpense. Sin red externa, sin pasarelas
+ * reales, sin proyectos remotos. No imprime claves ni tokens.
+ *
+ * Fase 18 · D-14 (DEV/LOCAL): la fase final D14 NO se revierte y el tenant NO se borra al final (se
+ * limpia al empezar, para poder repetir). Entitlements → PRIMARY (PRODUCT + tenant; los tenants sin
+ * alta siguen LEGACY), facturación → SHADOW con el dataset SINTÉTICO `fixtures/d14-billing-cert.json`
+ * (plan de certificación propio en la base desechable + suscripción SANDBOX en MasterAdmin LOCAL (regla §2.2: DEMO no admite contrato recurrente activo; SANDBOX es no productivo y no facturable por uso, INV-7),
+ * SUPABASE_DB_URL). La comparación la calcula MasterAdmin (`platform.record_billing_shadow_comparison`)
+ * y eExpense guarda ese resultado (`eexpense_record_masteradmin_billing_comparison`), nunca un literal.
  */
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { execFileSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { advanceAxis, axisState, ensureCcpIntegration, FINANCE, maDbUrl, maSql } from './d14-masteradmin.mts';
+import { countChecks, D14_REASON, writeD14Evidence, type D14Evidence, type LegacyTenant } from './d14-evidence.mts';
 import { EntitlementSyncClient, type EntitlementDeliveryContext } from '../../supabase/functions/_shared/entitlements/sync-client.ts';
 import { buildSnapshot } from '../../supabase/functions/_shared/entitlements/snapshot.ts';
 import type { EntitlementSnapshot, GrantedCapability, RegistryCapability } from '../../supabase/functions/_shared/entitlements/types.ts';
@@ -36,6 +45,11 @@ if (!WT.endsWith('/eExpenses/.worktrees/ebim-commercial-control-plane-v1')) {
 const container = process.env.EEXPENSE_DB_CONTAINER ?? '';
 if (!/^supabase_db_eexpense-ccp/.test(container)) {
   console.error('HARD STOP: EEXPENSE_DB_CONTAINER debe nombrar el contenedor LOCAL desechable (supabase_db_eexpense-ccp*)');
+  process.exit(2);
+}
+
+try { maDbUrl(); } catch (e) {
+  console.error(String((e as Error).message), '(la fase D14 compara contra MasterAdmin LOCAL: SUPABASE_DB_URL=postgresql://postgres:postgres@127.0.0.1:54422/postgres)');
   process.exit(2);
 }
 
@@ -112,11 +126,19 @@ const publicKeyB64 = Buffer.from(`-----BEGIN PUBLIC KEY-----\n${spki}\n-----END 
 const CPT = '9f150000-0000-4000-8000-000000000001';
 const TEN = '9f150000-0000-4000-8000-0000000000aa';
 const CO = '9f150000-0000-4000-8000-0000000000cc';
-const cleanup = () => psql(`
+// Limpieza AL EMPEZAR (la fase D14 deja su estado final a propósito). Si una corrida anterior dejó el
+// PRODUCT en PRIMARY, se rebobina con la misma RPC gobernada (un paso por vez, con motivo).
+const productMode = () => psql(`select mode from private.platform_entitlement_enforcement_mode where scope_key = 'PRODUCT'`);
+for (const back of ['DUAL_READ', 'SHADOW']) {
+  const cur = productMode();
+  if (cur === 'PRIMARY' || (cur === 'DUAL_READ' && back === 'SHADOW')) {
+    svcSql(`select public.platform_set_entitlement_enforcement_mode('PRODUCT', '${back}', 'x07: preparar corrida repetida (D-14)')`);
+  }
+}
+psql(`
   delete from private.platform_entitlement_enforcement_mode where scope_key = '${CPT}';
   delete from private.platform_provisioning_requests where control_plane_tenant_id = '${CPT}';
   delete from public.tenants where id = '${TEN}';`);
-cleanup();
 const alta = svcSql(`select public.platform_provision_tenant(${literal({
   controlPlaneTenantId: CPT,
   tenant: { id: TEN, slug: 'x07-eexpense', name: 'X07 eExpense', legalName: 'X07 eExpense S.A.C.', taxId: '20999999991',
@@ -180,7 +202,7 @@ const server = createServer(async (req: IncomingMessage, res: ServerResponse) =>
   res.end(await response.text());
 });
 await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-const port = (server.address() as { port: number }).port;
+let port = (server.address() as { port: number }).port;
 
 // ── MasterAdmin: contexto de entrega (lo que leería de product_integrations) ─
 const SECRET_REF = 'LOCAL_X07_EEXPENSE_M2M_PRIVATE_KEY';
@@ -261,7 +283,8 @@ async function billingRun(period: string) {
     from public.invoices where tenant_id = '${TEN}' and period = '${period}'`)) as Row[];
   return exBilling.runBilling({
     period, cfg: { enabled: true, mode: 'auto', provider: 'culqi', secret_key: 'x07-fake', currency: 'USD' }, plans,
-    tenants: [{ id: TEN, name: 'X07', plan: 'pro', billing_mode: 'live' }], tenantAddons,
+    tenants: JSON.parse(psql(`select json_agg(json_build_object('id', id, 'name', name, 'plan', plan, 'billing_mode', 'live'))
+                               from public.tenants where id = '${TEN}'`)) as Row[], tenantAddons,
     paymentMethods: [{ tenant_id: TEN, card_token: 'tok_x07_fake' }], existing, authorities,
   }, {
     insertInvoice: async (row: Row) => {
@@ -368,15 +391,11 @@ const run2 = await billingRun('2026-10');
 const shadowOk = psql(`select paridad from private.billing_shadow_runs where tenant_id = '${TEN}' order by id desc limit 1`);
 check('20. modelo local = MasterAdmin (paridad) y la corrida SHADOW nueva cuadra ítem por ítem',
   par2[0].paridad === true && run2.shadow === 1 && shadowOk === 't' && gateway.calls === 0, JSON.stringify(par2[0].diferencias));
-const toMa = JSON.parse(svcSql(`select public.eexpense_set_billing_authority('${TEN}', 'MASTERADMIN_AUTHORITY', 'x07 paridad DEV verde')`)) as Row;
-const run3 = await billingRun('2026-10');
-check('21. MASTERADMIN_AUTHORITY con paridad DEV verde: el biller local ya no factura ni cobra (nunca dos cobradores)',
-  toMa.to === 'MASTERADMIN_AUTHORITY' && run3.external === 1 && run3.generated === 0 && gateway.calls === 0
-    && failsWith(() => psql(`insert into public.invoices (tenant_id, period, amount) values ('${TEN}', '2026-11', 1)`),
-      /BILLING_NOT_LOCAL_AUTHORITY/), JSON.stringify(run3));
-svcSql(`select public.eexpense_set_billing_authority('${TEN}', 'SHADOW', 'x07 rollback')`);
+check('21. D-14: con la paridad local verde, MASTERADMIN_AUTHORITY sigue bloqueado sin la comparación calculada por MasterAdmin',
+  failsWith(() => svcSql(`select public.eexpense_set_billing_authority('${TEN}', 'MASTERADMIN_AUTHORITY', 'x07')`),
+    /BILLING_AUTHORITY_BLOCKED: MASTERADMIN_COMPARISON_MISSING/));
 svcSql(`select public.eexpense_set_billing_authority('${TEN}', 'LEGACY_AUTHORITY', 'x07 rollback')`);
-check('22. rollback del eje de facturación a LEGACY_AUTHORITY (un paso por vez)',
+check('22. rollback del eje de facturación a LEGACY_AUTHORITY (un paso)',
   psql(`select state from private.billing_authority where tenant_id = '${TEN}'`) === 'LEGACY_AUTHORITY');
 
 // SaaS caído: MasterAdmin reintenta después; eExpense sigue con su last-good.
@@ -397,16 +416,220 @@ const p3 = await rpc.rpc('platform_apply_entitlements', {
   p_control_plane_tenant_id: CPT, p_snapshot: v3,
   p_meta: { correlationId: 'x07-v3', m2mSubject: 'masteradmin-provisioning', m2mJti: 'x07-v3' },
 });
-check('26. v3 appActive=false: conciliación, fraude y hasta los incluidos quedan retirados',
-  (p3.data as { httpStatus?: number } | null)?.httpStatus === 200 && !has(CONCILIA) && !has(FRAUDE) && !has('eexpense.ai_capture'));
+check('26. v3 appActive=false (D-14 regla 2): conciliación y fraude retirados; el baseline (ai_capture) y el núcleo siguen',
+  (p3.data as { httpStatus?: number } | null)?.httpStatus === 200 && !has(CONCILIA) && !has(FRAUDE) && has('eexpense.ai_capture')
+    && has('eexpense.cfo_insights'));
 
 // Volver a SHADOW: decide legacy otra vez (sin nada que restaurar: el snapshot no se materializa).
 svcSql(`select public.platform_set_entitlement_enforcement_mode('${CPT}', 'DUAL_READ', 'x07 rollback')`);
 svcSql(`select public.platform_set_entitlement_enforcement_mode('${CPT}', 'SHADOW', 'x07 rollback')`);
 check('27. rollback PRIMARY → DUAL_READ → SHADOW: legacy intacto (fraude sí por tenant_addons)', has(FRAUDE) && has(CONCILIA));
 
-cleanup();
-check('28. limpieza: el tenant X-07 no queda en la base desechable (el outbox es historia inmutable y se conserva)',
-  psql(`select count(*) from public.tenants where id = '${TEN}'`) === '0');
+// ── D14 · estado final gobernado (DEV/LOCAL), SIN rollback ───────────────────
+const CERT = JSON.parse(readFileSync(new URL('./fixtures/d14-billing-cert.json', import.meta.url), 'utf8'));
+const EC = CERT.products.eexpense;
+const PERIOD: string = CERT.period;
+const lit = (v: string) => `'${v.replace(/'/g, "''")}'`;
+const CERT_PLAN: string = EC.local.plan.code;
+await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+port = (server.address() as { port: number }).port;
+
+// a. Biller local configurado con el dataset SINTÉTICO: plan propio de certificación (base desechable; los planes
+//    reales no se tocan) y ningún add-on premium activo. En SHADOW de entitlements la escritura legacy se permite.
+psql(`insert into public.plans (code, name, monthly_price, currency) values (${lit(CERT_PLAN)}, ${lit(EC.local.plan.name)},
+        ${Number(EC.local.plan.monthlyPrice)}, ${lit(EC.local.plan.currency)}) on conflict (code) do nothing`);
+const certPlanRow = psql(`select monthly_price || '|' || currency from public.plans where code = ${lit(CERT_PLAN)}`);
+psql(`update public.tenants set plan = ${lit(CERT_PLAN)} where id = '${TEN}';
+      update public.tenant_addons set enabled = false where tenant_id = '${TEN}' and enabled;`);
+const v4 = await emit(4, [], true, CERT_PLAN);
+const p4 = await client.pushSnapshot(ctx(), v4, actor);
+const parD14 = JSON.parse(svcSql(`select public.eexpense_paridad_comercial('${TEN}')`)) as Row[];
+check('D14.1 dataset sintético en la base desechable (plan de certificación) + v4 (plan de certificación, sin vendibles) → paridad verde',
+  certPlanRow === `${Number(EC.local.plan.monthlyPrice).toFixed(2)}|${EC.local.plan.currency}` && p4.result === 'APPLIED' && parD14[0].paridad === true,
+  JSON.stringify(parD14[0].diferencias));
+
+// b. Legacy sin mapping (seed `demo` y cualquier otro): su decisión NO cambia con PRODUCT=PRIMARY.
+const unmapped = JSON.parse(psql(`select coalesce(json_agg(json_build_object('id', t.id, 'slug', t.slug) order by t.slug), '[]')
+  from public.tenants t where not exists (select 1 from private.platform_provisioning_requests r
+                                           where r.external_tenant_id = t.id and r.status = 'ACTIVE')`)) as { id: string; slug: string }[];
+const PROBE = [CONCILIA, FRAUDE, COPILOTO, 'eexpense.white_label', 'eexpense.ai_capture', 'eexpense.cfo_insights'];
+const decisions = (tid: string) => PROBE.map((c) => {
+  const d = JSON.parse(svcSql(`select public.eexpense_capacidad_activa('${tid}', '${c}')`)) as { allowed: boolean; mode: string };
+  return `${c}=${d.allowed}/${d.mode}`;
+}).join(',');
+const legacyBefore = unmapped.map((t) => decisions(t.id));
+
+// c. Transición gobernada: PRODUCT y el tenant, SHADOW → DUAL_READ → PRIMARY, un paso por vez con motivo D-14.
+const d14Transitions: string[] = [];
+for (const scope of ['PRODUCT', CPT]) {
+  for (const to of ['DUAL_READ', 'PRIMARY']) {
+    const r = JSON.parse(svcSql(`select public.platform_set_entitlement_enforcement_mode('${scope}', '${to}', ${lit(D14_REASON)})`)) as Row;
+    d14Transitions.push(`${scope === 'PRODUCT' ? 'PRODUCT' : 'tenant'}:${r.from}->${r.to}`);
+  }
+}
+const legacyAfter = unmapped.map((t) => decisions(t.id));
+check('D14.2 PRODUCT y tenant → PRIMARY (un paso por vez); los tenants sin alta siguen LEGACY con la misma decisión',
+  productMode() === 'PRIMARY' && unmapped.length >= 1 && legacyBefore.join(';') === legacyAfter.join(';')
+    && legacyAfter.every((d) => d.split(',').every((x) => x.endsWith('/LEGACY'))),
+  `${d14Transitions.join(',')} · sin alta: ${unmapped.map((t) => t.slug).join(',')}`);
+const legacyBlocked = failsWith(() => psql(`insert into public.tenant_addons (tenant_id, addon_id, enabled)
+                                            select '${TEN}', id, true from public.addons where code = 'ai_close'`), /LEGACY_WRITE_BLOCKED/);
+check('D14.3 PRIMARY: la escritura legacy de add-ons (tenant_addons) queda bloqueada en servidor', legacyBlocked);
+
+// d. Facturación → SHADOW y corrida REAL del biller local (pasarelas falsas): calcula, no factura ni cobra.
+svcSql(`select public.eexpense_set_billing_authority('${TEN}', 'SHADOW', ${lit(D14_REASON)})`);
+const callsBefore = gateway.calls;
+const runD14 = await billingRun(PERIOD);
+const lastRun = JSON.parse(psql(`select json_build_object('paridad', paridad, 'local', local_run) from private.billing_shadow_runs
+                                 where tenant_id = '${TEN}' order by id desc limit 1`)) as { paridad: boolean; local: { planCode: string; addons: string[]; currency: string; lines: { concepto: string; monto: number }[] } };
+check('D14.4 BILLING SHADOW: el biller local calcula el período sintético (paridad de ítems) sin factura ni pasarela',
+  runD14.shadow === 1 && runD14.generated === 0 && gateway.calls === callsBefore && lastRun.paridad === true
+    && psql(`select count(*) from public.invoices where tenant_id = '${TEN}' and period = ${lit(PERIOD)}`) === '0', JSON.stringify(runD14));
+
+// e. MasterAdmin LOCAL: tenant SANDBOX + plan + suscripción ACTIVE del dataset; eje de facturación en BILLING_SHADOW.
+type MaCmp = { id: string; mismatches: number; green: boolean; reportChecksum: string; expectedTotal: number; localTotal: number; periodStart: string; diffs: unknown[] };
+function maCertSetup(product: string): { subscriptionId: string; transitions: string[]; integrationId: string } {
+  const f = CERT.products[product].masteradmin;
+  const org = CERT.masteradmin.customerOrganizationId;
+  const meta = `'{"certification":"D-14","synthetic":true,"nonBillable":true}'::jsonb`;
+  maSql(`insert into platform.plans (id, code, name, saas_product_id, description, metadata)
+         select ${lit(f.plan.id)}, ${lit(f.plan.code)}, ${lit(f.plan.name)}, p.id, 'Plan SINTÉTICO de certificación D-14 (DEV/LOCAL)', ${meta}
+           from platform.saas_products p where p.code = ${lit(product)}
+         on conflict do nothing`);
+  maSql(`insert into platform.tenants (id, slug, name, saas_product_id, customer_organization_id, tenant_type, admin_email, metadata)
+         select ${lit(f.tenant.id)}, ${lit(f.tenant.slug)}, ${lit(f.tenant.name)}, p.id, ${lit(org)}, 'SANDBOX', ${lit(f.tenant.adminEmail)}, ${meta}
+           from platform.saas_products p where p.code = ${lit(product)}
+         on conflict do nothing`);
+  maSql(`insert into platform.subscriptions (id, code, billed_organization_id, saas_product_id, tenant_id, plan_id, market_id, status,
+           billing_interval, currency, quantity, started_on, notes, metadata)
+         select ${lit(f.subscription.id)}, ${lit(f.subscription.code)}, ${lit(org)}, p.id, ${lit(f.tenant.id)}, ${lit(f.plan.id)},
+                (select id from platform.markets where code = ${lit(CERT.masteradmin.market)}), 'ACTIVE', 'MONTHLY',
+                ${lit(CERT.products[product].currency)}, 1, ${lit(f.subscription.startedOn)}::date, 'Certificación D-14 (sintético, SANDBOX, no facturable)', ${meta}
+           from platform.saas_products p where p.code = ${lit(product)}
+         on conflict do nothing`);
+  const ok = maSql(`select count(*) from platform.subscriptions s join platform.tenants t on t.id = s.tenant_id join platform.plans pl on pl.id = s.plan_id
+                     where s.id = ${lit(f.subscription.id)} and s.status = 'ACTIVE' and t.id = ${lit(f.tenant.id)} and t.tenant_type = 'SANDBOX'
+                       and pl.code = ${lit(f.plan.code)}`);
+  if (ok !== '1') throw new Error(`dataset D-14 de ${product}: suscripción/tenant/plan de MasterAdmin no coinciden con el fixture`);
+  const want = f.items.map((i: Row) => [i.chargeKind, Number(i.quantity).toFixed(2), Number(i.unitAmount).toFixed(2), CERT.products[product].currency,
+    i.billingInterval, i.catalogItemCode ?? '', i.validFrom, ''].join('|')).sort().join(';');
+  const have = maSql(`select coalesce(string_agg(concat_ws('|', charge_kind, quantity, unit_amount, currency, billing_interval,
+                        coalesce(catalog_item_code, ''), valid_from, coalesce(valid_to::text, '')), ';' order by 1), '')
+                        from (select charge_kind::text, quantity, unit_amount, currency, billing_interval::text, catalog_item_code, valid_from, valid_to
+                                from platform.subscription_items where subscription_id = ${lit(f.subscription.id)}) x`);
+  const haveSorted = have ? have.split(';').sort().join(';') : '';
+  if (haveSorted !== want) {
+    if (maSql(`select count(*) from platform.invoices where subscription_id = ${lit(f.subscription.id)}`) !== '0') {
+      throw new Error(`dataset D-14 de ${product}: la suscripción SANDBOX tiene facturas; no se reescriben sus líneas`);
+    }
+    maSql(`delete from platform.subscription_items where subscription_id = ${lit(f.subscription.id)}`);
+    for (const i of f.items) {
+      maSql(`select platform.upsert_subscription_item(${lit(f.subscription.id)}, ${lit(i.chargeKind)}::platform.charge_kind, ${lit(i.description)},
+               ${Number(i.quantity)}, ${Number(i.unitAmount)}, ${lit(i.billingInterval)}::platform.billing_interval, ${lit(CERT.products[product].currency)},
+               null, ${i.catalogItemCode ? lit(i.catalogItemCode) : 'null'}, ${lit(i.validFrom)}::date)`, { user: FINANCE });
+    }
+  }
+  const integrationId = ensureCcpIntegration(product);
+  const transitions = advanceAxis(integrationId, 'BILLING', 'BILLING_SHADOW', D14_REASON);
+  return { subscriptionId: f.subscription.id, transitions, integrationId };
+}
+function maCompare(product: string, tenantId: string, local: Row, actorName: string): MaCmp {
+  return JSON.parse(maSql(`select platform.record_billing_shadow_comparison(${lit(product)}, ${lit(tenantId)}::uuid, ${lit(`${PERIOD}-01`)}::date,
+    ${lit(JSON.stringify(local))}::jsonb, ${lit(actorName)})`, { service: true })) as MaCmp;
+}
+const maEx = maCertSetup('eexpense');
+check('D14.5 MasterAdmin LOCAL: tenant SANDBOX + plan + suscripción ACTIVE sintéticos; eje de facturación en BILLING_SHADOW',
+  axisState(maEx.integrationId).billing === 'BILLING_SHADOW', maEx.transitions.join(',') || 'ya en BILLING_SHADOW');
+
+// f. Lo que calculó el biller local (su corrida SHADOW guardada), traducido con el mapeo del fixture.
+const [planLine, ...addonLines] = lastRun.local.lines;
+const localLines = [
+  { itemCode: EC.itemMap[`plan:${lastRun.local.planCode}`] ?? `local:plan:${lastRun.local.planCode}`, quantity: 1, amount: Number(planLine.monto) },
+  ...addonLines.map((l, i) => ({ itemCode: `local:addon-line-${i + 1}`, quantity: 1, amount: Number(l.monto) })),
+];
+const local = { source: 'eexpense.billing-run.shadow', currency: lastRun.local.currency, lines: localLines };
+const maTen: string = EC.masteradmin.tenant.id;
+const recordEx = (c: MaCmp) => svcSql(`select public.eexpense_record_masteradmin_billing_comparison('${TEN}', ${lit(PERIOD)},
+  ${literal(c)}::jsonb, 'x07 eExpense D-14')`);
+// Negativo: una línea local +0.01 → MasterAdmin la detecta; eExpense la guarda y NO la toma por verde.
+const maRed = maCompare('eexpense', maTen, { ...local, lines: localLines.map((l, i) => (i === 0 ? { ...l, amount: Math.round((l.amount + 0.01) * 100) / 100 } : l)) },
+  'x07 eExpense D-14 (negativo)');
+recordEx(maRed);
+check('D14.6 negativo: +0.01 en la línea del plan → MasterAdmin cuenta la diferencia y eExpense NO habilita MASTERADMIN_AUTHORITY',
+  maRed.mismatches > 0 && maRed.green === false
+    && failsWith(() => svcSql(`select public.eexpense_set_billing_authority('${TEN}', 'MASTERADMIN_AUTHORITY', 'x07')`), /MASTERADMIN_COMPARISON_NOT_GREEN/),
+  `${maRed.mismatches} · ${JSON.stringify(maRed.diffs)}`);
+const maGreen = maCompare('eexpense', maTen, local, 'x07 eExpense D-14');
+recordEx(maGreen);
+check('D14.7 MasterAdmin calcula la comparación del dataset: diff material 0 (al centavo) y eExpense la guarda con su id y checksum',
+  maGreen.mismatches === 0 && maGreen.green === true && /^sha256:[0-9a-f]{64}$/.test(maGreen.reportChecksum)
+    && psql(`select report_checksum from private.billing_masteradmin_comparisons where tenant_id = '${TEN}' order by id desc limit 1`) === maGreen.reportChecksum,
+  `mismatches=${maGreen.mismatches} ${maGreen.reportChecksum} MA=${maGreen.expectedTotal} local=${maGreen.localTotal}`);
+const maInvoices = () => Number(maSql(`select count(distinct i.id) from platform.invoices i left join platform.invoice_lines l on l.invoice_id = i.id where i.subscription_id = ${lit(maEx.subscriptionId)} or l.tenant_id = ${lit(maTen)}`));
+
+// g. D-14 regla 5: la facturación NO avanza a MASTERADMIN_AUTHORITY en esta corrida (ni de forma transitoria).
+//    La guarda "nunca dos cobradores" en MASTERADMIN_AUTHORITY la certifican las suites SQL de eExpense
+//    (ccp_billing_authority_test, ccp_d14_masteradmin_billing_test) en su propia base desechable.
+const billingEnd = psql(`select state from private.billing_authority where tenant_id = '${TEN}'`);
+check('D14.9 D-14 regla 5: facturación final SHADOW; 0 facturas locales del período, 0 llamadas a pasarela y 0 facturas de MasterAdmin',
+  billingEnd === 'SHADOW' && gateway.calls === callsBefore && maInvoices() === 0
+    && psql(`select count(*) from public.invoices where tenant_id = '${TEN}' and period = ${lit(PERIOD)}`) === '0');
+
+// h. appActive=false (regla 2) en PRIMARY: se retira lo comercial, la operación sigue; luego el deseado final.
+const v5 = await emit(5, [CONCILIA], true, CERT_PLAN);
+await client.pushSnapshot(ctx(), v5, actor);
+const conciliaOn = has(CONCILIA);
+const v6 = await emit(6, [CONCILIA], false, CERT_PLAN);
+const p6 = await client.pushSnapshot(ctx(), v6, actor);
+const par6 = JSON.parse(svcSql(`select public.eexpense_paridad_comercial('${TEN}')`)) as { diferencias: { tipo: string; severidad: string }[] }[];
+const commercialDenied = conciliaOn && p6.result === 'APPLIED' && !has(CONCILIA) && !has(FRAUDE) && !has(COPILOTO);
+const operationalContinues = has('eexpense.ai_capture') && has('eexpense.cfo_insights')
+  && psql(`select coalesce(status, 'active') from public.tenants where id = '${TEN}'`) === 'active'
+  && par6[0].diferencias.some((d) => d.tipo === 'APP_INACTIVE_LOCAL_ACTIVE' && d.severidad === 'WARNING');
+check('D14.10 appActive=false: conciliación (vendible) negada; baseline ai_capture y núcleo cfo_insights siguen; tenant activo; paridad solo WARNING por eso',
+  commercialDenied && operationalContinues, JSON.stringify(par6[0].diferencias));
+const v7 = await emit(7, [], true, CERT_PLAN);
+const p7 = await client.pushSnapshot(ctx(), v7, actor);
+const g7 = await client.getApplied(ctx(), actor);
+check('D14.11 GET final: PRIMARY con la versión y el checksum del último deseado (v7, appActive=true)',
+  p7.result === 'APPLIED' && g7.result === 'OBSERVED' && g7.enforcementMode === 'PRIMARY' && g7.appliedVersion === 7 && g7.appliedChecksum === v7.checksum,
+  `${g7.enforcementMode} v${g7.appliedVersion}`);
+const parFinal = JSON.parse(svcSql(`select public.eexpense_paridad_comercial('${TEN}')`)) as { diferencias: { severidad: string; tipo: string }[] }[];
+const parityBlocking = parFinal[0].diferencias.filter((d) => d.severidad === 'BLOCKING').length;
+const cohort = psql(`select count(*) || '|' || count(*) filter (where private.platform_entitlement_mode_for(r.control_plane_tenant_id) = 'PRIMARY')
+                       from private.platform_provisioning_requests r join public.tenants t on t.id = r.external_tenant_id where r.status = 'ACTIVE'`).split('|').map(Number);
+check('D14.12 estado final sin rollback: PRODUCT y cohorte en PRIMARY, paridad sin BLOCKING, facturación SHADOW, el tenant se conserva',
+  productMode() === 'PRIMARY' && cohort[0] >= 1 && cohort[1] === cohort[0] && parityBlocking === 0 && billingEnd === 'SHADOW'
+    && psql(`select count(*) from public.tenants where id = '${TEN}'`) === '1', `cohorte ${cohort[1]}/${cohort[0]}`);
+server.close();
+
+const legacyTenants: LegacyTenant[] = unmapped.map((t) => ({ id: t.id, label: t.slug, resolution: 'UNRESOLVED',
+  reason: t.slug === 'demo' ? 'seed `demo` de eExpense: sin evidencia de mapping con MasterAdmin (D-14 regla 4); sigue LEGACY'
+    : 'tenant sin alta de MasterAdmin en la base desechable: sin mapping determinista; sigue LEGACY' }));
+const d14: D14Evidence = {
+  product: 'eexpense',
+  entitlements: {
+    scope: 'PRODUCT', productScopeMode: productMode(), finalMode: 'PRIMARY', transitions: d14Transitions,
+    mappedTenants: cohort[0], mappedTenantsPrimary: cohort[1],
+    getVerified: { appliedVersion: g7.appliedVersion ?? -1, appliedChecksum: g7.appliedChecksum ?? '', enforcementMode: g7.enforcementMode ?? '', desiredChecksum: v7.checksum },
+    legacyWrite: { status: legacyBlocked ? 'BLOCKED' : 'NO_LEGACY_PATH', evidence: legacyBlocked ? 'tenant_addons INSERT → LEGACY_WRITE_BLOCKED (D14.3)' : '' },
+    parityBlocking,
+  },
+  appActiveFalse: { commercialDenied, operationalContinues,
+    evidence: 'v6 appActive=false: card_reconcile/fraud_vision/ai_copilot negados; ai_capture (baseline) y cfo_insights (núcleo) concedidos; tenants.status=active; APP_INACTIVE_LOCAL_ACTIVE WARNING (D14.10)' },
+  legacyTenants,
+  billing: {
+    authority: billingEnd === 'SHADOW' ? 'BILLING_SHADOW' : billingEnd,
+    comparison: { computedBy: 'masteradmin', mismatches: maGreen.mismatches, reportChecksum: maGreen.reportChecksum,
+      negativeDetected: maRed.mismatches > 0, period: PERIOD },
+    gatewayCalls: gateway.calls - callsBefore,
+    duplicateCharge: !(gateway.calls === callsBefore && maInvoices() === 0 && runD14.generated === 0),
+    masteradminAuthorityReached: false,
+  },
+  checks: countChecks(results),
+};
+const file = writeD14Evidence({ ...d14, checks: countChecks(results) });
+console.log(file ? `evidencia D14: ${file}` : 'evidencia D14: sin CCP_EVIDENCE_DIR, no se escribe');
+console.log(`D14 eExpense · comparación MasterAdmin: mismatches=${maGreen.mismatches} ${maGreen.reportChecksum} · negativo=${maRed.mismatches} ${maRed.reportChecksum}`);
 
 console.log(`\n${results.filter((r) => r.startsWith('PASS')).length}/${results.length} PASS`);
