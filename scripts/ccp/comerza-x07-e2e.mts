@@ -20,12 +20,24 @@
  * Sin stack Supabase, sin red externa, sin tocar ningún proyecto remoto. No
  * imprime claves ni tokens. El estado de MasterAdmin (sync_state) no se ejercita
  * aquí: lo cubrió el E2E de la fase 08 contra la base local real.
+ *
+ * Fase 18 · D-14 (DEV/LOCAL): alcance COHORT. El modo del PRODUCTO se queda en
+ * SHADOW porque las sociedades del seed sin alta de MasterAdmin lo heredan y
+ * PRIMARY les cortaría el agente IA que hoy tienen por `legacy_grant` (regla 4:
+ * no se inventa su contrato). Cada tenant MAPEADO avanza a PRIMARY un paso por
+ * vez con el motivo D-14 y NO se revierte. La fase D14 del final prueba
+ * appActive=false (retira lo comercial, no lo operativo), deja el tenant con un
+ * snapshot appActive=true, lo verifica por GET, prueba en ese estado que el
+ * camino legacy no concede nada y escribe `d14-comerza.json`. El tope del
+ * proveedor compartido (`operator.ai_provider_budget`) queda SIN fijar: número
+ * operativo no decidido y no es prerrequisito del cutover.
  */
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { readFileSync } from 'node:fs';
 import { EntitlementSyncClient, type EntitlementDeliveryContext } from '../../supabase/functions/_shared/entitlements/sync-client.ts';
 import { buildSnapshot } from '../../supabase/functions/_shared/entitlements/snapshot.ts';
 import type { EntitlementSnapshot, GrantedCapability, RegistryCapability } from '../../supabase/functions/_shared/entitlements/types.ts';
+import { D14_REASON, countChecks, writeD14Evidence, type LegacyTenant } from './d14-evidence.mts';
 
 const WT = process.env.COMERZA_WT ?? '';
 if (!WT.endsWith('/comerza/.worktrees/ebim-commercial-control-plane-v1')) {
@@ -98,6 +110,16 @@ const alta = await rpc.rpc('platform_provision_tenant', {
 });
 const outcome = (alta.data as { outcome?: string } | null)?.outcome;
 check('0. tenant aprovisionado por platform_provision_tenant', outcome === 'CREATED' || outcome === 'REPLAYED', outcome ?? alta.error?.message);
+
+// Sociedades SIN alta de MasterAdmin (seed y anteriores): siguen en legacy. Su decisión del
+// agente se toma ahora y se compara al final (D-14 no puede cambiarla).
+const AI_CODE = 'comerza.ai.whatsapp_agent';
+const UNMAPPED = `from public.companies c
+  where not exists (select 1 from operator.platform_provisionings p where p.internal_tenant_id = c.id and p.status = 'ACTIVE')`;
+const unmappedDecisions = () => czDb.psql(db, `select coalesce(string_agg(c.id || ':' || (d ->> 'mode') || ':' || (d ->> 'source') || ':' || (d ->> 'commercial'), ',' order by c.id), '')
+  from public.companies c cross join lateral (select operator.commercial_capability_decision(c.id, '${AI_CODE}') d) x
+  where c.id in (select c.id ${UNMAPPED})`);
+const unmappedBefore = unmappedDecisions();
 // Receptor vacío para este tenant (reejecutable sobre la misma base de trabajo).
 czDb.psql(db, `delete from operator.entitlement_snapshot_applied where control_plane_tenant_id = '${CPT}';
                delete from operator.entitlement_enforcement_mode where scope_key = '${CPT}';`);
@@ -121,7 +143,7 @@ const receiverConfig = czConfig.resolveEntitlementsConfig(env, m2m.ok ? (m2m.con
 check('1. receptor Comerza configurado (fail-closed si faltara algo)', m2m.ok && receiverConfig.ok);
 
 let saasUp = true;
-const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
+const receiver = async (req: IncomingMessage, res: ServerResponse) => {
   if (!saasUp) {
     res.writeHead(503, { 'content-type': 'application/json' });
     res.end(JSON.stringify({ error: 'UNAVAILABLE', message: 'SaaS en mantenimiento' }));
@@ -144,9 +166,10 @@ const server = createServer(async (req: IncomingMessage, res: ServerResponse) =>
   });
   res.writeHead(response.status, Object.fromEntries(response.headers.entries()));
   res.end(await response.text());
-});
+};
+const server = createServer(receiver);
 await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-const port = (server.address() as { port: number }).port;
+let port = (server.address() as { port: number }).port;
 
 // ── MasterAdmin: contexto de entrega (lo que leería de product_integrations) ─
 const SECRET_REF = 'LOCAL_X07_COMERZA_M2M_PRIVATE_KEY';
@@ -196,7 +219,7 @@ const registry: RegistryCapability[] = manifestFile.capabilities.map((c) => ({
 }));
 
 let clock = Date.parse('2026-10-03T00:00:00Z');
-async function emit(version: number, features: string[]): Promise<EntitlementSnapshot> {
+async function emit(version: number, features: string[], appActive = true): Promise<EntitlementSnapshot> {
   const granted: GrantedCapability[] = features.map((code) => ({ code, value: null, enforcement: null, included: null, sources: ['ADDON'], companyIds: null }));
   clock += 60_000;
   return buildSnapshot({
@@ -208,7 +231,7 @@ async function emit(version: number, features: string[]): Promise<EntitlementSna
     previousVersion: version > 1 ? version - 1 : null,
     effectiveAt: new Date(clock - 1000).toISOString(),
     issuedAt: new Date(clock).toISOString(),
-    appActive: true,
+    appActive,
     planCode: null,
     registry,
     granted,
@@ -234,8 +257,29 @@ check('2. MasterAdmin lee el manifiesto de Comerza (1 código ACTIVE; Vitrina y 
   manifest.ok && manifest.activeCodes.length === 1 && manifest.activeCodes[0] === AI,
   manifest.ok ? `${manifest.manifestVersion} ${manifest.activeCodes.join(',')}` : manifest.errorCode);
 
-svcSql(`select public.platform_set_entitlement_enforcement_mode('${CPT}', 'DUAL_READ', 'x07')`);
-svcSql(`select public.platform_set_entitlement_enforcement_mode('${CPT}', 'PRIMARY', 'x07')`);
+// D-14 (COHORT): el tenant mapeado avanza a PRIMARY un paso por vez, con motivo, por la
+// palanca gobernada (service_role). No se revierte en ningún punto del escenario.
+const ORDER = ['LEGACY', 'SHADOW', 'DUAL_READ', 'PRIMARY'] as const;
+const transitions: string[] = [];
+const modeOf = (cpt: string | null) => czDb.psql(db, `select operator.entitlement_mode_for(${cpt ? `'${cpt}'` : 'null'})`);
+function advanceToPrimary(cpt: string): boolean {
+  for (let guard = 0; guard < ORDER.length; guard += 1) {
+    const from = modeOf(cpt);
+    if (from === 'PRIMARY') return true;
+    const to = ORDER[ORDER.indexOf(from as (typeof ORDER)[number]) + 1];
+    if (!to) return false;
+    const r = JSON.parse(svcSql(`select public.platform_set_entitlement_enforcement_mode('${cpt}', '${to}', ${czDb.literal(D14_REASON)})`)) as { scope: string; from: string; to: string };
+    transitions.push(`${r.scope}: ${r.from}→${r.to}`);
+  }
+  return modeOf(cpt) === 'PRIMARY';
+}
+const cptAdvanced = advanceToPrimary(CPT);
+check('D14.0 tenant mapeado → PRIMARY un paso por vez, con motivo D-14 (el PRODUCTO sigue en SHADOW)',
+  cptAdvanced && modeOf(null) === 'SHADOW' && transitions.every((t) => {
+    const [, pair] = t.split(': ');
+    const [a, b] = pair!.split('→');
+    return ORDER.indexOf(b as (typeof ORDER)[number]) - ORDER.indexOf(a as (typeof ORDER)[number]) === 1;
+  }), transitions.join(' · ') || 'ya estaba en PRIMARY');
 
 const v1 = await emit(1, []);
 check('3. el snapshot no lleva DRAFT: solo el agente, con enabled explícito',
@@ -292,4 +336,149 @@ czDb.psql(db, `update public.config_layers set config = jsonb_set(config, '{feat
 check('15. v3 revoca el agente; los flags del tenant en true no lo reviven',
   (p3.data as { httpStatus?: number } | null)?.httpStatus === 200 && !gate(AI) && admit().reason === 'SIN_ENTITLEMENT' && !gate('comerza.storefront'));
 
-console.log(`\n${results.filter((r) => r.startsWith('PASS')).length}/${results.length} PASS`);
+// ── D14 · cutover gobernado de Comerza (DEV/LOCAL, sin reversión) ─────────────
+// El receptor vuelve (otro puerto): la verificación final va por el GET M2M real.
+const server2 = createServer(receiver);
+await new Promise<void>((resolve) => server2.listen(0, '127.0.0.1', resolve));
+port = (server2.address() as { port: number }).port;
+
+// appActive=false retira lo comercial (el agente concedido deja de admitirse), no lo operativo.
+const v4 = await emit(4, [AI], false);
+const p4 = await client.pushSnapshot(ctx(), v4, actor);
+const a4 = admit();
+const commercialDenied = p4.result === 'APPLIED' && !gate(AI) && a4.allowed === false && a4.reason === 'APP_INACTIVA';
+// Lo operativo no lee `app_active`: solo la decisión comercial (y el apply que lo guarda) lo usan,
+// ninguna policy RLS lo mira, y la sociedad y su configuración siguen ahí.
+const appActiveReaders = czDb.psql(db, `select coalesce(string_agg(distinct p.proname, ',' order by p.proname), '')
+  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname in ('public', 'operator', 'app') and p.prosrc ~ '\\mapp_active\\M'`);
+const appActivePolicies = czDb.psql(db, `select count(*) from pg_policies
+  where coalesce(qual, '') ~ '\\mapp_active\\M' or coalesce(with_check, '') ~ '\\mapp_active\\M'`);
+const companyIntact = czDb.psql(db, `select count(*) from public.companies c join public.config_layers cl
+  on cl.organization_id = c.organization_id and cl.company_id is null where c.id = '${COMPANY}'`);
+const operationalContinues = appActiveReaders.split(',').every((f) => ['commercial_capability_decision', 'platform_apply_entitlements'].includes(f))
+  && appActiveReaders.includes('commercial_capability_decision') && appActivePolicies === '0' && companyIntact === '1';
+check('D14.1 appActive=false (v4 con el agente): lo comercial se retira (APP_INACTIVA); lo operativo no depende de app_active',
+  commercialDenied && operationalContinues, `${p4.result} · ${String(a4.reason)} · lectores=${appActiveReaders} · policies=${appActivePolicies}`);
+
+// Estado final: snapshot appActive=true con el agente.
+const v5 = await emit(5, [AI]);
+const p5 = await client.pushSnapshot(ctx(), v5, actor);
+check('D14.2 v5 appActive=true vuelve a conceder el agente → APPLIED y admitido', p5.result === 'APPLIED' && gate(AI) && admit().allowed === true, p5.result);
+
+// COHORT: todo tenant mapeado (alta ACTIVE de MasterAdmin) en PRIMARY, un paso por vez y con motivo.
+// Cohorte (spec §15): solo altas que MasterAdmin sincronizó (snapshot aplicado). Las altas nunca
+// sincronizadas (fixtures de las suites en la base desechable) quedan en el modo del PRODUCTO.
+const cohortSql = (synced: boolean) => czDb.psql(db, `select coalesce(string_agg(p.control_plane_tenant_id::text, ',' order by p.control_plane_tenant_id), '')
+  from operator.platform_provisionings p where p.status = 'ACTIVE' and p.internal_tenant_id is not null
+   and ${synced ? '' : 'not '}exists (select 1 from operator.entitlement_snapshot_applied a where a.control_plane_tenant_id = p.control_plane_tenant_id)`).split(',').filter(Boolean);
+const mapped = cohortSql(true);
+const neverSynced = cohortSql(false);
+const cohortErrors: string[] = [];
+for (const cpt of mapped) {
+  try {
+    if (!advanceToPrimary(cpt)) cohortErrors.push(cpt);
+  } catch (e) {
+    cohortErrors.push(`${cpt}:${String((e as { stderr?: string }).stderr ?? e).split('\n')[0]}`);
+  }
+}
+const mappedPrimary = mapped.filter((cpt) => modeOf(cpt) === 'PRIMARY').length;
+const productScopeMode = modeOf(null);
+check('D14.3 COHORT: todo tenant sincronizado por MasterAdmin en PRIMARY; el PRODUCTO sigue en SHADOW (lo heredan las sociedades sin alta)',
+  cohortErrors.length === 0 && mapped.includes(CPT) && mappedPrimary === mapped.length && productScopeMode === 'SHADOW',
+  `${mappedPrimary}/${mapped.length} · PRODUCT ${productScopeMode}${cohortErrors.length ? ` · ${cohortErrors.join(',')}` : ''}`);
+check('D14.3b altas nunca sincronizadas: fuera de la cohorte, siguen en el modo del PRODUCTO (no se fuerzan)',
+  neverSynced.every((cpt) => modeOf(cpt) !== 'PRIMARY'), `${neverSynced.length} altas sin snapshot`);
+
+const gF = await client.getApplied(ctx(), actor);
+const getOk = gF.result === 'OBSERVED' && gF.enforcementMode === 'PRIMARY' && gF.appliedVersion === 5
+  && gF.appliedChecksum === v5.checksum && v5.appActive === true;
+check('D14.4 GET final: PRIMARY, versión y checksum = último deseado (v5, appActive=true)', getOk,
+  `${gF.result} v${gF.appliedVersion} ${gF.enforcementMode}`);
+
+// Escritura legacy en el estado final. En Comerza la fuente legacy es `legacy_grant` (constante del
+// producto) + los flags del tenant, que solo pueden APAGAR: los flags en true no conceden nada, y el
+// tenant no puede tocar ni el modo, ni el snapshot aplicado, ni `legacy_grant`.
+const decisionOf = (company: string, code: string) =>
+  JSON.parse(czDb.psql(db, `select operator.commercial_capability_decision('${company}', '${code}')`)) as Row;
+const flagsOn = czDb.psql(db, `select concat_ws('|', config -> 'features' ->> 'vitrina', config -> 'features' ->> 'erp_connector')
+  from public.config_layers where organization_id = '${ORG}' and company_id is null`);
+const dStore = decisionOf(COMPANY, 'comerza.storefront');
+const flagsDoNotGrant = flagsOn === 'true|true' && !gate('comerza.storefront') && !gate('comerza.erp_connector')
+  && dStore.source === 'SNAPSHOT' && dStore.commercial === false;
+const asTenant = (sql: string) => {
+  try {
+    czDb.psql(db, `begin; set local role authenticated; ${sql}; commit;`);
+    return 'PERMITIDO';
+  } catch (e) {
+    return String((e as { stderr?: string }).stderr ?? '').split('\n')[0] ?? '';
+  }
+};
+const tenantWrites = [
+  asTenant(`select public.platform_set_entitlement_enforcement_mode('${CPT}', 'DUAL_READ', 'tenant')`),
+  asTenant(`update operator.entitlement_snapshot_applied set app_active = true where control_plane_tenant_id = '${CPT}'`),
+  asTenant(`update operator.entitlement_capabilities set legacy_grant = true where code = 'comerza.storefront'`),
+];
+const tenantWritesDenied = tenantWrites.every((w) => /permission denied/i.test(w));
+const legacyBlocked = flagsDoNotGrant && tenantWritesDenied && modeOf(CPT) === 'PRIMARY';
+check('D14.5 estado final: el camino legacy no concede (flags del tenant en true → sin Vitrina/ERP) y el tenant no escribe modo, snapshot ni legacy_grant',
+  legacyBlocked, `flags=${flagsOn} · ${tenantWrites.map((w) => (/permission denied/i.test(w) ? 'denegado' : w)).join(' / ')}`);
+
+const unmappedAfter = unmappedDecisions();
+check('D14.6 sociedades sin alta de MasterAdmin: misma decisión que antes (SHADOW · LEGACY · agente por legacy_grant)',
+  unmappedAfter !== '' && unmappedAfter === unmappedBefore && unmappedAfter.split(',').every((e) => e.endsWith(':SHADOW:LEGACY:true')),
+  unmappedAfter);
+
+const parityMismatches = v5.capabilities.filter((c) => decisionOf(COMPANY, c.code).commercial !== c.enabled).map((c) => c.code);
+check('D14.7 paridad: decisión comercial local = snapshot v5 en cada capacidad ACTIVE', v5.capabilities.length > 0 && parityMismatches.length === 0,
+  parityMismatches.join(',') || 'sin diferencias');
+
+const legacyTenants: LegacyTenant[] = czDb.psql(db, `select coalesce(string_agg(c.id || '|' || replace(c.name, '|', '/'), chr(10) order by c.name), '') ${UNMAPPED}`)
+  .split('\n').filter(Boolean).map((line) => {
+    const [id, ...label] = line.split('|');
+    return {
+      id: id!,
+      label: label.join('|'),
+      resolution: 'UNRESOLVED' as const,
+      reason: 'Sin alta en operator.platform_provisionings ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4): '
+        + 'sigue en legacy (legacy_grant) bajo el modo del PRODUCTO (SHADOW).',
+    };
+  });
+
+server2.close();
+server2.closeAllConnections();
+
+const counts = countChecks(results);
+const evidenceFile = writeD14Evidence({
+  product: 'comerza',
+  entitlements: {
+    scope: 'COHORT',
+    productScopeMode,
+    finalMode: gF.enforcementMode ?? 'NONE',
+    transitions,
+    mappedTenants: mapped.length,
+    mappedTenantsPrimary: mappedPrimary,
+    excludedFromCohort: neverSynced.map((id) => ({ id, reason: 'alta ACTIVE sin snapshot aplicado: MasterAdmin nunca la sincronizó; queda en el modo del PRODUCTO (SHADOW)' })),
+    getVerified: { appliedVersion: gF.appliedVersion ?? -1, appliedChecksum: gF.appliedChecksum ?? '', enforcementMode: gF.enforcementMode ?? 'NONE', desiredChecksum: v5.checksum },
+    legacyWrite: {
+      // Sin prueba no se declara BLOCKED: el valor fuera del contrato hace fallar a quien lo lea.
+      status: (legacyBlocked ? 'BLOCKED' : 'NOT_PROVEN') as 'BLOCKED',
+      evidence: 'D14.5 (estado final PRIMARY): flags del tenant vitrina/erp_connector=true en config_layers no conceden (decisión SNAPSHOT, commercial=false); '
+        + 'el rol authenticated recibe permission denied al fijar el modo y al escribir operator.entitlement_snapshot_applied y '
+        + 'operator.entitlement_capabilities.legacy_grant; check 15: los flags no reviven un agente revocado.',
+    },
+    parityBlocking: parityMismatches.length,
+  },
+  appActiveFalse: {
+    commercialDenied,
+    operationalContinues,
+    evidence: `D14.1: v4 appActive=false con el agente → comerza_ai_admit reason=${String(a4.reason)}; app_active solo lo leen `
+      + `${appActiveReaders || '(nadie)'}; policies RLS que lo leen=${appActivePolicies}; sociedad y configuración intactas.`,
+  },
+  legacyTenants,
+  billing: null,
+  checks: counts,
+});
+console.log(evidenceFile ? `evidencia D-14: ${evidenceFile}` : 'evidencia D-14: sin CCP_EVIDENCE_DIR, no se escribe');
+
+console.log(`\n${counts.passed}/${results.length} PASS`);

@@ -18,6 +18,13 @@
  * Sin stack Supabase, sin red externa, sin tocar ningún proyecto remoto. No imprime claves ni
  * tokens. El estado de MasterAdmin (sync_state) no se ejercita aquí: lo cubrió el E2E de la
  * fase 08 contra la base local real.
+ *
+ * Fase 18 · D-14 (DEV/LOCAL): alcance COHORT. El modo del PRODUCTO se queda en SHADOW: los
+ * tenants sin alta de MasterAdmin (70001, Joltech…) lo heredan y en PRIMARY quedarían solo con
+ * los incluidos (su contrato no se inventa: regla 4; P-08 LEGACY_BACKFILL sigue pendiente y solo
+ * les afecta a ellos). Cada tenant MAPEADO avanza a PRIMARY un paso por vez con el motivo D-14 y
+ * NO se revierte: la corrida termina con el tenant X-07 en PRIMARY, un snapshot appActive=true
+ * verificado por GET, la concesión legacy bloqueada en ese estado y `d14-esupplier.json`.
  */
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { execFileSync } from 'node:child_process';
@@ -26,6 +33,7 @@ import { readFileSync } from 'node:fs';
 import { EntitlementSyncClient, type EntitlementDeliveryContext } from '../../supabase/functions/_shared/entitlements/sync-client.ts';
 import { buildSnapshot } from '../../supabase/functions/_shared/entitlements/snapshot.ts';
 import type { EntitlementSnapshot, GrantedCapability, RegistryCapability } from '../../supabase/functions/_shared/entitlements/types.ts';
+import { D14_REASON, countChecks, writeD14Evidence, type LegacyTenant } from './d14-evidence.mts';
 
 const WT = process.env.ESUPPLIER_WT ?? '';
 if (!WT.endsWith('/eSupplier/.worktrees/ebim-commercial-control-plane-v1')) {
@@ -107,6 +115,38 @@ psql(`
           'masteradmin-provisioning', 'x07-alta', '{}'::jsonb, now())
   on conflict (control_plane_tenant_id) do nothing;
   delete from public.platform_entitlement_snapshot_applied where control_plane_tenant_id = '${CPT}';`);
+
+// Modos: siempre por la palanca gobernada (service_role), un paso por vez y con motivo; nunca
+// borrando filas de modo. Una corrida anterior deja el tenant en PRIMARY (D-14 no se revierte):
+// al EMPEZAR otra corrida sobre la misma base se baja a SHADOW paso a paso, con su motivo.
+const ORDER = ['LEGACY', 'SHADOW', 'DUAL_READ', 'PRIMARY'] as const;
+type Mode = (typeof ORDER)[number];
+const modeOf = (cpt: string | null) => psql(`select public.platform_entitlement_mode_for(${cpt ? `'${cpt}'` : 'null'})`) as Mode;
+const setMode = (scope: string, to: Mode, reason: string) =>
+  JSON.parse(svcSql(`select public.platform_set_entitlement_enforcement_mode('${scope}', '${to}', ${literal(reason)})`)) as { scope: string; from: string; to: string };
+const transitions: string[] = [];
+function advanceToPrimary(cpt: string): boolean {
+  for (let guard = 0; guard < ORDER.length && modeOf(cpt) !== 'PRIMARY'; guard += 1) {
+    const next = ORDER[ORDER.indexOf(modeOf(cpt)) + 1];
+    if (!next) return false;
+    const r = setMode(cpt, next, D14_REASON);
+    transitions.push(`${r.scope}: ${r.from}→${r.to}`);
+  }
+  return modeOf(cpt) === 'PRIMARY';
+}
+for (let guard = 0; guard < ORDER.length && ORDER.indexOf(modeOf(CPT)) > ORDER.indexOf('SHADOW'); guard += 1) {
+  setMode(CPT, ORDER[ORDER.indexOf(modeOf(CPT)) - 1]!, 'x07: reinicio de la corrida sobre la base desechable');
+}
+
+// Tenants SIN alta de MasterAdmin: siguen en legacy. Su decisión se toma ahora y se compara al final.
+const UNMAPPED = `from public.tenants t
+  where not exists (select 1 from public.platform_provisioning_requests p where p.internal_tenant_id = t.id and p.status = 'ACTIVE')`;
+const unmappedDecisions = () => psql(`select coalesce(string_agg(t.id || ':' || c || ':' || coalesce(d ->> 'mode', '-') || ':' || (d ->> 'source') || ':' || (d ->> 'granted'), ',' order by t.id, c), '')
+  from public.tenants t cross join unnest(public.esup_paid_addon_codes()) c
+  cross join lateral (select public.platform_entitlement_decide(t.id, c) d) x
+  where t.id in (select t.id ${UNMAPPED})`);
+const unmappedBefore = unmappedDecisions();
+
 // Concesión LEGACY previa (hub/operador): en SHADOW decide, en PRIMARY el snapshot la sustituye.
 svcSql(`select public.esup_grant_commercial_addon(${TENANT}, 'supplier_risk', 'OPERATOR')`);
 const has = (addon: string) => svcSql(`select public.esup_tenant_has_addon(${TENANT}, '${addon}')`) === 't';
@@ -132,7 +172,7 @@ check('1. receptor eSupplier configurado (fail-closed si faltara algo)', m2m !==
 const receiverKey = await esM2m.importMasterAdminPublicKey(publicKeyB64);
 
 let saasUp = true;
-const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
+const receiver = async (req: IncomingMessage, res: ServerResponse) => {
   if (!saasUp) {
     res.writeHead(503, { 'content-type': 'application/json' });
     res.end(JSON.stringify({ error: 'UNAVAILABLE', message: 'SaaS en mantenimiento' }));
@@ -156,9 +196,10 @@ const server = createServer(async (req: IncomingMessage, res: ServerResponse) =>
   });
   res.writeHead(response.status, Object.fromEntries(response.headers.entries()));
   res.end(await response.text());
-});
+};
+const server = createServer(receiver);
 await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-const port = (server.address() as { port: number }).port;
+let port = (server.address() as { port: number }).port;
 
 // ── MasterAdmin: contexto de entrega (lo que leería de product_integrations) ─
 const SECRET_REF = 'LOCAL_X07_ESUPPLIER_M2M_PRIVATE_KEY';
@@ -233,8 +274,13 @@ check('2. MasterAdmin lee el manifiesto (9 IA de pago + 2 incluidos ACTIVE; mesa
     && !manifest.activeCodes.includes('esupplier.users.max'),
   manifest.ok ? `${manifest.manifestVersion} · ${manifest.activeCodes.length} ACTIVE` : manifest.errorCode);
 
-svcSql(`select public.platform_set_entitlement_enforcement_mode('${CPT}', 'DUAL_READ', 'x07')`);
-svcSql(`select public.platform_set_entitlement_enforcement_mode('${CPT}', 'PRIMARY', 'x07')`);
+// D-14 (COHORT): el tenant mapeado avanza a PRIMARY un paso por vez, con motivo. No se revierte.
+const cptAdvanced = advanceToPrimary(CPT);
+check('D14.0 tenant mapeado → PRIMARY un paso por vez, con motivo D-14 (el PRODUCTO sigue en SHADOW)',
+  cptAdvanced && modeOf(null) === 'SHADOW' && transitions.length > 0 && transitions.every((t) => {
+    const [a, b] = t.split(': ')[1]!.split('→') as [Mode, Mode];
+    return ORDER.indexOf(b) - ORDER.indexOf(a) === 1;
+  }), transitions.join(' · '));
 
 const v1 = await emit(1, []);
 check('3. el snapshot lista las 9 sellables ACTIVE con enabled explícito, sin DRAFT ni baseline',
@@ -291,10 +337,136 @@ const p3 = await rpc.rpc('platform_apply_entitlements', {
   p_control_plane_tenant_id: CPT, p_snapshot: v3,
   p_meta: { correlationId: 'x07-v3', m2mSubject: 'masteradmin-entitlements', m2mJti: 'x07-v3' },
 });
-check('17. v3 appActive=false: add-ons de pago retirados, incluidos intactos',
-  (p3.data as { httpStatus?: number } | null)?.httpStatus === 200 && !has('dorothy_copilot') && has('ai_capture'));
+const commercialDenied = (p3.data as { httpStatus?: number } | null)?.httpStatus === 200 && !has('dorothy_copilot') && !has('tender_copilot');
+const operationalContinues = has('ai_capture') && has('ai_auditor');
+check('17. v3 appActive=false: add-ons de pago retirados, incluidos intactos', commercialDenied && operationalContinues);
 
-// Limpieza del tenant X-07 (base desechable, reejecutable).
-psql(`delete from public.platform_entitlement_enforcement_mode where scope_key = '${CPT}';`);
+// ── D14 · cutover gobernado de eSupplier (DEV/LOCAL, sin reversión) ────────────
+// Ya no se borra la fila de modo del tenant: queda en PRIMARY. El receptor vuelve (otro puerto)
+// para cerrar con un snapshot appActive=true y verificarlo por el GET M2M real.
+const server2 = createServer(receiver);
+await new Promise<void>((resolve) => server2.listen(0, '127.0.0.1', resolve));
+port = (server2.address() as { port: number }).port;
 
-console.log(`\n${results.filter((r) => r.startsWith('PASS')).length}/${results.length} PASS`);
+const v4 = await emit(4, [DOROTHY, TENDER]);
+const p4 = await client.pushSnapshot(ctx(), v4, actor);
+check('D14.1 v4 appActive=true (dorothy + tender) → APPLIED; el gate los vuelve a conceder',
+  p4.result === 'APPLIED' && has('dorothy_copilot') && has('tender_copilot') && !has('supplier_risk'), p4.result);
+
+// COHORT: todo tenant mapeado (alta ACTIVE de MasterAdmin) en PRIMARY, un paso por vez y con motivo.
+// Cohorte (spec §15): solo altas que MasterAdmin sincronizó (snapshot aplicado). Las altas nunca
+// sincronizadas (fixtures de las suites en la base desechable) quedan en el modo del PRODUCTO.
+const cohortSql = (synced: boolean) => psql(`select coalesce(string_agg(r.control_plane_tenant_id::text, ',' order by r.control_plane_tenant_id), '')
+  from public.platform_provisioning_requests r where r.status = 'ACTIVE' and r.internal_tenant_id is not null
+   and ${synced ? '' : 'not '}exists (select 1 from public.platform_entitlement_snapshot_applied a where a.control_plane_tenant_id = r.control_plane_tenant_id)`).split(',').filter(Boolean);
+const mapped = cohortSql(true);
+const neverSynced = cohortSql(false);
+const cohortErrors: string[] = [];
+for (const cpt of mapped) {
+  try {
+    if (!advanceToPrimary(cpt)) cohortErrors.push(cpt);
+  } catch (e) {
+    cohortErrors.push(`${cpt}:${String((e as { stderr?: string }).stderr ?? e).split('\n')[0]}`);
+  }
+}
+const mappedPrimary = mapped.filter((cpt) => modeOf(cpt) === 'PRIMARY').length;
+const productScopeMode = modeOf(null);
+check('D14.2 COHORT: todo tenant sincronizado por MasterAdmin en PRIMARY; el PRODUCTO sigue en SHADOW (lo heredan los tenants sin alta)',
+  cohortErrors.length === 0 && mapped.includes(CPT) && mappedPrimary === mapped.length && productScopeMode === 'SHADOW',
+  `${mappedPrimary}/${mapped.length} · PRODUCT ${productScopeMode}${cohortErrors.length ? ` · ${cohortErrors.join(',')}` : ''}`);
+check('D14.2b altas nunca sincronizadas: fuera de la cohorte, siguen en el modo del PRODUCTO (no se fuerzan)',
+  neverSynced.every((cpt) => modeOf(cpt) !== 'PRIMARY'), `${neverSynced.length} altas sin snapshot`);
+
+const gF = await client.getApplied(ctx(), actor);
+const getOk = gF.result === 'OBSERVED' && gF.enforcementMode === 'PRIMARY' && gF.appliedVersion === 4
+  && gF.appliedChecksum === v4.checksum && v4.appActive === true;
+check('D14.3 GET final: PRIMARY, versión y checksum = último deseado (v4, appActive=true)', getOk,
+  `${gF.result} v${gF.appliedVersion} ${gF.enforcementMode}`);
+
+// Escritura legacy en el estado final: la concesión del operador se bloquea en servidor y no concede;
+// el tenant (authenticated) tampoco puede mover el modo.
+const legacyGrant = (() => {
+  try {
+    svcSql(`select public.esup_grant_commercial_addon(${TENANT}, 'invoice_3way', 'OPERATOR')`);
+    return 'PERMITIDA';
+  } catch (e) {
+    return String((e as { stderr?: string }).stderr ?? '');
+  }
+})();
+const tenantSetMode = (() => {
+  try {
+    psql(`begin; set local role authenticated; select public.platform_set_entitlement_enforcement_mode('${CPT}', 'DUAL_READ', 'tenant'); commit;`);
+    return 'PERMITIDO';
+  } catch (e) {
+    return String((e as { stderr?: string }).stderr ?? '');
+  }
+})();
+const legacyBlocked = /LEGACY_WRITE_BLOCKED/.test(legacyGrant) && !has('invoice_3way')
+  && /permission denied/i.test(tenantSetMode) && modeOf(CPT) === 'PRIMARY';
+check('D14.4 estado final: concesión legacy del operador → LEGACY_WRITE_BLOCKED (sin conceder) y el tenant no mueve el modo',
+  legacyBlocked, `${legacyGrant.match(/LEGACY_WRITE_BLOCKED/)?.[0] ?? legacyGrant.split('\n')[0]} · ${/permission denied/i.test(tenantSetMode) ? 'modo: denegado' : tenantSetMode.split('\n')[0]}`);
+
+const unmappedAfter = unmappedDecisions();
+check('D14.5 tenants sin alta de MasterAdmin: misma decisión que antes (modo del PRODUCTO SHADOW, fuente LEGACY)',
+  unmappedAfter !== '' && unmappedAfter === unmappedBefore && unmappedAfter.split(',').every((e) => e.includes(':SHADOW:LEGACY:')),
+  `${unmappedAfter.split(',').length} decisiones`);
+
+// Paridad: la decisión del gate = el snapshot v4 en cada capacidad vendible que el gate conoce.
+const snapshotValues = v4.capabilities.map((c) => `(${literal(c.code)}, ${c.enabled ? 'true' : 'false'})`).join(', ');
+const parity = psql(`select count(*) || '|' || coalesce(string_agg(k.code, ',' order by k.code) filter (
+    where coalesce((public.platform_entitlement_decide(${TENANT}, k.hub_addon_code) ->> 'granted')::boolean, false) is distinct from s.enabled), '')
+  from public.platform_entitlement_capabilities k join (values ${snapshotValues}) s(code, enabled) on s.code = k.code
+  where k.hub_addon_code is not null`);
+const [parityCompared, parityDiff = ''] = parity.split('|');
+const parityMismatches = parityDiff.split(',').filter(Boolean);
+check('D14.6 paridad: decisión del gate = snapshot v4 en cada capacidad vendible', Number(parityCompared) > 0 && parityMismatches.length === 0,
+  `${parityCompared} comparadas · ${parityMismatches.join(',') || 'sin diferencias'}`);
+
+const legacyTenants: LegacyTenant[] = psql(`select coalesce(string_agg(t.id || '|' || replace(t.name, '|', '/'), chr(10) order by t.id), '') ${UNMAPPED}`)
+  .split('\n').filter(Boolean).map((line) => {
+    const [id, ...label] = line.split('|');
+    return {
+      id: id!,
+      label: label.join('|'),
+      resolution: 'UNRESOLVED' as const,
+      reason: 'Sin alta ACTIVE en platform_provisioning_requests ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4); '
+        + 'sigue en legacy bajo el modo del PRODUCTO (SHADOW). P-08 (LEGACY_BACKFILL) pendiente: solo afecta a estos tenants.',
+    };
+  });
+
+server2.close();
+server2.closeAllConnections();
+
+const counts = countChecks(results);
+const evidenceFile = writeD14Evidence({
+  product: 'esupplier',
+  entitlements: {
+    scope: 'COHORT',
+    productScopeMode,
+    finalMode: gF.enforcementMode ?? 'NONE',
+    transitions,
+    mappedTenants: mapped.length,
+    mappedTenantsPrimary: mappedPrimary,
+    excludedFromCohort: neverSynced.map((id) => ({ id, reason: 'alta ACTIVE sin snapshot aplicado: MasterAdmin nunca la sincronizó; queda en el modo del PRODUCTO (SHADOW)' })),
+    getVerified: { appliedVersion: gF.appliedVersion ?? -1, appliedChecksum: gF.appliedChecksum ?? '', enforcementMode: gF.enforcementMode ?? 'NONE', desiredChecksum: v4.checksum },
+    legacyWrite: {
+      // Sin prueba no se declara BLOCKED: el valor fuera del contrato hace fallar a quien lo lea.
+      status: (legacyBlocked ? 'BLOCKED' : 'NOT_PROVEN') as 'BLOCKED',
+      evidence: `D14.4 (estado final PRIMARY): esup_grant_commercial_addon(${TENANT}, 'invoice_3way', 'OPERATOR') → LEGACY_WRITE_BLOCKED y `
+        + `esup_tenant_has_addon(invoice_3way)=false; authenticated → permission denied en platform_set_entitlement_enforcement_mode.`,
+    },
+    parityBlocking: parityMismatches.length,
+  },
+  appActiveFalse: {
+    commercialDenied,
+    operationalContinues,
+    evidence: 'check 17: v3 appActive=false → dorothy_copilot y tender_copilot negados; incluidos ai_capture y ai_auditor siguen concedidos '
+      + '(la puerta no toca el acceso operativo al portal).',
+  },
+  legacyTenants,
+  billing: null,
+  checks: counts,
+});
+console.log(evidenceFile ? `evidencia D-14: ${evidenceFile}` : 'evidencia D-14: sin CCP_EVIDENCE_DIR, no se escribe');
+
+console.log(`\n${counts.passed}/${results.length} PASS`);

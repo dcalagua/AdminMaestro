@@ -29,7 +29,8 @@
 # Variables opcionales: JAVA_HOME (JDK 21; por defecto temurin-21),
 #   COMERZA_DB_CONTAINER (comerza_ccp_db), ECHANGE_DB_CONTAINER
 #   (supabase_db_echange-ccp14), EEXPENSE_DB_CONTAINER (supabase_db_eexpense-ccp),
-#   ECHANGE_WORKDIR / EEXPENSE_WORKDIR (workdirs desechables de esos stacks).
+#   ECHANGE_WORKDIR / EEXPENSE_WORKDIR (workdirs desechables de esos stacks),
+#   PGLITE_MODULE (PGlite para la guarda Supabase de EWM).
 # Parte de bases VACÍAS: `supabase db reset --local` de MasterAdmin y de los stacks
 # desechables de eChange/eExpense (sus X-07 y pgTAP cuentan filas y el outbox es
 # append-only: una corrida anterior deja residuo). Se niega si las migraciones del
@@ -68,6 +69,8 @@ COMERZA_DB_CONTAINER="${COMERZA_DB_CONTAINER:-comerza_ccp_db}"
 ECHANGE_DB_CONTAINER="${ECHANGE_DB_CONTAINER:-supabase_db_echange-ccp14}"
 EEXPENSE_DB_CONTAINER="${EEXPENSE_DB_CONTAINER:-supabase_db_eexpense-ccp}"
 ECHANGE_WORKDIR="${ECHANGE_WORKDIR:-/tmp/claude-501/echange-ccp14}"
+# PGlite para los harness SQL de EWM (sin Docker): el del worktree del programa de eCommerce.
+PGLITE_MODULE="${PGLITE_MODULE:-$EBIM/eCommerce/.worktrees/ebim-commercial-control-plane-v1/node_modules/@electric-sql/pglite/dist/index.js}"
 EEXPENSE_WORKDIR="${EEXPENSE_WORKDIR:-/tmp/claude-501/eexpense-ccp}"
 
 wt() { case "$1" in
@@ -145,7 +148,9 @@ if wants ecommerce; then
   run ecommerce x07 "$ROOT" -- env ECOMMERCE_WT="$(wt ecommerce)" $X07 scripts/ccp/ecommerce-pilot-e2e.mts
 fi
 if wants ewm; then
-  run ewm x07 "$ROOT" -- env EWM_WT="$(wt ewm)" $X07 scripts/ccp/ewm-x07-e2e.mts
+  # Guarda Supabase D-14 (EWM 88ec8c7): admin_set_agent y la escritura por la API bloqueadas en PRIMARY.
+  run ewm supabase-guard "$(wt ewm)" -- env PGLITE_MODULE="$PGLITE_MODULE" node scripts/ccp/pglite-legacy-write-guard.mjs
+  run ewm x07 "$ROOT" -- env EWM_WT="$(wt ewm)" PGLITE_MODULE="$PGLITE_MODULE" $X07 scripts/ccp/ewm-x07-e2e.mts
   [ "$JAVA_SUITES" = 1 ] && run ewm suite "$(wt ewm)/backend/wms-api" -- ./mvnw -B clean verify
 fi
 if wants comerza; then

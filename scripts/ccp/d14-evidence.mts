@@ -38,8 +38,11 @@ export type D14Evidence = {
     productScopeMode: string;
     finalMode: string;
     transitions: string[];
+    /** Cohorte = tenants con alta ACTIVE de MasterAdmin Y snapshot aplicado (sincronizados). */
     mappedTenants: number;
     mappedTenantsPrimary: number;
+    /** Altas que MasterAdmin nunca sincronizó (p. ej. fixtures de las suites en la base desechable): quedan en el modo del PRODUCTO. */
+    excludedFromCohort?: { id: string; reason: string }[];
     getVerified: { appliedVersion: number; appliedChecksum: string; enforcementMode: string; desiredChecksum: string };
     /** BLOCKED: test negativo server-side en el estado final. NO_LEGACY_PATH: el producto no tiene escritura legacy (con evidencia). */
     legacyWrite: { status: 'BLOCKED' | 'NO_LEGACY_PATH'; evidence: string };

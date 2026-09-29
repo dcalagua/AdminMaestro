@@ -19,14 +19,21 @@
  * cliente escribe la petición exacta (método, ruta, headers, cuerpo) y espera la
  * respuesta de EWM. Sin red, sin Docker, sin ningún proyecto remoto. No imprime
  * claves ni tokens.
+ *
+ * Fase 18 (D-14, DEV/LOCAL): al final corre la fase "D14" — la cohorte del
+ * contrato queda en PRIMARY (PRODUCT sigue en SHADOW), se verifica por GET el
+ * último snapshot deseado y se ejecuta la prueba SQL de la guardia de EWM
+ * (`scripts/ccp/pglite-legacy-write-guard.mjs`, PGLITE_MODULE opcional). No hay
+ * rollback después. Con CCP_EVIDENCE_DIR escribe `d14-ewm.json`.
  */
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
 import { EntitlementSyncClient, type EntitlementDeliveryContext } from '../../supabase/functions/_shared/entitlements/sync-client.ts';
 import { buildSnapshot } from '../../supabase/functions/_shared/entitlements/snapshot.ts';
 import type { EntitlementSnapshot, GrantedCapability, RegistryCapability } from '../../supabase/functions/_shared/entitlements/types.ts';
+import { countChecks, D14_REASON, writeD14Evidence, type D14Evidence } from './d14-evidence.mts';
 
 const WT = process.env.EWM_WT ?? '';
 if (!WT.endsWith('/WMS-by-EBIM/.worktrees/ebim-commercial-control-plane-v1') || !process.env.JAVA_HOME) {
@@ -165,6 +172,26 @@ async function emit(version: number, grants: Record<string, string[] | null>, ap
 const gate = async (agent: string) => (await ewm({ kind: 'gate', companyId: COMPANY, agent })).value === true;
 const legacy = async () => (await ewm({ kind: 'legacy', companyId: COMPANY })).value as Record<string, boolean>;
 
+// ── Fase 18 (D-14) ───────────────────────────────────────────────────────────
+// La guardia SQL de EWM (supabase/migrations/20260929084334_ccp_bloqueo_escritura_legada_primary.sql)
+// no puede correr dentro del puente en memoria: se certifica ejecutando su prueba
+// SQL real (PGlite) como un paso de este X-07. PGLITE_MODULE es opcional; por
+// defecto se usa la instalación existente de PGlite en EBIM/eCommerce.
+const LOCAL_CODES = ['wms_copilot', 'ai_cycle_count', 'ai_slotting', 'ai_anomaly', 'ai_erp_reconcile', 'ai_replenishment', 'ai_wave_optimizer'];
+const GUARD_RUNNER = 'scripts/ccp/pglite-legacy-write-guard.mjs';
+const GUARD_TESTS = [
+  'PRIMARY: admin_set_agent → LEGACY_WRITE_BLOCKED y no cambia nada',
+  'PRIMARY: INSERT/UPDATE/DELETE directos por PostgREST (operador) → LEGACY_WRITE_BLOCKED',
+  'PRIMARY: service_role por PostgREST también se bloquea',
+  'PRIMARY: el materializador Java (JDBC sin claims) SÍ escribe: SQL_MATERIALIZAR y SQL_BORRAR',
+  'sociedad sin mapping (CEYESA / V900) con PRODUCT=SHADOW: escritura legada permitida',
+  'sin tablas de Flyway: admin_set_agent y la escritura directa del operador siguen permitidas',
+];
+const PGLITE_MODULE = process.env.PGLITE_MODULE
+  ?? path.resolve(WT, '../../../../eCommerce/node_modules/@electric-sql/pglite/dist/index.js');
+let appActiveFalse: D14Evidence['appActiveFalse'] = { commercialDenied: false, operationalContinues: false, evidence: 'paso 14 no alcanzado' };
+let d14: Omit<D14Evidence, 'checks'> | null = null;
+
 try {
   // ── Escenario ──────────────────────────────────────────────────────────────
   const manifest = await client.getManifest(ctx(), actor);
@@ -224,9 +251,118 @@ try {
 
   const v4 = await emit(4, { 'ewm.ai.copilot': null }, false);
   const p4 = await client.pushSnapshot(ctx(), v4, actor);
-  check('14. appActive=false → APPLIED y ningún agente concedido', p4.result === 'APPLIED' && !(await gate('wms_copilot')), p4.result);
+  const denied14 = p4.result === 'APPLIED' && !(await gate('wms_copilot'));
+  check('14. appActive=false → APPLIED y ningún agente concedido', denied14, p4.result);
+  const l4 = await legacy();
+  const g4 = await client.getApplied(ctx(), actor);
+  const keeps14 = Object.keys(l4).length === LOCAL_CODES.length && g4.result === 'OBSERVED' && g4.appliedVersion === 4;
+  check('    appActive=false no borra datos ni corta el canal: filas conservadas y GET OBSERVED v4', keeps14,
+    `${Object.keys(l4).length} filas, GET ${g4.result} v${g4.appliedVersion}`);
+  appActiveFalse = {
+    commercialDenied: denied14,
+    operationalContinues: keeps14,
+    evidence: 'X-07 paso 14: v4 appActive=false APPLIED, gate wms_copilot=false, company_ai_agents conservada '
+      + `(${Object.keys(l4).length} filas) y GET OBSERVED v4. appActive sólo entra en AgentDecision.java:41 (agentes), `
+      + 'que consume únicamente AgentEntitlementService (hallazgos de la Flota); ninguna ruta operativa del WMS lo lee. '
+      + 'EwmEntitlementsReceiverTest "appActive=false: ningún agente, sin borrar datos".',
+  };
 
   check('15. un jti distinto por petición M2M', jtis.length > 0 && new Set(jtis).size === jtis.length, `${jtis.length} peticiones`);
+
+  // ── D14 · corte gobernado a PRIMARY por COHORTE (este contrato), SIN rollback ──
+  // PRODUCT queda en SHADOW: avanzarlo cambiaría las sociedades sin mapping
+  // (CEYESA, V900), que en PRIMARY perderían todos sus agentes.
+  const LADDER = ['LEGACY', 'SHADOW', 'DUAL_READ', 'PRIMARY'];
+  const productMode = (await ewm({ kind: 'modeOf', scope: 'PRODUCT' })).value as string;
+  const explicitBefore = (await ewm({ kind: 'modeOf', scope: CPT })).value as string;
+  let current = explicitBefore === 'NONE' ? productMode : explicitBefore;
+  const d14Steps: string[] = [];
+  while (current !== 'PRIMARY' && LADDER.includes(current)) {
+    const next = LADDER[LADDER.indexOf(current) + 1];
+    const r = await ewm({ kind: 'mode', scope: CPT, mode: next, tenant: CPT, reason: D14_REASON });
+    d14Steps.push(`${current}→${next}`);
+    if (r.value !== next) break;
+    current = next;
+  }
+  // Re-afirmación gobernada: no-op si ya es PRIMARY (EntitlementModeService no registra evento).
+  const still = await ewm({ kind: 'mode', scope: CPT, mode: 'PRIMARY', tenant: CPT, reason: D14_REASON });
+  const events = ((await ewm({ kind: 'modeEvents' })).value as string[])
+    .filter((e) => e.startsWith(`${CPT}:`)).map((e) => e.slice(CPT.length + 1).replace('->', '→'));
+  const oneStep = events.length > 0
+    && events.every((e) => { const [a, b] = e.split('→'); return Math.abs(LADDER.indexOf(a) - LADDER.indexOf(b)) === 1; });
+  check('D14.1 cohorte del contrato en PRIMARY, un paso por vez; PRODUCT sigue en SHADOW',
+    still.value === 'PRIMARY' && productMode === 'SHADOW' && oneStep && events.at(-1) === 'DUAL_READ→PRIMARY',
+    `eventos=[${events.join(', ')}] fase D14=[${d14Steps.join(', ') || 'ya PRIMARY'}] PRODUCT=${productMode}`);
+
+  const v5 = await emit(5, { 'ewm.ai.copilot': null, 'ewm.ai.slotting': [COMPANY] }, true);
+  const p5 = await client.pushSnapshot(ctx(), v5, actor);
+  const g5 = await client.getApplied(ctx(), actor);
+  const getOk = p5.result === 'APPLIED' && g5.result === 'OBSERVED' && g5.enforcementMode === 'PRIMARY'
+    && g5.appliedVersion === 5 && g5.appliedChecksum === v5.checksum;
+  check('D14.2 último deseado (v5, appActive=true) → GET: PRIMARY, versión y checksum iguales', getOk,
+    `${p5.result} · GET ${g5.enforcementMode} v${g5.appliedVersion}`);
+
+  const l5 = await legacy();
+  let parityBlocking = 0;
+  for (const code of LOCAL_CODES) if ((l5[code] === true) !== (await gate(code))) parityBlocking++;
+  check('D14.3 paridad: company_ai_agents materializada = gate del snapshot (0 diferencias)',
+    parityBlocking === 0 && l5.wms_copilot === true && l5.ai_slotting === true && l5.ai_anomaly === false, `diferencias=${parityBlocking}`);
+
+  const guard = existsSync(PGLITE_MODULE)
+    ? spawnSync(process.execPath, [GUARD_RUNNER], { cwd: WT, env: { ...process.env, PGLITE_MODULE }, encoding: 'utf8', timeout: 180_000 })
+    : null;
+  const guardOut = guard?.stdout ?? '';
+  const guardLast = guardOut.trim().split('\n').at(-1) ?? 'sin salida';
+  const guardOk = guard?.status === 0 && /# \d+ ok, 0 fail/.test(guardOut) && GUARD_TESTS.every((t) => guardOut.includes(`ok - ${t}`));
+  check('D14.4 escritura legada BLOQUEADA en PRIMARY: prueba SQL de la guardia de EWM', guardOk,
+    guard ? `rc=${guard.status} ${guardLast}` : `PGLITE_MODULE no encontrado: ${PGLITE_MODULE}`);
+  check('D14.5 defensa en profundidad: el paso 13 (la reconciliación revierte la escritura legada) pasó',
+    results.some((r) => r.startsWith('PASS · 13.')));
+
+  d14 = {
+    product: 'ewm',
+    entitlements: {
+      scope: 'COHORT',
+      productScopeMode: productMode,
+      finalMode: g5.enforcementMode ?? String(still.value),
+      transitions: events,
+      mappedTenants: 1,
+      mappedTenantsPrimary: still.value === 'PRIMARY' && g5.enforcementMode === 'PRIMARY' ? 1 : 0,
+      getVerified: {
+        appliedVersion: g5.appliedVersion ?? 0,
+        appliedChecksum: g5.appliedChecksum ?? '',
+        enforcementMode: g5.enforcementMode ?? '',
+        desiredChecksum: v5.checksum,
+      },
+      legacyWrite: {
+        // Sólo BLOCKED si la prueba SQL real pasó; si no, el X-07 ya sale con 1.
+        status: (guardOk ? 'BLOCKED' : 'NOT_VERIFIED') as D14Evidence['entitlements']['legacyWrite']['status'],
+        evidence: `EWM ${GUARD_RUNNER} (PGlite; supabase/migrations/20260929084334_ccp_bloqueo_escritura_legada_primary.sql `
+          + `+ V48/V49): ${GUARD_TESTS.map((t) => `"${t}"`).join('; ')} → ${guardLast}. `
+          + 'Defensa en profundidad: X-07 paso 13 (la reconciliación detecta y revierte una escritura legada).',
+      },
+      parityBlocking,
+    },
+    appActiveFalse,
+    legacyTenants: [
+      {
+        id: 'ce7e5a00-0000-4000-8000-000000000002',
+        label: 'CEYESA (sociedad demo, supabase/migrations/20260804201000_seed_ceyesa_core.sql)',
+        resolution: 'UNRESOLVED',
+        reason: 'Sin mapping determinista en MasterAdmin: ningún platform_provisioning_request ACTIVE ni tenant_product_mappings '
+          + '(los tenants EWM del seed de MasterAdmin alpha-ewm…titan-ewm tampoco tienen tenant_product_mappings). '
+          + 'Sigue en PRODUCT=SHADOW: company_ai_agents manda. No se inventan plan, precio, cuotas ni add-ons.',
+      },
+      {
+        id: '11111111-1111-4111-8111-111111111111',
+        label: 'Tenant del perfil local (backend/wms-api/src/main/resources/db/seed/V900__local_seed_data.sql)',
+        resolution: 'UNRESOLVED',
+        reason: 'Sin mapping determinista en MasterAdmin (sin provisioning ACTIVE ni tenant_product_mappings). '
+          + 'Sigue en PRODUCT=SHADOW. No se inventan plan, precio, cuotas ni add-ons.',
+      },
+    ],
+    billing: null,
+  };
 } catch (e) {
   check('escenario sin excepciones', false, (e as Error).message);
 } finally {
@@ -237,5 +373,10 @@ try {
   if (!ok) console.log(bridgeLog.split('\n').filter((l) => /ERROR|Caused|FAIL/.test(l)).slice(0, 20).join('\n'));
   const left = readdirSync(box).filter((f) => f.endsWith('.req.json'));
   if (left.length) console.log(`peticiones sin atender: ${left.length}`);
+  check('D14 fase completa (evidencia armada)', d14 !== null);
+  if (d14) {
+    const file = writeD14Evidence({ ...d14, checks: countChecks(results) });
+    console.log(file ? `evidencia D-14: ${file}` : 'evidencia D-14: sin CCP_EVIDENCE_DIR, no se escribe');
+  }
   console.log(`\n${results.filter((r) => r.startsWith('PASS')).length}/${results.length} PASS`);
 }

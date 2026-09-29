@@ -15,9 +15,20 @@
  * puerta (`echange_capacidad_activa`), la materialización en `ai_agents`/`channels`, el outbox de uso
  * y el dual-read (`echange_modelo_comercial_local` + `commercialParity.ts`) se consultan en esa base.
  *
- * El tenant se da de alta con la RPC de provisioning REAL de eChange y se borra al final (la base
- * es desechable, pero otras suites miran el estado global). Sin red externa, sin proyectos remotos.
- * No imprime claves ni tokens.
+ * El tenant se da de alta con la RPC de provisioning REAL de eChange. Sin red externa, sin
+ * proyectos remotos. No imprime claves ni tokens.
+ *
+ * Fase 18 · D-14 (DEV/LOCAL): alcance PRODUCT. En eChange un tenant sin alta de MasterAdmin
+ * decide SIEMPRE en legacy (la puerta fuerza LEGACY sin controlPlaneTenantId y el trigger de
+ * escritura legacy sale antes), así que el PRODUCTO puede ir a PRIMARY sin tocar las
+ * organizaciones del seed (Almar demo, Almar real, Joltech): se prueba que su decisión no cambia.
+ * Tras la prueba de rollback (22) la fase D14 vuelve a avanzar, un paso por vez y con el motivo
+ * D-14, el PRODUCTO SHADOW→DUAL_READ→PRIMARY y la fila del tenant SHADOW→DUAL_READ→PRIMARY, cierra
+ * con un snapshot appActive=true verificado por GET, prueba la escritura legacy bloqueada en ese
+ * estado y escribe `d14-echange.json`. NO se revierte ni se borra el tenant al final: una corrida
+ * nueva sobre la misma base limpia al EMPEZAR (el modo del PRODUCTO baja a SHADOW paso a paso por
+ * la palanca gobernada). certify-local parte además de `supabase db reset` y corre pgTAP y
+ * golden/paridad ANTES que este X-07.
  */
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { execFileSync } from 'node:child_process';
@@ -26,6 +37,7 @@ import { readFileSync } from 'node:fs';
 import { EntitlementSyncClient, type EntitlementDeliveryContext } from '../../supabase/functions/_shared/entitlements/sync-client.ts';
 import { buildSnapshot } from '../../supabase/functions/_shared/entitlements/snapshot.ts';
 import type { EntitlementSnapshot, GrantedCapability, RegistryCapability } from '../../supabase/functions/_shared/entitlements/types.ts';
+import { D14_REASON, countChecks, writeD14Evidence, type LegacyTenant } from './d14-evidence.mts';
 
 const WT = process.env.ECHANGE_WT ?? '';
 if (!WT.endsWith('/eChange/.worktrees/ebim-commercial-control-plane-v1')) {
@@ -106,7 +118,43 @@ const cleanup = () => psql(`
   delete from privado.platform_entitlement_snapshot_applied where control_plane_tenant_id = '${CPT}';
   delete from privado.platform_provisioning_requests where control_plane_tenant_id = '${CPT}';
   delete from public.organizations where id = '${ORG}';`);
+
+// Modos: siempre por la palanca gobernada (service_role), un paso por vez y con motivo.
+const ORDER = ['LEGACY', 'SHADOW', 'DUAL_READ', 'PRIMARY'] as const;
+type Mode = (typeof ORDER)[number];
+const modeOf = (cpt: string | null) => psql(`select privado.platform_entitlement_mode_for(${cpt ? `'${cpt}'` : 'null'})`) as Mode;
+const setMode = (scope: string, to: Mode, reason: string) =>
+  JSON.parse(svcSql(`select public.platform_set_entitlement_enforcement_mode('${scope}', '${to}', ${literal(reason)})`)) as { scope: string; from: string; to: string };
+const transitions: string[] = [];
+// Avanza `scope` ('PRODUCT' o un controlPlaneTenantId) hasta PRIMARY, un paso por vez, con motivo D-14.
+function advanceToPrimary(scope: string): boolean {
+  const cpt = scope === 'PRODUCT' ? null : scope;
+  for (let guard = 0; guard < ORDER.length && modeOf(cpt) !== 'PRIMARY'; guard += 1) {
+    const next = ORDER[ORDER.indexOf(modeOf(cpt)) + 1];
+    if (!next) return false;
+    const r = setMode(scope, next, D14_REASON);
+    transitions.push(`${r.scope}: ${r.from}→${r.to}`);
+  }
+  return modeOf(cpt) === 'PRIMARY';
+}
+
+// Una corrida anterior deja el PRODUCTO en PRIMARY (D-14 no se revierte). Al EMPEZAR otra corrida
+// sobre la misma base se baja a SHADOW paso a paso por la palanca, con su motivo; después se limpia
+// el tenant X-07 de la corrida anterior.
+for (let guard = 0; guard < ORDER.length && ORDER.indexOf(modeOf(null)) > ORDER.indexOf('SHADOW'); guard += 1) {
+  setMode('PRODUCT', ORDER[ORDER.indexOf(modeOf(null)) - 1]!, 'x07: reinicio de la corrida sobre la base desechable');
+}
 cleanup();
+
+// Organizaciones SIN alta de MasterAdmin (seed: Almar demo, Almar real, Joltech…): siguen en legacy.
+// Su decisión en cada capacidad de sí/no se toma ahora y se compara al final (D-14 no puede cambiarla).
+const UNMAPPED_ORGS = `from public.organizations o where privado.platform_entitlement_cpt_of(o.id) is null`;
+const unmappedDecisions = () => psql(`select coalesce(string_agg(o.id || '/' || c.id || '/' || k.code || '=' || public.echange_capacidad_activa(o.id, c.id, k.code), ',' order by o.id, c.id, k.code), '')
+  from public.organizations o join public.companies c on c.organization_id = o.id
+  cross join privado.platform_entitlement_capabilities k
+  where o.id in (select o.id ${UNMAPPED_ORGS}) and k.local_kind in ('AGENT', 'CHANNEL', 'SERVICE_LINE')`);
+const unmappedBefore = unmappedDecisions();
+
 const alta = svcSql(`select public.platform_provision_tenant(${literal({
   controlPlaneTenantId: CPT, organization: { id: ORG, slug: 'x07-echange', name: 'X07 eChange' },
   company: { id: CO, name: 'X07 eChange' }, admin: { email: 'x07@echange.ebim.test' }, deploymentMode: 'SHARED',
@@ -143,7 +191,7 @@ check('1. receptor eChange configurado (fail-closed si faltara algo; sujeto M2M 
 const receiverKey = await ecM2m.importMasterAdminPublicKey(publicKeyB64);
 
 let saasUp = true;
-const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
+const receiver = async (req: IncomingMessage, res: ServerResponse) => {
   if (!saasUp) {
     res.writeHead(503, { 'content-type': 'application/json' });
     res.end(JSON.stringify({ error: 'UNAVAILABLE', message: 'SaaS en mantenimiento' }));
@@ -167,9 +215,10 @@ const server = createServer(async (req: IncomingMessage, res: ServerResponse) =>
   });
   res.writeHead(response.status, Object.fromEntries(response.headers.entries()));
   res.end(await response.text());
-});
+};
+const server = createServer(receiver);
 await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-const port = (server.address() as { port: number }).port;
+let port = (server.address() as { port: number }).port;
 
 // ── MasterAdmin: contexto de entrega (lo que leería de product_integrations) ─
 const SECRET_REF = 'LOCAL_X07_ECHANGE_M2M_PRIVATE_KEY';
@@ -324,9 +373,10 @@ const p3 = await rpc.rpc('platform_apply_entitlements', {
   p_control_plane_tenant_id: CPT, p_snapshot: v3,
   p_meta: { correlationId: 'x07-v3', m2mSubject: 'masteradmin-provisioning', m2mJti: 'x07-v3' },
 });
+const commercialDenied = (p3.data as { httpStatus?: number } | null)?.httpStatus === 200 && !has(REPORTES) && !has(WHATSAPP);
+const operationalContinues = has('echange.ai.triage') && has('echange.channels.portal');
 check('21. v3 appActive=false: reportería y WhatsApp retirados; clasificador y portal siguen (comercial ≠ operativo)',
-  (p3.data as { httpStatus?: number } | null)?.httpStatus === 200 && !has(REPORTES) && !has(WHATSAPP)
-    && has('echange.ai.triage') && has('echange.channels.portal'));
+  commercialDenied && operationalContinues);
 
 // Volver a SHADOW restaura lo legacy exacto.
 svcSql(`select public.platform_set_entitlement_enforcement_mode('${CPT}', 'DUAL_READ', 'x07 rollback')`);
@@ -334,8 +384,124 @@ svcSql(`select public.platform_set_entitlement_enforcement_mode('${CPT}', 'SHADO
 check('22. rollback PRIMARY → DUAL_READ → SHADOW: WhatsApp vuelve a su legacy (contratado y encendido)',
   fila('channels', 'type', 'whatsapp') === 'true|true' && has(WHATSAPP));
 
-cleanup();
-check('23. limpieza: el tenant X-07 no queda en la base desechable',
-  psql(`select count(*) from public.organizations where id = '${ORG}'`) === '0');
+// ── D14 · cutover gobernado de eChange (DEV/LOCAL, sin reversión) ─────────────
+// Alcance PRODUCT: primero el producto, después la fila propia del tenant X-07 (quedó en SHADOW
+// por la prueba 22). Todo por la palanca, un paso por vez, con el motivo D-14.
+const productAdvanced = advanceToPrimary('PRODUCT');
+const tenantAdvanced = advanceToPrimary(CPT);
+const oneStepEach = transitions.every((t) => {
+  const [a, b] = t.split(': ')[1]!.split('→') as [Mode, Mode];
+  return ORDER.indexOf(b) - ORDER.indexOf(a) === 1;
+});
+check('D14.0 PRODUCTO y tenant → PRIMARY un paso por vez, con motivo D-14',
+  productAdvanced && tenantAdvanced && oneStepEach && transitions.some((t) => t.startsWith('PRODUCT: ')), transitions.join(' · '));
 
-console.log(`\n${results.filter((r) => r.startsWith('PASS')).length}/${results.length} PASS`);
+// Todo tenant mapeado (alta ACTIVE) queda en PRIMARY: los que no tienen fila propia heredan el PRODUCTO.
+const mapped = psql(`select coalesce(string_agg(control_plane_tenant_id::text, ',' order by control_plane_tenant_id), '')
+  from privado.platform_provisioning_requests where status = 'ACTIVE'`).split(',').filter(Boolean);
+const cohortErrors: string[] = [];
+for (const cpt of mapped) {
+  try {
+    if (!advanceToPrimary(cpt)) cohortErrors.push(cpt);
+  } catch (e) {
+    cohortErrors.push(`${cpt}:${String((e as { stderr?: string }).stderr ?? e).split('\n')[0]}`);
+  }
+}
+const mappedPrimary = mapped.filter((cpt) => modeOf(cpt) === 'PRIMARY').length;
+const productScopeMode = modeOf(null);
+check('D14.1 PRODUCT en PRIMARY y todo tenant mapeado en PRIMARY', productScopeMode === 'PRIMARY' && cohortErrors.length === 0
+  && mapped.includes(CPT) && mappedPrimary === mapped.length,
+  `${mappedPrimary}/${mapped.length} · PRODUCT ${productScopeMode}${cohortErrors.length ? ` · ${cohortErrors.join(',')}` : ''}`);
+
+// El receptor vuelve (otro puerto): estado final con un snapshot appActive=true, verificado por GET.
+const server2 = createServer(receiver);
+await new Promise<void>((resolve) => server2.listen(0, '127.0.0.1', resolve));
+port = (server2.address() as { port: number }).port;
+const v4 = await emit(4, [WHATSAPP, REPORTES]);
+const p4 = await client.pushSnapshot(ctx(), v4, actor);
+// Encender es operativo (del tenant); el derecho comercial ya lo materializó el snapshot.
+psql(`update public.ai_agents set enabled = true where organization_id = '${ORG}' and agent_key = 'report_writer';
+      update public.channels set enabled = true where organization_id = '${ORG}' and type = 'whatsapp';`);
+check('D14.2 v4 appActive=true (WhatsApp + reportería) → APPLIED; la puerta los concede',
+  p4.result === 'APPLIED' && fila('ai_agents', 'agent_key', 'report_writer') === 'true|true' && has(REPORTES) && has(WHATSAPP), p4.result);
+
+const gF = await client.getApplied(ctx(), actor);
+const getOk = gF.result === 'OBSERVED' && gF.enforcementMode === 'PRIMARY' && gF.appliedVersion === 4
+  && gF.appliedChecksum === v4.checksum && v4.appActive === true;
+check('D14.3 GET final: PRIMARY, versión y checksum = último deseado (v4, appActive=true)', getOk,
+  `${gF.result} v${gF.appliedVersion} ${gF.enforcementMode}`);
+
+// Escritura legacy del derecho en el estado final: bloqueada en servidor.
+const legacyWrite = (() => {
+  try {
+    svcSql(`update public.channels set commercially_entitled = true where organization_id = '${ORG}' and type = 'phone'`);
+    return 'PERMITIDA';
+  } catch (e) {
+    return String((e as { stderr?: string }).stderr ?? '');
+  }
+})();
+const legacyBlocked = /LEGACY_WRITE_BLOCKED/.test(legacyWrite) && !has('echange.channels.phone') && modeOf(CPT) === 'PRIMARY';
+check('D14.4 estado final: escritura legacy del derecho (channels.commercially_entitled) → LEGACY_WRITE_BLOCKED', legacyBlocked,
+  legacyWrite.match(/LEGACY_WRITE_BLOCKED/)?.[0] ?? legacyWrite.split('\n')[0]);
+
+// Dual-read en el estado final: el modelo comercial local coincide con el snapshot.
+const modeloFinal = JSON.parse(svcSql(`select public.echange_modelo_comercial_local('${CPT}')`)) as Row;
+const paridadFinal = ecParidad.compararModeloComercial(modeloFinal);
+const parityMismatches = paridadFinal.diferencias.filter((d) => d.severidad === 'MISMATCH');
+check('D14.5 paridad final: modelo comercial local = snapshot v4 (sin diferencias bloqueantes)', paridadFinal.paridad && parityMismatches.length === 0,
+  parityMismatches.map((d) => `${d.tipo}:${d.code}`).join(',') || 'sin diferencias');
+
+// Las organizaciones sin alta siguen en legacy aunque el PRODUCTO esté en PRIMARY.
+const unmappedAfter = unmappedDecisions();
+const unmappedOrgs = Number(psql(`select count(*) ${UNMAPPED_ORGS}`));
+check('D14.6 organizaciones sin alta de MasterAdmin (seed): misma decisión que antes con el PRODUCTO en PRIMARY',
+  unmappedOrgs >= 1 && unmappedAfter !== '' && unmappedAfter === unmappedBefore,
+  `${unmappedOrgs} organizaciones · ${unmappedAfter.split(',').length} decisiones`);
+
+const legacyTenants: LegacyTenant[] = psql(`select coalesce(string_agg(o.id || '|' || replace(o.name, '|', '/'), chr(10) order by o.name), '') ${UNMAPPED_ORGS}`)
+  .split('\n').filter(Boolean).map((line) => {
+    const [id, ...label] = line.split('|');
+    return {
+      id: id!,
+      label: label.join('|'),
+      resolution: 'UNRESOLVED' as const,
+      reason: 'Sin alta ACTIVE en privado.platform_provisioning_requests ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4); '
+        + 'sin controlPlaneTenantId la puerta decide en LEGACY aunque el PRODUCTO esté en PRIMARY.',
+    };
+  });
+
+server2.close();
+server2.closeAllConnections();
+
+const counts = countChecks(results);
+const evidenceFile = writeD14Evidence({
+  product: 'echange',
+  entitlements: {
+    scope: 'PRODUCT',
+    productScopeMode,
+    finalMode: gF.enforcementMode ?? 'NONE',
+    transitions,
+    mappedTenants: mapped.length,
+    mappedTenantsPrimary: mappedPrimary,
+    getVerified: { appliedVersion: gF.appliedVersion ?? -1, appliedChecksum: gF.appliedChecksum ?? '', enforcementMode: gF.enforcementMode ?? 'NONE', desiredChecksum: v4.checksum },
+    legacyWrite: {
+      // Sin prueba no se declara BLOCKED: el valor fuera del contrato hace fallar a quien lo lea.
+      status: (legacyBlocked ? 'BLOCKED' : 'NOT_PROVEN') as 'BLOCKED',
+      evidence: `D14.4 (estado final PRIMARY): update public.channels set commercially_entitled = true (type=phone, org X-07) como service_role → `
+        + `LEGACY_WRITE_BLOCKED (trigger privado.ccp_escritura_legacy_del_derecho) y la puerta sigue negando echange.channels.phone.`,
+    },
+    parityBlocking: parityMismatches.length,
+  },
+  appActiveFalse: {
+    commercialDenied,
+    operationalContinues,
+    evidence: 'check 21: v3 appActive=false → echange.ai.report_writer y echange.channels.whatsapp negados; '
+      + 'echange.ai.triage y echange.channels.portal (incluidos) siguen concedidos.',
+  },
+  legacyTenants,
+  billing: null,
+  checks: counts,
+});
+console.log(evidenceFile ? `evidencia D-14: ${evidenceFile}` : 'evidencia D-14: sin CCP_EVIDENCE_DIR, no se escribe');
+
+console.log(`\n${counts.passed}/${results.length} PASS`);
