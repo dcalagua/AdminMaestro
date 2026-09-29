@@ -1,0 +1,692 @@
+ plan  
+-------
+ 1..66
+(1 row)
+
+                               ok                               
+----------------------------------------------------------------
+ ok 1 - charge_kind incluye CREDIT_PURCHASE (migración aislada)
+(1 row)
+
+                                                  is                                                   
+-------------------------------------------------------------------------------------------------------
+ ok 2 - invoice_lines gana los vínculos de uso, crédito, add-on y corrección (nulos para lo existente)
+(1 row)
+
+                                   is                                   
+------------------------------------------------------------------------
+ ok 3 - Ninguna línea existente cambia: los vínculos nuevos nacen nulos
+(1 row)
+
+                                       is                                        
+---------------------------------------------------------------------------------
+ ok 4 - RPCs nuevas: DEFINER con search_path fijo, sin anon; el gate está dentro
+(1 row)
+
+                          is                           
+-------------------------------------------------------
+ ok 5 - authenticated sigue sin escribir invoice_lines
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                                                                                                                                                                                                                                 onboard_customer_subscription                                                                                                                                                                                                                                  
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"items": [{"id": "68d1e22a-7d94-4380-98fb-3c43cb802d05", "amount": 3150.00, "currency": "PEN", "charge_kind": "LICENSE"}], "currency": "PEN", "recurring": true, "tenant_id": "b52a77df-c3a3-43f8-a7d8-2276a13ae84d", "market_code": "PE", "attribution_id": "fe2744fd-1fe3-4e09-869f-cdd5883690a8", "license_amount": 3150.00, "subscription_id": "8219bf03-1d13-4501-ad30-70c38bd7df53", "list_license_amount": 3150.00, "provisioning_request_id": "72ac4ae9-a50b-44ef-bcbb-794707226350"}
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+       upsert_subscription_item       
+--------------------------------------
+ 9f4c753f-808e-4f53-a163-d160f1d0f62f
+(1 row)
+
+       upsert_subscription_item       
+--------------------------------------
+ d422ffe0-03cf-4416-b7ed-581f89b9e6f2
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                                                            import_capability_manifest                                                             
+---------------------------------------------------------------------------------------------------------------------------------------------------
+ {"aliases": 0, "missing": ["esupplier.ai.tender_copilot"], "product": "esupplier", "updated": 0, "inserted": 3, "import_id": 479, "unchanged": 0}
+(1 row)
+
+       create_entitlement_grant       
+--------------------------------------
+ 2bc456b1-d7e7-46a1-ac93-e55419e2caad
+(1 row)
+
+          upsert_usage_meter          
+--------------------------------------
+ 0bb0eb6d-9e13-49f4-80c4-94e3137ebd80
+(1 row)
+
+          upsert_usage_meter          
+--------------------------------------
+ d36136b5-6262-4149-8fd5-d4bf4281beb3
+(1 row)
+
+          upsert_usage_meter          
+--------------------------------------
+ 7b5315a7-4f85-4fb3-9705-0031ed7701e3
+(1 row)
+
+          upsert_usage_meter          
+--------------------------------------
+ eedf6959-0b18-4d85-af95-d61ebd3af077
+(1 row)
+
+          upsert_usage_meter          
+--------------------------------------
+ 055f9d31-d0f8-404d-994c-556e51dcd460
+(1 row)
+
+          upsert_usage_meter          
+--------------------------------------
+ e5171ab0-8783-4c3f-be6a-e6135bb2c940
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                        throws_ok                        
+---------------------------------------------------------
+ ok 6 - Un tenant admin no decide cómo se factura el uso
+(1 row)
+
+                         throws_ok                          
+------------------------------------------------------------
+ ok 7 - Un tenant admin no fija créditos por paquete (D-03)
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                     throws_ok                     
+---------------------------------------------------
+ ok 8 - Solo un ítem PER_UNIT se liga a un medidor
+(1 row)
+
+                   throws_ok                    
+------------------------------------------------
+ ok 9 - Ligar un ítem a un medidor exige motivo
+(1 row)
+
+                 lives_ok                 
+------------------------------------------
+ ok 10 - qa_api_calls tarifa el medidor A
+(1 row)
+
+                                      throws_ok                                       
+--------------------------------------------------------------------------------------
+ ok 11 - Un medidor tiene un solo ítem de tarifa vigente (sin doble cobro por diseño)
+(1 row)
+
+                              set_catalog_item_usage_binding                              
+------------------------------------------------------------------------------------------
+ {"meter": "esupplier.qa.storage.gb", "source": "METER", "catalog_item": "qa_storage_gb"}
+(1 row)
+
+                             set_catalog_item_usage_binding                             
+----------------------------------------------------------------------------------------
+ {"meter": "esupplier.qa.sync.jobs", "source": "METER", "catalog_item": "qa_sync_jobs"}
+(1 row)
+
+                         set_catalog_item_usage_binding                         
+--------------------------------------------------------------------------------
+ {"meter": "esupplier.qa.views", "source": "METER", "catalog_item": "qa_views"}
+(1 row)
+
+                     set_catalog_item_usage_binding                      
+-------------------------------------------------------------------------
+ {"meter": null, "source": "AI_CREDIT", "catalog_item": "qa_ai_overage"}
+(1 row)
+
+            throws_ok             
+----------------------------------
+ ok 12 - Créditos por paquete > 0
+(1 row)
+
+         set_catalog_item_credit_pack         
+----------------------------------------------
+ {"credits": 5, "catalog_item": "qa_ai_pack"}
+(1 row)
+
+        set_catalog_item_price        
+--------------------------------------
+ 0d554c0f-2a92-4fab-9cdc-d74e7a3886fc
+(1 row)
+
+        set_catalog_item_price        
+--------------------------------------
+ b6c17f71-8f5e-4ab0-a85a-923783e167b9
+(1 row)
+
+        set_catalog_item_price        
+--------------------------------------
+ 44c778f2-893d-441c-a6f3-c468989b3166
+(1 row)
+
+        set_catalog_item_price        
+--------------------------------------
+ 7be621d4-e39f-4a91-84a9-ce194da8ea5a
+(1 row)
+
+        set_catalog_item_price        
+--------------------------------------
+ fa5e5cc8-64a3-4f2b-9478-aac920c27380
+(1 row)
+
+                           lives_ok                            
+---------------------------------------------------------------
+ ok 13 - Una tarifa CREDIT_PURCHASE se versiona como las demás
+(1 row)
+
+ set_usage_meter_billable 
+--------------------------
+ 
+ 
+ 
+ 
+(4 rows)
+
+         set_ai_credit_weight         
+--------------------------------------
+ 5a5744b9-a10d-498f-8eb0-418441b1f52e
+(1 row)
+
+       create_ai_credit_policy        
+--------------------------------------
+ ad74fb36-1874-4f05-a135-3cced904bf85
+(1 row)
+
+ act_as_service 
+----------------
+ 
+(1 row)
+
+ open_ai_credit_period 
+-----------------------
+ {"granted": 1}
+(1 row)
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         ingest_usage_events                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"results": [{"status": "ACCEPTED", "eventId": "2020a476-01ef-48f3-997b-f33d64f38f0a"}, {"status": "ACCEPTED", "eventId": "0b838caa-05f4-44fe-99fc-bff7cb2cd87f"}, {"status": "ACCEPTED", "eventId": "65b192e3-80a6-4ed7-972c-68798d739c5d"}, {"status": "ACCEPTED", "eventId": "c3b24437-0a33-4029-a1b4-81878f97e9c2"}, {"status": "ACCEPTED", "eventId": "319dc768-4ec2-4ae2-b553-97653277ac5d"}, {"status": "ACCEPTED", "eventId": "ec6c2f92-9f69-4f35-b523-e7e9ababc841"}, {"status": "ACCEPTED", "eventId": "b0fa9dde-98ca-4cc3-833a-03125849b3a5"}, {"status": "ACCEPTED", "eventId": "b16d5065-20de-4371-adb8-bf4f9caf51a5"}, {"status": "ACCEPTED", "eventId": "aa9c990d-96fa-4ab3-b70a-8becf94374c4"}, {"status": "ACCEPTED", "eventId": "8ab75714-95ef-4a46-b251-36b76df78117"}, {"status": "ACCEPTED", "eventId": "915aa141-29cd-4896-aa1c-7239f8c96fc2"}, {"status": "ACCEPTED", "eventId": "23d4698d-ae9a-4925-ad77-ae0ce3c309ea"}, {"status": "ACCEPTED", "eventId": "6fa988e0-8670-4973-a3e8-9b0faefa9c45"}, {"status": "ACCEPTED", "eventId": "caba538f-df68-4731-92a1-a83011aa794d"}, {"status": "ACCEPTED", "eventId": "ec70fb92-d1e4-459f-b36f-7c066d1d4a18"}, {"status": "ACCEPTED", "eventId": "3c0bf5ad-921e-4f3e-a30f-236364da4aac"}, {"status": "ACCEPTED", "eventId": "ffcd9b67-b7cb-4ba3-9867-7d493f198209"}, {"status": "ACCEPTED", "eventId": "48532972-9985-4fcd-8bbc-04d54ef1ab49"}, {"status": "ACCEPTED", "eventId": "83f41773-a506-40f3-8519-4ebed6aec649"}, {"status": "ACCEPTED", "eventId": "ed8bf215-e5af-41a6-aa42-d23fe6482ee5"}, {"status": "ACCEPTED", "eventId": "0981384a-5509-4c46-b7e6-01fed19da2d5"}], "accepted": 21, "rejected": 0, "duplicate": 0}
+(1 row)
+
+ close_usage_periods 
+---------------------
+                   8
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+                                                     is                                                      
+-------------------------------------------------------------------------------------------------------------
+ ok 14 - Antes = después: la factura de un período sin uso facturable replica exactamente las líneas debidas
+(1 row)
+
+                          is                          
+------------------------------------------------------
+ ok 15 - Sin uso: ninguna línea lleva vínculos de uso
+(1 row)
+
+                            is                             
+-----------------------------------------------------------
+ ok 16 - Ningún impuesto nuevo (D-13): tax_amount como hoy
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                                                                                                                           finalize_usage_aggregate                                                                                                                            
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"id": "24ebee71-58d2-4f6d-84c0-d0470a7e7020", "overage": null, "quantity": 7.000000, "eventCount": 7, "isBillable": true, "sourceHash": "sha256:1fc881fd2fffa331cd7a85311c8af1347a2d827080fcd23054a45d431fbdab90", "lateEventCount": 0, "allowanceStatus": "NO_ALLOWANCE"}
+ {"id": "5c1b3b8a-95fc-4289-8e6b-d3f1b0fcc0cc", "overage": null, "quantity": 3.000000, "eventCount": 1, "isBillable": true, "sourceHash": "sha256:83038fea98f46de1c86399ea80e6070f7ff867426ffebcd3e374797cb91c84cf", "lateEventCount": 0, "allowanceStatus": "NO_ALLOWANCE"}
+ {"id": "e2d31cea-f0d5-46d8-8e1a-5fb0968fa7a5", "overage": 3.000000, "quantity": 5.000000, "eventCount": 1, "isBillable": true, "sourceHash": "sha256:c07fd2a45fbc17befe4a073a714549d796f2cbd7b4961c229efe9d24e7b6d7ae", "lateEventCount": 0, "allowanceStatus": "OVER"}
+ {"id": "3bd7284d-41b4-4ce8-b19d-894d3fa1e6b0", "overage": null, "quantity": 4.000000, "eventCount": 1, "isBillable": true, "sourceHash": "sha256:dd188b65faf92c4972201ba427726550e81ef9f9f7ece95a6f587cbcbdc39043", "lateEventCount": 0, "allowanceStatus": "NO_ALLOWANCE"}
+ {"id": "2c4bcb8b-8961-4a6c-93e9-3e81b19a8b48", "overage": null, "quantity": 11.000000, "eventCount": 1, "isBillable": false, "sourceHash": "sha256:173fac43ac1951f80724ad3c5f3cb51f303106f9dc066c1d8dd8a5d29df0a677", "lateEventCount": 0, "allowanceStatus": "NO_ALLOWANCE"}
+ {"id": "a48d3bb6-ed63-4d41-beb3-01e6a65f39c9", "overage": null, "quantity": 8.000000, "eventCount": 8, "isBillable": false, "sourceHash": "sha256:8a0d27033827ae72d0facb083aebdc03d840c56931494cd09cde1c689a8f181c", "lateEventCount": 0, "allowanceStatus": "NO_ALLOWANCE"}
+(6 rows)
+
+                                                                                                                           finalize_usage_aggregate                                                                                                                           
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"id": "da16550c-e470-46d2-b20b-e4a1ee9f9f63", "overage": null, "quantity": 6.000000, "eventCount": 1, "isBillable": false, "sourceHash": "sha256:8eded2eb002e7d361b6b37f851e7d980b6c41c9dd7a5cea843b613752195d16b", "lateEventCount": 0, "allowanceStatus": "NO_ALLOWANCE"}
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+                                                          is                                                          
+----------------------------------------------------------------------------------------------------------------------
+ ok 17 - Agregados FINALIZED de M-2 (fase 17): C excede su asignación de 2; E y la IA no son facturables como medidor
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                  throws_ok                   
+----------------------------------------------
+ ok 18 - Un tenant admin no se vende créditos
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                             throws_ok                              
+--------------------------------------------------------------------
+ ok 19 - Un ítem sin créditos por paquete no se vende como créditos
+(1 row)
+
+            throws_ok             
+----------------------------------
+ ok 20 - Cantidad de paquetes > 0
+(1 row)
+
+                             is                             
+------------------------------------------------------------
+ ok 21 - Misma clave de compra → misma compra (idempotente)
+(1 row)
+
+                     throws_ok                      
+----------------------------------------------------
+ ok 22 - Misma clave con otro contenido → conflicto
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+                               is                               
+----------------------------------------------------------------
+ ok 23 - La compra acredita 1 paquete × 5 créditos en el ledger
+(1 row)
+
+                                   is                                    
+-------------------------------------------------------------------------
+ ok 24 - La compra deja un ítem ONE_TIME con la tarifa vigente congelada
+(1 row)
+
+                                      is                                      
+------------------------------------------------------------------------------
+ ok 25 - Aritmética de créditos: 10 incluidos + 5 comprados − 8×2 usados = −1
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+                                                      is                                                       
+---------------------------------------------------------------------------------------------------------------
+ ok 26 - M-1 = licencia + compra de créditos + exceso de 1 crédito + 7 llamadas A; nada por B, C, D, E ni DEMO
+(1 row)
+
+                                  is                                  
+----------------------------------------------------------------------
+ ok 27 - Total 104.60 = suma exacta de líneas; sin impuesto inventado
+(1 row)
+
+                                                  is                                                   
+-------------------------------------------------------------------------------------------------------
+ ok 28 - La línea USAGE referencia el agregado FINALIZED (su source_hash), el ítem y la tarifa vigente
+(1 row)
+
+                                                  is                                                   
+-------------------------------------------------------------------------------------------------------
+ ok 29 - La línea de exceso de créditos referencia pool × período y el hash de sus agregados FINALIZED
+(1 row)
+
+                                 is                                  
+---------------------------------------------------------------------
+ ok 30 - La línea CREDIT_PURCHASE apunta a su entrada GRANT_PURCHASE
+(1 row)
+
+                                                                   is                                                                   
+----------------------------------------------------------------------------------------------------------------------------------------
+ ok 31 - Sin asignación decidida (B) o sin tarifa (D) → alerta a finanzas; C exceso bajo BLOCK solo alerta; E no facturable, sin alerta
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                       is                        
+-------------------------------------------------
+ ok 32 - Re-emitir M-1 devuelve la misma factura
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+                  is                  
+--------------------------------------
+ ok 33 - Re-emitir no duplica alertas
+(1 row)
+
+                                          throws_ok                                           
+----------------------------------------------------------------------------------------------
+ ok 34 - Un agregado ya facturado no entra en otra factura no anulada (AGREGADO_YA_FACTURADO)
+(1 row)
+
+                                throws_ok                                
+-------------------------------------------------------------------------
+ ok 35 - Un agregado no FINALIZED no se factura (AGREGADO_NO_FINALIZADO)
+(1 row)
+
+                                     throws_ok                                      
+------------------------------------------------------------------------------------
+ ok 36 - Un agregado DEMO (no facturable) nunca se factura (AGREGADO_NO_FACTURABLE)
+(1 row)
+
+                                              throws_ok                                              
+-----------------------------------------------------------------------------------------------------
+ ok 37 - El exceso de créditos de un pool × período se factura una sola vez (CREDITOS_YA_FACTURADOS)
+(1 row)
+
+                               throws_ok                                
+------------------------------------------------------------------------
+ ok 38 - Una línea USAGE_OVERAGE sin agregado ni pool no existe (CHECK)
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+                                           is                                            
+-----------------------------------------------------------------------------------------
+ ok 39 - Anulada la factura, la re-emisión vuelve a reclamar el mismo uso (una sola vez)
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                   lives_ok                    
+-----------------------------------------------
+ ok 40 - Cobro CONFIRMED de la factura con uso
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+                                      throws_ok                                       
+--------------------------------------------------------------------------------------
+ ok 41 - Una factura con cobros CONFIRMED no se anula (FACTURA_CON_PAGOS_CONFIRMADOS)
+(1 row)
+
+                                                  is                                                  
+------------------------------------------------------------------------------------------------------
+ ok 42 - COLLECTED_ANY no incluye USAGE_OVERAGE ni CREDIT_PURCHASE (D-11): solo la licencia comisiona
+(1 row)
+
+ generate_commission_events 
+----------------------------
+                          2
+(1 row)
+
+                                                is                                                
+--------------------------------------------------------------------------------------------------
+ ok 43 - Una regla que nombra USAGE_OVERAGE explícitamente sí comisiona el uso (y solo esa regla)
+(1 row)
+
+                               is                               
+----------------------------------------------------------------
+ ok 44 - Ningún evento de comisión nace de un pago no CONFIRMED
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                    throws_ok                    
+-------------------------------------------------
+ ok 45 - Un tenant admin no se aplica descuentos
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                  throws_ok                   
+----------------------------------------------
+ ok 46 - Un descuento correctivo exige motivo
+(1 row)
+
+           throws_ok            
+--------------------------------
+ ok 47 - Importe correctivo > 0
+(1 row)
+
+                     throws_ok                      
+----------------------------------------------------
+ ok 48 - Una línea de factura anulada no se corrige
+(1 row)
+
+                                lives_ok                                
+------------------------------------------------------------------------
+ ok 49 - Finanzas programa un correctivo de 30 sobre la licencia de 100
+(1 row)
+
+                             throws_ok                             
+-------------------------------------------------------------------
+ ok 50 - Las correcciones acumuladas no superan la línea corregida
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+        set_catalog_item_price        
+--------------------------------------
+ ec8a07fb-7b31-411a-9330-1dba9a02ac29
+(1 row)
+
+         request_tenant_addon         
+--------------------------------------
+ d0a97173-1717-413d-8e80-af354cb597ee
+(1 row)
+
+                                                                                   approve_tenant_addon                                                                                   
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"status": "ACTIVE", "currency": "PEN", "unit_amount": 40.00, "tenant_addon_id": "d0a97173-1717-413d-8e80-af354cb597ee", "subscription_item_id": "4b1131f4-eb84-4650-b46b-e08c96be3d59"}
+(1 row)
+
+        set_catalog_item_price        
+--------------------------------------
+ 73126bc6-10c0-46c5-bf7b-fe1e0f5bebca
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+                                                                 is                                                                  
+-------------------------------------------------------------------------------------------------------------------------------------
+ ok 51 - M0 = licencia + add-on + correctivo negativo; sin repetir ONE_TIME, compra ni uso ya facturados; el uso de M0 sigue abierto
+(1 row)
+
+                                    is                                     
+---------------------------------------------------------------------------
+ ok 52 - Total M0 = 100 + 40 − 30: el correctivo resta exactamente una vez
+(1 row)
+
+                                  is                                  
+----------------------------------------------------------------------
+ ok 53 - El correctivo apunta a la línea corregida (corrects_line_id)
+(1 row)
+
+                                                       is                                                       
+----------------------------------------------------------------------------------------------------------------
+ ok 54 - La línea ADDON queda ligada al ítem de catálogo y a la tarifa vigente al activarse (no a la posterior)
+(1 row)
+
+                                          is                                          
+--------------------------------------------------------------------------------------
+ ok 55 - La factura corregida no cambia (inmutable; el correctivo va en la siguiente)
+(1 row)
+
+                             is                              
+-------------------------------------------------------------
+ ok 56 - Un correctivo no es reembolso: ningún pago negativo
+(1 row)
+
+                                     throws_ok                                      
+------------------------------------------------------------------------------------
+ ok 57 - El guard de línea también impide corregir más que la línea (30 + 71 > 100)
+(1 row)
+
+                             throws_ok                              
+--------------------------------------------------------------------
+ ok 58 - Solo un DISCOUNT negativo puede corregir una línea (CHECK)
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                       throws_ok                       
+-------------------------------------------------------
+ ok 59 - Un descuento no se corrige con otro descuento
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                                        is                                        
+----------------------------------------------------------------------------------
+ ok 60 - M+1 = licencia + add-on: el correctivo, la compra y el uso no se repiten
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+                                                     is                                                      
+-------------------------------------------------------------------------------------------------------------
+ ok 61 - MRR = licencia 100 + add-on 40; ni uso, ni compra de créditos, ni correctivo ONE_TIME entran en MRR
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                          throws_ok                          
+-------------------------------------------------------------
+ ok 62 - Un pool que la política no define no recibe compras
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                                     throws_ok                                     
+-----------------------------------------------------------------------------------
+ ok 63 - Sin tarifa CREDIT_PURCHASE vigente → TARIFA_ADDON_NO_DEFINIDA (D-01/D-02)
+(1 row)
+
+                                 throws_ok                                  
+----------------------------------------------------------------------------
+ ok 64 - Un ítem de catálogo no se tarifa con cargos que no le corresponden
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+                                  is                                  
+----------------------------------------------------------------------
+ ok 65 - Un único exceso de créditos facturado para el pool × período
+(1 row)
+
+                            is                            
+----------------------------------------------------------
+ ok 66 - Ningún agregado aparece en dos facturas vigentes
+(1 row)
+
+ finish 
+--------
+(0 rows)
+
