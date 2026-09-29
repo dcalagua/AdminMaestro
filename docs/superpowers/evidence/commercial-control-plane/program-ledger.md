@@ -250,3 +250,72 @@
   - `EBIM-ESTADO-GMAO.md` text is left for the operator (GUIDELINES_ROOT is read-only).
 - Status: PHASE_16=PASS.
 
+
+## 2026-09-28 — Phase 17 (suite usage metering and AI credits)
+- LOCAL only.
+  - MasterAdmin worktree, base `ba29ff3` (phase 16 close).
+  - No push, no QAS/PRD, no `link`/`db push`/`functions deploy`/`secrets set`.
+  - Nothing was run against `uvjmdphlnpyhtohobvzx` or `xikbhkfeaosasdltartg`.
+- Two invocations.
+  - The first built everything, but ended while the EWM `mvn clean verify` was still running, so it emitted no marker.
+  - The resume found no live Maven process. The old surefire fork had died with SIGTERM (exit 143), leaving no final result.
+  - The resume did not redo work that was already green.
+- MasterAdmin commits:
+  - `1557609` meters + append-only idempotent `usage_events`
+  - `c7964a7` signed ES256 `usage-ingest`
+  - `02403d6` FIX-USG-v1 (`9f77d3cd…ba7d6e1`)
+  - `7af9941` period aggregates/finalization + late-event policy + allowance/overage alerts
+  - `263b4a0` append-only `ai_credit_ledger` + derived balances
+  - `15658a5` runbook + rollback `17.sql`
+  - `c248935`, `0cc53e8` advisor fixes
+  - this commit: `scripts/ccp/usage-x07-e2e.mts`, the X-07 log, evidence and this entry
+- Nothing invented (D-02/D-03/D-04/D-06/D-12).
+  - Weights, policies and ledger are born empty; meters are non-billable; ingest is OFF by default.
+  - The "action quota = weight 1" compatibility was NOT applied (D-03 not approved).
+- SaaS commits (local, all FIX-USG-v1, senders OFF by default, no cron):
+
+  | Product | Commits |
+  | --- | --- |
+  | eCommerce | `9a67427`, `e82bd2e` |
+  | EWM | `2b90b19`, `c87ef5d`, `e75f4c3` |
+  | Comerza | `46863bc`, `0ee7537` |
+  | eSupplier | `86021db` |
+  | eChange | `5b879b9`, `0ea1166`, `916264b` |
+  | eExpense | `0022538`, `afb2850`, `0ddd0d1`, `085deb7`, `f2389dc` |
+  | GMAO | `587e94a` |
+  | TMS | none — no approved meter |
+- Gate:
+  - MasterAdmin: pgTAP 1581/1581, vitest 1185/1185, typecheck/lint/build OK, node:test 15/15, deno check OK, secrets PASS, advisors clean, INV-1 diff empty, rollback dry-run OK.
+  - Ingest E2E 32/32. X-07 usage 66/66: real senders of 6 TypeScript SaaS → real `usage-ingest` → real RPCs.
+  - Real DB:
+    - eExpense 295/295.
+    - Comerza `test:db` exit 0, including a two-session SKIP LOCKED run.
+    - eSupplier 227/227.
+    - eChange usage 52/52 + 30/30, provisioning 31/31.
+    - EWM `clean verify`:
+      - unit 1512/0/0;
+      - IT 1535 with 0 failures, program ITs all green;
+      - 25 errors: 24 in `YardVisitIT`, identical at the pre-17 head `86cb148` (harness context pollution from the class-scoped container of `NeoRetailSeedSmokeIT`; the class passes in isolation, no diff vs `7c086e8`), and 1 intermittent `InterWarehouseTransferIT` (green at the baseline and in 4 isolated runs).
+- Defect found and fixed on resume (EWM `c87ef5d`, introduced by phase 10).
+  - The entitlements GET returned 500 on real PostgreSQL, because the jti was consumed inside a `readOnly` transaction (25006). Phase 10 ITs had never run with a DB.
+  - Fix: `consumirJti` uses `REQUIRES_NEW`, with a new IT. RED, then GREEN 55/55. This also clears the 1 IT failure seen at `86cb148`.
+- eChange: the 10 pgTAP failures were classified against the ORIGINAL DEV base `3d6f34e`, not phase 14.
+  - A disposable DB from `git archive 3d6f34e` gives 818 ok / 10 not ok: the same 10 assertions as HEAD, with the test files unchanged.
+  - They are **pre-existing**, not introduced by phase 06/14/17. They stay in eChange's security backlog: anon/authenticated EXECUTE on portal/attachment DEFINER functions.
+- eCommerce: the `storage_buckets` blocker is a **pre-existing migration portability defect**, not local infrastructure.
+  - The statement is `alter table storage.objects enable row level security`, from `c5111cb`, already in base `7da2ae4`.
+  - `storage.objects` is owned by `supabase_storage_admin`, `postgres` is not a superuser, and RLS is already on.
+  - It breaks any fresh from-zero DB on current images; DBs that already applied it are not affected.
+  - Phase 19 must verify QAS on the existing DB without `db reset`. The fix is left to the eCommerce owner.
+  - Usage SQL verified on PGlite with the full chain (39/39).
+- GMAO: no versioned base schema, so PGlite on the captured schema is its only local harness. Phase 19 must first check the real QAS hub/GMAO schema (read-only operator SQL from phase 16), and only then apply migrations 16/17.
+- Deviations: see `phase-17-usage.md` §Decisiones (pgTAP renumbering 38–40, own ingest credential table, `internal` without column grant, CLOSING still accepts events, allowance overage is BLOCK only in contract v1, no CONSUME without policy/pool).
+- Open (not expanded):
+  - D-02/D-03/D-04/D-06/D-12 are still open. Ingest stays OFF everywhere until D-12.
+  - Operator after D-12/GATE C: per-product ES256 keys, `configure_usage_ingest_credential`, meters ACTIVE, SaaS secrets, sender and close/finalize schedules.
+  - `echange.voice.seconds` is not registered.
+  - `TENANT_NOT_MAPPED` events stay PENDING until those tenants are adopted.
+  - Backlog outside the program: EWM IT harness isolation (`NeoRetailSeedSmokeIT`), eChange DEFINER grants, eCommerce `storage_buckets`.
+  - The `USAGE_OVERAGE` invoice line belongs to phase 18.
+- Evidence: `phase-17-usage.md` (+ SaaS evidence), `logs/MA17-*`, `logs/MA-54-usage-ingest-e2e.txt`, `logs/MA17-X07-usage-e2e.txt`.
+- Status: PHASE_17=PASS.
