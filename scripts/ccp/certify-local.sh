@@ -121,6 +121,20 @@ export SUPABASE_URL SUPABASE_DB_URL SUPABASE_SERVICE_ROLE_KEY
 
 X07="node --experimental-transform-types"
 
+# stack_db_url <workdir>: DB_URL del stack Supabase LOCAL de ese workdir, leído de la CLI
+# en runtime (como el de MasterAdmin arriba) y validado con guard-env; nunca se imprime.
+stack_db_url() {
+  local url
+  url="$(supabase status -o env --workdir "$1" 2>/dev/null | sed -n 's/^DB_URL="\(.*\)"$/\1/p')"
+  [ -n "$url" ] && SUPABASE_DB_URL="$url" "$ROOT/scripts/ccp/guard-env.sh" >/dev/null || return 1
+  printf '%s' "$url"
+}
+# stack_down <producto> <paso> <workdir>: el stack no respondió; el paso queda en FALLO (rc=2).
+stack_down() {
+  echo "HARD STOP: el stack local de $1 ($3) no está arriba o no es local" >&2
+  printf '%s\t%s\t2\t-\t-\t-\n' "$1" "$2" >> "$STEPS"
+}
+
 # ---- 0b · bases vacías (solo stacks LOCALES) --------------------------------------
 # reset_workdir <producto> <workdir>: el workdir desechable debe tener las migraciones del worktree.
 reset_workdir() {
@@ -172,20 +186,26 @@ if wants esupplier; then
   docker rm -f esupplier-ccp-pg >/dev/null 2>&1 || true
 fi
 if wants echange; then
-  ECHANGE_DB_PORT="$(docker port "$ECHANGE_DB_CONTAINER" 5432/tcp 2>/dev/null | head -1 | sed 's/.*://')"
-  run echange pgtap "$(wt echange)" -- "$ROOT/scripts/ccp/checks/pgtap-with-baseline.sh" \
-    "$ROOT/scripts/ccp/checks/baselines/echange-pgtap.txt" -- \
-    env DB_URL="postgresql://postgres:postgres@127.0.0.1:${ECHANGE_DB_PORT}/postgres" \
-    bash docs/superpowers/evidence/commercial-control-plane/harness-docker/run-sql-tests.sh
+  if ECHANGE_DB_URL="$(stack_db_url "$ECHANGE_WORKDIR")"; then
+    run echange pgtap "$(wt echange)" -- "$ROOT/scripts/ccp/checks/pgtap-with-baseline.sh" \
+      "$ROOT/scripts/ccp/checks/baselines/echange-pgtap.txt" -- \
+      env DB_URL="$ECHANGE_DB_URL" \
+      bash docs/superpowers/evidence/commercial-control-plane/harness-docker/run-sql-tests.sh
+  else
+    stack_down echange pgtap "$ECHANGE_WORKDIR"
+  fi
   run echange golden-parity "$(wt echange)/web" -- env ECHANGE_CCP_DB_CONTAINER="$ECHANGE_DB_CONTAINER" \
     npx vitest run src/edge/platformEntitlementsGolden.test.ts src/edge/platformEntitlementsParidad.test.ts
   run echange x07 "$ROOT" -- env ECHANGE_WT="$(wt echange)" ECHANGE_DB_CONTAINER="$ECHANGE_DB_CONTAINER" \
     $X07 scripts/ccp/echange-x07-e2e.mts
 fi
 if wants eexpense; then
-  EEXPENSE_DB_PORT="$(docker port "$EEXPENSE_DB_CONTAINER" 5432/tcp 2>/dev/null | head -1 | sed 's/.*://')"
-  run eexpense pgtap "$(wt eexpense)" -- env DB_URL="postgresql://postgres:postgres@127.0.0.1:${EEXPENSE_DB_PORT}/postgres" \
-    bash docs/superpowers/evidence/commercial-control-plane/harness/run-sql-tests.sh
+  if EEXPENSE_DB_URL="$(stack_db_url "$EEXPENSE_WORKDIR")"; then
+    run eexpense pgtap "$(wt eexpense)" -- env DB_URL="$EEXPENSE_DB_URL" \
+      bash docs/superpowers/evidence/commercial-control-plane/harness/run-sql-tests.sh
+  else
+    stack_down eexpense pgtap "$EEXPENSE_WORKDIR"
+  fi
   run eexpense golden "$(wt eexpense)/web" -- env EEXPENSE_CCP_DB_CONTAINER="$EEXPENSE_DB_CONTAINER" \
     npx vitest run src/edge/platformEntitlementsGolden.test.ts
   run eexpense x07 "$ROOT" -- env EEXPENSE_WT="$(wt eexpense)" EEXPENSE_DB_CONTAINER="$EEXPENSE_DB_CONTAINER" \

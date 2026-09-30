@@ -39,7 +39,11 @@ export function maDbUrl(): string {
 
 /** psql contra MasterAdmin LOCAL; `as` fija rol y claims (locales a la transacción). */
 export function maSql(q: string, as?: { user?: string; service?: boolean }): string {
-  const claims = as?.service ? '{"role":"service_role"}' : as?.user ? `{"sub":"${as.user}","role":"authenticated"}` : null;
+  const claims = as?.service
+    ? JSON.stringify({ role: 'service_role' })
+    : as?.user
+      ? JSON.stringify({ sub: as.user, role: 'authenticated' })
+      : null;
   const role = as?.service ? 'service_role' : 'authenticated';
   const prelude = claims
     ? `do $d14$ begin perform set_config('request.jwt.claims', '${claims}', true); perform set_config('role', '${role}', true); end $d14$;`

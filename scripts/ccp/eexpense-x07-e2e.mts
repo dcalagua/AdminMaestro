@@ -49,7 +49,7 @@ if (!/^supabase_db_eexpense-ccp/.test(container)) {
 }
 
 try { maDbUrl(); } catch (e) {
-  console.error(String((e as Error).message), '(la fase D14 compara contra MasterAdmin LOCAL: SUPABASE_DB_URL=postgresql://postgres:postgres@127.0.0.1:54422/postgres)');
+  console.error(String((e as Error).message), '(la fase D14 compara contra MasterAdmin LOCAL: SUPABASE_DB_URL = DB_URL de `supabase status -o env` en MasterAdmin; certify-local.sh la fija)');
   process.exit(2);
 }
 

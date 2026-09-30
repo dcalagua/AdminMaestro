@@ -689,7 +689,7 @@ psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSu
 
        set_config        
 -------------------------
- {"role":"service_role"}
+ [NON_SECRET_TEST_ROLE_CLAIM]
 (1 row)
 
 psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:140: NOTICE:    ok — GET antes del primer snapshot: NONE, SHADOW

@@ -43,7 +43,7 @@ if (!WT.endsWith('/GMAO/.worktrees/ebim-commercial-control-plane-v1')) {
   process.exit(2);
 }
 try { maDbUrl(); } catch (e) {
-  console.error(String((e as Error).message), '(la fase D14 compara contra MasterAdmin LOCAL: SUPABASE_DB_URL=postgresql://postgres:postgres@127.0.0.1:54422/postgres)');
+  console.error(String((e as Error).message), '(la fase D14 compara contra MasterAdmin LOCAL: SUPABASE_DB_URL = DB_URL de `supabase status -o env` en MasterAdmin; certify-local.sh la fija)');
   process.exit(2);
 }
 const PGLITE = join(WT, 'supabase/tests/node_modules/@electric-sql/pglite/dist/index.js');
