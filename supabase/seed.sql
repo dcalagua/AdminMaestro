@@ -111,7 +111,16 @@ insert into platform.saas_products (id, code, name, short_name, description, acc
   ('20000000-0000-4000-a000-000000000004', 'gmao', 'GMAO by EBIM', 'GMAO',
    'Mantenimiento y gestión de activos (EAM/CMMS).', '#185D4A', 'TENANT', 40),
   ('20000000-0000-4000-a000-000000000005', 'echange', 'eChange by EBIM', 'eChange',
-   'Mesa de ayuda y gestión del cambio.', '#8A5CB8', 'TENANT', 50)
+   'Mesa de ayuda y gestión del cambio.', '#8A5CB8', 'TENANT', 50),
+  -- CCP fase 07 (P-03): los 8 productos de la suite existen tras un reset limpio.
+  -- Solo la FILA del catálogo: sin planes, precios, integraciones ni credenciales
+  -- (billing_unit = valor por defecto de la columna; no es una decisión comercial).
+  ('20000000-0000-4000-a000-000000000006', 'comerza', 'Comerza by EBIM', 'Comerza',
+   'Gestión comercial y de ventas.', '#C0572B', 'TENANT', 60),
+  ('20000000-0000-4000-a000-000000000007', 'eexpense', 'eExpense by EBIM', 'eExpense',
+   'Gestión de gastos y rendiciones.', '#3F6FB5', 'TENANT', 70),
+  ('20000000-0000-4000-a000-000000000008', 'ecommerce', 'eCommerce by EBIM', 'eCommerce',
+   'Comercio electrónico y tienda en línea.', '#A23B72', 'TENANT', 80)
 on conflict (code) do nothing;
 
 -- ---------------------------------------------------------------------------
@@ -388,13 +397,21 @@ insert into platform.catalog_items (code, name, description, saas_product_id, it
   ('compras_repuestos','Compras de repuestos', 'Integración eSupplier ↔ GMAO para repuestos.', '20000000-0000-4000-a000-000000000004', 'connector', 'org-wide', false, 0.00, 'USD')
 on conflict (code) do nothing;
 
-insert into platform.tenant_addons (tenant_id, addon_code) values
-  ('50000000-0000-4000-a000-000000000001', 'licitaciones'),
-  ('50000000-0000-4000-a000-000000000007', 'licitaciones'),
-  ('50000000-0000-4000-a000-000000000007', 'white_label'),
-  ('50000000-0000-4000-a000-000000000007', 'sla_premium'),
-  ('50000000-0000-4000-a000-000000000007', 'multi_country'),
-  ('50000000-0000-4000-a000-00000000000d', 'sla_premium')
+-- CCP fase 07: los conectores no disponibles son ANUNCIADOS (COMING_SOON), igual
+-- que el backfill de 20260929000300 en entornos migrados. Sin esto, un reset
+-- limpio los dejaría en DRAFT (valor por defecto de un item nuevo no disponible).
+update platform.catalog_items set lifecycle_status = 'COMING_SOON'
+ where code in ('echange_desk', 'compras_repuestos') and lifecycle_status = 'DRAFT';
+
+-- CCP fase 07: add-ons contratados antes del ciclo de vida = ACTIVE (igual que el
+-- backfill de 20260929000600 en entornos migrados). Una fila sin estado nacería REQUESTED.
+insert into platform.tenant_addons (tenant_id, addon_code, status, request_source, effective_from) values
+  ('50000000-0000-4000-a000-000000000001', 'licitaciones', 'ACTIVE', 'LEGACY_BACKFILL', now()),
+  ('50000000-0000-4000-a000-000000000007', 'licitaciones', 'ACTIVE', 'LEGACY_BACKFILL', now()),
+  ('50000000-0000-4000-a000-000000000007', 'white_label', 'ACTIVE', 'LEGACY_BACKFILL', now()),
+  ('50000000-0000-4000-a000-000000000007', 'sla_premium', 'ACTIVE', 'LEGACY_BACKFILL', now()),
+  ('50000000-0000-4000-a000-000000000007', 'multi_country', 'ACTIVE', 'LEGACY_BACKFILL', now()),
+  ('50000000-0000-4000-a000-00000000000d', 'sla_premium', 'ACTIVE', 'LEGACY_BACKFILL', now())
 on conflict do nothing;
 
 -- ---------------------------------------------------------------------------
@@ -842,8 +859,8 @@ begin
   select count(*) into v_events   from platform.commission_events;
   select coalesce(sum(mrr), 0) into v_mrr from platform.v_subscription_mrr;
 
-  if v_products < 5 then
-    raise exception 'SEED_INCOMPLETO: se esperaban 5 productos SaaS, hay %', v_products;
+  if v_products < 8 then
+    raise exception 'SEED_INCOMPLETO: se esperaban 8 productos SaaS, hay %', v_products;
   end if;
   if v_tenants < 13 then
     raise exception 'SEED_INCOMPLETO: se esperaban >=13 tenants, hay %', v_tenants;

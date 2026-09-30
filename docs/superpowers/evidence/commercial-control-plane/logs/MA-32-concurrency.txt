@@ -1,0 +1,10 @@
+== Escenario 1: dos emisiones concurrentes ==
+A true
+B false
+B esperó 3 s
+versiones: 1
+== Escenario 2: cambio comercial durante una emisión ==
+
+C esperó 3 s · desired_dirty=t
+siguiente emisión: versión 2
+CONCURRENCY: PASS

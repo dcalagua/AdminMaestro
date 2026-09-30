@@ -9,6 +9,330 @@ export type Json =
 export type Database = {
   platform: {
     Tables: {
+      ai_credit_ledger: {
+        Row: {
+          capability_id: string | null
+          created_at: string
+          created_by: string | null
+          credits: number
+          entry_idempotency_key: string
+          entry_type: string
+          id: string
+          period_start: string
+          policy_id: string | null
+          pool_key: string
+          quantity: number | null
+          reason: string | null
+          reverses_entry_id: string | null
+          saas_product_id: string
+          tenant_id: string
+          usage_aggregate_id: string | null
+          weight_applied: number | null
+          weight_id: string | null
+        }
+        Insert: {
+          capability_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          credits: number
+          entry_idempotency_key: string
+          entry_type: string
+          id?: string
+          period_start: string
+          policy_id?: string | null
+          pool_key: string
+          quantity?: number | null
+          reason?: string | null
+          reverses_entry_id?: string | null
+          saas_product_id: string
+          tenant_id: string
+          usage_aggregate_id?: string | null
+          weight_applied?: number | null
+          weight_id?: string | null
+        }
+        Update: {
+          capability_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          credits?: number
+          entry_idempotency_key?: string
+          entry_type?: string
+          id?: string
+          period_start?: string
+          policy_id?: string | null
+          pool_key?: string
+          quantity?: number | null
+          reason?: string | null
+          reverses_entry_id?: string | null
+          saas_product_id?: string
+          tenant_id?: string
+          usage_aggregate_id?: string | null
+          weight_applied?: number | null
+          weight_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_credit_ledger_capability_id_fkey"
+            columns: ["capability_id"]
+            isOneToOne: false
+            referencedRelation: "product_capabilities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_credit_ledger_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_credit_ledger_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "ai_credit_policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_credit_ledger_reverses_entry_id_fkey"
+            columns: ["reverses_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ai_credit_ledger"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_credit_ledger_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_credit_ledger_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "ai_credit_ledger_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "ai_credit_ledger_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "ai_credit_ledger_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_credit_ledger_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ai_credit_ledger_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_margin"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ai_credit_ledger_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ai_credit_ledger_usage_aggregate_id_fkey"
+            columns: ["usage_aggregate_id"]
+            isOneToOne: false
+            referencedRelation: "usage_period_aggregates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_credit_ledger_usage_aggregate_id_fkey"
+            columns: ["usage_aggregate_id"]
+            isOneToOne: false
+            referencedRelation: "v_usage_period_aggregates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_credit_ledger_weight_id_fkey"
+            columns: ["weight_id"]
+            isOneToOne: false
+            referencedRelation: "ai_credit_weights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_credit_policies: {
+        Row: {
+          catalog_item_id: string | null
+          created_at: string
+          created_by: string | null
+          expiry_policy: string | null
+          id: string
+          included_credits: number | null
+          overage_mode: string | null
+          plan_id: string | null
+          pool_scope: string | null
+          reason: string
+          rollover_policy: string | null
+          saas_product_id: string
+          source_type: string
+          valid_from: string
+          valid_to: string | null
+        }
+        Insert: {
+          catalog_item_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          expiry_policy?: string | null
+          id?: string
+          included_credits?: number | null
+          overage_mode?: string | null
+          plan_id?: string | null
+          pool_scope?: string | null
+          reason: string
+          rollover_policy?: string | null
+          saas_product_id: string
+          source_type: string
+          valid_from: string
+          valid_to?: string | null
+        }
+        Update: {
+          catalog_item_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          expiry_policy?: string | null
+          id?: string
+          included_credits?: number | null
+          overage_mode?: string | null
+          plan_id?: string | null
+          pool_scope?: string | null
+          reason?: string
+          rollover_policy?: string | null
+          saas_product_id?: string
+          source_type?: string
+          valid_from?: string
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_credit_policies_catalog_item_id_fkey"
+            columns: ["catalog_item_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_credit_policies_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_credit_policies_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_credit_policies_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_credit_policies_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "ai_credit_policies_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "ai_credit_policies_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+        ]
+      }
+      ai_credit_weights: {
+        Row: {
+          capability_id: string
+          created_at: string
+          created_by: string | null
+          credits_per_unit: number
+          id: string
+          reason: string
+          unit: string
+          valid_from: string
+          valid_to: string | null
+        }
+        Insert: {
+          capability_id: string
+          created_at?: string
+          created_by?: string | null
+          credits_per_unit: number
+          id?: string
+          reason: string
+          unit: string
+          valid_from: string
+          valid_to?: string | null
+        }
+        Update: {
+          capability_id?: string
+          created_at?: string
+          created_by?: string | null
+          credits_per_unit?: number
+          id?: string
+          reason?: string
+          unit?: string
+          valid_from?: string
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_credit_weights_capability_id_fkey"
+            columns: ["capability_id"]
+            isOneToOne: false
+            referencedRelation: "product_capabilities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_credit_weights_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -102,6 +426,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "audit_logs_tenant_id_fkey"
@@ -224,6 +555,13 @@ export type Database = {
             foreignKeyName: "billing_alerts_invoice_id_fkey"
             columns: ["invoice_id"]
             isOneToOne: false
+            referencedRelation: "v_discount_sign_legacy_invoices"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "billing_alerts_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
             referencedRelation: "v_invoice_balances"
             referencedColumns: ["invoice_id"]
           },
@@ -278,15 +616,154 @@ export type Database = {
           },
         ]
       }
+      capability_aliases: {
+        Row: {
+          alias_code: string
+          alias_source: string
+          capability_id: string
+          created_at: string
+          id: string
+          saas_product_id: string
+        }
+        Insert: {
+          alias_code: string
+          alias_source: string
+          capability_id: string
+          created_at?: string
+          id?: string
+          saas_product_id: string
+        }
+        Update: {
+          alias_code?: string
+          alias_source?: string
+          capability_id?: string
+          created_at?: string
+          id?: string
+          saas_product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capability_aliases_capability_id_fkey"
+            columns: ["capability_id"]
+            isOneToOne: false
+            referencedRelation: "product_capabilities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capability_aliases_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capability_aliases_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "capability_aliases_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "capability_aliases_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+        ]
+      }
+      catalog_item_prices: {
+        Row: {
+          amount: number
+          billing_interval: Database["platform"]["Enums"]["billing_interval"]
+          catalog_item_id: string
+          charge_kind: Database["platform"]["Enums"]["charge_kind"]
+          created_at: string
+          created_by: string | null
+          currency: string
+          id: string
+          market_id: string | null
+          updated_at: string
+          valid_from: string
+          valid_to: string | null
+        }
+        Insert: {
+          amount: number
+          billing_interval?: Database["platform"]["Enums"]["billing_interval"]
+          catalog_item_id: string
+          charge_kind?: Database["platform"]["Enums"]["charge_kind"]
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          id?: string
+          market_id?: string | null
+          updated_at?: string
+          valid_from?: string
+          valid_to?: string | null
+        }
+        Update: {
+          amount?: number
+          billing_interval?: Database["platform"]["Enums"]["billing_interval"]
+          catalog_item_id?: string
+          charge_kind?: Database["platform"]["Enums"]["charge_kind"]
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          market_id?: string | null
+          updated_at?: string
+          valid_from?: string
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_item_prices_catalog_item_id_fkey"
+            columns: ["catalog_item_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_item_prices_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_item_prices_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "catalog_item_prices_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalog_items: {
         Row: {
           available: boolean
+          billing_model: string
           code: string
           created_at: string
           currency: string
           description: string | null
           id: string
           item_type: string
+          lifecycle_status: string
           name: string
           price_month: number
           saas_product_id: string | null
@@ -295,12 +772,14 @@ export type Database = {
         }
         Insert: {
           available?: boolean
+          billing_model: string
           code: string
           created_at?: string
           currency: string
           description?: string | null
           id?: string
           item_type?: string
+          lifecycle_status: string
           name: string
           price_month?: number
           saas_product_id?: string | null
@@ -309,12 +788,14 @@ export type Database = {
         }
         Update: {
           available?: boolean
+          billing_model?: string
           code?: string
           created_at?: string
           currency?: string
           description?: string | null
           id?: string
           item_type?: string
+          lifecycle_status?: string
           name?: string
           price_month?: number
           saas_product_id?: string | null
@@ -356,6 +837,54 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_tenant_overview"
             referencedColumns: ["saas_product_id"]
+          },
+        ]
+      }
+      commercial_cutover_events: {
+        Row: {
+          actor_user_id: string | null
+          axis: string
+          from_state: string
+          id: number
+          occurred_at: string
+          product_integration_id: string
+          reason: string
+          to_state: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          axis: string
+          from_state: string
+          id?: never
+          occurred_at?: string
+          product_integration_id: string
+          reason: string
+          to_state: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          axis?: string
+          from_state?: string
+          id?: never
+          occurred_at?: string
+          product_integration_id?: string
+          reason?: string
+          to_state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commercial_cutover_events_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_cutover_events_product_integration_id_fkey"
+            columns: ["product_integration_id"]
+            isOneToOne: false
+            referencedRelation: "product_integrations"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -534,6 +1063,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "commission_events_tenant_id_fkey"
@@ -1101,6 +1637,13 @@ export type Database = {
             foreignKeyName: "cost_allocations_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "cost_allocations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "v_tenant_margin"
             referencedColumns: ["tenant_id"]
           },
@@ -1469,6 +2012,593 @@ export type Database = {
           },
         ]
       }
+      entitlement_desired_state: {
+        Row: {
+          created_at: string
+          desired_dirty: boolean
+          desired_revision: number
+          dirty_since: string | null
+          last_change_at: string | null
+          last_change_reason: string | null
+          saas_product_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          desired_dirty?: boolean
+          desired_revision?: number
+          dirty_since?: string | null
+          last_change_at?: string | null
+          last_change_reason?: string | null
+          saas_product_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          desired_dirty?: boolean
+          desired_revision?: number
+          dirty_since?: string | null
+          last_change_at?: string | null
+          last_change_reason?: string | null
+          saas_product_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entitlement_desired_state_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_desired_state_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_desired_state_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_desired_state_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_desired_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_desired_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "entitlement_desired_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_margin"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "entitlement_desired_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      entitlement_grants: {
+        Row: {
+          capability_id: string
+          catalog_item_id: string | null
+          close_reason: string | null
+          closed_by: string | null
+          created_at: string
+          created_by: string | null
+          grant_value: Json
+          id: string
+          plan_id: string | null
+          source_type: string
+          updated_at: string
+          valid_from: string
+          valid_to: string | null
+        }
+        Insert: {
+          capability_id: string
+          catalog_item_id?: string | null
+          close_reason?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          grant_value: Json
+          id?: string
+          plan_id?: string | null
+          source_type: string
+          updated_at?: string
+          valid_from?: string
+          valid_to?: string | null
+        }
+        Update: {
+          capability_id?: string
+          catalog_item_id?: string | null
+          close_reason?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          grant_value?: Json
+          id?: string
+          plan_id?: string | null
+          source_type?: string
+          updated_at?: string
+          valid_from?: string
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entitlement_grants_capability_id_fkey"
+            columns: ["capability_id"]
+            isOneToOne: false
+            referencedRelation: "product_capabilities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_grants_catalog_item_id_fkey"
+            columns: ["catalog_item_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_grants_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_grants_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_grants_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entitlement_registry_checks: {
+        Row: {
+          checked_at: string
+          drift: boolean
+          id: number
+          manifest_version: string | null
+          missing_in_manifest: string[]
+          missing_in_registry: string[]
+          saas_product_id: string
+        }
+        Insert: {
+          checked_at?: string
+          drift: boolean
+          id?: never
+          manifest_version?: string | null
+          missing_in_manifest?: string[]
+          missing_in_registry?: string[]
+          saas_product_id: string
+        }
+        Update: {
+          checked_at?: string
+          drift?: boolean
+          id?: never
+          manifest_version?: string | null
+          missing_in_manifest?: string[]
+          missing_in_registry?: string[]
+          saas_product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entitlement_registry_checks_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_registry_checks_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_registry_checks_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_registry_checks_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+        ]
+      }
+      entitlement_snapshots: {
+        Row: {
+          checksum: string
+          content_checksum: string
+          correlation_id: string
+          created_at: string
+          desired_revision: number
+          document: Json
+          effective_at: string
+          id: string
+          idempotency_key: string
+          issued_at: string
+          previous_version: number | null
+          saas_product_id: string
+          size_bytes: number
+          snapshot_version: number
+          tenant_id: string
+        }
+        Insert: {
+          checksum: string
+          content_checksum: string
+          correlation_id: string
+          created_at?: string
+          desired_revision?: number
+          document: Json
+          effective_at: string
+          id?: string
+          idempotency_key: string
+          issued_at?: string
+          previous_version?: number | null
+          saas_product_id: string
+          size_bytes: number
+          snapshot_version: number
+          tenant_id: string
+        }
+        Update: {
+          checksum?: string
+          content_checksum?: string
+          correlation_id?: string
+          created_at?: string
+          desired_revision?: number
+          document?: Json
+          effective_at?: string
+          id?: string
+          idempotency_key?: string
+          issued_at?: string
+          previous_version?: number | null
+          saas_product_id?: string
+          size_bytes?: number
+          snapshot_version?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entitlement_snapshots_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_snapshots_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_snapshots_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_snapshots_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_snapshots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_snapshots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "entitlement_snapshots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_margin"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "entitlement_snapshots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      entitlement_sync_attempts: {
+        Row: {
+          detail: Json
+          error_code: string | null
+          http_status: number | null
+          id: number
+          occurred_at: string
+          operation: string
+          outcome: string
+          saas_product_id: string
+          snapshot_version: number | null
+          state_after: string | null
+          state_before: string | null
+          tenant_id: string
+          worker: string | null
+        }
+        Insert: {
+          detail?: Json
+          error_code?: string | null
+          http_status?: number | null
+          id?: never
+          occurred_at?: string
+          operation: string
+          outcome: string
+          saas_product_id: string
+          snapshot_version?: number | null
+          state_after?: string | null
+          state_before?: string | null
+          tenant_id: string
+          worker?: string | null
+        }
+        Update: {
+          detail?: Json
+          error_code?: string | null
+          http_status?: number | null
+          id?: never
+          occurred_at?: string
+          operation?: string
+          outcome?: string
+          saas_product_id?: string
+          snapshot_version?: number | null
+          state_after?: string | null
+          state_before?: string | null
+          tenant_id?: string
+          worker?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entitlement_sync_attempts_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_attempts_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_attempts_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_attempts_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_attempts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_attempts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_attempts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_margin"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_attempts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      entitlement_sync_state: {
+        Row: {
+          applied_checksum: string | null
+          applied_status: string
+          applied_version: number | null
+          cohort_state: string | null
+          consecutive_failures: number
+          created_at: string
+          desired_checksum: string | null
+          desired_version: number | null
+          last_push_at: string | null
+          last_push_result: string | null
+          last_pushed_version: number | null
+          last_verified_at: string | null
+          lease_owner: string | null
+          lease_until: string | null
+          next_attempt_at: string
+          pushing_version: number | null
+          saas_product_id: string
+          state: string
+          state_changed_at: string
+          state_reason: string | null
+          tenant_id: string
+          unknown_capabilities: string[]
+          updated_at: string
+        }
+        Insert: {
+          applied_checksum?: string | null
+          applied_status?: string
+          applied_version?: number | null
+          cohort_state?: string | null
+          consecutive_failures?: number
+          created_at?: string
+          desired_checksum?: string | null
+          desired_version?: number | null
+          last_push_at?: string | null
+          last_push_result?: string | null
+          last_pushed_version?: number | null
+          last_verified_at?: string | null
+          lease_owner?: string | null
+          lease_until?: string | null
+          next_attempt_at?: string
+          pushing_version?: number | null
+          saas_product_id: string
+          state?: string
+          state_changed_at?: string
+          state_reason?: string | null
+          tenant_id: string
+          unknown_capabilities?: string[]
+          updated_at?: string
+        }
+        Update: {
+          applied_checksum?: string | null
+          applied_status?: string
+          applied_version?: number | null
+          cohort_state?: string | null
+          consecutive_failures?: number
+          created_at?: string
+          desired_checksum?: string | null
+          desired_version?: number | null
+          last_push_at?: string | null
+          last_push_result?: string | null
+          last_pushed_version?: number | null
+          last_verified_at?: string | null
+          lease_owner?: string | null
+          lease_until?: string | null
+          next_attempt_at?: string
+          pushing_version?: number | null
+          saas_product_id?: string
+          state?: string
+          state_changed_at?: string
+          state_reason?: string | null
+          tenant_id?: string
+          unknown_capabilities?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entitlement_sync_state_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_state_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_state_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_state_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_margin"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
       exchange_rates: {
         Row: {
           base_currency: string
@@ -1648,6 +2778,13 @@ export type Database = {
             foreignKeyName: "invoice_lines_invoice_id_fkey"
             columns: ["invoice_id"]
             isOneToOne: false
+            referencedRelation: "v_discount_sign_legacy_invoices"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
             referencedRelation: "v_invoice_balances"
             referencedColumns: ["invoice_id"]
           },
@@ -1692,6 +2829,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "invoice_lines_tenant_id_fkey"
@@ -1884,6 +3028,27 @@ export type Database = {
             referencedColumns: ["subscription_id"]
           },
         ]
+      }
+      m2m_jti_replay: {
+        Row: {
+          expires_at: string
+          issuer: string
+          jti: string
+          used_at: string
+        }
+        Insert: {
+          expires_at: string
+          issuer: string
+          jti: string
+          used_at?: string
+        }
+        Update: {
+          expires_at?: string
+          issuer?: string
+          jti?: string
+          used_at?: string
+        }
+        Relationships: []
       }
       market_currencies: {
         Row: {
@@ -2772,6 +3937,13 @@ export type Database = {
             foreignKeyName: "payments_invoice_id_fkey"
             columns: ["invoice_id"]
             isOneToOne: false
+            referencedRelation: "v_discount_sign_legacy_invoices"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
             referencedRelation: "v_invoice_balances"
             referencedColumns: ["invoice_id"]
           },
@@ -3005,6 +4177,92 @@ export type Database = {
         }
         Relationships: []
       }
+      product_capabilities: {
+        Row: {
+          code: string
+          combine_rule: string | null
+          created_at: string
+          description: string | null
+          id: string
+          introduced_in_contract: string | null
+          is_baseline: boolean
+          kind: string
+          manifest_version: string | null
+          meter_code: string | null
+          name: string
+          saas_product_id: string
+          scope_level: string
+          status: string
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          combine_rule?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          introduced_in_contract?: string | null
+          is_baseline?: boolean
+          kind: string
+          manifest_version?: string | null
+          meter_code?: string | null
+          name: string
+          saas_product_id: string
+          scope_level?: string
+          status?: string
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          combine_rule?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          introduced_in_contract?: string | null
+          is_baseline?: boolean
+          kind?: string
+          manifest_version?: string | null
+          meter_code?: string | null
+          name?: string
+          saas_product_id?: string
+          scope_level?: string
+          status?: string
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_capabilities_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_capabilities_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "product_capabilities_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "product_capabilities_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+        ]
+      }
       product_integrations: {
         Row: {
           adapter_key: Database["platform"]["Enums"]["integration_adapter"]
@@ -3017,7 +4275,14 @@ export type Database = {
           create_path_template: string | null
           create_scope: string | null
           created_at: string
+          cutover_state_billing: string
+          cutover_state_entitlements: string
           enabled: boolean
+          entitlements_manifest_path: string | null
+          entitlements_path: string | null
+          entitlements_push_enabled: boolean
+          entitlements_read_scope: string | null
+          entitlements_write_scope: string | null
           health_path_template: string | null
           id: string
           integration_type: Database["platform"]["Enums"]["integration_type"]
@@ -3034,6 +4299,7 @@ export type Database = {
           subject: string
           token_ttl_seconds: number | null
           updated_at: string
+          usage_ingest_enabled: boolean
         }
         Insert: {
           adapter_key?: Database["platform"]["Enums"]["integration_adapter"]
@@ -3046,7 +4312,14 @@ export type Database = {
           create_path_template?: string | null
           create_scope?: string | null
           created_at?: string
+          cutover_state_billing?: string
+          cutover_state_entitlements?: string
           enabled?: boolean
+          entitlements_manifest_path?: string | null
+          entitlements_path?: string | null
+          entitlements_push_enabled?: boolean
+          entitlements_read_scope?: string | null
+          entitlements_write_scope?: string | null
           health_path_template?: string | null
           id?: string
           integration_type: Database["platform"]["Enums"]["integration_type"]
@@ -3063,6 +4336,7 @@ export type Database = {
           subject?: string
           token_ttl_seconds?: number | null
           updated_at?: string
+          usage_ingest_enabled?: boolean
         }
         Update: {
           adapter_key?: Database["platform"]["Enums"]["integration_adapter"]
@@ -3075,7 +4349,14 @@ export type Database = {
           create_path_template?: string | null
           create_scope?: string | null
           created_at?: string
+          cutover_state_billing?: string
+          cutover_state_entitlements?: string
           enabled?: boolean
+          entitlements_manifest_path?: string | null
+          entitlements_path?: string | null
+          entitlements_push_enabled?: boolean
+          entitlements_read_scope?: string | null
+          entitlements_write_scope?: string | null
           health_path_template?: string | null
           id?: string
           integration_type?: Database["platform"]["Enums"]["integration_type"]
@@ -3092,6 +4373,7 @@ export type Database = {
           subject?: string
           token_ttl_seconds?: number | null
           updated_at?: string
+          usage_ingest_enabled?: boolean
         }
         Relationships: [
           {
@@ -3945,6 +5227,13 @@ export type Database = {
             foreignKeyName: "provisioning_requests_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "provisioning_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "v_tenant_margin"
             referencedColumns: ["tenant_id"]
           },
@@ -4361,6 +5650,13 @@ export type Database = {
             foreignKeyName: "saas_provisioning_requests_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "v_tenant_margin"
             referencedColumns: ["tenant_id"]
           },
@@ -4713,6 +6009,13 @@ export type Database = {
             foreignKeyName: "sales_attributions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "sales_attributions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "v_tenant_margin"
             referencedColumns: ["tenant_id"]
           },
@@ -4998,8 +6301,11 @@ export type Database = {
           currency: string
           description: string
           id: string
+          price_ref: string | null
           quantity: number
+          source_type: string
           subscription_id: string
+          tenant_addon_id: string | null
           tenant_id: string | null
           unit_amount: number
           updated_at: string
@@ -5015,8 +6321,11 @@ export type Database = {
           currency: string
           description: string
           id?: string
+          price_ref?: string | null
           quantity?: number
+          source_type?: string
           subscription_id: string
+          tenant_addon_id?: string | null
           tenant_id?: string | null
           unit_amount: number
           updated_at?: string
@@ -5032,8 +6341,11 @@ export type Database = {
           currency?: string
           description?: string
           id?: string
+          price_ref?: string | null
           quantity?: number
+          source_type?: string
           subscription_id?: string
+          tenant_addon_id?: string | null
           tenant_id?: string | null
           unit_amount?: number
           updated_at?: string
@@ -5047,6 +6359,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_items"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "subscription_items_catalog_item_code_fkey"
+            columns: ["catalog_item_code"]
+            isOneToOne: false
+            referencedRelation: "v_catalog_item_current_prices"
+            referencedColumns: ["catalog_item_code"]
           },
           {
             foreignKeyName: "subscription_items_currency_fk"
@@ -5105,11 +6424,32 @@ export type Database = {
             referencedColumns: ["subscription_id"]
           },
           {
+            foreignKeyName: "subscription_items_tenant_addon_fk"
+            columns: ["tenant_addon_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_addons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_items_tenant_addon_fk"
+            columns: ["tenant_addon_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_addon_history"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "subscription_items_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "subscription_items_tenant_id_fkey"
@@ -5294,6 +6634,13 @@ export type Database = {
             foreignKeyName: "subscriptions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "v_tenant_margin"
             referencedColumns: ["tenant_id"]
           },
@@ -5311,7 +6658,19 @@ export type Database = {
           activated_at: string
           active: boolean
           addon_code: string
+          approved_at: string | null
+          approved_by: string | null
+          company_id: string | null
           created_at: string
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          request_source: string
+          requested_at: string
+          requested_by: string | null
+          status: string
+          status_reason: string | null
+          subscription_item_id: string | null
           tenant_id: string
           updated_at: string
         }
@@ -5319,7 +6678,19 @@ export type Database = {
           activated_at?: string
           active?: boolean
           addon_code: string
+          approved_at?: string | null
+          approved_by?: string | null
+          company_id?: string | null
           created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          request_source?: string
+          requested_at?: string
+          requested_by?: string | null
+          status?: string
+          status_reason?: string | null
+          subscription_item_id?: string | null
           tenant_id: string
           updated_at?: string
         }
@@ -5327,7 +6698,19 @@ export type Database = {
           activated_at?: string
           active?: boolean
           addon_code?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          company_id?: string | null
           created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          request_source?: string
+          requested_at?: string
+          requested_by?: string | null
+          status?: string
+          status_reason?: string | null
+          subscription_item_id?: string | null
           tenant_id?: string
           updated_at?: string
         }
@@ -5340,11 +6723,60 @@ export type Database = {
             referencedColumns: ["code"]
           },
           {
+            foreignKeyName: "tenant_addons_addon_code_fkey"
+            columns: ["addon_code"]
+            isOneToOne: false
+            referencedRelation: "v_catalog_item_current_prices"
+            referencedColumns: ["catalog_item_code"]
+          },
+          {
+            foreignKeyName: "tenant_addons_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_markets"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_subscription_item_id_fkey"
+            columns: ["subscription_item_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_items"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tenant_addons_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "tenant_addons_tenant_id_fkey"
@@ -5429,11 +6861,119 @@ export type Database = {
             foreignKeyName: "tenant_deployments_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_deployments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "v_tenant_margin"
             referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "tenant_deployments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      tenant_entitlement_overrides: {
+        Row: {
+          approved_by: string
+          capability_id: string
+          created_at: string
+          expires_at: string
+          grant_value: Json
+          id: string
+          override_type: string
+          reason: string
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          starts_at: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          approved_by: string
+          capability_id: string
+          created_at?: string
+          expires_at: string
+          grant_value?: Json
+          id?: string
+          override_type: string
+          reason: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          starts_at?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          approved_by?: string
+          capability_id?: string
+          created_at?: string
+          expires_at?: string
+          grant_value?: Json
+          id?: string
+          override_type?: string
+          reason?: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          starts_at?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_entitlement_overrides_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_entitlement_overrides_capability_id_fkey"
+            columns: ["capability_id"]
+            isOneToOne: false
+            referencedRelation: "product_capabilities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_entitlement_overrides_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_entitlement_overrides_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_entitlement_overrides_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_entitlement_overrides_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_margin"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_entitlement_overrides_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "v_tenant_overview"
@@ -5479,6 +7019,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_features_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "tenant_features_tenant_id_fkey"
@@ -5538,6 +7085,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_memberships_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "tenant_memberships_tenant_id_fkey"
@@ -5686,6 +7240,13 @@ export type Database = {
             foreignKeyName: "tenant_product_mappings_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_product_mappings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "v_tenant_margin"
             referencedColumns: ["tenant_id"]
           },
@@ -5724,6 +7285,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "tenant_settings_tenant_id_fkey"
@@ -5940,6 +7508,642 @@ export type Database = {
           },
         ]
       }
+      usage_alerts: {
+        Row: {
+          aggregate_id: string | null
+          code: string
+          created_at: string
+          detail: Json
+          id: string
+          saas_product_id: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          aggregate_id?: string | null
+          code: string
+          created_at?: string
+          detail?: Json
+          id?: string
+          saas_product_id?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          aggregate_id?: string | null
+          code?: string
+          created_at?: string
+          detail?: Json
+          id?: string
+          saas_product_id?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_alerts_aggregate_id_fkey"
+            columns: ["aggregate_id"]
+            isOneToOne: false
+            referencedRelation: "usage_period_aggregates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_alerts_aggregate_id_fkey"
+            columns: ["aggregate_id"]
+            isOneToOne: false
+            referencedRelation: "v_usage_period_aggregates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_alerts_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_alerts_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "usage_alerts_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "usage_alerts_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "usage_alerts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_alerts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "usage_alerts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_margin"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "usage_alerts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      usage_events: {
+        Row: {
+          capability_code: string | null
+          environment: Database["platform"]["Enums"]["provisioning_environment"]
+          event_hash: string
+          event_id: string
+          external_company_id: string | null
+          id: string
+          ingest_batch_id: string
+          internal: Json | null
+          late: boolean
+          meter_code: string
+          meter_id: string
+          occurred_at: string
+          period_start: string
+          quantity: number
+          received_at: string
+          saas_product_id: string
+          subject_ref: string | null
+          tenant_id: string
+          unit: string
+        }
+        Insert: {
+          capability_code?: string | null
+          environment: Database["platform"]["Enums"]["provisioning_environment"]
+          event_hash: string
+          event_id: string
+          external_company_id?: string | null
+          id?: string
+          ingest_batch_id: string
+          internal?: Json | null
+          late?: boolean
+          meter_code: string
+          meter_id: string
+          occurred_at: string
+          period_start: string
+          quantity: number
+          received_at?: string
+          saas_product_id: string
+          subject_ref?: string | null
+          tenant_id: string
+          unit: string
+        }
+        Update: {
+          capability_code?: string | null
+          environment?: Database["platform"]["Enums"]["provisioning_environment"]
+          event_hash?: string
+          event_id?: string
+          external_company_id?: string | null
+          id?: string
+          ingest_batch_id?: string
+          internal?: Json | null
+          late?: boolean
+          meter_code?: string
+          meter_id?: string
+          occurred_at?: string
+          period_start?: string
+          quantity?: number
+          received_at?: string
+          saas_product_id?: string
+          subject_ref?: string | null
+          tenant_id?: string
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_events_meter_id_fkey"
+            columns: ["meter_id"]
+            isOneToOne: false
+            referencedRelation: "usage_meters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_events_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_events_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "usage_events_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "usage_events_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "usage_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "usage_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_margin"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "usage_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      usage_ingest_credentials: {
+        Row: {
+          algorithm: Database["platform"]["Enums"]["m2m_algorithm"]
+          audience: string
+          created_at: string
+          created_by: string | null
+          enabled: boolean
+          environment: Database["platform"]["Enums"]["provisioning_environment"]
+          id: string
+          issuer: string
+          kid: string | null
+          public_key_ref: string
+          saas_product_id: string
+          updated_at: string
+        }
+        Insert: {
+          algorithm?: Database["platform"]["Enums"]["m2m_algorithm"]
+          audience?: string
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          environment: Database["platform"]["Enums"]["provisioning_environment"]
+          id?: string
+          issuer: string
+          kid?: string | null
+          public_key_ref: string
+          saas_product_id: string
+          updated_at?: string
+        }
+        Update: {
+          algorithm?: Database["platform"]["Enums"]["m2m_algorithm"]
+          audience?: string
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          environment?: Database["platform"]["Enums"]["provisioning_environment"]
+          id?: string
+          issuer?: string
+          kid?: string | null
+          public_key_ref?: string
+          saas_product_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_ingest_credentials_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_ingest_credentials_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_ingest_credentials_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "usage_ingest_credentials_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "usage_ingest_credentials_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+        ]
+      }
+      usage_ingest_rejections: {
+        Row: {
+          code: string
+          created_at: string
+          detail: Json
+          environment: Database["platform"]["Enums"]["provisioning_environment"]
+          event_id: string | null
+          id: string
+          ingest_batch_id: string
+          meter_code: string | null
+          saas_product_id: string
+          tenant_id: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          detail?: Json
+          environment: Database["platform"]["Enums"]["provisioning_environment"]
+          event_id?: string | null
+          id?: string
+          ingest_batch_id: string
+          meter_code?: string | null
+          saas_product_id: string
+          tenant_id?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          detail?: Json
+          environment?: Database["platform"]["Enums"]["provisioning_environment"]
+          event_id?: string | null
+          id?: string
+          ingest_batch_id?: string
+          meter_code?: string | null
+          saas_product_id?: string
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_ingest_rejections_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_ingest_rejections_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "usage_ingest_rejections_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "usage_ingest_rejections_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+        ]
+      }
+      usage_meters: {
+        Row: {
+          aggregation: string
+          allows_negative: boolean
+          billable_decided_by: string | null
+          billable_reason: string | null
+          capability_id: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          grace_hours: number
+          id: string
+          is_billable: boolean
+          measurement: string
+          name: string
+          saas_product_id: string
+          status: string
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          aggregation?: string
+          allows_negative?: boolean
+          billable_decided_by?: string | null
+          billable_reason?: string | null
+          capability_id?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          grace_hours?: number
+          id?: string
+          is_billable?: boolean
+          measurement?: string
+          name: string
+          saas_product_id: string
+          status?: string
+          unit: string
+          updated_at?: string
+        }
+        Update: {
+          aggregation?: string
+          allows_negative?: boolean
+          billable_decided_by?: string | null
+          billable_reason?: string | null
+          capability_id?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          grace_hours?: number
+          id?: string
+          is_billable?: boolean
+          measurement?: string
+          name?: string
+          saas_product_id?: string
+          status?: string
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_meters_billable_decided_by_fkey"
+            columns: ["billable_decided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_meters_capability_id_fkey"
+            columns: ["capability_id"]
+            isOneToOne: false
+            referencedRelation: "product_capabilities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_meters_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_meters_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_meters_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "usage_meters_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "usage_meters_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+        ]
+      }
+      usage_period_aggregates: {
+        Row: {
+          allowance_included: number | null
+          allowance_status: string | null
+          closing_at: string | null
+          created_at: string
+          event_count: number
+          finalized_at: string | null
+          finalized_by: string | null
+          id: string
+          is_billable: boolean
+          late_event_count: number
+          meter_code: string
+          meter_id: string
+          overage_policy: string | null
+          overage_quantity: number | null
+          period_end: string
+          period_start: string
+          quantity: number
+          saas_product_id: string
+          source_hash: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          allowance_included?: number | null
+          allowance_status?: string | null
+          closing_at?: string | null
+          created_at?: string
+          event_count?: number
+          finalized_at?: string | null
+          finalized_by?: string | null
+          id?: string
+          is_billable?: boolean
+          late_event_count?: number
+          meter_code: string
+          meter_id: string
+          overage_policy?: string | null
+          overage_quantity?: number | null
+          period_end: string
+          period_start: string
+          quantity?: number
+          saas_product_id: string
+          source_hash?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          allowance_included?: number | null
+          allowance_status?: string | null
+          closing_at?: string | null
+          created_at?: string
+          event_count?: number
+          finalized_at?: string | null
+          finalized_by?: string | null
+          id?: string
+          is_billable?: boolean
+          late_event_count?: number
+          meter_code?: string
+          meter_id?: string
+          overage_policy?: string | null
+          overage_quantity?: number | null
+          period_end?: string
+          period_start?: string
+          quantity?: number
+          saas_product_id?: string
+          source_hash?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_period_aggregates_finalized_by_fkey"
+            columns: ["finalized_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_period_aggregates_meter_id_fkey"
+            columns: ["meter_id"]
+            isOneToOne: false
+            referencedRelation: "usage_meters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_period_aggregates_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_period_aggregates_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "usage_period_aggregates_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "usage_period_aggregates_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "usage_period_aggregates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_period_aggregates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "usage_period_aggregates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_margin"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "usage_period_aggregates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
       workspace_apps: {
         Row: {
           activated_at: string | null
@@ -6040,6 +8244,81 @@ export type Database = {
       }
     }
     Views: {
+      v_ai_credit_balances: {
+        Row: {
+          adjusted: number | null
+          balance: number | null
+          bonus: number | null
+          expired: number | null
+          included: number | null
+          period_start: string | null
+          pool_key: string | null
+          purchased: number | null
+          reserved: number | null
+          rollover_net: number | null
+          saas_product_id: string | null
+          tenant_id: string | null
+          used: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_credit_ledger_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_credit_ledger_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "ai_credit_ledger_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "ai_credit_ledger_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "ai_credit_ledger_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_credit_ledger_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ai_credit_ledger_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_margin"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ai_credit_ledger_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
       v_billing_contact_readiness: {
         Row: {
           billing_address: string | null
@@ -6081,6 +8360,81 @@ export type Database = {
           ready_for_card_payment?: never
         }
         Relationships: []
+      }
+      v_catalog_item_current_prices: {
+        Row: {
+          amount: number | null
+          billing_interval:
+            | Database["platform"]["Enums"]["billing_interval"]
+            | null
+          billing_model: string | null
+          catalog_item_code: string | null
+          catalog_item_id: string | null
+          catalog_item_name: string | null
+          charge_kind: Database["platform"]["Enums"]["charge_kind"] | null
+          currency: string | null
+          is_current: boolean | null
+          is_scheduled: boolean | null
+          lifecycle_status: string | null
+          market_code: string | null
+          market_id: string | null
+          market_name: string | null
+          price_id: string | null
+          saas_product_id: string | null
+          valid_from: string | null
+          valid_to: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_item_prices_catalog_item_id_fkey"
+            columns: ["catalog_item_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_item_prices_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "catalog_item_prices_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_items_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_items_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "catalog_items_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "catalog_items_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+        ]
       }
       v_collected_payments: {
         Row: {
@@ -6253,6 +8607,13 @@ export type Database = {
             foreignKeyName: "invoice_lines_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "v_tenant_margin"
             referencedColumns: ["tenant_id"]
           },
@@ -6311,6 +8672,123 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_tenant_overview"
             referencedColumns: ["managing_organization_id"]
+          },
+        ]
+      }
+      v_commercial_audit_log: {
+        Row: {
+          action: string | null
+          actor_email: string | null
+          actor_user_id: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: number | null
+          metadata: Json | null
+          occurred_at: string | null
+          organization_id: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          action?: string | null
+          actor_email?: string | null
+          actor_user_id?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: number | null
+          metadata?: Json | null
+          occurred_at?: string | null
+          organization_id?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          action?: string | null
+          actor_email?: string | null
+          actor_user_id?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: number | null
+          metadata?: Json | null
+          occurred_at?: string | null
+          organization_id?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_billing_contact_readiness"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_finance"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_margin"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["customer_organization_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["managing_organization_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_margin"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["tenant_id"]
           },
         ]
       }
@@ -6436,6 +8914,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "commission_events_tenant_id_fkey"
@@ -6575,6 +9060,207 @@ export type Database = {
           record_id: string | null
         }
         Relationships: []
+      }
+      v_discount_sign_legacy_invoices: {
+        Row: {
+          currency: string | null
+          customer_organization_id: string | null
+          invoice_id: string | null
+          issue_date: string | null
+          legacy_total: number | null
+          number: string | null
+          signed_total: number | null
+          status: Database["platform"]["Enums"]["invoice_status"] | null
+          subscription_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_currency_fk"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "invoices_customer_organization_id_fkey"
+            columns: ["customer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_organization_id_fkey"
+            columns: ["customer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_billing_contact_readiness"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_organization_id_fkey"
+            columns: ["customer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_finance"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_organization_id_fkey"
+            columns: ["customer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_partner_margin"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_organization_id_fkey"
+            columns: ["customer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["customer_organization_id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_organization_id_fkey"
+            columns: ["customer_organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["managing_organization_id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_renewal_dashboard"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_renewal_pipeline"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_collection"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_documents"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_mrr"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["subscription_id"]
+          },
+        ]
+      }
+      v_entitlement_sync_status: {
+        Row: {
+          applied_checksum: string | null
+          applied_status: string | null
+          applied_version: number | null
+          cohort_state: string | null
+          consecutive_failures: number | null
+          cutover_state_entitlements: string | null
+          desired_checksum: string | null
+          desired_dirty: boolean | null
+          desired_version: number | null
+          integration_code: string | null
+          last_push_at: string | null
+          last_push_result: string | null
+          last_pushed_version: number | null
+          last_verified_at: string | null
+          next_attempt_at: string | null
+          product_code: string | null
+          product_name: string | null
+          push_enabled: boolean | null
+          saas_product_id: string | null
+          state: string | null
+          state_changed_at: string | null
+          state_reason: string | null
+          tenant_id: string | null
+          tenant_name: string | null
+          tenant_slug: string | null
+          unknown_capabilities: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entitlement_sync_state_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_state_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_state_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_state_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_margin"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "entitlement_sync_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
       }
       v_finance_facts: {
         Row: {
@@ -7431,6 +10117,13 @@ export type Database = {
             foreignKeyName: "subscriptions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "v_tenant_margin"
             referencedColumns: ["tenant_id"]
           },
@@ -7525,6 +10218,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "subscriptions_tenant_id_fkey"
@@ -7735,6 +10435,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_provisioning_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "saas_provisioning_requests_tenant_id_fkey"
@@ -7978,6 +10685,13 @@ export type Database = {
             foreignKeyName: "subscriptions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "v_tenant_margin"
             referencedColumns: ["tenant_id"]
           },
@@ -8178,6 +10892,13 @@ export type Database = {
             foreignKeyName: "subscriptions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "v_tenant_margin"
             referencedColumns: ["tenant_id"]
           },
@@ -8232,6 +10953,148 @@ export type Database = {
           },
         ]
       }
+      v_tenant_addon_history: {
+        Row: {
+          active: boolean | null
+          addon_code: string | null
+          addon_name: string | null
+          approved_at: string | null
+          approved_by: string | null
+          billing_model: string | null
+          billing_valid_to: string | null
+          catalog_lifecycle_status: string | null
+          company_id: string | null
+          company_name: string | null
+          currency: string | null
+          effective_from: string | null
+          effective_to: string | null
+          id: string | null
+          request_source: string | null
+          requested_at: string | null
+          requested_by: string | null
+          saas_product_id: string | null
+          status: string | null
+          status_reason: string | null
+          subscription_item_id: string | null
+          tenant_id: string | null
+          tenant_slug: string | null
+          unit_amount: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_items_currency_fk"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "tenant_addons_addon_code_fkey"
+            columns: ["addon_code"]
+            isOneToOne: false
+            referencedRelation: "catalog_items"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "tenant_addons_addon_code_fkey"
+            columns: ["addon_code"]
+            isOneToOne: false
+            referencedRelation: "v_catalog_item_current_prices"
+            referencedColumns: ["catalog_item_code"]
+          },
+          {
+            foreignKeyName: "tenant_addons_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_markets"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_subscription_item_id_fkey"
+            columns: ["subscription_item_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_margin"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenants_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenants_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "tenants_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "tenants_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+        ]
+      }
       v_tenant_costs: {
         Row: {
           allocation_path: string | null
@@ -8243,6 +11106,61 @@ export type Database = {
           tenant_id: string | null
         }
         Relationships: []
+      }
+      v_tenant_entitlements: {
+        Row: {
+          app_active: boolean | null
+          capability_code: string | null
+          capability_id: string | null
+          company_ids: string[] | null
+          desired_dirty: boolean | null
+          desired_revision: number | null
+          enabled: boolean | null
+          enforcement: string | null
+          included: number | null
+          kind: string | null
+          last_change_at: string | null
+          meter_code: string | null
+          period: string | null
+          product_code: string | null
+          saas_product_id: string | null
+          scope_level: string | null
+          sources: string[] | null
+          tenant_id: string | null
+          tenant_slug: string | null
+          unit: string | null
+          value: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenants_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenants_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "tenants_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "tenants_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+        ]
       }
       v_tenant_margin: {
         Row: {
@@ -8300,8 +11218,128 @@ export type Database = {
         }
         Relationships: []
       }
+      v_usage_period_aggregates: {
+        Row: {
+          allowance_included: number | null
+          allowance_status: string | null
+          event_count: number | null
+          finalized_at: string | null
+          id: string | null
+          is_billable: boolean | null
+          late_event_count: number | null
+          meter_code: string | null
+          overage_policy: string | null
+          overage_quantity: number | null
+          period_end: string | null
+          period_start: string | null
+          product_code: string | null
+          quantity: number | null
+          saas_product_id: string | null
+          source_hash: string | null
+          status: string | null
+          tenant_id: string | null
+          tenant_slug: string | null
+          unit: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_period_aggregates_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "saas_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_period_aggregates_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_finance"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "usage_period_aggregates_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_margin"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "usage_period_aggregates_saas_product_id_fkey"
+            columns: ["saas_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["saas_product_id"]
+          },
+          {
+            foreignKeyName: "usage_period_aggregates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_period_aggregates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "usage_period_aggregates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_margin"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "usage_period_aggregates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_overview"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
     }
     Functions: {
+      ai_credit_applicable_policies: {
+        Args: { p_at: string; p_tenant_id: string }
+        Returns: {
+          catalog_item_id: string | null
+          created_at: string
+          created_by: string | null
+          expiry_policy: string | null
+          id: string
+          included_credits: number | null
+          overage_mode: string | null
+          plan_id: string | null
+          pool_scope: string | null
+          reason: string
+          rollover_policy: string | null
+          saas_product_id: string
+          source_type: string
+          valid_from: string
+          valid_to: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "ai_credit_policies"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      ai_credit_assert_pool: {
+        Args: { p_pool_key: string; p_tenant_id: string }
+        Returns: string
+      }
+      ai_credit_pool_key: {
+        Args: { p_product_id: string; p_scope: string }
+        Returns: string
+      }
+      ai_credit_weights_snapshot: {
+        Args: { p_at: string; p_product_id: string }
+        Returns: Json
+      }
       apply_due_suspensions: {
         Args: { p_as_of?: string; p_mode?: string }
         Returns: Json
@@ -8310,10 +11348,15 @@ export type Database = {
         Args: { p_document_id: string; p_notes?: string; p_valid_to?: string }
         Returns: undefined
       }
+      approve_tenant_addon: {
+        Args: { p_reason: string; p_tenant_addon_id: string }
+        Returns: Json
+      }
       archive_saas_product: {
         Args: { p_product_id: string; p_reason?: string }
         Returns: undefined
       }
+      assert_entitlement_sync_service: { Args: never; Returns: undefined }
       attach_tenant_to_target: {
         Args: {
           p_deployment_target_id: string
@@ -8355,6 +11398,10 @@ export type Database = {
         Returns: boolean
       }
       can_manage_tenant: { Args: { p_tenant: string }; Returns: boolean }
+      can_read_entitlement_sync: {
+        Args: { p_tenant_id: string }
+        Returns: boolean
+      }
       can_read_finance: { Args: never; Returns: boolean }
       can_read_saas_provisioning: {
         Args: { p_request_id: string }
@@ -8362,6 +11409,7 @@ export type Database = {
       }
       can_read_tenant: { Args: { p_tenant: string }; Returns: boolean }
       can_run_provisioning: { Args: never; Returns: boolean }
+      can_sync_entitlements: { Args: { p_tenant_id: string }; Returns: boolean }
       cancel_commercial_document: {
         Args: { p_document_id: string; p_reason?: string }
         Returns: undefined
@@ -8370,10 +11418,70 @@ export type Database = {
         Args: { p_reason?: string; p_request_id: string }
         Returns: string
       }
+      cancel_tenant_addon: {
+        Args: { p_reason: string; p_tenant_addon_id: string }
+        Returns: undefined
+      }
       check_provisioning_preconditions: {
         Args: { p_request_id: string }
         Returns: Json
       }
+      claim_entitlement_push_for: {
+        Args: {
+          p_lease_seconds?: number
+          p_product_id: string
+          p_tenant_id: string
+          p_worker: string
+        }
+        Returns: {
+          attempt: number
+          checksum: string
+          document: Json
+          saas_product_id: string
+          snapshot_version: number
+          tenant_id: string
+        }[]
+      }
+      claim_entitlement_pushes: {
+        Args: { p_lease_seconds?: number; p_limit?: number; p_worker: string }
+        Returns: {
+          attempt: number
+          checksum: string
+          document: Json
+          saas_product_id: string
+          snapshot_version: number
+          tenant_id: string
+        }[]
+      }
+      claim_entitlement_verification_for: {
+        Args: {
+          p_lease_seconds?: number
+          p_product_id: string
+          p_tenant_id: string
+          p_worker: string
+        }
+        Returns: boolean
+      }
+      claim_entitlement_verifications: {
+        Args: {
+          p_lease_seconds?: number
+          p_limit?: number
+          p_resample_after?: string
+          p_worker: string
+        }
+        Returns: {
+          desired_checksum: string
+          desired_version: number
+          saas_product_id: string
+          state: string
+          tenant_id: string
+        }[]
+      }
+      close_entitlement_grant: {
+        Args: { p_grant_id: string; p_reason: string; p_valid_to: string }
+        Returns: undefined
+      }
+      close_usage_periods: { Args: { p_now?: string }; Returns: number }
       collections_by_month: {
         Args: { p_from?: string; p_organization_id?: string; p_to?: string }
         Returns: {
@@ -8400,6 +11508,28 @@ export type Database = {
         }
         Returns: Json
       }
+      complete_scheduled_addon_cancellations: {
+        Args: { p_as_of?: string }
+        Returns: number
+      }
+      compute_entitlements: {
+        Args: { p_at?: string; p_product_id: string; p_tenant_id: string }
+        Returns: {
+          capability_code: string
+          capability_id: string
+          company_ids: string[]
+          enabled: boolean
+          enforcement: string
+          included: number
+          kind: string
+          meter_code: string
+          period: string
+          scope_level: string
+          sources: string[]
+          unit: string
+          value: number
+        }[]
+      }
       configure_deployment_provisioning: {
         Args: {
           p_base_url?: string
@@ -8415,6 +11545,28 @@ export type Database = {
         }
         Returns: string
       }
+      configure_entitlements_integration: {
+        Args: {
+          p_entitlements_path: string
+          p_integration_id: string
+          p_manifest_path: string
+          p_read_scope: string
+          p_write_scope: string
+        }
+        Returns: string
+      }
+      configure_usage_ingest_credential: {
+        Args: {
+          p_audience?: string
+          p_enabled: boolean
+          p_environment: Database["platform"]["Enums"]["provisioning_environment"]
+          p_issuer: string
+          p_kid?: string
+          p_product_code: string
+          p_public_key_ref: string
+        }
+        Returns: string
+      }
       confirm_manual_payment: {
         Args: {
           p_amount: number
@@ -8426,9 +11578,48 @@ export type Database = {
         }
         Returns: Json
       }
+      consume_m2m_jti: {
+        Args: { p_expires_at: string; p_issuer: string; p_jti: string }
+        Returns: boolean
+      }
       cost_summary: {
         Args: { p_scope?: string; p_search?: string }
         Returns: Json
+      }
+      create_ai_credit_policy: {
+        Args: {
+          p_included_credits: number
+          p_overage_mode: string
+          p_pool_scope: string
+          p_reason: string
+          p_source_code: string
+          p_source_type: string
+          p_valid_from: string
+        }
+        Returns: string
+      }
+      create_entitlement_grant: {
+        Args: {
+          p_capability_code: string
+          p_grant_value: Json
+          p_reason?: string
+          p_source_code: string
+          p_source_type: string
+          p_valid_from?: string
+        }
+        Returns: string
+      }
+      create_entitlement_override: {
+        Args: {
+          p_capability_code: string
+          p_expires_at: string
+          p_grant_value: Json
+          p_override_type: string
+          p_reason: string
+          p_starts_at?: string
+          p_tenant_id: string
+        }
+        Returns: string
       }
       create_saas_provisioning_request: {
         Args: {
@@ -8491,6 +11682,28 @@ export type Database = {
         }
         Returns: string
       }
+      current_catalog_item_price: {
+        Args: {
+          p_as_of?: string
+          p_billing_interval: Database["platform"]["Enums"]["billing_interval"]
+          p_catalog_item_id: string
+          p_charge_kind: Database["platform"]["Enums"]["charge_kind"]
+          p_currency: string
+          p_market_id: string
+        }
+        Returns: number
+      }
+      current_catalog_item_price_id: {
+        Args: {
+          p_as_of?: string
+          p_billing_interval: Database["platform"]["Enums"]["billing_interval"]
+          p_catalog_item_id: string
+          p_charge_kind: Database["platform"]["Enums"]["charge_kind"]
+          p_currency: string
+          p_market_id: string
+        }
+        Returns: string
+      }
       current_plan_price: {
         Args: {
           p_as_of?: string
@@ -8542,12 +11755,94 @@ export type Database = {
         }
         Returns: string
       }
+      entitlement_checksum: { Args: { p_document: Json }; Returns: string }
+      entitlement_delivery_context: {
+        Args: { p_product_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      entitlement_gate_state: {
+        Args: { p_product_id: string; p_tenant_id: string }
+        Returns: string
+      }
+      entitlement_integration_for: {
+        Args: { p_product_id: string; p_tenant_id: string }
+        Returns: string
+      }
+      entitlement_is_pushable: {
+        Args: { p_failures: number; p_state: string }
+        Returns: boolean
+      }
+      entitlement_issue_candidates: {
+        Args: { p_limit?: number; p_sweep?: boolean }
+        Returns: {
+          saas_product_id: string
+          tenant_id: string
+        }[]
+      }
+      entitlement_push_transition: {
+        Args: { p_failures: number; p_result: string }
+        Returns: {
+          failures: number
+          state: string
+        }[]
+      }
+      entitlement_registry_drift: {
+        Args: { p_product_id: string }
+        Returns: boolean
+      }
+      entitlement_registry_targets: {
+        Args: never
+        Returns: {
+          product_integration_id: string
+          saas_product_id: string
+          tenant_id: string
+        }[]
+      }
+      entitlement_retry_delay: { Args: { p_failures: number }; Returns: string }
+      entitlement_snapshot_content: {
+        Args: { p_at: string; p_product_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      entitlement_verify_failure_transition: {
+        Args: { p_failures: number; p_result: string; p_state: string }
+        Returns: {
+          failures: number
+          state: string
+        }[]
+      }
+      entitlement_verify_verdict: {
+        Args: {
+          p_applied_checksum: string
+          p_applied_status: string
+          p_applied_version: number
+          p_desired_checksum: string
+          p_desired_version: number
+          p_registry_drift: boolean
+        }
+        Returns: string
+      }
+      entitlements_enrollment: {
+        Args: { p_product_id: string; p_tenant_id: string }
+        Returns: string
+      }
+      entitlements_push_enabled: {
+        Args: { p_product_id: string; p_tenant_id: string }
+        Returns: boolean
+      }
       evaluate_provisioning_policy: {
         Args: {
           p_policy: Database["platform"]["Enums"]["provisioning_policy"]
           p_subscription_id: string
         }
         Returns: Json
+      }
+      expire_ai_credits: {
+        Args: {
+          p_period_start: string
+          p_pool_key: string
+          p_tenant_id: string
+        }
+        Returns: number
       }
       expire_commercial_documents: {
         Args: { p_as_of?: string }
@@ -8563,6 +11858,14 @@ export type Database = {
           p_message?: string
           p_request_id: string
         }
+        Returns: Json
+      }
+      finalize_due_usage_aggregates: {
+        Args: { p_limit?: number }
+        Returns: number
+      }
+      finalize_usage_aggregate: {
+        Args: { p_aggregate_id: string }
         Returns: Json
       }
       finance_consolidated: {
@@ -8675,6 +11978,19 @@ export type Database = {
         Args: { p_code: string; p_product: string }
         Returns: boolean
       }
+      import_capability_manifest: {
+        Args: { p_manifest: Json; p_product_code: string }
+        Returns: Json
+      }
+      ingest_usage_events: {
+        Args: {
+          p_batch_id: string
+          p_environment: string
+          p_events: Json
+          p_product_code: string
+        }
+        Returns: Json
+      }
       integration_capabilities: {
         Args: {
           p_adapter_key: Database["platform"]["Enums"]["integration_adapter"]
@@ -8721,6 +12037,14 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: never; Returns: boolean }
+      is_tenant_app_active: {
+        Args: { p_product_id: string; p_tenant_id: string }
+        Returns: boolean
+      }
+      is_valid_grant_value: {
+        Args: { p_kind: string; p_value: Json }
+        Returns: boolean
+      }
       is_valid_provisioning_base_url: {
         Args: {
           p_env: Database["platform"]["Enums"]["provisioning_environment"]
@@ -8728,10 +12052,19 @@ export type Database = {
         }
         Returns: boolean
       }
+      issue_entitlement_snapshot: {
+        Args: {
+          p_effective_at?: string
+          p_product_id: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
       issue_subscription_invoice: {
         Args: { p_period_start?: string; p_subscription_id: string }
         Returns: Json
       }
+      jcs_canonical: { Args: { p_value: Json }; Returns: string }
       jsonb_deep_merge: { Args: { a: Json; b: Json }; Returns: Json }
       log_audit: {
         Args: {
@@ -8744,6 +12077,20 @@ export type Database = {
         }
         Returns: number
       }
+      log_entitlement_sync_attempt: {
+        Args: {
+          p_detail: Json
+          p_operation: string
+          p_outcome: string
+          p_product_id: string
+          p_state_after: string
+          p_state_before: string
+          p_tenant_id: string
+          p_version: number
+          p_worker: string
+        }
+        Returns: undefined
+      }
       log_provisioning_config_change: {
         Args: {
           p_action: string
@@ -8755,7 +12102,19 @@ export type Database = {
         }
         Returns: number
       }
+      mark_entitlements_dirty: {
+        Args: { p_product_id: string; p_reason: string; p_tenant_id: string }
+        Returns: undefined
+      }
+      mark_entitlements_dirty_for_source: {
+        Args: { p_catalog_item_id: string; p_plan_id: string; p_reason: string }
+        Returns: number
+      }
       market_id_by_code: { Args: { p_code: string }; Returns: string }
+      materialize_tenant_features: {
+        Args: { p_tenant_id: string }
+        Returns: number
+      }
       my_attributed_org_ids: { Args: never; Returns: string[] }
       my_attributed_tenant_ids: { Args: never; Returns: string[] }
       my_direct_tenant_ids: { Args: never; Returns: string[] }
@@ -8807,6 +12166,10 @@ export type Database = {
         }
         Returns: Json
       }
+      open_ai_credit_period: {
+        Args: { p_period_start: string; p_tenant_id: string }
+        Returns: Json
+      }
       plan_has_regional_price: {
         Args: {
           p_as_of?: string
@@ -8846,6 +12209,10 @@ export type Database = {
         Args: { p_request_id: string }
         Returns: Json
       }
+      reactivate_tenant_addon: {
+        Args: { p_reason: string; p_tenant_addon_id: string }
+        Returns: undefined
+      }
       receivables_aging: {
         Args: { p_organization_id?: string }
         Returns: {
@@ -8867,6 +12234,45 @@ export type Database = {
         }
         Returns: undefined
       }
+      record_ai_credit_entry: {
+        Args: {
+          p_credits: number
+          p_entry_type: string
+          p_idempotency_key: string
+          p_period_start: string
+          p_pool_key: string
+          p_reason: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
+      record_entitlement_push_result: {
+        Args: {
+          p_outcome: Json
+          p_product_id: string
+          p_tenant_id: string
+          p_version: number
+          p_worker: string
+        }
+        Returns: string
+      }
+      record_entitlement_registry_check: {
+        Args: {
+          p_codes: string[]
+          p_manifest_version: string
+          p_product_id: string
+        }
+        Returns: boolean
+      }
+      record_entitlement_verify_result: {
+        Args: {
+          p_observed: Json
+          p_product_id: string
+          p_tenant_id: string
+          p_worker: string
+        }
+        Returns: string
+      }
       record_provisioning_event: {
         Args: {
           p_action: string
@@ -8880,6 +12286,18 @@ export type Database = {
         Returns: number
       }
       refresh_billing_alerts: { Args: { p_as_of?: string }; Returns: number }
+      refresh_entitlement_gates_for_integration: {
+        Args: { p_integration_id: string }
+        Returns: number
+      }
+      refresh_entitlement_sync_state: {
+        Args: { p_product_id: string; p_tenant_id: string }
+        Returns: string
+      }
+      refresh_tenant_features: {
+        Args: { p_tenant_id: string }
+        Returns: number
+      }
       register_manual_provisioning: {
         Args: {
           p_external_company_id?: string
@@ -8932,6 +12350,14 @@ export type Database = {
         Args: { p_document_id: string; p_reason: string }
         Returns: undefined
       }
+      reject_tenant_addon: {
+        Args: { p_reason: string; p_tenant_addon_id: string }
+        Returns: undefined
+      }
+      release_ai_credit_reservation: {
+        Args: { p_reservation_id: string }
+        Returns: string
+      }
       reporting_settings: {
         Args: never
         Returns: {
@@ -8948,6 +12374,15 @@ export type Database = {
           p_subscription_id: string
           p_valid_from?: string
           p_valid_to?: string
+        }
+        Returns: string
+      }
+      request_tenant_addon: {
+        Args: {
+          p_addon_code: string
+          p_company_id?: string
+          p_reason?: string
+          p_tenant_id: string
         }
         Returns: string
       }
@@ -8987,6 +12422,16 @@ export type Database = {
         }
         Returns: string
       }
+      reserve_ai_credits: {
+        Args: {
+          p_credits: number
+          p_idempotency_key: string
+          p_period_start: string
+          p_pool_key: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
       resolve_deployment_target: {
         Args: {
           p_environment: Database["platform"]["Enums"]["provisioning_environment"]
@@ -8999,6 +12444,10 @@ export type Database = {
         Args: { p_currency: string; p_market_id: string }
         Returns: string
       }
+      resume_tenant_addon: {
+        Args: { p_reason: string; p_tenant_addon_id: string }
+        Returns: undefined
+      }
       retry_provisioning_request: {
         Args: { p_request_id: string }
         Returns: string
@@ -9008,11 +12457,37 @@ export type Database = {
         Returns: string
       }
       reveal_credential_secret_ref: { Args: { p_id: string }; Returns: Json }
+      reverse_ai_credit_entry: {
+        Args: { p_entry_id: string; p_reason: string }
+        Returns: string
+      }
       reverse_payment: {
         Args: { p_payment_id: string; p_reason: string }
         Returns: Json
       }
+      revoke_entitlement_override: {
+        Args: { p_override_id: string; p_reason: string }
+        Returns: undefined
+      }
       revoke_provisioning_role: { Args: { p_id: string }; Returns: string }
+      schedule_cancel_tenant_addon: {
+        Args: {
+          p_effective_to?: string
+          p_reason: string
+          p_tenant_addon_id: string
+        }
+        Returns: string
+      }
+      set_ai_credit_weight: {
+        Args: {
+          p_capability_code: string
+          p_credits_per_unit: number
+          p_reason: string
+          p_unit: string
+          p_valid_from: string
+        }
+        Returns: string
+      }
       set_billing_alert_status: {
         Args: {
           p_alert_id: string
@@ -9033,6 +12508,31 @@ export type Database = {
         }
         Returns: string
       }
+      set_catalog_item_lifecycle: {
+        Args: { p_code: string; p_reason: string; p_status: string }
+        Returns: undefined
+      }
+      set_catalog_item_price: {
+        Args: {
+          p_amount: number
+          p_billing_interval: Database["platform"]["Enums"]["billing_interval"]
+          p_catalog_item_code: string
+          p_charge_kind: Database["platform"]["Enums"]["charge_kind"]
+          p_currency: string
+          p_market_code: string
+          p_valid_from?: string
+        }
+        Returns: string
+      }
+      set_commercial_cutover_state: {
+        Args: {
+          p_axis: string
+          p_integration_id: string
+          p_reason: string
+          p_to_state: string
+        }
+        Returns: string
+      }
       set_deployment_health: {
         Args: {
           p_deployment_target_id: string
@@ -9040,6 +12540,10 @@ export type Database = {
           p_health: Database["platform"]["Enums"]["deployment_health"]
         }
         Returns: Database["platform"]["Enums"]["deployment_health"]
+      }
+      set_entitlements_push_enabled: {
+        Args: { p_enabled: boolean; p_integration_id: string; p_reason: string }
+        Returns: boolean
       }
       set_exchange_rate: {
         Args: {
@@ -9120,6 +12624,19 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_usage_ingest_enabled: {
+        Args: { p_enabled: boolean; p_product_code: string; p_reason: string }
+        Returns: number
+      }
+      set_usage_meter_billable: {
+        Args: {
+          p_billable: boolean
+          p_code: string
+          p_product_code: string
+          p_reason: string
+        }
+        Returns: undefined
+      }
       settle_commissions: {
         Args: {
           p_currency: string
@@ -9128,6 +12645,13 @@ export type Database = {
           p_sales_agent_id: string
         }
         Returns: string
+      }
+      signed_line_amount: {
+        Args: {
+          p_amount: number
+          p_charge_kind: Database["platform"]["Enums"]["charge_kind"]
+        }
+        Returns: number
       }
       subscription_due_items: {
         Args: { p_period_start: string; p_subscription_id: string }
@@ -9144,6 +12668,10 @@ export type Database = {
           unit_amount: number
           valid_to: string
         }[]
+      }
+      suspend_tenant_addon: {
+        Args: { p_reason: string; p_tenant_addon_id: string }
+        Returns: undefined
       }
       to_reporting_amount: {
         Args: {
@@ -9166,6 +12694,42 @@ export type Database = {
           reporting_currency: string
         }[]
       }
+      transition_tenant_addon: {
+        Args: {
+          p_action: string
+          p_from: string[]
+          p_patch?: Json
+          p_reason: string
+          p_tenant_addon_id: string
+          p_to: string
+        }
+        Returns: {
+          activated_at: string
+          active: boolean
+          addon_code: string
+          approved_at: string | null
+          approved_by: string | null
+          company_id: string | null
+          created_at: string
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          request_source: string
+          requested_at: string
+          requested_by: string | null
+          status: string
+          status_reason: string | null
+          subscription_item_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tenant_addons"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       update_tenant: {
         Args: {
           p_accent_color?: string
@@ -9177,6 +12741,15 @@ export type Database = {
           p_white_label?: boolean
         }
         Returns: undefined
+      }
+      upsert_capability_alias: {
+        Args: {
+          p_alias_code: string
+          p_alias_source: string
+          p_capability_code: string
+          p_product_code: string
+        }
+        Returns: string
       }
       upsert_catalog_item: {
         Args: {
@@ -9480,9 +13053,71 @@ export type Database = {
         }
         Returns: string
       }
+      upsert_usage_meter: {
+        Args: {
+          p_aggregation: string
+          p_allows_negative?: boolean
+          p_capability_code?: string
+          p_code: string
+          p_grace_hours?: number
+          p_measurement?: string
+          p_name: string
+          p_product_code: string
+          p_status: string
+          p_unit: string
+        }
+        Returns: string
+      }
       url_authority: { Args: { p_url: string }; Returns: string }
       url_host: { Args: { p_url: string }; Returns: string }
       url_scheme: { Args: { p_url: string }; Returns: string }
+      usage_assign_period: {
+        Args: { p_meter_id: string; p_occurred_at: string; p_tenant_id: string }
+        Returns: Record<string, unknown>
+      }
+      usage_event_cogs: {
+        Args: { p_from: string; p_tenant_id: string; p_to: string }
+        Returns: {
+          event_id: string
+          internal: Json
+          meter_code: string
+          occurred_at: string
+          quantity: number
+        }[]
+      }
+      usage_event_hash: {
+        Args: {
+          p_capability_code: string
+          p_event_id: string
+          p_external_company_id: string
+          p_internal: Json
+          p_meter_code: string
+          p_occurred_at: string
+          p_quantity: number
+          p_subject_ref: string
+          p_tenant_id: string
+          p_unit: string
+        }
+        Returns: string
+      }
+      usage_finalize_core: {
+        Args: { p_actor: string; p_id: string }
+        Returns: Json
+      }
+      usage_ingest_credential: {
+        Args: { p_issuer: string }
+        Returns: {
+          algorithm: string
+          audience: string
+          credential_enabled: boolean
+          environment: string
+          kid: string
+          product_code: string
+          product_ingest_enabled: boolean
+          public_key_ref: string
+        }[]
+      }
+      usage_internal_is_valid: { Args: { p_internal: Json }; Returns: boolean }
       void_exchange_rate: {
         Args: { p_rate_id: string; p_reason: string }
         Returns: undefined
@@ -9517,6 +13152,7 @@ export type Database = {
         | "ADDON"
         | "PROFESSIONAL_SERVICES"
         | "DISCOUNT"
+        | "USAGE_OVERAGE"
       collection_method:
         | "CULQI_CARD"
         | "SERVICE_ORDER"
@@ -9797,6 +13433,7 @@ export const Constants = {
         "ADDON",
         "PROFESSIONAL_SERVICES",
         "DISCOUNT",
+        "USAGE_OVERAGE",
       ],
       collection_method: [
         "CULQI_CARD",

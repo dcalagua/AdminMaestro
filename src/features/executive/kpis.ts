@@ -33,8 +33,9 @@ export const KPI_DICTIONARY: Record<KpiId, KpiDefinition> = {
     temporality: 'SNAPSHOT',
     unit: 'Importe mensual recurrente por moneda nativa (consolidado sólo con FX explícito)',
     source: 'platform.finance_consolidated (métrica MRR) ← v_subscription_mrr',
-    includes: 'Ítems recurrentes vigentes hoy de suscripciones ACTIVE (MONTHLY ×1, QUARTERLY ÷3, YEARLY ÷12)',
-    excludes: 'ONE_TIME, DISCOUNT, suscripciones no ACTIVE, ítems fuera de vigencia, tenants DEMO',
+    includes:
+      'Ítems recurrentes vigentes hoy de suscripciones ACTIVE (MONTHLY ×1, QUARTERLY ÷3, YEARLY ÷12); el DISCOUNT recurrente vigente resta',
+    excludes: 'ONE_TIME, suscripciones no ACTIVE, ítems fuera de vigencia, tenants DEMO',
     precision: 'numeric(14,2) del backend; redondeo por ítem de la vista',
     coverage: 'Foto al momento de consulta; no existe serie histórica de MRR',
     detailHref: '/subscriptions',

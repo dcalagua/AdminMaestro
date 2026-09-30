@@ -1,0 +1,15 @@
+Connecting to local database...
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/32_ccp_tenant_addon_lifecycle.test.sql:93: ERROR:  column "id" does not exist
+LINE 2:   select id from platform.tenant_addons
+                 ^
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/32_ccp_tenant_addon_lifecycle.test.sql .. 
+Dubious, test returned 3 (wstat 768, 0x300)
+All 7 subtests passed 
+
+Test Summary Report
+-------------------
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/32_ccp_tenant_addon_lifecycle.test.sql (Wstat: 768 (exited 3) Tests: 7 Failed: 0)
+  Non-zero exit status: 3
+Files=1, Tests=7,  0 wallclock secs ( 0.01 usr +  0.00 sys =  0.01 CPU)
+Result: FAIL
+error running container: exit 1

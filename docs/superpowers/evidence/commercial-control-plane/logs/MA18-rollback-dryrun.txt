@@ -1,0 +1,20 @@
+ log_audit 
+-----------
+       293
+(1 row)
+
+ emission_restored 
+-------------------
+ t
+(1 row)
+
+ purchase_exec 
+---------------
+ f
+(1 row)
+
+ void_guard_kept 
+-----------------
+               1
+(1 row)
+

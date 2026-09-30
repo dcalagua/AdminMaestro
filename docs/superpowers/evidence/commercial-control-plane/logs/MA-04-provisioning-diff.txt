@@ -1,0 +1,49 @@
+$ git diff --stat 346aa72 -- supabase/functions/_shared/provisioning supabase/functions/provisioning-* e2e/v4-*
+(exit=0; vacío = sin cambios)
+
+$ git diff --stat 346aa72 -- supabase/functions
+$ git diff --name-status 346aa72
+M	docs/finance/COST_MARGIN_MODEL.md
+M	docs/finance/EXECUTIVE_KPI_DICTIONARY.md
+A	docs/runbooks/ccp-rollback/03.sql
+A	docs/superpowers/evidence/commercial-control-plane/logs/MA-00-baseline-db-reset.txt
+A	docs/superpowers/evidence/commercial-control-plane/logs/MA-00-baseline-db-test.txt
+A	docs/superpowers/evidence/commercial-control-plane/logs/MA-00-baseline-lint.txt
+A	docs/superpowers/evidence/commercial-control-plane/logs/MA-00-baseline-secrets.txt
+A	docs/superpowers/evidence/commercial-control-plane/logs/MA-00-baseline-test.txt
+A	docs/superpowers/evidence/commercial-control-plane/logs/MA-00-green.txt
+A	docs/superpowers/evidence/commercial-control-plane/logs/MA-00-red.txt
+A	docs/superpowers/evidence/commercial-control-plane/logs/MA-01-green.txt
+A	docs/superpowers/evidence/commercial-control-plane/logs/MA-01-red.txt
+A	docs/superpowers/evidence/commercial-control-plane/logs/MA-02-characterization-local.txt
+A	docs/superpowers/evidence/commercial-control-plane/logs/MA-02-gate-db-test.txt
+A	docs/superpowers/evidence/commercial-control-plane/logs/MA-02-gate-lint.txt
+A	docs/superpowers/evidence/commercial-control-plane/logs/MA-02-gate-test.txt
+A	docs/superpowers/evidence/commercial-control-plane/logs/MA-02-gate-typecheck.txt
+A	docs/superpowers/evidence/commercial-control-plane/logs/MA-02-green-vitest.txt
+A	docs/superpowers/evidence/commercial-control-plane/logs/MA-02-green.txt
+A	docs/superpowers/evidence/commercial-control-plane/logs/MA-02-red-characterization.txt
+A	docs/superpowers/evidence/commercial-control-plane/logs/MA-02-red-vitest.txt
+A	docs/superpowers/evidence/commercial-control-plane/logs/MA-02-red.txt
+A	docs/superpowers/evidence/commercial-control-plane/logs/MA-03-gate-db-test.txt
+A	docs/superpowers/evidence/commercial-control-plane/logs/MA-03-gate-lint.txt
+A	docs/superpowers/evidence/commercial-control-plane/logs/MA-03-gate-test.txt
+A	docs/superpowers/evidence/commercial-control-plane/logs/MA-03-gate-typecheck.txt
+A	docs/superpowers/evidence/commercial-control-plane/logs/MA-03-green.txt
+A	docs/superpowers/evidence/commercial-control-plane/logs/MA-03-red.txt
+A	docs/superpowers/evidence/commercial-control-plane/logs/MA-03-rollback-dryrun.txt
+A	docs/superpowers/evidence/commercial-control-plane/program-ledger.md
+A	docs/superpowers/evidence/commercial-control-plane/supabase-cli-masteradmin.txt
+A	docs/superpowers/plans/2026-09-27-ebim-commercial-control-plane-implementation.md
+A	docs/superpowers/specs/2026-09-27-ebim-commercial-control-plane-design.md
+A	scripts/ccp/guard-env.sh
+A	scripts/ccp/guard-env.test.mjs
+M	src/features/executive/executive-contracts.test.ts
+M	src/features/executive/kpis.ts
+M	src/services/mutations.ts
+M	src/types/database.types.ts
+A	supabase/migrations/20260928000100_ccp_discount_sign.sql
+A	supabase/migrations/20260928000200_ccp_commercial_write_lockdown.sql
+A	supabase/tests/26_ccp_preservation.test.sql
+A	supabase/tests/27_ccp_discount.test.sql
+A	supabase/tests/28_ccp_commercial_self_grant.test.sql

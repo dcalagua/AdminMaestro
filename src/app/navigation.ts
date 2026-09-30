@@ -1,8 +1,8 @@
 import {
   type Icon, ArrowsClockwiseIcon, BellRingingIcon, BuildingOfficeIcon, BuildingsIcon, CertificateIcon,
   ChartLineUpIcon, CloudArrowUpIcon, CurrencyCircleDollarIcon, FlagIcon, GearSixIcon,
-  HandCoinsIcon, HandshakeIcon, HardDrivesIcon, HouseIcon, LinkIcon, PercentIcon,
-  PlugsConnectedIcon, ReceiptIcon, RocketLaunchIcon, ScalesIcon, ShieldCheckIcon, SquaresFourIcon,
+  HandCoinsIcon, HandshakeIcon, HardDrivesIcon, HouseIcon, LinkIcon, ListChecksIcon, PercentIcon,
+  PlugsConnectedIcon, PuzzlePieceIcon, ReceiptIcon, RocketLaunchIcon, ScalesIcon, ShieldCheckIcon, SquaresFourIcon,
   StackIcon, TreeStructureIcon, UsersThreeIcon,
 } from '@phosphor-icons/react';
 import type { PersonaKind } from '@/features/auth/session';
@@ -65,6 +65,8 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/products', label: 'Suite SaaS', icon: SquaresFourIcon, group: 'Productos y contratos', detailLabel: 'Ficha de producto' },
   { to: '/plans', label: 'Planes y licencias', icon: CertificateIcon, group: 'Productos y contratos' },
   { to: '/feature-flags', label: 'Capacidades', icon: FlagIcon, group: 'Productos y contratos' },
+  { to: '/commercial/capabilities', label: 'Registro de capacidades', icon: ListChecksIcon, group: 'Productos y contratos', personas: ['EBIM'] },
+  { to: '/catalog/addons', label: 'Add-ons y tarifas', icon: PuzzlePieceIcon, group: 'Productos y contratos', personas: ['EBIM', 'PARTNER'], finance: true },
   { to: '/onboarding', label: 'Nueva venta', icon: RocketLaunchIcon, group: 'Productos y contratos', personas: ['EBIM'] },
   { to: '/tenants', label: 'Tenants', icon: BuildingOfficeIcon, group: 'Productos y contratos', detailLabel: 'Tenant 360' },
   { to: '/subscriptions', label: 'Contratos y suscripciones', icon: ArrowsClockwiseIcon, group: 'Productos y contratos', personas: ['EBIM', 'PARTNER'], finance: true, detailLabel: 'Contrato 360' },
@@ -80,6 +82,7 @@ export const NAV_ITEMS: NavItem[] = [
 
   // ---- Operación SaaS -----------------------------------------------------
   { to: '/integrations', label: 'Integraciones', icon: PlugsConnectedIcon, group: 'Operación SaaS', personas: ['EBIM'], detailLabel: 'Ficha de integración' },
+  { to: '/commercial/entitlement-sync', label: 'Sincronización de entitlements', icon: ArrowsClockwiseIcon, group: 'Operación SaaS', personas: ['EBIM'] },
   { to: '/deployments', label: 'Entornos y despliegues', icon: CloudArrowUpIcon, group: 'Operación SaaS', personas: ['EBIM', 'PARTNER'] },
   { to: '/saas-provisioning', label: 'Altas SaaS', icon: StackIcon, group: 'Operación SaaS', personas: ['EBIM', 'PARTNER'] },
   { to: '/provisioning', label: 'Solicitudes de infraestructura', icon: HardDrivesIcon, group: 'Operación SaaS', personas: ['EBIM', 'PARTNER'] },
@@ -134,11 +137,15 @@ export function routeMeta(pathname: string): RouteMeta {
   if (pathname === '/404') return { group: null, section: null, title: 'Página no encontrada', isDetail: false };
   if (pathname === '/login') return { group: null, section: null, title: 'Ingreso', isDetail: false };
 
-  const segments = pathname.split('/').filter(Boolean);
-  const base = `/${segments[0]}`;
-  const section = NAV_ITEMS.find((i) => i.to === base) ?? null;
+  // La entrada más específica que contiene la ruta: hay entradas de dos
+  // segmentos (`/catalog/addons`) además de las de uno con fichas `/:id`.
+  const path = pathname.replace(/\/+$/, '');
+  const section =
+    NAV_ITEMS.filter((i) => i.to !== '/' && (path === i.to || path.startsWith(`${i.to}/`))).sort(
+      (a, b) => b.to.length - a.to.length,
+    )[0] ?? null;
   if (!section) return { group: null, section: null, title: 'Página no encontrada', isDetail: false };
-  const isDetail = segments.length > 1;
+  const isDetail = path !== section.to;
   return {
     group: section.group,
     section,

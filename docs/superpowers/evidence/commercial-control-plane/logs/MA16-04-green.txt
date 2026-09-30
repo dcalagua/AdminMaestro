@@ -1,0 +1,15 @@
+✔ sin --dry-run se niega a correr (exit 2) (66.991541ms)
+✔ aborta si el entorno declara un Supabase no local (exit 2) sin imprimir la URL (75.657166ms)
+✔ acepta un entorno local declarado (80.305875ms)
+✔ sobre los fixtures: resumen, reporte, SQL de operador y atestaciones, sin precios (68.894916ms)
+✔ dos corridas con la misma fecha dan la misma salida (138.244125ms)
+✔ un export con precio se rechaza entero (exit 1, HUB_EXPORT_FORBIDDEN_KEY) (66.971417ms)
+✔ un export de otro entorno se rechaza (exit 1) (72.400584ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 606.177459

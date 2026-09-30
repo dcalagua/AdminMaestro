@@ -1029,3 +1029,113 @@ export function usePlatformPeople() {
       unwrap(await supabase.from('profiles').select('id, full_name, email').order('email')),
   });
 }
+
+/* ==========================================================================
+   CCP fase 07 · Catálogo comercial y entitlements
+   --------------------------------------------------------------------------
+   Registro de capacidades, add-ons con su ciclo de vida y tarifas por
+   mercado, historia de add-ons por tenant y entitlements efectivos. Todo es
+   lectura: RLS (y las vistas `security_invoker`) decide qué filas ve cada rol.
+   ========================================================================== */
+
+/**
+ * Registro de capacidades de producto con sus alias. Dos lecturas planas que se
+ * unen aquí por `capability_id`: es presentación, no un filtro de seguridad.
+ */
+export function useProductCapabilities() {
+  return useQuery({
+    queryKey: ['capabilities'],
+    queryFn: async () => {
+      const [caps, aliases] = await Promise.all([
+        supabase.from('product_capabilities').select('*').order('code'),
+        supabase.from('capability_aliases').select('*').order('alias_code'),
+      ]);
+      const capabilityRows = unwrap(caps);
+      const aliasRows = unwrap(aliases);
+      return capabilityRows.map((c) => ({
+        ...c,
+        aliases: aliasRows.filter((a) => a.capability_id === c.id),
+      }));
+    },
+  });
+}
+
+/**
+ * Deseado frente a aplicado por tenant×producto (CCP fase 08). Vista SECURITY
+ * INVOKER: cada operador ve lo que su RLS le deja ver.
+ */
+export function useEntitlementSyncStatus() {
+  return useQuery({
+    queryKey: ['entitlement-sync-status'],
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('v_entitlement_sync_status')
+          .select('*')
+          .order('product_code')
+          .order('tenant_name'),
+      ),
+  });
+}
+
+/** Add-ons del catálogo central con su ciclo de vida y modelo de cobro. */
+export function useCatalogItemsWithLifecycle() {
+  return useQuery({
+    queryKey: ['catalog-items'],
+    queryFn: async () =>
+      unwrap(await supabase.from('catalog_items').select('*').order('name')),
+  });
+}
+
+/**
+ * Tarifas de add-on por mercado (vigentes, programadas e historia). La vista
+ * es `security_invoker`: quien no puede ver tarifas recibe cero filas, y eso
+ * se rotula «Sin precio definido», nunca «gratis».
+ */
+export function useCatalogItemPrices() {
+  return useQuery({
+    queryKey: ['catalog-item-prices'],
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('v_catalog_item_current_prices')
+          .select('*')
+          .order('catalog_item_code')
+          .order('market_code')
+          .order('valid_from', { ascending: false }),
+      ),
+  });
+}
+
+/** Historia de add-ons de UN tenant (solicitudes, altas, bajas, suspensiones). */
+export function useTenantAddonHistory(tenantId: string | undefined) {
+  return useQuery({
+    queryKey: ['tenant-addons', tenantId],
+    enabled: Boolean(tenantId),
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('v_tenant_addon_history')
+          .select('*')
+          .eq('tenant_id', tenantId!)
+          .order('requested_at', { ascending: false }),
+      ),
+  });
+}
+
+/** Entitlements efectivos de UN tenant (plan + add-ons), con marca de sincronización. */
+export function useTenantEntitlements(tenantId: string | undefined) {
+  return useQuery({
+    queryKey: ['tenant-entitlements', tenantId],
+    enabled: Boolean(tenantId),
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('v_tenant_entitlements')
+          .select('*')
+          .eq('tenant_id', tenantId!)
+          .order('product_code')
+          .order('capability_code'),
+      ),
+  });
+}

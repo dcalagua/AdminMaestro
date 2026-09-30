@@ -1,0 +1,96 @@
+
+> ebim-control-plane@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1
+
+ ✓ src/features/catalog/PlansPage.test.tsx (4 tests) 323ms
+ ✓ src/features/billing/PeriodInvoiceAction.test.tsx (13 tests) 591ms
+ ✓ src/features/deployments/ProductConfigurationForm.test.tsx (7 tests) 459ms
+ ✓ src/features/organizations/OrganizationsPage.test.tsx (4 tests) 429ms
+ ✓ src/features/deployments/SaasProvisioningPage.test.tsx (2 tests) 329ms
+ ✓ src/features/catalog/ProductsPage.test.tsx (4 tests) 615ms
+   ✓ ProductsPage > deriva los conteos de los datos y nunca muestra un 8/8 fijo  303ms
+ ✓ src/components/ui/dialogs-tabs.test.tsx (12 tests) 1026ms
+   ✓ ConfirmDialog > Tab y Shift+Tab no salen del modal  508ms
+ ✓ supabase/functions/_shared/provisioning/m2m.test.ts (33 tests) 127ms
+ ✓ supabase/functions/_shared/provisioning/cors.test.ts (10 tests) 7ms
+stderr | src/app/AppearanceProvider.test.tsx > Apariencia compartida > cambiar el modo desde Configuración actualiza el Shell y el documento
+An update to AppearanceProvider inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+stderr | src/app/AppearanceProvider.test.tsx > Apariencia compartida > cambiar la densidad conserva los controles y actualiza data-density
+An update to AppearanceProvider inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ ✓ src/features/auth/session-isolation.test.tsx (2 tests) 64ms
+ ✓ src/features/deployments/ProvisioningStatusAction.test.tsx (9 tests) 265ms
+ ✓ src/app/AppearanceProvider.test.tsx (7 tests) 215ms
+ ✓ supabase/functions/_shared/provisioning/adapters/http-m2m.test.ts (24 tests) 55ms
+ ✓ supabase/functions/_shared/provisioning/adapters/http-m2m.generic-golden.test.ts (12 tests) 71ms
+ ✓ supabase/functions/_shared/provisioning/adapters/ewm-v1.test.ts (62 tests) 49ms
+ ✓ supabase/functions/_shared/payments/money.test.ts (34 tests) 20ms
+ ✓ src/features/deployments/contractAdapters.test.ts (9 tests) 19ms
+ ✓ supabase/functions/_shared/provisioning/url-guard.test.ts (60 tests) 7ms
+ ✓ src/services/financeConsolidated.test.tsx (3 tests) 20ms
+ ✓ src/features/auth/LoginPage.test.tsx (4 tests) 344ms
+ ✓ src/lib/format.test.ts (17 tests) 15ms
+ ✓ src/features/organizations/Organization360.test.tsx (3 tests) 253ms
+ ✓ src/lib/multicurrency.regression.test.ts (7 tests) 22ms
+ ✓ src/lib/consolidated.test.ts (8 tests) 11ms
+ ✓ supabase/functions/_shared/provisioning/response.test.ts (32 tests) 4ms
+ ✓ src/features/executive/executive-contracts.test.ts (22 tests) 7ms
+ ✓ src/features/settings/AuditPage.test.tsx (5 tests) 564ms
+ ✓ src/components/ui/PagedTable.test.tsx (7 tests) 645ms
+ ✓ src/features/commercial/commissionRuleText.test.ts (3 tests) 11ms
+ ✓ src/features/billing/CostsPage.test.tsx (3 tests) 379ms
+ ✓ src/features/dashboard/DashboardPage.test.tsx (8 tests) 636ms
+ ✓ src/features/platform/IntegrationsPage.test.tsx (4 tests) 375ms
+   ✓ IntegrationsPage > resume por entorno: QAS sano con fecha; PRD en borrador «No evaluado», nunca «Caído»  328ms
+ ✓ src/features/commercial/CommissionsPage.test.tsx (3 tests) 310ms
+ ✓ src/features/billing/BillingPage.test.tsx (5 tests) 543ms
+ ✓ src/app/AppShell.test.tsx (7 tests) 1326ms
+   ✓ AppShell > usuario técnico EBIM no recibe el grupo Finanzas  339ms
+   ✓ AppShell > grupos plegables con aria-expanded; el grupo activo no se oculta  307ms
+ ✓ supabase/functions/_shared/provisioning/fingerprint.test.ts (2 tests) 7ms
+ ✓ src/lib/regional.test.ts (15 tests) 18ms
+ ✓ src/lib/provisioning.test.ts (39 tests) 12ms
+ ✓ supabase/functions/_shared/provisioning/registry.test.ts (30 tests) 4ms
+ ✓ src/features/auth/session.test.ts (16 tests) 3ms
+ ✓ src/lib/export.test.ts (10 tests) 5ms
+ ✓ supabase/functions/_shared/payments/recurring-amount.test.ts (24 tests) 10ms
+ ✓ supabase/functions/_shared/provisioning/retry.test.ts (33 tests) 3ms
+ ✓ supabase/functions/_shared/provisioning/actions.test.ts (9 tests) 2ms
+ ✓ src/features/platform/targetHealth.test.ts (4 tests) 8ms
+ ✓ src/app/tokens.test.ts (38 tests) 3ms
+ ✓ supabase/functions/_shared/payments/culqi-mapping.test.ts (23 tests) 9ms
+ ✓ supabase/functions/_shared/provisioning/errors.test.ts (30 tests) 4ms
+ ✓ src/features/deployments/DeploymentsPage.test.tsx (1 test) 272ms
+ ✓ supabase/functions/_shared/provisioning/replay.test.ts (8 tests) 2ms
+ ✓ src/features/tenants/tenantDimensions.test.ts (8 tests) 2ms
+ ✓ src/lib/billing.test.ts (6 tests) 2ms
+ ✓ supabase/functions/_shared/provisioning/status.test.ts (11 tests) 3ms
+ ✓ src/app/navigation.test.ts (22 tests) 5ms
+
+ Test Files  54 passed (54)
+      Tests  778 passed (778)
+   Start at  22:25:05
+   Duration  10.34s (transform 4.43s, setup 7.42s, collect 70.23s, tests 10.51s, environment 51.02s, prepare 5.43s)
+

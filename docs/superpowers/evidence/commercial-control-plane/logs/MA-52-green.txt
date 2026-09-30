@@ -1,0 +1,409 @@
+ plan  
+-------
+ 1..49
+(1 row)
+
+               has_table               
+---------------------------------------
+ ok 1 - Existe usage_period_aggregates
+(1 row)
+
+         has_table          
+----------------------------
+ ok 2 - Existe usage_alerts
+(1 row)
+
+                      is                      
+----------------------------------------------
+ ok 3 - RLS habilitado y forzado en agregados
+(1 row)
+
+                   is                    
+-----------------------------------------
+ ok 4 - Agregados: sin escritura directa
+(1 row)
+
+                          is                           
+-------------------------------------------------------
+ ok 5 - close_usage_periods: EXECUTE solo service_role
+(1 row)
+
+                                       is                                        
+---------------------------------------------------------------------------------
+ ok 6 - finalize_usage_aggregate: finanzas (authenticated + gate) o service_role
+(1 row)
+
+              is               
+-------------------------------
+ ok 7 - RPCs de cierre DEFINER
+(1 row)
+
+                          is                          
+------------------------------------------------------
+ ok 8 - v_usage_period_aggregates es security_invoker
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                                             import_capability_manifest                                              
+---------------------------------------------------------------------------------------------------------------------
+ {"aliases": 0, "missing": [], "product": "esupplier", "updated": 0, "inserted": 1, "import_id": 20, "unchanged": 0}
+(1 row)
+
+       create_entitlement_grant       
+--------------------------------------
+ e38be27b-f627-4d3c-9e02-6fe0f75572b1
+(1 row)
+
+          upsert_usage_meter          
+--------------------------------------
+ 0bf28db0-010a-4845-b384-47819a4e6306
+(1 row)
+
+          upsert_usage_meter          
+--------------------------------------
+ 6ae50ade-0075-4356-82c3-0898a3f75fb8
+(1 row)
+
+          upsert_usage_meter          
+--------------------------------------
+ 3ea221f6-fef9-4550-9804-546feab17ca3
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+ set_usage_meter_billable 
+--------------------------
+ 
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+ act_as_service 
+----------------
+ 
+(1 row)
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              ingest                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"results": [{"status": "ACCEPTED", "eventId": "05918be0-33f2-4730-a104-5646a05d3a73"}, {"status": "ACCEPTED", "eventId": "42f5354e-1dff-4e6a-b5fd-9aefddc1ddc0"}, {"status": "ACCEPTED", "eventId": "0c6b7dd5-6fff-4945-af9f-94cca7ae5b37"}, {"status": "ACCEPTED", "eventId": "db56da5c-a9ca-4453-8dd1-993415845b9d"}, {"status": "ACCEPTED", "eventId": "53179c79-aed3-4fb8-aeef-1d299de78625"}, {"status": "ACCEPTED", "eventId": "86083cdd-d50c-44a1-b464-0cb603907bb8"}, {"status": "ACCEPTED", "eventId": "72298a5f-1058-4023-bf7d-551ad5aff639"}, {"status": "ACCEPTED", "eventId": "22d97661-bbbf-4748-ae9e-f261455bf800"}, {"status": "ACCEPTED", "eventId": "eadcc6df-7695-449d-aff6-6356192b1f58"}, {"status": "ACCEPTED", "eventId": "850b00b1-65f8-44c7-b0a6-591e8644505f"}, {"status": "ACCEPTED", "eventId": "4d1f812b-35c4-4d9e-9291-7a9afce95f44"}, {"status": "ACCEPTED", "eventId": "a42b1dd1-5cf3-4367-887e-fd8159567907"}], "accepted": 12, "rejected": 0, "duplicate": 0}
+(1 row)
+
+                   is                   
+----------------------------------------
+ ok 9 - Evento con zona −05:00 aceptado
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+                                                 is                                                 
+----------------------------------------------------------------------------------------------------
+ ok 10 - Período por occurred_at en UTC (D-10): 23:30 −05:00 del último día cae en el mes siguiente
+(1 row)
+
+                                         is                                         
+------------------------------------------------------------------------------------
+ ok 11 - El ingest abre un agregado OPEN por tenant × medidor × período con eventos
+(1 row)
+
+               is               
+--------------------------------
+ ok 12 - Agregado nuevo en OPEN
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                      throws_ok                       
+------------------------------------------------------
+ ok 13 - close_usage_periods: un humano no lo ejecuta
+(1 row)
+
+ act_as_service 
+----------------
+ 
+(1 row)
+
+                                ok                                 
+-------------------------------------------------------------------
+ ok 14 - close_usage_periods mueve a CLOSING los períodos vencidos
+(1 row)
+
+          is           
+-----------------------
+ ok 15 - M-3 → CLOSING
+(1 row)
+
+                is                
+----------------------------------
+ ok 16 - M0 (en curso) sigue OPEN
+(1 row)
+
+                               is                               
+----------------------------------------------------------------
+ ok 17 - Un p_now futuro no adelanta cierres (se acota a now())
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+              throws_ok              
+-------------------------------------
+ ok 18 - Un tenant admin no finaliza
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                  throws_ok                  
+---------------------------------------------
+ ok 19 - El product admin tampoco (finanzas)
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                         throws_ok                         
+-----------------------------------------------------------
+ ok 20 - Un agregado OPEN no se finaliza (primero CLOSING)
+(1 row)
+
+           lives_ok            
+-------------------------------
+ ok 21 - Finanzas finaliza M-3
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+                     is                     
+--------------------------------------------
+ ok 22 - FINALIZED: 3 eventos, cantidad 120
+(1 row)
+
+                           is                           
+--------------------------------------------------------
+ ok 23 - source_hash = sha256 de los event_id ordenados
+(1 row)
+
+                            is                            
+----------------------------------------------------------
+ ok 24 - Asignación aplicada: 100 incluidos, 20 de exceso
+(1 row)
+
+                                is                                
+------------------------------------------------------------------
+ ok 25 - Exceso de asignación con overageMode BLOCK (contrato v1)
+(1 row)
+
+                      is                       
+-----------------------------------------------
+ ok 26 - Exceso bajo BLOCK → alerta a finanzas
+(1 row)
+
+                              is                              
+--------------------------------------------------------------
+ ok 27 - Medidor facturable + tenant PRODUCTION → is_billable
+(1 row)
+
+               is                
+---------------------------------
+ ok 28 - finalized_by = finanzas
+(1 row)
+
+                      throws_ok                       
+------------------------------------------------------
+ ok 29 - FINALIZED es inmutable incluso para postgres
+(1 row)
+
+             throws_ok              
+------------------------------------
+ ok 30 - Los agregados no se borran
+(1 row)
+
+                     throws_ok                     
+---------------------------------------------------
+ ok 31 - Sin retrocesos de estado (CLOSING → OPEN)
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                       throws_ok                       
+-------------------------------------------------------
+ ok 32 - Finalizar dos veces → error (nunca se reabre)
+(1 row)
+
+                                                                                                                           finalize_usage_aggregate                                                                                                                           
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"id": "3bdf0220-0454-4f70-82e2-7e525881da74", "overage": null, "quantity": 9.000000, "eventCount": 3, "isBillable": false, "sourceHash": "sha256:b54397853e6b99704323c7add4c7b564d258e3d6ac5c00d2ca6169731cb30347", "lateEventCount": 0, "allowanceStatus": "NO_ALLOWANCE"}
+(1 row)
+
+                                                                                                                       finalize_usage_aggregate                                                                                                                        
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"id": "a66ce00a-aca2-4564-9c56-978082cc98d3", "overage": null, "quantity": 2, "eventCount": 3, "isBillable": false, "sourceHash": "sha256:22896f4cc420fd3e7a6339d43d3eadc70010937b4dcbdbbb68a0df2ae736c0c3", "lateEventCount": 0, "allowanceStatus": "NO_ALLOWANCE"}
+(1 row)
+
+                      is                      
+----------------------------------------------
+ ok 33 - MAX (foto diaria) = pico del período
+(1 row)
+
+                         is                         
+----------------------------------------------------
+ ok 34 - COUNT_DISTINCT_SUBJECT = sujetos distintos
+(1 row)
+
+                          is                           
+-------------------------------------------------------
+ ok 35 - Sin asignación para el medidor → NO_ALLOWANCE
+(1 row)
+
+                            is                            
+----------------------------------------------------------
+ ok 36 - Medidor no facturable (D-06) → is_billable=false
+(1 row)
+
+                                                                                                                           finalize_usage_aggregate                                                                                                                           
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"id": "809eca95-22ea-4d6c-ac8f-e5fb4b250b46", "overage": null, "quantity": 7.000000, "eventCount": 1, "isBillable": false, "sourceHash": "sha256:04acfb9a58cb007c338ea740ef939a8870b7f6721d585677b6c593a4737baf2b", "lateEventCount": 0, "allowanceStatus": "NO_ALLOWANCE"}
+(1 row)
+
+                                              is                                              
+----------------------------------------------------------------------------------------------
+ ok 37 - Tenant DEMO: agregado con is_billable=false aunque el medidor sea facturable (INV-7)
+(1 row)
+
+ act_as_service 
+----------------
+ 
+(1 row)
+
+                           is                            
+---------------------------------------------------------
+ ok 38 - Evento tardío de un período FINALIZED: aceptado
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+                                    is                                    
+--------------------------------------------------------------------------
+ ok 39 - Se imputa al siguiente período no finalizado (M-2) con late=true
+(1 row)
+
+                       is                       
+------------------------------------------------
+ ok 40 - El agregado FINALIZED de M-3 no cambia
+(1 row)
+
+ act_as_service 
+----------------
+ 
+(1 row)
+
+                      is                      
+----------------------------------------------
+ ok 41 - Job: finaliza los CLOSING pendientes
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+                             is                              
+-------------------------------------------------------------
+ ok 42 - M-2: 40 + 1 (UTC) + 30 tardío; late_event_count = 1
+(1 row)
+
+                 is                  
+-------------------------------------
+ ok 43 - M-2 dentro de la asignación
+(1 row)
+
+                     is                      
+---------------------------------------------
+ ok 44 - finalizado por el job (sin persona)
+(1 row)
+
+ act_as_service 
+----------------
+ 
+(1 row)
+
+                                                                 ingest                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------
+ {"results": [{"status": "ACCEPTED", "eventId": "a7000000-0000-4000-8000-000000000003"}], "accepted": 1, "rejected": 0, "duplicate": 0}
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+                                      is                                       
+-------------------------------------------------------------------------------
+ ok 45 - Con M-3 y M-2 FINALIZED, el tardío salta al siguiente período abierto
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                                     ok                                     
+----------------------------------------------------------------------------
+ ok 46 - El tenant admin de alpha ve sus agregados (vista security_invoker)
+(1 row)
+
+               is                
+---------------------------------
+ ok 47 - y no los de otro tenant
+(1 row)
+
+                             is                             
+------------------------------------------------------------
+ ok 48 - Las alertas son solo para finanzas / product admin
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+               ok                
+---------------------------------
+ ok 49 - Finanzas ve las alertas
+(1 row)
+
+ finish 
+--------
+(0 rows)
+

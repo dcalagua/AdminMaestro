@@ -6,6 +6,7 @@ import {
 import { useTenantAudit, useTenantInfraRequests, useTenantMarginRows, useTenantSubscriptions } from './tenantQueries';
 import { tenantDimensions } from './tenantDimensions';
 import { TenantDimensionsView } from './TenantDimensionsView';
+import { TenantAddonsPanel } from './TenantAddonsPanel';
 import { useRequestTenantSuspension, useRequestTenantResume } from '@/services/mutations';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -452,6 +453,16 @@ export function TenantDetailPage() {
                   </DataTable>
                 )}
               </Card>
+            ),
+          },
+          {
+            id: 'addons',
+            label: 'Add-ons y entitlements',
+            content: (
+              <TenantAddonsPanel
+                tenantId={t.tenant_id as string}
+                saasProductId={(t.saas_product_id as string | null) ?? null}
+              />
             ),
           },
           {

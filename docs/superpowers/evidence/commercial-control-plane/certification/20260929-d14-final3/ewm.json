@@ -1,0 +1,421 @@
+{
+  "product": "ewm",
+  "legacyAuthority": "sin biller comercial local",
+  "d14": {
+    "entitlements": {
+      "scope": "COHORT",
+      "saasFinalMode": "PRIMARY",
+      "productScopeMode": "SHADOW",
+      "masteradminAxis": "MASTERADMIN_PRIMARY",
+      "getVerified": {
+        "appliedVersion": 5,
+        "appliedChecksum": "sha256:1197c523d5976a5473549ef6f6a6be20a273bbd49e9c44c4538b73f244ea4f38",
+        "enforcementMode": "PRIMARY",
+        "desiredChecksum": "sha256:1197c523d5976a5473549ef6f6a6be20a273bbd49e9c44c4538b73f244ea4f38"
+      },
+      "legacyWrite": {
+        "status": "BLOCKED",
+        "evidence": "EWM scripts/ccp/pglite-legacy-write-guard.mjs (PGlite; supabase/migrations/20260929084334_ccp_bloqueo_escritura_legada_primary.sql + V48/V49): \"PRIMARY: admin_set_agent → LEGACY_WRITE_BLOCKED y no cambia nada\"; \"PRIMARY: INSERT/UPDATE/DELETE directos por PostgREST (operador) → LEGACY_WRITE_BLOCKED\"; \"PRIMARY: service_role por PostgREST también se bloquea\"; \"PRIMARY: el materializador Java (JDBC sin claims) SÍ escribe: SQL_MATERIALIZAR y SQL_BORRAR\"; \"sociedad sin mapping (CEYESA / V900) con PRODUCT=SHADOW: escritura legada permitida\"; \"sin tablas de Flyway: admin_set_agent y la escritura directa del operador siguen permitidas\" → # 23 ok, 0 fail. Defensa en profundidad: X-07 paso 13 (la reconciliación detecta y revierte una escritura legada)."
+      }
+    },
+    "billing": null,
+    "appActiveFalse": {
+      "commercialDenied": true,
+      "operationalContinues": true,
+      "evidence": "X-07 paso 14: v4 appActive=false APPLIED, gate wms_copilot=false, company_ai_agents conservada (7 filas) y GET OBSERVED v4. appActive sólo entra en AgentDecision.java:41 (agentes), que consume únicamente AgentEntitlementService (hallazgos de la Flota); ninguna ruta operativa del WMS lo lee. EwmEntitlementsReceiverTest \"appActive=false: ningún agente, sin borrar datos\"."
+    },
+    "legacyTenants": [
+      {
+        "id": "ce7e5a00-0000-4000-8000-000000000002",
+        "label": "CEYESA (sociedad demo, supabase/migrations/20260804201000_seed_ceyesa_core.sql)",
+        "resolution": "UNRESOLVED",
+        "reason": "Sin mapping determinista en MasterAdmin: ningún platform_provisioning_request ACTIVE ni tenant_product_mappings (los tenants EWM del seed de MasterAdmin alpha-ewm…titan-ewm tampoco tienen tenant_product_mappings). Sigue en PRODUCT=SHADOW: company_ai_agents manda. No se inventan plan, precio, cuotas ni add-ons."
+      },
+      {
+        "id": "11111111-1111-4111-8111-111111111111",
+        "label": "Tenant del perfil local (backend/wms-api/src/main/resources/db/seed/V900__local_seed_data.sql)",
+        "resolution": "UNRESOLVED",
+        "reason": "Sin mapping determinista en MasterAdmin (sin provisioning ACTIVE ni tenant_product_mappings). Sigue en PRODUCT=SHADOW. No se inventan plan, precio, cuotas ni add-ons."
+      }
+    ]
+  },
+  "checks": {
+    "1": {
+      "label": "canonical MasterAdmin mapping",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:01:54Z",
+          "endedAt": "2026-09-29T17:01:58Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "ewm:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:34Z",
+          "endedAt": "2026-09-29T17:02:39Z",
+          "log": "logs/ewm-x07.txt"
+        }
+      ]
+    },
+    "2": {
+      "label": "desired entitlement generated",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:01:54Z",
+          "endedAt": "2026-09-29T17:01:58Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:00Z",
+          "endedAt": "2026-09-29T17:02:01Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "ewm:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:34Z",
+          "endedAt": "2026-09-29T17:02:39Z",
+          "log": "logs/ewm-x07.txt"
+        }
+      ]
+    },
+    "3": {
+      "label": "SaaS applied same version/checksum",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "ewm:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:34Z",
+          "endedAt": "2026-09-29T17:02:39Z",
+          "log": "logs/ewm-x07.txt"
+        }
+      ]
+    },
+    "4": {
+      "label": "GET same applied state",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:00Z",
+          "endedAt": "2026-09-29T17:02:01Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "ewm:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:34Z",
+          "endedAt": "2026-09-29T17:02:39Z",
+          "log": "logs/ewm-x07.txt"
+        }
+      ]
+    },
+    "5": {
+      "label": "tenant self-grant denied",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:01:54Z",
+          "endedAt": "2026-09-29T17:01:58Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "ewm:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:34Z",
+          "endedAt": "2026-09-29T17:02:39Z",
+          "log": "logs/ewm-x07.txt"
+        },
+        {
+          "ref": "ewm:supabase-guard",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:33Z",
+          "endedAt": "2026-09-29T17:02:34Z",
+          "log": "logs/ewm-supabase-guard.txt"
+        }
+      ],
+      "note": "guarda Supabase D-14: admin_set_agent y la escritura directa por la API bloqueadas en PRIMARY; X-07 13: el reconciliador revierte (defensa en profundidad)"
+    },
+    "6": {
+      "label": "add/remove/downgrade version transition",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "ewm:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:34Z",
+          "endedAt": "2026-09-29T17:02:39Z",
+          "log": "logs/ewm-x07.txt"
+        }
+      ]
+    },
+    "7": {
+      "label": "offline last-good",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "ewm:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:34Z",
+          "endedAt": "2026-09-29T17:02:39Z",
+          "log": "logs/ewm-x07.txt"
+        }
+      ]
+    },
+    "8": {
+      "label": "drift reconciled",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:00Z",
+          "endedAt": "2026-09-29T17:02:01Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "ewm:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:34Z",
+          "endedAt": "2026-09-29T17:02:39Z",
+          "log": "logs/ewm-x07.txt"
+        }
+      ]
+    },
+    "9": {
+      "label": "usage event accepted once",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "ewm:suite",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:39Z",
+          "endedAt": "2026-09-29T17:05:39Z",
+          "log": "logs/ewm-suite.txt"
+        }
+      ],
+      "note": "emisor Java de uso (ITs de EWM); no está en usage-x07 (solo TS)"
+    },
+    "10": {
+      "label": "duplicate deduped",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "ewm:suite",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:39Z",
+          "endedAt": "2026-09-29T17:05:39Z",
+          "log": "logs/ewm-suite.txt"
+        },
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:01:54Z",
+          "endedAt": "2026-09-29T17:01:58Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        }
+      ]
+    },
+    "11": {
+      "label": "allowance/credit arithmetic",
+      "status": "N/A",
+      "reason": "EWM no aplica asignaciones ni créditos en el SaaS (sin ALLOWANCE registrada, D-03)"
+    },
+    "12": {
+      "label": "no duplicate billing",
+      "status": "N/A",
+      "reason": "sin biller comercial local"
+    },
+    "13": {
+      "label": "local price/billing authority stage explicit",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "ewm:suite",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:39Z",
+          "endedAt": "2026-09-29T17:05:39Z",
+          "log": "logs/ewm-suite.txt"
+        }
+      ],
+      "note": "sin biller comercial local"
+    },
+    "14": {
+      "label": "technical configuration still works",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "ewm:suite",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:39Z",
+          "endedAt": "2026-09-29T17:05:39Z",
+          "log": "logs/ewm-suite.txt"
+        }
+      ]
+    },
+    "15": {
+      "label": "CREATE/REPLAY/GET provisioning regression green",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:provisioning-golden",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:01:58Z",
+          "endedAt": "2026-09-29T17:02:00Z",
+          "log": "logs/masteradmin-provisioning-golden.txt"
+        },
+        {
+          "ref": "ewm:suite",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:39Z",
+          "endedAt": "2026-09-29T17:05:39Z",
+          "log": "logs/ewm-suite.txt"
+        }
+      ]
+    }
+  },
+  "criteria": {
+    "1": {
+      "met": true,
+      "reason": "P0 del §1.4 cerrados en fases 03–06 con test"
+    },
+    "2": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "ewm:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:34Z",
+          "endedAt": "2026-09-29T17:02:39Z",
+          "log": "logs/ewm-x07.txt"
+        }
+      ]
+    },
+    "3": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:01:54Z",
+          "endedAt": "2026-09-29T17:01:58Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "ewm:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:34Z",
+          "endedAt": "2026-09-29T17:02:39Z",
+          "log": "logs/ewm-x07.txt"
+        }
+      ]
+    },
+    "4": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:00Z",
+          "endedAt": "2026-09-29T17:02:01Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "ewm:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:34Z",
+          "endedAt": "2026-09-29T17:02:39Z",
+          "log": "logs/ewm-x07.txt"
+        }
+      ]
+    },
+    "5": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "ewm:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:34Z",
+          "endedAt": "2026-09-29T17:02:39Z",
+          "log": "logs/ewm-x07.txt"
+        }
+      ]
+    },
+    "6": {
+      "met": true,
+      "reason": "MASTERADMIN_PRIMARY (SaaS y MasterAdmin) verificado por GET; escritura legacy negada server-side",
+      "evidence": [
+        {
+          "ref": "ewm:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:34Z",
+          "endedAt": "2026-09-29T17:02:39Z",
+          "log": "logs/ewm-x07.txt"
+        },
+        {
+          "ref": "masteradmin:d14-axes",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:37Z",
+          "endedAt": "2026-09-29T17:05:39Z",
+          "log": "logs/masteradmin-d14-axes.txt"
+        },
+        {
+          "ref": "ewm:supabase-guard",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:33Z",
+          "endedAt": "2026-09-29T17:02:34Z",
+          "log": "logs/ewm-supabase-guard.txt"
+        }
+      ]
+    },
+    "7": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "ewm:suite",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:39Z",
+          "endedAt": "2026-09-29T17:05:39Z",
+          "log": "logs/ewm-suite.txt"
+        }
+      ]
+    },
+    "8": {
+      "met": true,
+      "reason": "sin biller local: no aplica (spec §19.1(8))"
+    },
+    "D14-2": {
+      "met": true,
+      "reason": "appActive=false retira lo comercial, no la operación",
+      "evidence": [
+        {
+          "ref": "ewm:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:34Z",
+          "endedAt": "2026-09-29T17:02:39Z",
+          "log": "logs/ewm-x07.txt"
+        }
+      ]
+    }
+  },
+  "gaps": [],
+  "synchronized": true,
+  "blockers": []
+}

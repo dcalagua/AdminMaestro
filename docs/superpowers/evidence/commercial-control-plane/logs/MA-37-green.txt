@@ -1,0 +1,10 @@
+
+ RUN  v3.2.7 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1
+
+ ✓ supabase/functions/entitlement-sync/core.test.ts (20 tests) 5ms
+
+ Test Files  1 passed (1)
+      Tests  20 passed (20)
+   Start at  00:27:15
+   Duration  792ms (transform 37ms, setup 54ms, collect 24ms, tests 5ms, environment 332ms, prepare 58ms)
+

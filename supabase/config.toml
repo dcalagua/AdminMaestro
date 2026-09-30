@@ -453,3 +453,19 @@ verify_jwt = true
 #
 # El canal servidor-a-servidor usa la cabecera `x-provisioning-secret`.
 verify_jwt = true
+
+[functions.entitlement-sync]
+# Jobs push / verify / registry-verify de entitlements (fase 08). SOLO canal
+# servidor: además del JWT exige la clave de servicio en `x-provisioning-secret`
+# (comparación en tiempo constante). No tiene canal humano: la consola usa la
+# acción SYNC_ENTITLEMENTS del orquestador. Runbook: docs/runbooks/entitlement-sync.md.
+verify_jwt = true
+
+[functions.usage-ingest]
+# Ingest de uso firmado por cada SaaS (fase 17, spec §11.3). PÚBLICO a nivel de
+# gateway porque el SaaS NO tiene un JWT de Supabase: presenta SU JWT ES256
+# (aud=masteradmin.ebim, scope usage:ingest, TTL ≤ 300 s, jti de un solo uso),
+# que la función verifica con la clave pública registrada por referencia en
+# platform.usage_ingest_credentials ANTES de usar service_role. Apagado por
+# defecto: USAGE_INGEST_ENABLED != 'true' → 503 (D-12) + kill-switch por producto.
+verify_jwt = false

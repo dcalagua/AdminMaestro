@@ -8,14 +8,19 @@ o tenant es rentable?*
 ### MRR (`v_subscription_mrr`)
 
 ```
-MRR = Σ  subscription_items.amount × factor(billing_interval)
+MRR = Σ  signed_line_amount(charge_kind, subscription_items.amount) × factor(billing_interval)
 
 factor:  MONTHLY = 1 · QUARTERLY = 1/3 · YEARLY = 1/12 · ONE_TIME = 0
 ```
 
+**DISCOUNT resta de MRR y de la factura una sola vez** (CCP P-01, migración
+`20260928000100_ccp_discount_sign`). El ítem guarda la magnitud positiva; el
+signo lo pone `platform.signed_line_amount` (`DISCOUNT` → `−|importe|`), así que
+una línea de factura correctiva negativa tampoco resta dos veces. Un DISCOUNT no
+es reembolso ni nota de crédito y no es base de comisión.
+
 Excluye:
 - ítems `ONE_TIME` (un implementation fee cobrado **no** aumenta el recurrente);
-- `charge_kind = DISCOUNT`;
 - suscripciones que no estén `ACTIVE`;
 - ítems fuera de vigencia;
 - **tenants DEMO** (regla §2.2).
@@ -31,7 +36,7 @@ Es una **proyección**, no un cobro. Se etiqueta como "estimado" en la UI.
 ### Ingreso cobrado (`v_collected_revenue`)
 
 ```
-cobrado(línea) = línea.amount × (pago.amount / factura.total)
+cobrado(línea) = signed_line_amount(línea) × (pago.amount / factura.total)
 ```
 
 Sólo con `payments.status = CONFIRMED` y facturas en `ISSUED`,

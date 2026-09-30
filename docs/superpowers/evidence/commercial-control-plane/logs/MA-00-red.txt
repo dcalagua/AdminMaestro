@@ -1,0 +1,164 @@
+✖ acepta el stack local por 127.0.0.1 y localhost (13.457083ms)
+✖ aborta con exit 2 si no hay destino declarado (7.934708ms)
+✖ aborta con exit 2 ante una URL remota de Supabase (7.210709ms)
+✖ aborta con exit 2 ante el ref remoto conocido jivgwrczgdpsuvqcwqku (7.17575ms)
+✖ aborta con exit 2 ante el ref remoto conocido uvjmdphlnpyhtohobvzx (7.430875ms)
+✖ aborta con exit 2 ante el ref remoto conocido xikbhkfeaosasdltartg (7.142583ms)
+✖ aborta si el ref aparece aunque el host sea local (p. ej. en la ruta) (6.755917ms)
+✔ no imprime el valor completo de las variables (7.494542ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 1
+ℹ fail 7
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 113.140708
+
+✖ failing tests:
+
+test at scripts/ccp/guard-env.test.mjs:19:1
+✖ acepta el stack local por 127.0.0.1 y localhost (13.457083ms)
+  AssertionError [ERR_ASSERTION]: bash: /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/scripts/ccp/guard-env.sh: No such file or directory
+  
+  
+  127 !== 0
+  
+      at TestContext.<anonymous> (file:///Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/scripts/ccp/guard-env.test.mjs:24:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.start (node:internal/test_runner/test:1257:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 127,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at scripts/ccp/guard-env.test.mjs:27:1
+✖ aborta con exit 2 si no hay destino declarado (7.934708ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  127 !== 2
+  
+      at TestContext.<anonymous> (file:///Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/scripts/ccp/guard-env.test.mjs:28:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 127,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at scripts/ccp/guard-env.test.mjs:31:1
+✖ aborta con exit 2 ante una URL remota de Supabase (7.210709ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  127 !== 2
+  
+      at TestContext.<anonymous> (file:///Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/scripts/ccp/guard-env.test.mjs:33:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 127,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at scripts/ccp/guard-env.test.mjs:37:3
+✖ aborta con exit 2 ante el ref remoto conocido jivgwrczgdpsuvqcwqku (7.17575ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  127 !== 2
+  
+      at TestContext.<anonymous> (file:///Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/scripts/ccp/guard-env.test.mjs:42:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 127,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at scripts/ccp/guard-env.test.mjs:37:3
+✖ aborta con exit 2 ante el ref remoto conocido uvjmdphlnpyhtohobvzx (7.430875ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  127 !== 2
+  
+      at TestContext.<anonymous> (file:///Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/scripts/ccp/guard-env.test.mjs:42:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 127,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at scripts/ccp/guard-env.test.mjs:37:3
+✖ aborta con exit 2 ante el ref remoto conocido xikbhkfeaosasdltartg (7.142583ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  127 !== 2
+  
+      at TestContext.<anonymous> (file:///Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/scripts/ccp/guard-env.test.mjs:42:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 127,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at scripts/ccp/guard-env.test.mjs:47:1
+✖ aborta si el ref aparece aunque el host sea local (p. ej. en la ruta) (6.755917ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  127 !== 2
+  
+      at TestContext.<anonymous> (file:///Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/scripts/ccp/guard-env.test.mjs:49:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 127,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

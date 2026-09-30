@@ -1,0 +1,438 @@
+{
+  "format": "gmao-hub-commercial-export.v1",
+  "source": "GMAO_HUB",
+  "environment": "LOCAL",
+  "generatedAt": "2026-09-28T12:00:00Z",
+  "apps": [
+    {
+      "code": "echange",
+      "name": "eChange",
+      "available": true
+    },
+    {
+      "code": "ecommerce",
+      "name": "eCommerce",
+      "available": true
+    },
+    {
+      "code": "esupplier",
+      "name": "eSupplier",
+      "available": true
+    }
+  ],
+  "catalogItems": [
+    {
+      "appCode": "echange",
+      "code": "echange_voice",
+      "name": "Voz",
+      "kind": "addon",
+      "available": false
+    },
+    {
+      "appCode": "ecommerce",
+      "code": "ecommerce.ai.assist",
+      "name": "Asistencia con IA",
+      "kind": "ai",
+      "available": false
+    },
+    {
+      "appCode": "ecommerce",
+      "code": "ecommerce.ai.catalog.copy",
+      "name": "Redacción de fichas con IA",
+      "kind": "ai",
+      "available": false
+    },
+    {
+      "appCode": "ecommerce",
+      "code": "ecommerce.ai.insights",
+      "name": "Análisis y alertas con IA",
+      "kind": "ai",
+      "available": false
+    },
+    {
+      "appCode": "ecommerce",
+      "code": "ecommerce.analytics.advanced",
+      "name": "Analítica avanzada",
+      "kind": "addon",
+      "available": false
+    },
+    {
+      "appCode": "ecommerce",
+      "code": "ecommerce.catalog.advanced",
+      "name": "Catálogo avanzado",
+      "kind": "module",
+      "available": false
+    },
+    {
+      "appCode": "ecommerce",
+      "code": "ecommerce.content.cms",
+      "name": "Gestor de contenido",
+      "kind": "addon",
+      "available": false
+    },
+    {
+      "appCode": "ecommerce",
+      "code": "ecommerce.content.white_label",
+      "name": "Marca blanca",
+      "kind": "addon",
+      "available": false
+    },
+    {
+      "appCode": "ecommerce",
+      "code": "ecommerce.credit.management",
+      "name": "Gestión de crédito",
+      "kind": "module",
+      "available": false
+    },
+    {
+      "appCode": "ecommerce",
+      "code": "ecommerce.customers.b2b",
+      "name": "Cuentas de empresa",
+      "kind": "module",
+      "available": false
+    },
+    {
+      "appCode": "ecommerce",
+      "code": "ecommerce.fulfillment",
+      "name": "Entregas y devoluciones",
+      "kind": "module",
+      "available": false
+    },
+    {
+      "appCode": "ecommerce",
+      "code": "ecommerce.fulfillment.routing",
+      "name": "Enrutado de entregas",
+      "kind": "addon",
+      "available": false
+    },
+    {
+      "appCode": "ecommerce",
+      "code": "ecommerce.integrations.enterprise",
+      "name": "Integraciones corporativas",
+      "kind": "connector",
+      "available": false
+    },
+    {
+      "appCode": "ecommerce",
+      "code": "ecommerce.inventory.multiwarehouse",
+      "name": "Inventario multialmacén",
+      "kind": "module",
+      "available": false
+    },
+    {
+      "appCode": "ecommerce",
+      "code": "ecommerce.invoicing",
+      "name": "Facturación",
+      "kind": "module",
+      "available": false
+    },
+    {
+      "appCode": "ecommerce",
+      "code": "ecommerce.orders.advanced",
+      "name": "Pedidos avanzados",
+      "kind": "addon",
+      "available": false
+    },
+    {
+      "appCode": "ecommerce",
+      "code": "ecommerce.payments",
+      "name": "Cobros en línea",
+      "kind": "module",
+      "available": false
+    },
+    {
+      "appCode": "ecommerce",
+      "code": "ecommerce.planning.demand",
+      "name": "Planificación de demanda",
+      "kind": "addon",
+      "available": false
+    },
+    {
+      "appCode": "ecommerce",
+      "code": "ecommerce.pricing.lists",
+      "name": "Listas de precios",
+      "kind": "module",
+      "available": false
+    },
+    {
+      "appCode": "ecommerce",
+      "code": "ecommerce.promotions",
+      "name": "Promociones",
+      "kind": "addon",
+      "available": false
+    },
+    {
+      "appCode": "ecommerce",
+      "code": "ecommerce.sales.force",
+      "name": "Fuerza de ventas",
+      "kind": "module",
+      "available": false
+    },
+    {
+      "appCode": "ecommerce",
+      "code": "ecommerce.sales.performance",
+      "name": "Desempeño comercial",
+      "kind": "addon",
+      "available": false
+    },
+    {
+      "appCode": "ecommerce",
+      "code": "ecommerce.sales.territory",
+      "name": "Territorios de venta",
+      "kind": "addon",
+      "available": false
+    },
+    {
+      "appCode": "ecommerce",
+      "code": "ecommerce.trade.assortments",
+      "name": "Surtidos por cliente",
+      "kind": "addon",
+      "available": false
+    },
+    {
+      "appCode": "ecommerce",
+      "code": "ecommerce.trade.quotes",
+      "name": "Cotizaciones",
+      "kind": "addon",
+      "available": false
+    },
+    {
+      "appCode": "esupplier",
+      "code": "esupplier_dorothy_copilot",
+      "name": "Dorothy Copilot",
+      "kind": "ai",
+      "available": true
+    },
+    {
+      "appCode": "esupplier",
+      "code": "esupplier_extra_company",
+      "name": "Empresa adicional",
+      "kind": "addon",
+      "available": true
+    },
+    {
+      "appCode": "esupplier",
+      "code": "esupplier_legacy_portal",
+      "name": "Portal legado",
+      "kind": "addon",
+      "available": true
+    },
+    {
+      "appCode": "esupplier",
+      "code": "esupplier_sourcing_events",
+      "name": "Eventos de abastecimiento",
+      "kind": "addon",
+      "available": true
+    }
+  ],
+  "workspaceApps": [
+    {
+      "organizationId": "d0000000-0000-4000-8000-000000000001",
+      "appCode": "ecommerce",
+      "status": "active"
+    },
+    {
+      "organizationId": "e0000000-0000-4000-8000-000000000001",
+      "appCode": "esupplier",
+      "status": "active"
+    },
+    {
+      "organizationId": "e0000000-0000-4000-8000-000000000002",
+      "appCode": "esupplier",
+      "status": "requested"
+    }
+  ],
+  "companyAddons": [
+    {
+      "organizationId": "d0000000-0000-4000-8000-000000000001",
+      "companyId": "d0000000-0000-4000-8000-0000000000c1",
+      "addonCode": "ecommerce.ai.assist",
+      "active": true
+    },
+    {
+      "organizationId": "d0000000-0000-4000-8000-000000000001",
+      "companyId": "d0000000-0000-4000-8000-0000000000c1",
+      "addonCode": "ecommerce.ai.catalog.copy",
+      "active": false
+    },
+    {
+      "organizationId": "d0000000-0000-4000-8000-000000000001",
+      "companyId": "d0000000-0000-4000-8000-0000000000c1",
+      "addonCode": "ecommerce.analytics.advanced",
+      "active": true
+    },
+    {
+      "organizationId": "d0000000-0000-4000-8000-000000000001",
+      "companyId": "d0000000-0000-4000-8000-0000000000c1",
+      "addonCode": "ecommerce.catalog.advanced",
+      "active": true
+    },
+    {
+      "organizationId": "d0000000-0000-4000-8000-000000000001",
+      "companyId": "d0000000-0000-4000-8000-0000000000c1",
+      "addonCode": "ecommerce.content.cms",
+      "active": true
+    },
+    {
+      "organizationId": "d0000000-0000-4000-8000-000000000001",
+      "companyId": "d0000000-0000-4000-8000-0000000000c1",
+      "addonCode": "ecommerce.content.white_label",
+      "active": true
+    },
+    {
+      "organizationId": "d0000000-0000-4000-8000-000000000001",
+      "companyId": "d0000000-0000-4000-8000-0000000000c1",
+      "addonCode": "ecommerce.credit.management",
+      "active": true
+    },
+    {
+      "organizationId": "d0000000-0000-4000-8000-000000000001",
+      "companyId": "d0000000-0000-4000-8000-0000000000c1",
+      "addonCode": "ecommerce.customers.b2b",
+      "active": true
+    },
+    {
+      "organizationId": "d0000000-0000-4000-8000-000000000001",
+      "companyId": "d0000000-0000-4000-8000-0000000000c1",
+      "addonCode": "ecommerce.fulfillment",
+      "active": true
+    },
+    {
+      "organizationId": "d0000000-0000-4000-8000-000000000001",
+      "companyId": "d0000000-0000-4000-8000-0000000000c1",
+      "addonCode": "ecommerce.fulfillment.routing",
+      "active": true
+    },
+    {
+      "organizationId": "d0000000-0000-4000-8000-000000000001",
+      "companyId": "d0000000-0000-4000-8000-0000000000c1",
+      "addonCode": "ecommerce.integrations.enterprise",
+      "active": true
+    },
+    {
+      "organizationId": "d0000000-0000-4000-8000-000000000001",
+      "companyId": "d0000000-0000-4000-8000-0000000000c1",
+      "addonCode": "ecommerce.inventory.multiwarehouse",
+      "active": true
+    },
+    {
+      "organizationId": "d0000000-0000-4000-8000-000000000001",
+      "companyId": "d0000000-0000-4000-8000-0000000000c1",
+      "addonCode": "ecommerce.invoicing",
+      "active": true
+    },
+    {
+      "organizationId": "d0000000-0000-4000-8000-000000000001",
+      "companyId": "d0000000-0000-4000-8000-0000000000c1",
+      "addonCode": "ecommerce.orders.advanced",
+      "active": true
+    },
+    {
+      "organizationId": "d0000000-0000-4000-8000-000000000001",
+      "companyId": "d0000000-0000-4000-8000-0000000000c1",
+      "addonCode": "ecommerce.payments",
+      "active": true
+    },
+    {
+      "organizationId": "d0000000-0000-4000-8000-000000000001",
+      "companyId": "d0000000-0000-4000-8000-0000000000c1",
+      "addonCode": "ecommerce.planning.demand",
+      "active": true
+    },
+    {
+      "organizationId": "d0000000-0000-4000-8000-000000000001",
+      "companyId": "d0000000-0000-4000-8000-0000000000c1",
+      "addonCode": "ecommerce.pricing.lists",
+      "active": true
+    },
+    {
+      "organizationId": "d0000000-0000-4000-8000-000000000001",
+      "companyId": "d0000000-0000-4000-8000-0000000000c1",
+      "addonCode": "ecommerce.promotions",
+      "active": true
+    },
+    {
+      "organizationId": "d0000000-0000-4000-8000-000000000001",
+      "companyId": "d0000000-0000-4000-8000-0000000000c1",
+      "addonCode": "ecommerce.sales.force",
+      "active": true
+    },
+    {
+      "organizationId": "d0000000-0000-4000-8000-000000000001",
+      "companyId": "d0000000-0000-4000-8000-0000000000c1",
+      "addonCode": "ecommerce.sales.performance",
+      "active": true
+    },
+    {
+      "organizationId": "d0000000-0000-4000-8000-000000000001",
+      "companyId": "d0000000-0000-4000-8000-0000000000c1",
+      "addonCode": "ecommerce.sales.territory",
+      "active": true
+    },
+    {
+      "organizationId": "d0000000-0000-4000-8000-000000000001",
+      "companyId": "d0000000-0000-4000-8000-0000000000c1",
+      "addonCode": "ecommerce.trade.assortments",
+      "active": true
+    },
+    {
+      "organizationId": "d0000000-0000-4000-8000-000000000001",
+      "companyId": "d0000000-0000-4000-8000-0000000000c1",
+      "addonCode": "ecommerce.trade.quotes",
+      "active": true
+    },
+    {
+      "organizationId": "e0000000-0000-4000-8000-000000000001",
+      "companyId": "e0000000-0000-4000-8000-0000000000c1",
+      "addonCode": "esupplier_dorothy_copilot",
+      "active": true
+    },
+    {
+      "organizationId": "e0000000-0000-4000-8000-000000000001",
+      "companyId": "e0000000-0000-4000-8000-0000000000c1",
+      "addonCode": "esupplier_legacy_portal",
+      "active": true
+    },
+    {
+      "organizationId": "e0000000-0000-4000-8000-000000000001",
+      "companyId": "e0000000-0000-4000-8000-0000000000c1",
+      "addonCode": "esupplier_sourcing_events",
+      "active": true
+    },
+    {
+      "organizationId": "e0000000-0000-4000-8000-000000000001",
+      "companyId": "e0000000-0000-4000-8000-0000000000c2",
+      "addonCode": "esupplier_dorothy_copilot",
+      "active": true
+    },
+    {
+      "organizationId": "e0000000-0000-4000-8000-000000000001",
+      "companyId": "e0000000-0000-4000-8000-0000000000c2",
+      "addonCode": "esupplier_sourcing_events",
+      "active": false
+    },
+    {
+      "organizationId": "e0000000-0000-4000-8000-000000000002",
+      "companyId": "e0000000-0000-4000-8000-0000000000d1",
+      "addonCode": "esupplier_dorothy_copilot",
+      "active": true
+    }
+  ],
+  "subscriptions": [
+    {
+      "organizationId": "d0000000-0000-4000-8000-000000000001",
+      "itemCode": "ecommerce",
+      "status": "active",
+      "activatedAt": "2026-09-15T12:00:00Z",
+      "canceledAt": null
+    },
+    {
+      "organizationId": "e0000000-0000-4000-8000-000000000001",
+      "itemCode": "esupplier_extra_company",
+      "status": "active",
+      "activatedAt": "2026-08-01T00:00:00Z",
+      "canceledAt": null
+    }
+  ],
+  "checksum": "sha256:91c4573d04c681ef8c1fecdb4cd5b250f5166d6fb15ea1d34ab29628e6ca2862"
+}

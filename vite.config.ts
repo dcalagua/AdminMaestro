@@ -31,6 +31,8 @@ export default defineConfig({
     include: [
       'src/**/*.{test,spec}.{ts,tsx}',
       'supabase/functions/**/*.{test,spec}.ts',
+      // Contratos publicados (FIX-ENT-v1): receptor de referencia y pin.
+      'contracts/**/*.test.ts',
     ],
     coverage: { provider: 'v8', reporter: ['text', 'json-summary'] },
   },

@@ -1,0 +1,45 @@
+(node:57473) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS · 0. alta real de eExpense (CREATED); en SHADOW decide legacy (fraude sí; IA sin puerta previa sí; marca blanca no) · CREATED
+PASS · 1. receptor eExpense configurado (fail-closed si faltara algo; sujeto M2M exacto)
+PASS · 2. MasterAdmin lee el manifiesto (8 vendibles + 3 incluidos ACTIVE; módulos solo-UI, límite y créditos DRAFT) · 2026-10-08.1 · 11 ACTIVE
+PASS · 3. el snapshot lista las 8 vendibles ACTIVE con enabled explícito, sin DRAFT ni baseline, sin precios
+PASS · 4. emisor real → PUT M2M real → APPLIED (en SHADOW: guarda y compara) · APPLIED 200
+PASS · 5. SHADOW no cambia la decisión: fraude sigue permitido por legacy
+PASS · 6. SHADOW registra la diferencia legacy vs snapshot (fraude) · eexpense.fraud_vision
+PASS · 7. paridad local vs MasterAdmin: ADDON_ONLY_LOCAL fraud_vision → sin paridad; reporte sin precios
+PASS · 8. billing SHADOW: calcula y guarda la corrida, sin factura ni pasarela · {"period":"2026-10","generated":0,"charged":0,"failed":0,"skipped":0,"demo":0,"tenants":1,"shadow":1,"shadowFailed":0,"external":0}
+PASS · 9. paridad en rojo: MASTERADMIN_AUTHORITY bloqueado por la base
+PASS · 10. GET: misma versión y checksum, PRIMARY · 1 PRIMARY
+PASS · 11. PRIMARY: decide el snapshot — fraude negado aunque tenant_addons lo tenga; conciliación e incluidos sí
+PASS · 12. función IA con capacidad negada → 403 y el proveedor NO se invoca; nada se mide · 403
+PASS · 13. v2 concede conciliación + fraude → APPLIED; la puerta lo ve · APPLIED
+PASS · 14. función IA permitida → proveedor invocado una vez y UN evento en el outbox (tokens reales, no facturable, sin contenido) · 9f150000-0000-4000-8000-000000000001|eexpense.ai.calls|false|PENDING|321|false
+PASS · 15. replay idempotente → REPLAYED · REPLAYED
+PASS · 16. v1 tras v2 → STALE (409) · STALE STALE_SNAPSHOT
+PASS · 17. misma versión, otro contenido → CONFLICT (409) · CONFLICT VERSION_CONFLICT
+PASS · 18. credencial con scope de provisioning → 403 REJECTED · 403 INSUFFICIENT_SCOPE
+PASS · 19. PRIMARY: una escritura legacy de add-ons queda bloqueada en servidor
+PASS · 20. modelo local = MasterAdmin (paridad) y la corrida SHADOW nueva cuadra ítem por ítem · []
+PASS · 21. D-14: con la paridad local verde, MASTERADMIN_AUTHORITY sigue bloqueado sin la comparación calculada por MasterAdmin
+PASS · 22. rollback del eje de facturación a LEGACY_AUTHORITY (un paso)
+PASS · 23. SaaS no disponible → RETRYABLE, nada aplicado · RETRYABLE 503
+PASS · 24. reconciliación: el GET delata deriva (aplicado v2 ≠ deseado v3)
+PASS · 25. offline: sin MasterAdmin ni receptor HTTP, la puerta sigue con el last-good v2
+PASS · 26. v3 appActive=false (D-14 regla 2): conciliación y fraude retirados; el baseline (ai_capture) y el núcleo siguen
+PASS · 27. rollback PRIMARY → DUAL_READ → SHADOW: legacy intacto (fraude sí por tenant_addons)
+PASS · D14.1 dataset sintético en la base desechable (plan de certificación) + v4 (plan de certificación, sin vendibles) → paridad verde · []
+PASS · D14.2 PRODUCT y tenant → PRIMARY (un paso por vez); los tenants sin alta siguen LEGACY con la misma decisión · PRODUCT:SHADOW->DUAL_READ,PRODUCT:DUAL_READ->PRIMARY,tenant:SHADOW->DUAL_READ,tenant:DUAL_READ->PRIMARY · sin alta: demo
+PASS · D14.3 PRIMARY: la escritura legacy de add-ons (tenant_addons) queda bloqueada en servidor
+PASS · D14.4 BILLING SHADOW: el biller local calcula el período sintético (paridad de ítems) sin factura ni pasarela · {"period":"2026-10","generated":0,"charged":0,"failed":0,"skipped":0,"demo":0,"tenants":1,"shadow":1,"shadowFailed":0,"external":0}
+PASS · D14.5 MasterAdmin LOCAL: tenant SANDBOX + plan + suscripción ACTIVE sintéticos; eje de facturación en BILLING_SHADOW · BILLING_LEGACY->BILLING_SHADOW
+PASS · D14.6 negativo: +0.01 en la línea del plan → MasterAdmin cuenta la diferencia y eExpense NO habilita MASTERADMIN_AUTHORITY · 1 · [{"type":"AMOUNT_MISMATCH","local":{"amount":123.46,"quantity":1},"itemCode":"plan:eexpense-cert-d14","masteradmin":{"amount":123.45,"quantity":1}}]
+PASS · D14.7 MasterAdmin calcula la comparación del dataset: diff material 0 (al centavo) y eExpense la guarda con su id y checksum · mismatches=0 sha256:9f67da55182534fa1453807697a3170574b26a3f3d5517824a21eab59aba5276 MA=123.45 local=123.45
+PASS · D14.9 D-14 regla 5: facturación final SHADOW; 0 facturas locales del período, 0 llamadas a pasarela y 0 facturas de MasterAdmin
+PASS · D14.10 appActive=false: conciliación (vendible) negada; baseline ai_capture y núcleo cfo_insights siguen; tenant activo; paridad solo WARNING por eso · [{"code":null,"tipo":"APP_INACTIVE_LOCAL_ACTIVE","local":"active","severidad":"WARNING","masteradmin":false}]
+PASS · D14.11 GET final: PRIMARY con la versión y el checksum del último deseado (v7, appActive=true) · PRIMARY v7
+PASS · D14.12 estado final sin rollback: PRODUCT y cohorte en PRIMARY, paridad sin BLOCKING, facturación SHADOW, el tenant se conserva · cohorte 1/1
+evidencia D14: /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/docs/superpowers/evidence/commercial-control-plane/certification/20260929-d14-final3/d14/d14-eexpense.json
+D14 eExpense · comparación MasterAdmin: mismatches=0 sha256:9f67da55182534fa1453807697a3170574b26a3f3d5517824a21eab59aba5276 · negativo=1 sha256:0a3156d5d2373a02bf5f0f698446db74ec3b559604b24cd0f208d5e36a79e6d9
+
+39/39 PASS

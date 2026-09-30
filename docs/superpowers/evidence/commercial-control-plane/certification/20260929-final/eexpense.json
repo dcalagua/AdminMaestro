@@ -1,0 +1,419 @@
+{
+  "product": "eexpense",
+  "legacyAuthority": "entitlements SHADOW; eje de facturación private.billing_authority en LEGACY_AUTHORITY para todo tenant (biller local billing-run activo)",
+  "checks": {
+    "1": {
+      "label": "canonical MasterAdmin mapping",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:01:59Z",
+          "endedAt": "2026-09-29T08:02:03Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "eexpense:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:04:24Z",
+          "endedAt": "2026-09-29T08:04:27Z",
+          "log": "logs/eexpense-x07.txt"
+        }
+      ]
+    },
+    "2": {
+      "label": "desired entitlement generated",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:01:59Z",
+          "endedAt": "2026-09-29T08:02:03Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:05Z",
+          "endedAt": "2026-09-29T08:02:06Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "eexpense:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:04:24Z",
+          "endedAt": "2026-09-29T08:04:27Z",
+          "log": "logs/eexpense-x07.txt"
+        }
+      ]
+    },
+    "3": {
+      "label": "SaaS applied same version/checksum",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "eexpense:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:04:24Z",
+          "endedAt": "2026-09-29T08:04:27Z",
+          "log": "logs/eexpense-x07.txt"
+        }
+      ]
+    },
+    "4": {
+      "label": "GET same applied state",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:05Z",
+          "endedAt": "2026-09-29T08:02:06Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "eexpense:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:04:24Z",
+          "endedAt": "2026-09-29T08:04:27Z",
+          "log": "logs/eexpense-x07.txt"
+        }
+      ]
+    },
+    "5": {
+      "label": "tenant self-grant denied",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:01:59Z",
+          "endedAt": "2026-09-29T08:02:03Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "eexpense:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:04:19Z",
+          "endedAt": "2026-09-29T08:04:20Z",
+          "log": "logs/eexpense-pgtap.txt"
+        },
+        {
+          "ref": "eexpense:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:04:24Z",
+          "endedAt": "2026-09-29T08:04:27Z",
+          "log": "logs/eexpense-x07.txt"
+        }
+      ]
+    },
+    "6": {
+      "label": "add/remove/downgrade version transition",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "eexpense:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:04:24Z",
+          "endedAt": "2026-09-29T08:04:27Z",
+          "log": "logs/eexpense-x07.txt"
+        }
+      ]
+    },
+    "7": {
+      "label": "offline last-good",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "eexpense:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:04:24Z",
+          "endedAt": "2026-09-29T08:04:27Z",
+          "log": "logs/eexpense-x07.txt"
+        }
+      ]
+    },
+    "8": {
+      "label": "drift reconciled",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:05Z",
+          "endedAt": "2026-09-29T08:02:06Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "eexpense:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:04:24Z",
+          "endedAt": "2026-09-29T08:04:27Z",
+          "log": "logs/eexpense-x07.txt"
+        }
+      ]
+    },
+    "9": {
+      "label": "usage event accepted once",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:usage-x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:06Z",
+          "endedAt": "2026-09-29T08:02:10Z",
+          "log": "logs/masteradmin-usage-x07.txt"
+        },
+        {
+          "ref": "eexpense:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:04:24Z",
+          "endedAt": "2026-09-29T08:04:27Z",
+          "log": "logs/eexpense-x07.txt"
+        }
+      ]
+    },
+    "10": {
+      "label": "duplicate deduped",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:usage-x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:06Z",
+          "endedAt": "2026-09-29T08:02:10Z",
+          "log": "logs/masteradmin-usage-x07.txt"
+        },
+        {
+          "ref": "eexpense:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:04:19Z",
+          "endedAt": "2026-09-29T08:04:20Z",
+          "log": "logs/eexpense-pgtap.txt"
+        }
+      ]
+    },
+    "11": {
+      "label": "allowance/credit arithmetic",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:01:59Z",
+          "endedAt": "2026-09-29T08:02:03Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "eexpense:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:04:19Z",
+          "endedAt": "2026-09-29T08:04:20Z",
+          "log": "logs/eexpense-pgtap.txt"
+        }
+      ]
+    },
+    "12": {
+      "label": "no duplicate billing",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:01:59Z",
+          "endedAt": "2026-09-29T08:02:03Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "eexpense:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:04:24Z",
+          "endedAt": "2026-09-29T08:04:27Z",
+          "log": "logs/eexpense-x07.txt"
+        },
+        {
+          "ref": "eexpense:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:04:19Z",
+          "endedAt": "2026-09-29T08:04:20Z",
+          "log": "logs/eexpense-pgtap.txt"
+        }
+      ],
+      "note": "X-07 21: en MASTERADMIN_AUTHORITY el biller local no factura ni cobra (nunca dos cobradores)"
+    },
+    "13": {
+      "label": "local price/billing authority stage explicit",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "eexpense:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:04:19Z",
+          "endedAt": "2026-09-29T08:04:20Z",
+          "log": "logs/eexpense-pgtap.txt"
+        },
+        {
+          "ref": "eexpense:golden",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:04:20Z",
+          "endedAt": "2026-09-29T08:04:24Z",
+          "log": "logs/eexpense-golden.txt"
+        }
+      ],
+      "note": "entitlements SHADOW; eje de facturación private.billing_authority en LEGACY_AUTHORITY para todo tenant (biller local billing-run activo)"
+    },
+    "14": {
+      "label": "technical configuration still works",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "eexpense:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:04:19Z",
+          "endedAt": "2026-09-29T08:04:20Z",
+          "log": "logs/eexpense-pgtap.txt"
+        },
+        {
+          "ref": "eexpense:golden",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:04:20Z",
+          "endedAt": "2026-09-29T08:04:24Z",
+          "log": "logs/eexpense-golden.txt"
+        }
+      ]
+    },
+    "15": {
+      "label": "CREATE/REPLAY/GET provisioning regression green",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:provisioning-golden",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:03Z",
+          "endedAt": "2026-09-29T08:02:05Z",
+          "log": "logs/masteradmin-provisioning-golden.txt"
+        },
+        {
+          "ref": "eexpense:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:04:19Z",
+          "endedAt": "2026-09-29T08:04:20Z",
+          "log": "logs/eexpense-pgtap.txt"
+        },
+        {
+          "ref": "eexpense:golden",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:04:20Z",
+          "endedAt": "2026-09-29T08:04:24Z",
+          "log": "logs/eexpense-golden.txt"
+        }
+      ]
+    }
+  },
+  "criteria": {
+    "1": {
+      "met": true,
+      "reason": "P0 del §1.4 cerrados en fases 03–06 con test"
+    },
+    "2": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "eexpense:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:04:24Z",
+          "endedAt": "2026-09-29T08:04:27Z",
+          "log": "logs/eexpense-x07.txt"
+        }
+      ]
+    },
+    "3": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:01:59Z",
+          "endedAt": "2026-09-29T08:02:03Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "eexpense:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:04:24Z",
+          "endedAt": "2026-09-29T08:04:27Z",
+          "log": "logs/eexpense-x07.txt"
+        }
+      ]
+    },
+    "4": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:05Z",
+          "endedAt": "2026-09-29T08:02:06Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "eexpense:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:04:24Z",
+          "endedAt": "2026-09-29T08:04:27Z",
+          "log": "logs/eexpense-x07.txt"
+        }
+      ]
+    },
+    "5": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "eexpense:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:04:24Z",
+          "endedAt": "2026-09-29T08:04:27Z",
+          "log": "logs/eexpense-x07.txt"
+        }
+      ]
+    },
+    "6": {
+      "met": false,
+      "reason": "entitlements sembrado en SHADOW, no MASTERADMIN_PRIMARY; avanzar requiere D-14 (ventanas de observación) y además: adoptar tenants pre-MasterAdmin; P-05: sin QAS separado de producción"
+    },
+    "7": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:usage-x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:06Z",
+          "endedAt": "2026-09-29T08:02:10Z",
+          "log": "logs/masteradmin-usage-x07.txt"
+        }
+      ]
+    },
+    "8": {
+      "met": false,
+      "reason": "biller local en LEGACY_AUTHORITY; BILLING_SHADOW con diff 0 solo se demuestra dentro del X-07 (D-14)"
+    }
+  },
+  "gaps": [
+    {
+      "class": "PRE_EXISTING",
+      "text": "npm run lint falla: eslint no instalado (también en la base f282dc4)"
+    }
+  ],
+  "synchronized": false,
+  "blockers": [
+    "§19.1(6) entitlements sembrado en SHADOW, no MASTERADMIN_PRIMARY; avanzar requiere D-14 (ventanas de observación) y además: adoptar tenants pre-MasterAdmin; P-05: sin QAS separado de producción",
+    "§19.1(8) biller local en LEGACY_AUTHORITY; BILLING_SHADOW con diff 0 solo se demuestra dentro del X-07 (D-14)"
+  ]
+}

@@ -1,0 +1,11 @@
+ccp_addon_requests_test plan=1..16 ok=16 not_ok=0 rc=0
+ccp_billing_authority_test plan=1..28 ok=28 not_ok=0 rc=0
+ccp_commercial_columns_test plan=1..41 ok=41 not_ok=0 rc=0
+ccp_commercial_gate_test plan=1..36 ok=36 not_ok=0 rc=0
+ccp_commercial_parity_test plan=1..15 ok=15 not_ok=0 rc=0
+ccp_d14_masteradmin_billing_test plan=1..27 ok=27 not_ok=0 rc=0
+ccp_usage_outbox_delivery_test plan=1..51 ok=51 not_ok=0 rc=0
+ccp_usage_outbox_test plan=1..17 ok=17 not_ok=0 rc=0
+platform_entitlements_test plan=1..47 ok=47 not_ok=0 rc=0
+platform_provisioning_test plan=1..44 ok=44 not_ok=0 rc=0
+TOTAL ok=322 not_ok=0

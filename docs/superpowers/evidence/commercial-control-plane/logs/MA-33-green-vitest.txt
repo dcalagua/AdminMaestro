@@ -1,0 +1,10 @@
+
+ RUN  v3.2.7 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1
+
+ ✓ supabase/functions/_shared/entitlements/states.test.ts (40 tests) 3ms
+
+ Test Files  1 passed (1)
+      Tests  40 passed (40)
+   Start at  23:57:21
+   Duration  821ms (transform 35ms, setup 56ms, collect 16ms, tests 3ms, environment 340ms, prepare 59ms)
+

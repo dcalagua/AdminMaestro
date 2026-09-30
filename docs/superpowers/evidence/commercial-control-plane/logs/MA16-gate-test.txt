@@ -1,0 +1,109 @@
+
+> ebim-control-plane@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.claude/worktrees/agent-aa00cf8474767114e
+
+ ✓ src/features/commercial/capabilities/CapabilitiesPage.test.tsx (5 tests) 292ms
+ ✓ src/features/deployments/ProductConfigurationForm.test.tsx (7 tests) 268ms
+ ✓ src/features/organizations/OrganizationsPage.test.tsx (4 tests) 301ms
+ ✓ src/features/catalog/PlansPage.test.tsx (4 tests) 299ms
+ ✓ src/features/catalog/AddonsPage.test.tsx (8 tests) 305ms
+ ✓ src/features/deployments/SaasProvisioningPage.test.tsx (2 tests) 245ms
+ ✓ src/features/catalog/ProductsPage.test.tsx (4 tests) 352ms
+ ✓ src/features/billing/PeriodInvoiceAction.test.tsx (13 tests) 449ms
+ ✓ src/features/commercial/capabilities/ImportManifestDialog.test.tsx (2 tests) 334ms
+ ✓ src/features/commercial/sync/EntitlementSyncPage.test.tsx (7 tests) 554ms
+ ✓ src/components/ui/dialogs-tabs.test.tsx (12 tests) 583ms
+   ✓ ConfirmDialog > Tab y Shift+Tab no salen del modal  304ms
+ ✓ src/features/tenants/TenantAddonsPanel.test.tsx (8 tests) 850ms
+   ✓ TenantAddonsPanel > «Aprobar» sólo aparece en filas REQUESTED  344ms
+ ✓ supabase/functions/_shared/provisioning/adapters/ewm-v1.test.ts (62 tests) 41ms
+ ✓ supabase/functions/_shared/provisioning/m2m.test.ts (33 tests) 69ms
+ ✓ supabase/functions/_shared/entitlements/sync-client.test.ts (36 tests) 60ms
+ ✓ supabase/functions/_shared/provisioning/adapters/http-m2m.test.ts (24 tests) 49ms
+ ✓ src/features/auth/session-isolation.test.tsx (2 tests) 51ms
+ ✓ src/features/deployments/ProvisioningStatusAction.test.tsx (9 tests) 148ms
+stderr | src/app/AppearanceProvider.test.tsx > Apariencia compartida > cambiar el modo desde Configuración actualiza el Shell y el documento
+An update to AppearanceProvider inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+stderr | src/app/AppearanceProvider.test.tsx > Apariencia compartida > cambiar la densidad conserva los controles y actualiza data-density
+An update to AppearanceProvider inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ ✓ src/app/AppearanceProvider.test.tsx (7 tests) 118ms
+ ✓ supabase/functions/_shared/entitlements/jcs.test.ts (23 tests) 9ms
+ ✓ src/lib/format.test.ts (17 tests) 17ms
+ ✓ supabase/functions/_shared/entitlements/snapshot.test.ts (34 tests) 33ms
+ ✓ src/lib/consolidated.test.ts (8 tests) 11ms
+ ✓ contracts/entitlements/v1/reference-receiver.test.ts (45 tests) 27ms
+ ✓ src/services/financeConsolidated.test.tsx (3 tests) 19ms
+ ✓ supabase/functions/_shared/provisioning/adapters/http-m2m.generic-golden.test.ts (12 tests) 25ms
+ ✓ supabase/functions/_shared/entitlements/sync-store.test.ts (16 tests) 19ms
+ ✓ supabase/functions/_shared/entitlements/hub/hub-mapping.test.ts (23 tests) 57ms
+ ✓ src/lib/provisioning.test.ts (39 tests) 6ms
+ ✓ supabase/functions/_shared/entitlements/hub/hub-parity.test.ts (19 tests) 38ms
+ ✓ supabase/functions/_shared/entitlements/sync-flow.test.ts (12 tests) 7ms
+ ✓ src/features/auth/LoginPage.test.tsx (4 tests) 174ms
+ ✓ src/features/platform/IntegrationsPage.test.tsx (4 tests) 160ms
+ ✓ src/features/billing/BillingPage.test.tsx (5 tests) 209ms
+ ✓ supabase/functions/_shared/payments/money.test.ts (34 tests) 19ms
+ ✓ src/features/deployments/contractAdapters.test.ts (9 tests) 15ms
+ ✓ src/features/commercial/commissionRuleText.test.ts (3 tests) 10ms
+ ✓ src/components/ui/PagedTable.test.tsx (7 tests) 287ms
+ ✓ supabase/functions/_shared/entitlements/hub/hub-export.test.ts (40 tests) 44ms
+ ✓ src/lib/multicurrency.regression.test.ts (7 tests) 14ms
+ ✓ src/app/AppShell.test.tsx (7 tests) 691ms
+ ✓ src/features/executive/executive-contracts.test.ts (22 tests) 6ms
+ ✓ supabase/functions/_shared/provisioning/url-guard.test.ts (60 tests) 8ms
+ ✓ src/lib/regional.test.ts (15 tests) 8ms
+ ✓ src/features/organizations/Organization360.test.tsx (3 tests) 116ms
+ ✓ supabase/functions/_shared/provisioning/retry.test.ts (33 tests) 3ms
+ ✓ supabase/functions/_shared/provisioning/replay.test.ts (8 tests) 3ms
+ ✓ supabase/functions/entitlement-sync/core.test.ts (20 tests) 8ms
+ ✓ supabase/functions/_shared/provisioning/cors.test.ts (10 tests) 8ms
+ ✓ src/features/settings/AuditPage.test.tsx (5 tests) 270ms
+ ✓ supabase/functions/_shared/payments/culqi-mapping.test.ts (23 tests) 20ms
+ ✓ src/features/dashboard/DashboardPage.test.tsx (8 tests) 274ms
+ ✓ src/lib/export.test.ts (10 tests) 5ms
+ ✓ src/features/billing/CostsPage.test.tsx (3 tests) 198ms
+ ✓ src/features/commercial/CommissionsPage.test.tsx (3 tests) 204ms
+ ✓ supabase/functions/_shared/payments/recurring-amount.test.ts (24 tests) 6ms
+ ✓ src/features/tenants/tenantDimensions.test.ts (8 tests) 2ms
+ ✓ supabase/functions/_shared/provisioning/response.test.ts (32 tests) 4ms
+ ✓ src/app/tokens.test.ts (38 tests) 4ms
+ ✓ supabase/functions/_shared/entitlements/states.test.ts (40 tests) 6ms
+ ✓ supabase/functions/_shared/provisioning/actions.test.ts (13 tests) 2ms
+ ✓ src/features/auth/session.test.ts (16 tests) 3ms
+ ✓ supabase/functions/_shared/provisioning/errors.test.ts (30 tests) 4ms
+ ✓ supabase/functions/_shared/provisioning/registry.test.ts (30 tests) 4ms
+ ✓ supabase/functions/_shared/provisioning/status.test.ts (11 tests) 3ms
+ ✓ src/features/platform/targetHealth.test.ts (4 tests) 2ms
+ ✓ src/lib/billing.test.ts (6 tests) 2ms
+ ✓ supabase/functions/_shared/provisioning/fingerprint.test.ts (2 tests) 2ms
+ ✓ src/features/deployments/DeploymentsPage.test.tsx (1 test) 115ms
+ ✓ src/app/navigation.test.ts (25 tests) 3ms
+
+ Test Files  70 passed (70)
+      Tests  1123 passed (1123)
+   Start at  12:32:09
+   Duration  8.12s (transform 2.55s, setup 6.00s, collect 53.71s, tests 8.55s, environment 41.57s, prepare 5.08s)
+

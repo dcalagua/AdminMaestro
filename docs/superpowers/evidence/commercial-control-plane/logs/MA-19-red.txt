@@ -1,0 +1,26 @@
+Connecting to local database...
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/34_ccp_eight_products.test.sql:101: ERROR:  relation "platform.v_tenant_entitlements" does not exist
+LINE 3:      from platform.v_tenant_entitlements where tenant_id = p...
+                  ^
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/34_ccp_eight_products.test.sql .. 
+# Failed test 1: "db reset produce los 8 productos de la suite"
+#         have: esupplier,ewm,tms,gmao,echange
+#         want: esupplier,ewm,tms,gmao,echange,comerza,eexpense,ecommerce
+# Failed test 2: "Los 3 productos nuevos siguen el patrón de ids del seed"
+#         have: NULL
+#         want: 20000000-0000-4000-a000-000000000006,20000000-0000-4000-a000-000000000007,20000000-0000-4000-a000-000000000008
+# Failed test 8: "Vistas comerciales security_invoker, legibles por authenticated y no por anon"
+#         have: NULL
+#         want: v_catalog_item_current_prices:true:false:true,v_commercial_audit_log:true:false:true,v_tenant_addon_history:true:false:true,v_tenant_entitlements:true:false:true
+Dubious, test returned 3 (wstat 768, 0x300)
+Failed 14/19 subtests 
+
+Test Summary Report
+-------------------
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/34_ccp_eight_products.test.sql (Wstat: 768 (exited 3) Tests: 8 Failed: 3)
+  Failed tests:  1-2, 8
+  Non-zero exit status: 3
+  Parse errors: Bad plan.  You planned 19 tests but ran 8.
+Files=1, Tests=8,  0 wallclock secs ( 0.01 usr +  0.00 sys =  0.01 CPU)
+Result: FAIL
+error running container: exit 1

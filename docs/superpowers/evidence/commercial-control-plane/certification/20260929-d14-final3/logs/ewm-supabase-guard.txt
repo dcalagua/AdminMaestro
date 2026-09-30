@@ -1,0 +1,24 @@
+ok - la migración *_ccp_bloqueo_escritura_legada_primary.sql existe
+ok - aplica sin V48/V49 (plain supabase db reset) y es idempotente
+ok - sin tablas de Flyway: modo efectivo LEGACY
+ok - sin tablas de Flyway: admin_set_agent y la escritura directa del operador siguen permitidas
+ok - PRODUCT=SHADOW sin fila de contrato: modo efectivo SHADOW y escritura legada permitida
+ok - cohorte en DUAL_READ: la escritura legada se permite (se alerta como LEGACY_DRIFT, no se bloquea)
+ok - cohorte en PRIMARY: modo efectivo PRIMARY (contrato → PRODUCT → LEGACY)
+ok - PRIMARY: admin_set_agent → LEGACY_WRITE_BLOCKED y no cambia nada
+ok - PRIMARY: INSERT/UPDATE/DELETE directos por PostgREST (operador) → LEGACY_WRITE_BLOCKED
+ok - PRIMARY: service_role por PostgREST también se bloquea
+ok - PRIMARY: UPDATE que mueve una fila HACIA la sociedad PRIMARY → bloqueado
+ok - PRIMARY: el materializador Java (JDBC sin claims) SÍ escribe: SQL_MATERIALIZAR y SQL_BORRAR
+ok - PRIMARY en un contrato NO afecta a otro con LEGACY explícito
+ok - sociedad sin mapping (CEYESA / V900) con PRODUCT=SHADOW: escritura legada permitida
+ok - sin cambio de RLS: un admin de tenant (no operador) sigue sin poder escribir
+ok - PRIMARY: el borrado en cascada de una sociedad (operación, no comercio) no se bloquea
+ok - rollback DUAL_READ: vuelve a permitir la escritura legada
+ok - PRODUCT=PRIMARY alcanza también a la sociedad sin mapping (misma semántica que Java)
+ok - helpers SECURITY DEFINER con search_path vacío
+ok - EXECUTE revocado a PUBLIC/anon/authenticated/service_role en los helpers
+ok - admin_set_agent conserva su firma y EXECUTE para authenticated (no para anon)
+ok - trigger BEFORE INSERT/UPDATE/DELETE por fila en company_ai_agents
+ok - rollback SQL: retira el guardia; en PRIMARY la escritura legada vuelve a entrar; re-aplicar bloquea otra vez
+# 23 ok, 0 fail

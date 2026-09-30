@@ -140,12 +140,13 @@ select is(
   'saas_products no tiene columnas hardcodeadas por producto'
 );
 
--- (14) Existen los 5 productos iniciales del catálogo.
+-- (14) Existen los 8 productos de la suite (CCP fase 07, P-03: el seed local
+-- añade comerza, eexpense y ecommerce a los 5 iniciales).
 select is(
   (select count(*)::int from platform.saas_products
-    where code in ('esupplier', 'ewm', 'tms', 'gmao', 'echange')),
-  5,
-  'El catálogo contiene los 5 SaaS iniciales de EBIM'
+    where code in ('esupplier', 'ewm', 'tms', 'gmao', 'echange', 'comerza', 'eexpense', 'ecommerce')),
+  8,
+  'El catálogo contiene los 8 SaaS de EBIM'
 );
 
 select * from finish();

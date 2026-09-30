@@ -1,0 +1,2 @@
+[0m[32mCheck[0m supabase/functions/usage-ingest/index.ts
+[0m[32mCheck[0m supabase/functions/entitlement-sync/index.ts

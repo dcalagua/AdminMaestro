@@ -62,6 +62,7 @@ export const CHARGE_KIND_LABEL: Record<string, string> = {
   ADDON: 'Addon',
   PROFESSIONAL_SERVICES: 'Servicios profesionales',
   DISCOUNT: 'Descuento',
+  USAGE_OVERAGE: 'Exceso de uso',
 };
 
 export function chargeKindLabel(kind: string | null | undefined): string {
@@ -107,6 +108,76 @@ export function splitPrices(prices: PriceRow[] | null | undefined): {
     recurring: open.filter((pr) => !isOneTimePrice(pr)),
     oneTime: open.filter(isOneTimePrice),
   };
+}
+
+/* ---- CCP fase 07 · add-ons del catálogo y su ciclo de vida por tenant ---- */
+
+/** Ciclo de vida COMERCIAL de un add-on del catálogo (no es el de un tenant). */
+export const LIFECYCLE_STATUS_LABEL: Record<string, string> = {
+  DRAFT: 'Borrador',
+  AVAILABLE: 'Disponible',
+  COMING_SOON: 'Próximamente',
+  RETIRED: 'Retirado',
+};
+
+export function lifecycleStatusLabel(status: string | null | undefined): string {
+  if (!status) return 'Sin estado';
+  return LIFECYCLE_STATUS_LABEL[status] ?? status;
+}
+
+export function lifecycleStatusTone(status: string | null | undefined): BadgeTone {
+  if (status === 'AVAILABLE') return 'ok';
+  if (status === 'COMING_SOON') return 'info';
+  if (status === 'RETIRED') return 'warn';
+  return 'neutral';
+}
+
+export const BILLING_MODEL_LABEL: Record<string, string> = {
+  FLAT: 'Tarifa plana',
+  PER_COMPANY: 'Por sociedad',
+  PER_UNIT: 'Por unidad',
+};
+
+export function billingModelLabel(model: string | null | undefined): string {
+  if (!model) return 'Sin modelo de cobro';
+  return BILLING_MODEL_LABEL[model] ?? model;
+}
+
+/** Estado de un add-on EN un tenant (`tenant_addons.status`). */
+export const TENANT_ADDON_STATUS_LABEL: Record<string, string> = {
+  REQUESTED: 'Solicitado',
+  ACTIVE: 'Activo',
+  CANCEL_SCHEDULED: 'Baja programada',
+  CANCELLED: 'Dado de baja',
+  SUSPENDED: 'Suspendido',
+  REJECTED: 'Rechazado',
+};
+
+export function tenantAddonStatusLabel(status: string | null | undefined): string {
+  if (!status) return 'Sin estado';
+  return TENANT_ADDON_STATUS_LABEL[status] ?? status;
+}
+
+export function tenantAddonStatusTone(status: string | null | undefined): BadgeTone {
+  if (status === 'ACTIVE') return 'ok';
+  if (status === 'REQUESTED') return 'info';
+  if (status === 'CANCEL_SCHEDULED') return 'warn';
+  if (status === 'SUSPENDED') return 'danger';
+  return 'neutral';
+}
+
+export const REQUEST_SOURCE_LABEL: Record<string, string> = {
+  CONSOLE: 'Consola',
+  TENANT: 'Tenant',
+  PARTNER: 'Partner',
+  SAAS_M2M: 'Integración SaaS',
+  LEAD: 'Lead',
+  LEGACY_BACKFILL: 'Histórico migrado',
+};
+
+export function requestSourceLabel(source: string | null | undefined): string {
+  if (!source) return '—';
+  return REQUEST_SOURCE_LABEL[source] ?? source;
 }
 
 /* ---- Integración técnica: dimensión DISTINTA del estado comercial ---- */

@@ -1,0 +1,609 @@
+ plan  
+-------
+ 1..68
+(1 row)
+
+            has_table            
+---------------------------------
+ ok 1 - Existe ai_credit_weights
+(1 row)
+
+            has_table             
+----------------------------------
+ ok 2 - Existe ai_credit_policies
+(1 row)
+
+           has_table            
+--------------------------------
+ ok 3 - Existe ai_credit_ledger
+(1 row)
+
+               is                
+---------------------------------
+ ok 4 - RLS habilitado y forzado
+(1 row)
+
+               is               
+--------------------------------
+ ok 5 - Escrituras solo por RPC
+(1 row)
+
+                       is                        
+-------------------------------------------------
+ ok 6 - v_ai_credit_balances es security_invoker
+(1 row)
+
+                              is                              
+--------------------------------------------------------------
+ ok 7 - open_ai_credit_period: finanzas (gate) o service_role
+(1 row)
+
+                      is                      
+----------------------------------------------
+ ok 8 - reserve_ai_credits: solo service_role
+(1 row)
+
+                         is                         
+----------------------------------------------------
+ ok 9 - Las 8 RPCs son DEFINER con search_path fijo
+(1 row)
+
+                                 is                                  
+---------------------------------------------------------------------
+ ok 10 - Nada sembrado: sin pesos, políticas ni créditos (D-02/D-03)
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                                             import_capability_manifest                                              
+---------------------------------------------------------------------------------------------------------------------
+ {"aliases": 0, "missing": [], "product": "esupplier", "updated": 0, "inserted": 2, "import_id": 47, "unchanged": 0}
+(1 row)
+
+          upsert_usage_meter          
+--------------------------------------
+ 783a4f97-2e95-470f-b858-88b8a2d443c6
+(1 row)
+
+          upsert_usage_meter          
+--------------------------------------
+ 7620feb4-1879-4526-96c9-42af352ceb24
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                               throws_ok                                
+------------------------------------------------------------------------
+ ok 11 - El product admin no fija pesos de crédito (decisión comercial)
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+              throws_ok              
+-------------------------------------
+ ok 12 - Peso sin motivo → rechazado
+(1 row)
+
+             throws_ok             
+-----------------------------------
+ ok 13 - Peso negativo → rechazado
+(1 row)
+
+                        throws_ok                        
+---------------------------------------------------------
+ ok 14 - Peso para una capacidad inexistente → rechazado
+(1 row)
+
+                        isnt                         
+-----------------------------------------------------
+ ok 15 - Finanzas fija el peso 2/llamada (sintético)
+(1 row)
+
+                       isnt                        
+---------------------------------------------------
+ ok 16 - Cambio de peso a 3 desde el día 15 de M-3
+(1 row)
+
+                                 throws_ok                                  
+----------------------------------------------------------------------------
+ ok 17 - Un peso no puede empezar antes del vigente (no reescribe historia)
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+                             is                              
+-------------------------------------------------------------
+ ok 18 - El peso anterior se cierra en la vigencia del nuevo
+(1 row)
+
+                    throws_ok                     
+--------------------------------------------------
+ ok 19 - Pesos inmutables (solo valid_to una vez)
+(1 row)
+
+         throws_ok          
+----------------------------
+ ok 20 - Pesos no se borran
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                    throws_ok                     
+--------------------------------------------------
+ ok 21 - Solo finanzas crea políticas de créditos
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+                         throws_ok                          
+------------------------------------------------------------
+ ok 22 - Rollover no se puede configurar hasta decidir D-04
+(1 row)
+
+ act_as_service 
+----------------
+ 
+(1 row)
+
+                                 is                                 
+--------------------------------------------------------------------
+ ok 23 - Sin política → POLITICA_CREDITOS_NO_DEFINIDA, sin entradas
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                                          isnt                                           
+-----------------------------------------------------------------------------------------
+ ok 24 - Finanzas crea una política sintética: pool TENANT, 1000 incluidos, exceso BLOCK
+(1 row)
+
+ act_as_service 
+----------------
+ 
+(1 row)
+
+             is              
+-----------------------------
+ ok 25 - GRANT_PERIOD de M-3
+(1 row)
+
+                         is                          
+-----------------------------------------------------
+ ok 26 - Reabrir el período no duplica (idempotente)
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                      throws_ok                       
+------------------------------------------------------
+ ok 27 - Un tenant admin no abre períodos de créditos
+(1 row)
+
+ act_as_service 
+----------------
+ 
+(1 row)
+
+                                is                                 
+-------------------------------------------------------------------
+ ok 28 - El tenant DEMO (sin plan con política) no recibe créditos
+(1 row)
+
+                                                                                                                                                                                                                                                      ingest_usage_events                                                                                                                                                                                                                                                      
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"results": [{"status": "ACCEPTED", "eventId": "737b4166-0f14-454c-8b5d-076c6dfad84c"}, {"status": "ACCEPTED", "eventId": "8edc1424-99ae-46b6-9463-fa3a4a0f15eb"}, {"status": "ACCEPTED", "eventId": "65462fe7-cd79-4ec5-8be0-52c40a7e2cf7"}, {"status": "ACCEPTED", "eventId": "4df508a7-fed7-40c1-8718-b8a6f872efc6"}, {"status": "ACCEPTED", "eventId": "4abc3d9b-28fa-415b-927b-da609389bf8f"}, {"status": "ACCEPTED", "eventId": "b15b6c74-ec0c-48c1-9f50-91f79e3150c2"}], "accepted": 6, "rejected": 0, "duplicate": 0}
+(1 row)
+
+ close_usage_periods 
+---------------------
+                   2
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+                                   is                                    
+-------------------------------------------------------------------------
+ ok 29 - Nada se consume antes de FINALIZED (nunca desde eventos crudos)
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                                                                                                                           finalize_usage_aggregate                                                                                                                           
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"id": "bfa8880d-ed2b-4444-bed2-252a807ebb04", "overage": null, "quantity": 5.000000, "eventCount": 5, "isBillable": false, "sourceHash": "sha256:4816521b749cbb216135cc0cd724f3d169a6de75613752df0192ce3b3ed86d82", "lateEventCount": 0, "allowanceStatus": "NO_ALLOWANCE"}
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+                                               is                                               
+------------------------------------------------------------------------------------------------
+ ok 30 - CONSUME por peso vigente: 3 llamadas × 2 y 2 llamadas × 3; peso guardado en la entrada
+(1 row)
+
+                          is                          
+------------------------------------------------------
+ ok 31 - CONSUME en el pool y el período del agregado
+(1 row)
+
+                         is                          
+-----------------------------------------------------
+ ok 32 - Saldo M-3: 1000 incluidos − 12 usados = 988
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+         set_ai_credit_weight         
+--------------------------------------
+ d282b49c-71a6-4e69-b81f-5e2640343a48
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+                               is                                
+-----------------------------------------------------------------
+ ok 33 - Cambiar el peso después no altera el consumo registrado
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                                                                                                                           finalize_usage_aggregate                                                                                                                           
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"id": "636677e2-df78-4258-bc89-8964c29bc833", "overage": null, "quantity": 1.000000, "eventCount": 1, "isBillable": false, "sourceHash": "sha256:17054a4d8f5dbbda34a47ccf59bd4a3b322c8550336b95d9dc986ab58726fa06", "lateEventCount": 0, "allowanceStatus": "NO_ALLOWANCE"}
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+                        is                        
+--------------------------------------------------
+ ok 34 - Sin peso para la capacidad → sin CONSUME
+(1 row)
+
+                         is                         
+----------------------------------------------------
+ ok 35 - Sin peso → alerta PESO_CREDITO_NO_DEFINIDO
+(1 row)
+
+            throws_ok             
+----------------------------------
+ ok 36 - Ledger: UPDATE prohibido
+(1 row)
+
+            throws_ok             
+----------------------------------
+ ok 37 - Ledger: DELETE prohibido
+(1 row)
+
+             throws_ok              
+------------------------------------
+ ok 38 - Ledger: TRUNCATE prohibido
+(1 row)
+
+                   throws_ok                    
+------------------------------------------------
+ ok 39 - Unique (tenant, entry_idempotency_key)
+(1 row)
+
+                  throws_ok                  
+---------------------------------------------
+ ok 40 - Signo por tipo: CONSUME es negativo
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                   throws_ok                   
+-----------------------------------------------
+ ok 41 - Un tenant admin no se regala créditos
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+              throws_ok              
+-------------------------------------
+ ok 42 - Bono sin motivo → rechazado
+(1 row)
+
+                           throws_ok                            
+----------------------------------------------------------------
+ ok 43 - EXPIRE no se registra a mano (solo por política, D-04)
+(1 row)
+
+                 throws_ok                 
+-------------------------------------------
+ ok 44 - Pool de otro producto → rechazado
+(1 row)
+
+       isnt       
+------------------
+ ok 45 - Bono +50
+(1 row)
+
+                        is                         
+---------------------------------------------------
+ ok 46 - Misma clave → misma entrada (idempotente)
+(1 row)
+
+                     throws_ok                      
+----------------------------------------------------
+ ok 47 - Misma clave con otro contenido → conflicto
+(1 row)
+
+        isnt         
+---------------------
+ ok 48 - Compra +200
+(1 row)
+
+       isnt        
+-------------------
+ ok 49 - Ajuste −8
+(1 row)
+
+            isnt             
+-----------------------------
+ ok 50 - REVERSAL del ajuste
+(1 row)
+
+                  throws_ok                   
+----------------------------------------------
+ ok 51 - Una entrada se revierte una sola vez
+(1 row)
+
+              throws_ok              
+-------------------------------------
+ ok 52 - Una REVERSAL no se revierte
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+                   is                   
+----------------------------------------
+ ok 53 - REVERSAL = −(entrada original)
+(1 row)
+
+ act_as_service 
+----------------
+ 
+(1 row)
+
+         isnt          
+-----------------------
+ ok 54 - Reserva de 10
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+                              is                               
+---------------------------------------------------------------
+ ok 55 - Reserva descuenta del saldo: 1000+50+200−12−10 = 1228
+(1 row)
+
+ act_as_service 
+----------------
+ 
+(1 row)
+
+        isnt        
+--------------------
+ ok 56 - Liberación
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+                                          is                                           
+---------------------------------------------------------------------------------------
+ ok 57 - Saldo derivado: incluidos/comprados/bono/reservado/usado/expirado/ajuste neto
+(1 row)
+
+ act_as_service 
+----------------
+ 
+(1 row)
+
+                       throws_ok                       
+-------------------------------------------------------
+ ok 58 - Sin política D-04 → no hay EXPIRE ni ROLLOVER
+(1 row)
+
+ open_ai_credit_period 
+-----------------------
+ {"granted": 1}
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+       reverse_ai_credit_entry        
+--------------------------------------
+ da6d47c4-9bbb-477d-8535-998208fdec61
+(1 row)
+
+ act_as_service 
+----------------
+ 
+(1 row)
+
+                                                                                                ingest_usage_events                                                                                                
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"results": [{"status": "ACCEPTED", "eventId": "3a1c7475-ee4b-4acf-ae26-25e0c8c7d284"}, {"status": "ACCEPTED", "eventId": "daed27dd-a55a-42fe-8b3e-b48e7fbafca9"}], "accepted": 2, "rejected": 0, "duplicate": 0}
+(1 row)
+
+ close_usage_periods 
+---------------------
+                   1
+(1 row)
+
+                                                                                                                           finalize_usage_aggregate                                                                                                                           
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"id": "1a2f328b-8600-4998-977c-ad1fe6d442e2", "overage": null, "quantity": 2.000000, "eventCount": 2, "isBillable": false, "sourceHash": "sha256:f8c2ed720c642888bda2895be190275b8c189003f8f7e1382de5a6e2c7dfa754", "lateEventCount": 0, "allowanceStatus": "NO_ALLOWANCE"}
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+                   is                    
+-----------------------------------------
+ ok 59 - M-2: 0 disponibles − 2 × 3 = −6
+(1 row)
+
+                                              is                                              
+----------------------------------------------------------------------------------------------
+ ok 60 - Exceso de créditos con política BLOCK → alerta CREDIT_OVERAGE (sin línea de factura)
+(1 row)
+
+ act_as_service 
+----------------
+ 
+(1 row)
+
+                                                          ingest_usage_events                                                           
+----------------------------------------------------------------------------------------------------------------------------------------
+ {"results": [{"status": "ACCEPTED", "eventId": "07e2bdfd-fbd7-43db-9524-8e8cec34f786"}], "accepted": 1, "rejected": 0, "duplicate": 0}
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+                      is                       
+-----------------------------------------------
+ ok 61 - DEMO: M-3 aún no finalizado para DEMO
+(1 row)
+
+ act_as_service 
+----------------
+ 
+(1 row)
+
+ close_usage_periods 
+---------------------
+                   1
+(1 row)
+
+                                                                                                                           finalize_usage_aggregate                                                                                                                           
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"id": "9c82bb14-cc24-4673-a0b8-ef019b38a5c0", "overage": null, "quantity": 1.000000, "eventCount": 1, "isBillable": false, "sourceHash": "sha256:4658cf72bf019834e79ef5b0fee170cae8a4f0bd3eb14d30935afdac8cd788de", "lateEventCount": 0, "allowanceStatus": "NO_ALLOWANCE"}
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+                                        is                                        
+----------------------------------------------------------------------------------
+ ok 62 - Sin política para el tenant → POLITICA_CREDITOS_NO_DEFINIDA en el cierre
+(1 row)
+
+                           is                           
+--------------------------------------------------------
+ ok 63 - aiCredits.weights: pesos vigentes del producto
+(1 row)
+
+                     ok                      
+---------------------------------------------
+ ok 64 - weightsVersion > 0 cuando hay pesos
+(1 row)
+
+                              is                               
+---------------------------------------------------------------
+ ok 65 - Producto sin pesos: aiCredits vacío (igual que antes)
+(1 row)
+
+ act_as_service 
+----------------
+ 
+(1 row)
+
+                         is                          
+-----------------------------------------------------
+ ok 66 - El contenido del snapshot incluye los pesos
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                 ok                  
+-------------------------------------
+ ok 67 - El tenant admin ve su saldo
+(1 row)
+
+           is           
+------------------------
+ ok 68 - y solo el suyo
+(1 row)
+
+ finish 
+--------
+(0 rows)
+

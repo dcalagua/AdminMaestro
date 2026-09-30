@@ -1,0 +1,397 @@
+# EBIM Commercial Control Plane v1 — Program ledger
+
+## 2026-09-27 — Phase 00 (repo reconciliation)
+- PHASE_00=PASS. Bases per `program-state/repo-state.tsv` (MasterAdmin 346aa72 local-dev; eSupplier a61dd22 and eCommerce 7da2ae4 from origin/dev; eExpense f282dc4 dev while root is on qas).
+
+## 2026-09-27 — Phase 01 (architecture spec)
+- Created MasterAdmin program worktree `.worktrees/ebim-commercial-control-plane-v1` on `feature/ebim-commercial-control-plane-v1` from 346aa72.
+- Read-only discovery of 9 repos + GUIDELINES_ROOT; no product code modified in any repo.
+- Spec: `docs/superpowers/specs/2026-09-27-ebim-commercial-control-plane-design.md`.
+- Key decisions: versioned full-state entitlement snapshot (JCS SHA-256 checksum, monotonic version) pushed via new additive `PUT/GET /tenants/{id}/entitlements`; SaaS-local last-good enforcement without expiry; usage via SaaS outbox → signed ingest → append-only events → FINALIZED aggregates; AI in EBIM credits with append-only ledger; new charge kind `USAGE_OVERAGE`; DISCOUNT correction on next invoice via `corrects_line_id`; two-axis cutover (entitlements / billing) per product and cohort.
+- Discovery corrections: eChange is an ITIL service desk (not FX); hub table is `company_addons`.
+- Open business decisions D-01..D-15 (spec §20). Contract §2.6 deviation for usage ingest pending (D-12).
+- P0 inventory recorded in spec §1.4 (incl. MasterAdmin `tenant_addons`/`tenant_features` authenticated CRUD).
+- Status: PHASE_01=SPEC_REVIEW_REQUIRED (GATE A).
+
+## 2026-09-27 — Phase 02 (implementation plan)
+- Precondition: HUMAN_SPEC_APPROVAL=YES supplied to the phase (GATE A passed).
+- Read-only verification of all 9 repos at selected bases; no product code, migrations or remote state changed. No SaaS worktree created yet (created on first modification, phase 04+).
+- Plan: `docs/superpowers/plans/2026-09-27-ebim-commercial-control-plane-implementation.md`.
+- New verified facts: DISCOUNT stored positive → invoice total adds it, MRR ignores it, commissions count it (P-01/P-02); seed has 5 of 8 products (P-03); eExpense and GMAO remote projects are effectively productive (P-05); GMAO `charge` currency override without conversion (P-06); eChange PUBLIC-execute function at `M/20260815130000:47` is `executive_summary_de`.
+- SaaS push rules (eCommerce, EWM, Comerza, TMS, eExpense) stricter than MasterAdmin; plan subordinates to them.
+- Plan decisions P-01..P-07 require human review.
+- Status: PHASE_02=PLAN_REVIEW_REQUIRED (GATE B).
+
+## 2026-09-27 — Phase 03 (MasterAdmin P0)
+- Precondition: HUMAN_PLAN_APPROVAL=YES supplied to the phase (GATE B passed; P-01/P-02 approved with the plan).
+- LOCAL only (guard `scripts/ccp/guard-env.sh`); no remote Supabase command, no push.
+- Commits (MasterAdmin): `00e2f4e` MA-00 guard + baseline · `80456ca` MA-01 preservation hashes · `a396c81` MA-02 DISCOUNT sign · `63f8b74` MA-03 self-grant lockdown · MA-04 evidence commit.
+- Migrations: `20260928000100_ccp_discount_sign.sql`, `20260928000200_ccp_commercial_write_lockdown.sql`. Tests: `26_ccp_preservation`, `27_ccp_discount` (20), `28_ccp_commercial_self_grant` (46).
+- Gate: pgTAP 916/916 · vitest 778/778 · typecheck/lint/build OK · secrets PASS · advisors local: no new findings · protected provisioning diff vs 346aa72 empty.
+- Deviations: (1) issued-invoice lines are not trigger-blocked as the plan assumed; protection is the absence of API write grants on `invoice_lines` → added read-only `v_discount_sign_legacy_invoices` to expose legacy totals (local count 0; QAS measured read-only in phase 19). (2) `v_collected_payments` and `get_subscription_billing_status` also switched to signed amounts to keep reconciliation. (3) INV-3/INV-4 hashes use natural keys + day offsets (seed ids random, dates relative); local seed has no mappings/requests (empty-table hash). (4) EBIM_FINANCE gains `set_tenant_feature` (gate now `can_manage_commercial()`). (5) KPI vitest lives in `executive-contracts.test.ts` (no `kpis.test.ts`).
+- Supabase docs finding: new functions get EXECUTE for PUBLIC by default and anon/authenticated share default privileges → explicit revoke/grant on every new or redefined function.
+- Evidence: `phase-03-masteradmin-p0.md`, `logs/MA-0*-*`, `supabase-cli-masteradmin.txt`, rollback `docs/runbooks/ccp-rollback/03.sql`.
+- Status: PHASE_03=PASS.
+
+## 2026-09-27 — Phase 04 (eExpense P0)
+- LOCAL only. eExpense worktree `eExpenses/.worktrees/ebim-commercial-control-plane-v1` created on `feature/ebim-commercial-control-plane-v1` from `f282dc4` (`git fetch origin` failed inside the sandbox — SSH; cached `dev == origin/dev == f282dc4`, same as phase 00). `.worktrees/` and the `web/node_modules` symlink excluded via `.git/info/exclude`. No push (eExpense rule: local commits only).
+- Local DB: `supabase db start/reset --local --workdir $TMPDIR/eexpense-ccp` (config copy, DB port 55822; ports 54321/54322 taken by another stack). Repo `config.toml` untouched. Nothing against `uvjmdphlnpyhtohobvzx`.
+- Commits (eExpense): `d5c3a3e` EX-00 · `a5ecaa7` EX-01 · `b9223af` EX-02 · `7e410c5` EX-03 · `5e2a436` EX-04 · `03d6e03` EX-05 · `3e5ac28` EX-06 · `090645e` EX-07/08 evidence.
+- Migrations: `20260928100000_ccp_commercial_columns_lockdown.sql`, `20260928100100_ccp_addon_requests.sql`. Tests: `ccp_commercial_columns_test.sql` (41), `ccp_addon_requests_test.sql` (16), vitest +60 (requireTenantActor, aiEndpointsAuth, whatsappInboundSignature, billingWebhook, platformSubscribe, billingRunCharacterization).
+- Gate: vitest 120/120 · typecheck/build OK · deno check 14/14 · pgTAP 41/41, 16/16, provisioning 44/44 · INV-1 protected diff empty · INV-4 plans/addons hash unchanged · advisors: no new findings · rollback dry-run OK.
+- Supabase docs finding: `verify_jwt` accepts any valid project JWT (incl. legacy anon) → handlers must resolve the user with `auth.getUser(token)`; new publishable/secret keys are not JWTs.
+- Deviations: (1) shared `serveForTenantActor` wrapper + per-function wiring tests instead of 10 `core.ts` extractions; (2) platform superadmin passes without an active tenant (console calls `fiscal-validate`); (3) EX-05 also closes tenant self-DELETE/INSERT (RED showed a tenant admin could delete its tenant) and gates `white_label` on the add-on; guards read JWT claims so SECURITY DEFINER RPCs can't bypass; (4) new `addon_requests` queue for EX-06; (5) legacy billing characterization by source hash + patterns; (6) own NULL-handling bug in the guard caught by pgTAP before commit.
+- Open (recorded, not expanded): AI add-on entitlement gating server-side → phase 15; hub `platform-register subscribe` → phase 05; `billing-run` non-constant-time cron secret compare and client-set `tenant_billing.payment_status` (legacy, migration target); 4 pre-existing deno type errors in `whatsapp-inbound`; add-ons UI request flow verified by typecheck/build only (no browser run).
+- Deploy prerequisites for a future GATE C + P-05: `BILLING_WEBHOOK_SECRET` before deploying `billing-webhook` (else 503 by design; Culqi needs a signing relay); Twilio auth token in `tenant_whatsapp.auth_token`.
+- Status: PHASE_04=PASS.
+
+## 2026-09-27 — Phase 05 (GMAO P0)
+- LOCAL only (PGlite harness; GMAO cannot `db reset`). GMAO worktree `GMAO/.worktrees/ebim-commercial-control-plane-v1` created on `feature/ebim-commercial-control-plane-v1` from `90e501f` (`git fetch origin` failed in the sandbox — SSH; cached `dev == origin/dev == 90e501f`, same as phase 00). `.worktrees/`, `supabase/tests/node_modules` and `web/node_modules` symlinks excluded via `.git/info/exclude`. No push. Nothing against `xikbhkfeaosasdltartg`.
+- Commits (GMAO): `0d75d79` GM-00 · `4f9c62a` GM-01/02/03/06 · `5eeaaca` GM-04 · `68b0d0d` GM-07 · `39e5889` GM-05/08 evidence.
+- Migrations: `20260928200000_ccp_ai_consume_validation.sql`, `20260928200100_ccp_set_addon_technical_only.sql`, `20260928200200_ccp_reset_ai_usage_service_only.sql`, `20260928200300_ccp_secret_column_grants.sql`. New service_role-only RPCs: `platform.ccp_set_ai_entitlement`, `platform.ccp_reset_ai_usage` (SECURITY INVOKER, audited in `platform.audit_log`).
+- Tests: `supabase/tests/run_ccp_tests.mjs` (`npm run test:ccp`) 40, `translate/translate_test.ts` 8, `charge/charge_test.ts` 10, `platform-register/hub_alive_test.ts` 3.
+- Gate: SQL 61/61 · provisioning 20/20 (protected suite unedited) · CCP 40/40 · deno platform-provisioning 32/32 · web tsc/build OK · INV-1 diff empty · hub diff empty · INV-4 no price references · secret scan PASS · rollback dry-run OK.
+- Supabase CLI 2.116.0 help archived (`HOME=$TMPDIR` because the CLI telemetry write is sandbox-blocked). Deno remote cache is not writable in the sandbox → Deno runs use `DENO_DIR=$TMPDIR/deno-ccp` with esm.sh/deno.land fetches.
+- Deviations: (1) own CCP runner + `30_ccp_commercial_base.sql` capture instead of registering in `run_tests.mjs`; GM-05 assertion there to keep INV-1 suite unedited; (2) GM-01/02/03/06 in one commit (shared harness), per-task RED/GREEN in one log; (3) `translate` is NOT metered against the customer AI quota — that is a commercial decision not taken; closed as auth + tenant + batch limits, cost left as COGS metadata for phase 17; (4) secret tables are unversioned → defensive idempotent migration assuming the worst-case broad grant, aborting if a SECURITY INVOKER function reads a secret column; live grants and `get_payment_config` verified read-only in phase 19; (5) `AiPlanPage` read-only, `setAiPlan`/`resetAiUsage` removed — until phase 16 the operator sets AI plans via `platform.ccp_set_ai_entitlement` (service_role); (6) `charge` Stripe description `item.name ?? ""`; (7) `graphify` not installed; (8) `EBIM-ESTADO-GMAO.md` lives in GUIDELINES_ROOT (read-only) → operator text in GMAO `phase-05.md`.
+- Open (recorded, not expanded): `platform-register`/`platform-context` compare `X-EBIM-Service` non-constant-time and `subscribe` accepts `mode:"live"` from the caller (hub, phase 16); `charge` currency conversion (P-06, needs approved migration); `wo-assist` passes a client-chosen action into `p_feature` (now regex-validated).
+- Status: PHASE_05=PASS.
+
+## 2026-09-27 — Phase 06 (eSupplier + eChange P0)
+- LOCAL only. No push, no QAS, nothing against remote projects. `git fetch` fails in the sandbox (SSH) for both repos; cached refs match phase 00 (`eSupplier` origin/dev `a61dd22`, `eChange` dev == origin/dev `3d6f34e`).
+- Worktrees created: `eSupplier/.worktrees/ebim-commercial-control-plane-v1` (from `a61dd22`), `eChange/.worktrees/ebim-commercial-control-plane-v1` (from `3d6f34e`), branch `feature/ebim-commercial-control-plane-v1`; `.worktrees/` in `.git/info/exclude`.
+- eSupplier commits: `e26e1ff` SU-00 · `1a60fab` SU-03 · `a52822c` SU-01 · `65f2df5` SU-02 · `5f8274d` SU-04 · `32f9792` SU-05/06 · `e942be5` SU-07. Migrations `20260928300000_ccp_commercial_addons.sql`, `20260928300100_ccp_commercial_tables_write_lockdown.sql`, `20260928300200_ccp_tenant_addons_read.sql`.
+- eSupplier reproduced (RED): tenant admin without the add-on turned on `tender-copilot` in autonomous mode; 11/11 paid AI functions had no server gate; `platform-catalog` forwarded `subscribe`/`set_addon` to the hub unauthenticated; `platform-context` IDOR; UI granted all paid add-ons without hub; worst-case `UPDATE tenants.plan` by `authenticated`.
+- eSupplier fix: local commercial source `tenant_commercial_addons` (service_role; HUB/OPERATOR/LEGACY_BACKFILL) with P-08 backfill of existing tenants; `requireCapability` 403/503 fail-closed in 11 paid AI functions (incl. the risk-sweep cron); tenant agent parameters only within the grant; buy = `REQUESTED` request; context bound to session org and stores the last-good HUB snapshot; UI hub → server grant → closed; no direct writes to `tenants`/`plans`. `max_users`/`max_companies` NOT enforced (D-05; characterization only).
+- eSupplier gate: vitest 1099 · security 500 · type ratchet 625=625 · build OK · security:gates 17/17 · SQL CCP 47/47 · INV-1 empty (provisioning 107/107) · INV-4 `plans` hash equal · rollback dry-run identical · deno check no new errors.
+- eChange commits: `3a45f26` EC-00 · `dd160de` EC-01 · `f872841` EC-02 · `a152c9b` EC-03 · `4d582bd` EC-04 · `ad3133b` EC-05. Migrations `20260928400000_ccp_revoke_public_definer.sql`, `20260928400100_ccp_agent_enable_guard.sql`, `20260928400200_ccp_channel_enable_guard.sql`. Implemented by a worker agent on its own worktree branch (harness limitation), fast-forwarded into the program branch by the coordinator.
+- eChange gate: web 661/661 · build OK · real local Supabase stack (full chain, 241 migrations): CCP 27+24+29, provisioning 31/31, RLS isolation 45/45; 10 failures in 3 existing suites are pre-existing (identical at base chain) · INV-1 empty · INV-4 unchanged · local pricing engine untouched.
+- Supabase: CLI 2.116.0 help archived per repo (`supabase-cli-esupplier.txt`, `supabase-cli-echange.txt`); DB work via disposable containers / temp workdirs (ports 58xxx/559xx), all stopped. `config.toml` of both repos untouched.
+- Deviations: eSupplier chain cannot replay from zero (`20260511220000_payments.sql`) → SQL harness `supabase/tests/ccp/` over a disposable `supabase/postgres` with a documented test capture; `security:gates` needs a stdout-blocking preload (8 KiB pipe truncation); ESLint NOT_EXECUTED (pre-existing, no flat config); SU-03 before SU-01; SU-04 reads the server grant instead of only closing `local`; eChange EC-03 goes beyond the plan (revokes INSERT/DELETE/TRUNCATE on channels; WhatsApp/phone inserted as `incluido` become `addon`).
+- Open (recorded, not expanded): P-08 needs human confirmation; `esup_require_member` lets NULL membership through (not reachable via PostgREST); `echange-desk` not gated (no tenant); `resolve-ubigeo` LLM without actor; eSupplier live policies/functions outside `supabase/migrations` → phase 19 read-only; per-company gating arrives with the snapshot (phase 13); hub still accepts `subscribe` from other callers (phase 16); eChange pre-existing definer EXECUTE debt (timeline/portal/attachment purge) and other PUBLIC definer functions listed in its evidence; eChange tenants provisioned since 20260918 with WhatsApp/phone `incluido` need operator review.
+- Evidence: `phase-06-esupplier-echange-p0.md` (+ per-repo evidence linked there).
+- Status: PHASE_06=PASS.
+
+## 2026-09-27 — Phase 07 (MasterAdmin commercial core)
+- LOCAL only (guard before every reset). No SaaS sync, no QAS, no push, nothing remote.
+- Commits: `d3e0314` MA-10 · `977cc4e` MA-11 · `db7d403` MA-12 · `7ef6431` MA-13 · `551e275` MA-14 · `10818d5` MA-15 · `6d656d5` MA-16 · `cd8e2fb` MA-17 · `a4a45fe` MA-18 · `3ca39e6` MA-19 · `2050aa3` UI · MA-20 evidence.
+- Migrations `20260929000100`…`20260929001000` (10): USAGE_OVERAGE; product_capabilities/aliases + manifest import; catalog lifecycle/billing model; effective-dated market-aware catalog_item_prices (immutable, no delete); entitlement_grants + audited finance overrides + entitlement_desired_state; subscription_items source/price_ref; audited tenant add-on lifecycle (retires set_tenant_addon_active); compute_entitlements (STABLE, INVOKER); tenant_features ENTITLEMENT read model; SECURITY INVOKER read models. Seed: 8 products (P-03), catalog rows only.
+- Tests: pgTAP 29 (35), 30 (46), 31 (63), 32 (70), 33 (34), 34 (19); 28 updated to the lifecycle (46, same no-self-grant matrix); 00_structure 5→8. Gate: pgTAP 1183/1183 · vitest 803/803 · typecheck/lint/build OK · secrets PASS · 26_ccp_preservation unchanged constants · advisors: only 22 new unused_index · INV-1 diff empty · rollback `docs/runbooks/ccp-rollback/07.sql` dry-run OK.
+- Migration compatibility: phase-03 state + legacy data → phase-07 migrations: all pre-existing fingerprints (prices, catalog, subscription items, invoices, add-ons, features, due lines, MRR) identical; backfill ACTIVE/CANCELLED/COMING_SOON/MANUAL as designed.
+- Deviations: column `grant_value` (reserved word); two real FKs instead of polymorphic source_id; catalog_items.saas_product_id reused; tenant_addons PK→id for history; PAST_DUE still grants (D-07); PER_UNIT add-ons not approvable on billable tenants until phase 18; no MOCK integrations seeded for new products (would alter provisioning fixtures; phase 08); UI built by a worker in its own worktree and applied as a verified patch.
+- Open: time-based refresh/cancellation job (phase 08); business values D-01/D-03/D-05/D-06 still undecided and not seeded.
+- Evidence: `phase-07-core.md`, `logs/MA-1*`, `logs/MA-20-*`.
+- Status: PHASE_07=PASS.
+
+## 2026-09-28 — Phase 08 (versioned SYNC_ENTITLEMENTS contract)
+- LOCAL only (guard before every reset). No SaaS repo touched, no QAS, no push, nothing remote. Supabase CLI 2.116.0; docs reviewed (pg_cron + pg_net + Vault for scheduling → operator runbook, no cron in migrations).
+- Commits (MasterAdmin): `b91edfd` MA-30 · `42c1f31` MA-31 · `f5b6590` MA-32 · `6d1cde7` MA-33 · `29654f0` MA-34 · `18321bb` MA-35 · `0cb528e` MA-36 · `fb0cb9a` MA-37 · `b080b37` MA-38 (FIX-ENT-v1) · `0e4eba5` MA-39 UI · MA-40 evidence.
+- Migrations `20260930000100…0400`: append-only `entitlement_snapshots` + SQL JCS/checksum + `issue_entitlement_snapshot` (advisory lock, new version only on content change); `entitlement_sync_state` (13 states) + append-only attempts/registry checks + lease/`SKIP LOCKED` claims + record RPCs; `product_integrations` entitlements columns, kill-switch (off by default), `commercial_cutover_events`, `set_commercial_cutover_state`; orchestrator authorization booleans, targeted claims, job selection RPCs, `v_entitlement_sync_status` (security_invoker).
+- Code: `_shared/entitlements/*` (jcs, snapshot, states, sync-client, sync-store, sync-flow), edge `entitlement-sync` (server channel only), orchestrator actions `SYNC_ENTITLEMENTS`/`GET_ENTITLEMENTS` (additive), UI Operación SaaS → Sincronización de entitlements.
+- **FIX-ENT-v1 published:** `FIX_ENT_V1_SHA256 = 7aab413a145b0e9a165c5f02be4bfda17f886a4b46bc2a557eec3eeaed1f65d5` (contracts/entitlements/v1, 13 fixtures, expected PUT/GET, JCS vectors, schemas, reference receiver). SaaS phases 09–16 copy and pin it.
+- Gate: pgTAP 1407/1407 (+224) · vitest 1041/1041 (+238) · typecheck/lint/build OK · deno check OK · secrets PASS · 26_ccp_preservation unchanged · advisors: only 9 new unused_index · INV-1: golden/EWM_V1/codecs/transport/v4 migrations 0-line diff; only additive lines in actions.ts/actions.test.ts/orchestrator · rollback `docs/runbooks/ccp-rollback/08.sql` dry-run OK · E2E local (real DB → job/orchestrator → ES256 M2M → HTTP test SaaS with jti single-use) 20/20 · two-session concurrency proof PASS.
+- Deviations: (1) the DB issues the snapshot (SQL JCS) and TS mirrors/verifies it before sending — equivalence proven by vectors, fixture 03 and E2E; (2) EWM_V1 codec and `provisioning_execution_context` untouched: sync uses its own `entitlements.v1` channel because `ewm-v1.test.ts` pins codec capabilities (INV-1); (3) fresh M2M token per retry (single-use jti); (4) 13th fixture `13-tenant-not-provisioned`; (5) `overageMode: BLOCK` and empty `aiCredits` as technical defaults, no commercial values invented; (6) `sync-store.ts` written before its test (same task); (7) route test 27→28; (8) Playwright browser E2E not executed (RTL/typecheck/build for UI); (9) intermittent `supabase test db` connection timeouts after reset → retry wrapper; one full run lost file 31 to a dropped connection, rerun 1407/1407.
+- Operator steps (not executed, per environment after GATE C): configure entitlements integration, load M2M private keys as Edge secrets by `secret_ref`, schedule `entitlement-sync` with pg_cron+pg_net+Vault (runbook `docs/runbooks/entitlement-sync.md`).
+- Evidence: `phase-08-sync-contract.md`, `logs/MA-3*-*`, `logs/MA-40-*`.
+- Status: PHASE_08=PASS.
+
+## 2026-09-28 — Phase 09 (eCommerce entitlement pilot)
+- LOCAL only. eCommerce worktree `eCommerce/.worktrees/ebim-commercial-control-plane-v1` created on `feature/ebim-commercial-control-plane-v1` from `7da2ae4` (`git fetch` fails in the sandbox — SSH; cached `origin/dev == 7da2ae4`, local `dev` ancestor, same as phase 00). `.worktrees/` and the `node_modules` symlink excluded via `.git/info/exclude`. No push (eCommerce rule), no QAS, nothing against any remote project.
+- Commits (eCommerce): `99af03f` EC9-01 pin FIX-ENT-v1 + JCS · `c93e565` EC9-02 receiver + modes (migrations `20261001090000_entitlement_source_masteradmin.sql` isolated enum, `20261001100000_masteradmin_entitlements.sql`) · `b25c65e` EC9-03 PUT/GET entitlements + manifest routes · `a431368` diagnostics `masteradmin` source · `51e2c31` pilot/offline/drift tests · `e1ab64f` pgTAP + evidence. MasterAdmin: X-07 script + this entry.
+- Design: canonical codes 1:1 (25 existing `ecommerce.*` entitlement codes, no rename) + `ecommerce.ai.credits` allowance; private schema `platform_entitlements` (applied last-good, append-only audit, single-use jti, per-product/tenant `LEGACY/SHADOW/DUAL_READ/PRIMARY`, shadow diffs, legacy-write alerts, legacy backup); DUAL_READ/PRIMARY materialize the snapshot through `sync_platform_context` with source `masteradmin`, so the single server gate (`company_is_entitled`/policies/`assert_capability`/`ai_consume_for`) is unchanged, local flags only subtract, `legacy_until_synced` resolves; AI quota from the allowance (PRIMARY without allowance → 0; DUAL_READ → legacy quota, D-03); H-ECO-1: PRIMARY blocks hub/static-key writes server-side. Default at phase close: SHADOW.
+- Pilot success criterion: PASS — pilot test 11/11 (fetch stubbed to fail, never called), FIX-ENT-v1 golden 13/13 against the real handler + RPC, X-07 cross-repo 15/15 (MasterAdmin `buildSnapshot` + `EntitlementSyncClient` → eCommerce receiver).
+- Gate (eCommerce): typecheck/lint/build OK · `check:edge` OK · vitest 6492/6497 with the 5 pre-existing `qas-smoke` failures caused by sandbox `listen EPERM` (9/9 outside the sandbox; identical at baseline) → effective 6497/6497 (+106) · INV-1 diff of provisioning handler/m2m/repository/suites/migration empty (index.ts additive dispatch only) · INV-4 no price writes · secret scan clean per commit.
+- Supabase: CLI 2.116.0 help archived (`supabase-cli-ecommerce.txt`). Finding applied: `ALTER TYPE … ADD VALUE` isolated in its own migration; explicit revoke/grant on every new function (phase 03 finding).
+- BLOCKED (environment, pre-existing, recorded not expanded): pgTAP `platform_entitlements.test.sql` NOT_EXECUTED — eCommerce's migration chain cannot replay on current local Supabase images (`20260827090600_storage_buckets.sql`: `must be owner of table objects` on 15.8.1.085 and 17.6.1.165; bare container lacks `storage.buckets.public`). Two approaches tried and stopped; same assertions run on PGlite. Disposable containers/volumes removed. Phase-04 container `supabase_db_eexpense-ccp` is still running (not touched).
+- Deviations: receiver tables outside `platform_provisioning` (its protected suite pins the table list); routes dispatched in `platform-provisioning/index.ts`, provisioning `handler.ts` untouched; enforcement cases in the new db test instead of editing `capability-enforcement.test.ts`; COMPANY grants with explicit MasterAdmin company ids are not granted (fail-closed, `unmapped_scope_capabilities`), manifest declares `scopeLevel: TENANT`; AI counter stays per calendar month; receiver adds `UNSUPPORTED_CONTRACT_VERSION` (422) / `UNSUPPORTED_MEDIA_TYPE` (415); `.worktrees/**` excluded from vitest/eslint; X-07 did not run MasterAdmin's DB-side `entitlement_sync_state` (MasterAdmin API stack not started to avoid disturbing shared local stacks).
+- Open (not expanded): per-company mapping of MasterAdmin company ids; operator must set `EBIM_MASTERADMIN_M2M_ENTITLEMENTS_{WRITE,READ}_SCOPE` and `EBIM_ENTITLEMENTS_ENVIRONMENT` after GATE C; DUAL_READ/PRIMARY only in phase 18 local cert with D-14; storage-migration replay issue for eCommerce local stacks.
+- Evidence: `phase-09-ecommerce.md` (+ SaaS evidence), `logs/EC9-07-x07-e2e.txt`.
+- Status: PHASE_09=PASS.
+
+## 2026-09-28 — Phase 10 (EWM rollout)
+- LOCAL only. EWM worktree `IACLAUDE/WMS-by-EBIM/.worktrees/ebim-commercial-control-plane-v1` created on `feature/ebim-commercial-control-plane-v1` from `7c086e8` (`git fetch` fails in the sandbox — SSH proxy; cached `dev == origin/dev == 7c086e8`, same as phase 00). `.worktrees/` excluded via `.git/info/exclude`. No push (EWM: Dennis per-batch authorization for push and for applying migrations), no QAS, no Supabase migration or edge function touched (Flyway only → Supabase CLI archive not applicable).
+- Commits (EWM): `c6ba318` pin FIX-ENT-v1 + Java JCS (P-04) · `9aeaffb` V49 receiver/modes/dual-read/manifest · `ed48657` PUT/GET/manifest routes + `ewm:entitlements:write|read` (security +20/−0) · `9044930` server gate in `AgentEntitlementService` · `6751192` V50 durable narration budget · `122cffa` AI usage hook (billable=false, off) · `5150836` Postgres IT + local catalog parity + TRUNCATE lists · `86cb148` X-07 bridge, config, evidence. MasterAdmin: X-07 script + this entry.
+- Map: 8 `ai_agents` (7 sellable → `ewm.ai.*` 1:1 aliases, `ai_capture` baseline DRAFT); `company_ai_agents` per company, legacy writer `admin_set_agent` (operator), readers `wms_agent_active` (SQL + edge `ai-copilot`) and Java `AgentEntitlementService`. Narration = not sellable (prose over entitled findings); its token ceiling is operational (now durable, V50). No commercial resource dimension confirmed (D-05) → no LIMIT registered. EWM_V1 provisioning untouched (INV-1 diff empty; protected ITs/fixtures unchanged).
+- Design: private Flyway tables `platform_entitlement_*` (applied last-good, append-only audit, single-use jti, per-product/contract mode LEGACY/SHADOW/DUAL_READ/PRIMARY, shadow diffs, legacy backup). SHADOW compares only; DUAL_READ/PRIMARY decide from the local snapshot in Java and materialize `company_ai_agents` (DML, with backup) so edge/SQL agree; PRIMARY reconciliation reverts legacy writes; one-step mode changes with exact legacy restore. COMPANY grants map exactly (hub company ids = EWM ids); non-matching → `unmapped_capabilities`, never granted. Default at phase close: SHADOW (seeded by V49).
+- Gate (EWM): unit 1450 tests, 0 failures (+61 vs baseline 1389), 31 errors identical to baseline (sandbox `listen EPERM`); ArchUnit green; FIX-ENT-v1 13/13 against the real use case; HTTP slice with real M2M chain 9/9; SQL of V49/V50 and every JDBC statement 24/24 on PGlite; X-07 19/19 (real MasterAdmin emitter + client → real EWM chain/receiver).
+- BLOCKED (environment, recorded not expanded): (1) Docker socket denied by the sandbox and no local Postgres → `./mvnw verify` ITs skipped (`PlatformEntitlementsIT` 4, `PlatformProvisioningIT` 12, `SchemaIT` 16) — operator: `cd backend/wms-api && ./mvnw clean verify`. (2) Mockito self-attach blocked; unsandboxed run was denied → used Mockito `-javaagent` argLine inside the sandbox (pom untouched). (3) No local port binding → X-07 via file mailbox.
+- Deviations: tables prefixed `platform_entitlement_*`; filter-chain 401/403 keep shared ProblemDetail (`code`) → MasterAdmin classifies 403 as `HTTP_403`/REJECTED; `UNSUPPORTED_CONTRACT_VERSION`/`UNSUPPORTED_MEDIA_TYPE` added; `appActive=false` withdraws the commercial AI surface only (not WMS operational access — "comercial ≠ acceso operativo"); usage hook not yet on `evt_outbox_event` (outbound dispatcher would mark `usage.v1` SKIPPED) → phase 17 with dispatcher exclusion; edge `ai-copilot` usage → phase 17; EW10-02..04 committed separately from one verified tree.
+- Open (not expanded): server-side lock of `admin_set_agent` in PRIMARY needs a Supabase migration (Dennis-authorized batch) — required before PRIMARY (phase 18); decide whether `appActive=false` must also block operational access; operator must set `WMS_ENTITLEMENTS_ENVIRONMENT` and the MasterAdmin integration entitlements columns after GATE C.
+- Evidence: `phase-10-ewm.md` (+ SaaS evidence), `logs/EW10-07-x07-e2e.txt`.
+- Status: PHASE_10=PASS.
+
+## 2026-09-28 — Phase 11 (Comerza rollout)
+- LOCAL only. Comerza worktree `comerza/.worktrees/ebim-commercial-control-plane-v1` created on `feature/ebim-commercial-control-plane-v1` from `2c49725` (`git fetch` fails in the sandbox — SSH; cached `dev == origin/dev == 2c49725`, same as phase 00). `.worktrees/` and the `node_modules` symlink excluded via `.git/info/exclude`. No push (Comerza: only on Dennis's explicit order), no QAS, nothing against `rsdyqwdqvezebpopcggj` or the hub; `config.toml` untouched. DB work in a disposable container `comerza_ccp_db` (Docker only reachable outside the sandbox).
+- Commits (Comerza): `e56e79c` pin FIX-ENT-v1 + JCS · `ac54c31` TS receiver/config/manifest · `e6bad15` migration `20261003100000_platform_entitlements.sql` + store + additive dispatch + FIX-ENT-v1 golden against the real DB · `9c1dedd` migration `20261003110000_commercial_capability_gate.sql` · `a4c167d` Gemini gate + usage hook (webhook + Baileys) · `c9a7bd9` evidence + `docs/platform-provisioning/ENTITLEMENTS.md`. MasterAdmin: X-07 script + this entry.
+- Map (verified): `config_layers.features.{vitrina,erp_connector}` written false at creation and read by no server; the tenant admin can UPDATE `config_layers` (`maestros.escribir`) → never a commercial source. One Gemini agent (`_shared/whatsapp/agente.js`) used by `whatsapp-webhook` (Meta) and `services/baileys`, no commercial gate, one shared `GEMINI_API_KEY`. Company ids are UUIDv5 of the cpt → MasterAdmin company ids not translatable.
+- Registry/manifest `2026-10-03.1` (TENANT scope): `comerza.ai.whatsapp_agent` ACTIVE AI_FEATURE (legacy grant true); `comerza.storefront` (Vitrina) and `comerza.erp_connector` DRAFT (modules do not exist, D-15; legacy false). No LIMIT/ALLOWANCE (D-03/D-05).
+- Design: receiver in `operator` (closed schema, RLS forced, no grants): applied last-good, append-only audit, single-use jti, per-product/tenant LEGACY/SHADOW/DUAL_READ/PRIMARY, shadow diffs. Server gate `comerza_has_capability` / `comerza_ai_admit` reads the local snapshot only (never MasterAdmin): LEGACY/SHADOW legacy; DUAL_READ snapshot else legacy + fallback alert; PRIMARY snapshot else nothing (no baseline). `features.<flag>=false` in any layer disables; `true` never grants. `appActive=false` withdraws the commercial surface; explicit companyIds → not granted. Zero-commission ≠ free add-ons (tested). Shared provider: per-company/day UTC counter with optional operational cap (`platform_set_ai_provider_budget`, product or company; none seeded). Usage: `comerza_record_ai_usage` → `operator.ai_usage_events` (company-attributed, model/calls/tokens from Gemini `usageMetadata` or null, `billable=false` by CHECK, idempotent, no content). Fiscal/channel credentials untouched (guard test). Default at phase close: SHADOW.
+- Gate (Comerza): `npm test` 873 tests / 792 pass / 0 fail / 81 skip outside the sandbox (baseline 815/734/80; +58) · typecheck/build OK (bundle secret check clean) · `deno check` platform-provisioning + whatsapp-webhook OK · SQL suites `platform_entitlements.sql` 14/14 sections, `commercial_capability_gate.sql` 11/11, `schema_assertions` OK · FIX-ENT-v1 13/13 via the real HTTP handler + real RPCs with the real service_role (step 13 of `test:db`) · X-07 17/17 (`logs/CZ11-07-x07-e2e.txt`) · INV-1 provisioning diff empty (only the `Deno.serve` dispatch line) · INV-4 no price writes.
+- BLOCKED/NOT_EXECUTED (environment, recorded not expanded): (1) `npm run test:db` not green end-to-end on this machine: the two-session race harness (fixed 1 s head start) is flaky under Docker load — race 9 fails at base `2c49725` and at HEAD (B got `REC-000001`, i.e. ran before A locked), race 8 failed in a diagnostic run without race 9; purchases/transfers code untouched. Consequently steps 10 (loyalty race) and 12 (seed re-apply) NOT_EXECUTED; step 13 ran separately 13/13; step 11 (provisioning race) run by hand: B/C REPLAYED, one tenant. Operator: rerun `npm run test:db` with Docker unloaded. (2) `npm run test:edge` NOT_EXECUTED: needs a `supabase start` stack (`supabase_edge_runtime_comerza`) that does not exist here. (3) `db-rebuild-preconditions` fails only inside the sandbox (`mktemp -d`), 5/5 outside. (4) X-07 first run 16/17 on a 30 s client timeout caused by `docker exec` latency; local timeout raised to 180 s and the whole scenario rerun 17/17.
+- Deviations: snapshot NOT materialized into `config_layers` (plan §11.3) because the tenant can write it; consequence: sold Vitrina/ERP would also need the tenant flag on (today DRAFT; open item for when they become ACTIVE). Gate keyed by company, not org. Baileys `pensar()` extracted to `services/baileys/src/pensar.js`, tests in the root suite. Local usage table instead of `operator.usage_outbox` (outbox + signed ingest in phase 17). Registry constraints generic dot-notation so the `fixture` product can be loaded in the golden run. Pre-existing bug fixed (needed to gate the agent): `whatsapp-webhook` called `resolveRuntimeKeys()` without env → TypeError on every POST (deno check 5 errors → 0).
+- Supabase: CLI 2.116.0 archived (`supabase-cli-comerza.txt`). Docs finding: Supabase is moving the platform default to revoke automatic grants on new `public` objects (discussion 45329); every new function revokes public/anon/authenticated and grants service_role explicitly, so it works under either default.
+- Open (not expanded): operator must set `EBIM_MASTERADMIN_M2M_ENTITLEMENTS_{WRITE,READ}_SCOPE` and `EBIM_ENTITLEMENTS_ENVIRONMENT` and configure the MasterAdmin Comerza integration entitlements columns after GATE C; decide the shared-provider cap; DUAL_READ/PRIMARY only in phase 18 with D-14; Vitrina/ERP activation must switch their technical flag when promoted to ACTIVE; `comerza.storefront` naming kept from the spec although Vitrina is the marketing-agents module.
+- Evidence: `phase-11-comerza.md` (+ SaaS evidence), `logs/CZ11-07-x07-e2e.txt`.
+- Status: PHASE_11=PASS.
+
+## 2026-09-28 — Phase 12 (TMS rollout)
+- LOCAL only. TMS worktree `TMS/.worktrees/ebim-commercial-control-plane-v1` on `feature/ebim-commercial-control-plane-v1` from `692ff4f` (`git fetch` fails in the sandbox — SSH; cached `dev == origin/dev == 692ff4f`, same as phase 00). TMS root checkout (`feature/tms-ewm-integration-v1`) untouched. No push (TMS: explicit human order), no QAS, no Supabase (TMS is Flyway, ADR-002).
+- Commits (TMS): `da4dcdd` pin FIX-ENT-v1 + Java JCS · `1f44050` V52 receiver/durable last-good/modes/manifest · `7f14b9d` PUT/GET/manifest routes + `tms:entitlements:write|read` · `a92e1da` `CommercialAccessGate` (separate from RBAC, both chains) · `f009380` ADR-017 + `ENTITLEMENTS.md` + X-07 mailbox bridge · `9397ff5` evidence. MasterAdmin: `scripts/ccp/tms-x07-e2e.mts` + this entry.
+- Map: no prior commercial infrastructure (provisioning records `plan.code` only), no AI feature, no meter. RBAC `Permission`/`Capability` untouched; sellable registry empty; manifest declares only baseline `tms.core`. No usage emitter (no approved meter exists). No prices/amounts/currencies anywhere (INV-4).
+- Design: V52 `tms.platform_entitlement_*` (applied last-good with FKs to V51/organization, append-only audit, single-use jti, one-step modes seeded SHADOW, DELETE forbidden); `tms_app` deny-all + REVOKE; one SECURITY DEFINER `tms.commercial_access_current_company()` (no params, fixed search_path, own org only). `CommercialEntitlementService` reads local state only, fail-closed on unknown code / explicit companyIds / missing limit. `CommercialAccessFilter` after `CompanyScopeFilter` and `IntegrationAuthenticationFilter` → `403 commercial-access-suspended` in DUAL_READ/PRIMARY when `appActive=false`; `/me` free. Offline: no runtime client to MasterAdmin. INV-1: `iam/provisioning` application/infrastructure, V51 and protected suites 0-line diff.
+- Gate (TMS): sandbox `./mvnw -o -B clean test` baseline 1831/0/0 (399 skipped, Docker) → 1904/0/0 (406 skipped), +73 · full suite on disposable PostgreSQL 17 + PostGIS via `TMS_TEST_DB_URL` **2103/0/0**, 1 skipped (opt-in X-07 bridge) · FIX-ENT-v1 13/13 against real services · ArchUnit + `MigrationConventionTest` green · web `tsc -b` OK, vitest 137/137, oxlint pre-existing warnings only · X-07 18/18 (`logs/TM12-07-x07-e2e.txt`) · secrets scan PASS.
+- Resume note: the first runner ended during the full IT run (surefire `EOFException`, no failures recorded). On resume the full suite was rerun from scratch at `f009380` and passed; one orphan test DB from the killed JVM dropped; container `tms_ccp12_pg` removed.
+- BLOCKED (environment, recorded not expanded): `git fetch` (SSH); Docker socket denied in sandbox and Testcontainers timed out under Docker load → repo's own `ExternalTestServer` against a hand-started disposable container; Mockito self-attach → `-javaagent` argLine (pom untouched); no port binding → X-07 via file mailbox.
+- Deviations: ADR number 017 and migration V52 (013–016 / V52–V55 exist on unmerged TMS branches → renumber at integration); **`appActive=false` suspends TMS operational access** (contract README §2 / plan §11.4) whereas EWM (phase 10) withdrew only the commercial surface — criterion must be unified before PRIMARY (phase 18); SECURITY DEFINER justified in V52 §6/ADR-017; no materialization (no legacy table); additive changes to `IntegrationApiTenancyTest` / `SchemaExposureIntegrationTest`; 503 `M2M_NOT_CONFIGURED` for entitlements covered by the existing disabled-chain test only.
+- Open: push on explicit order (`git -C <TMS> push origin feature/ebim-commercial-control-plane-v1`); after GATE C set `TMS_ENTITLEMENTS_ENVIRONMENT` and MasterAdmin TMS integration `entitlements_path`/`entitlements_manifest_path`/scopes; mode changes only in phase 18 with D-14.
+- Evidence: `phase-12-tms.md` (+ SaaS evidence `TMS/.worktrees/.../phase-12-tms.md`, `runs/TM12-*`), `logs/TM12-07-x07-e2e.txt`.
+- Status: PHASE_12=PASS.
+
+## 2026-09-28 — Phase 13 (eSupplier rollout)
+- LOCAL only. eSupplier worktree `eSupplier/.worktrees/ebim-commercial-control-plane-v1` (phase 06 head `e942be5`, base `a61dd22`). No push (program branch is not `dev`; the 21:30 job does not touch it), no QAS, nothing against `glmgxzlloyqhcoercsjh`; `config.toml` untouched. Resume check: phase 12 already PASS in this ledger; `RESUME-13` log empty and worktree clean at `e942be5` → phase 13 started from scratch (baseline 52 files / 1099 tests, identical to phase 06).
+- Supabase: CLI 2.116.0 help archived (`supabase-cli-esupplier.txt`, phase 13 section). Docs finding: functions get EXECUTE to PUBLIC plus Supabase default grants to anon/authenticated/service_role (advisors 0028/0029) → every new function revokes PUBLIC/anon/authenticated and grants service_role only.
+- Commits (eSupplier): `241a189` pin FIX-ENT-v1 + JCS/contract/config/manifest · `ebc8852` migration `20261006100000_platform_entitlements.sql` (receiver) · `bb4a02b` PUT/GET/manifest routes (`esupplier:entitlements:write|read`, additive dispatch in `index.ts`) · `28b6812` migration `20261006103000_ai_usage_outbox.sql` + `_shared/aiUsage.ts` on 21 AI functions + `aiGateway` · `4d595e8` migration `20261006110000_commercial_entitlement_gate.sql` + sweep · `d078ddb` fix (no service_role in public `resolve-ubigeo`; strict=false narrowing) · `04b6f71` FIX-ENT-v1 golden · `fdcf0b3` evidence, `ENTITLEMENTS.md`, rollback. MasterAdmin: `scripts/ccp/esupplier-x07-e2e.mts` + this entry.
+- Design: receiver tables `public.platform_entitlement_*` (RLS without policies, service_role read-only, writes only through DEFINER RPCs), tenant resolved only through the ACTIVE provisioning record, last-good durable snapshot, append-only audit/diffs/mode events, single-use jti, per-product/tenant mode (seeded SHADOW, one step). The phase-06 single gate `esup_tenant_has_addon` (same signature) switches source by mode: LEGACY/SHADOW legacy; DUAL_READ snapshot + legacy fallback with daily alert; PRIMARY snapshot only (no snapshot → included only), legacy grant writes blocked, hub sync ignored. All callers follow unchanged (11 paid AI functions, `upsert_agent_config_rpc` technical settings, UI read); scheduled `portfolio-risk-sweep` selects tenants with the same decision (`esup_tenants_with_addon`), fails closed and re-checks per tenant. AI credits allowance (if a snapshot carries one) enforced from the local outbox (BLOCK; no weight / out of period → deny). max_users/max_companies NOT applied (D-05; LIMIT DRAFT, stored only). `appActive=false` withdraws paid add-ons, not included/operational. Default at phase close: SHADOW.
+- Gate (eSupplier, HEAD `04b6f71`): SQL CCP 159/159 (phase 06 suites unchanged 34/8/5; outbox 46; receiver 38; gate 28) · FIX-ENT-v1 golden 14/14 (13 fixtures via real handler + real RPCs as service_role + jti replay) · X-07 18/18 (`logs/SU13-X07-esupplier-e2e.txt`) · `npm test` 57 files / 1194 passed (+95; golden file skipped without DB) · `test:security` 35/595 · `type-check:gate` 625 = ceiling · build OK · `security:gates` 19/19 (stdout preload, as phase 06) · `deno check` 0 errors on 21 AI functions + provisioning + shared · INV-1 diff empty (index.ts +28/−0 dispatch only) · INV-4 plans hash identical · rollback `13-esupplier.sql` dry-run IDENTICAL · no new duplicate timestamps · secret scan clean.
+- Manual migration drift (documented, unresolved): chain not replayable from zero (`20260511220000_payments.sql`); base schema in `all_migrations.sql` + 63 manual `src/supabase/queries/*.sql`; remote history repaired by hand (`repair_migrations.ps1`, `migrations_combined_dev.sql`); known duplicate `20260811120000`; undated drafts; `20260630200000_risk_sweep_cron.sql` calls the sweep with a service_role bearer from a DB setting while the function requires the phase-3B HMAC → live cron not versioned or failing. Never `db push`; operator applies reviewed SQL + `migration repair` after GATE C, migrations BEFORE edge functions.
+- BLOCKED/NOT_EXECUTED (environment/pre-existing, recorded): `git fetch` (SSH, cached refs as phase 00); Docker only outside the sandbox (disposable `esupplier-ccp-*` containers, all removed); `lint` NOT_EXECUTED (ESLint 9 without flat config, pre-existing); `supabase db reset --local` impossible (pre-existing chain) → capture harness as in phase 06.
+- Deviations: fixtures vendored under `supabase/tests/fixtures/entitlements-v1/` (tsc ratchet); hub aliases published in `ENTITLEMENTS_ALIASES.json` because the v1 manifest schema forbids extra keys; route dispatch in `index.ts` (INV-1); no materialization into `tenant_commercial_addons`; `echange_desk` DRAFT (no tenant → no gate); included add-ons granted in every mode (edge never asks the DB for them); `resolve-ubigeo` metered but not persisted (public endpoint, no service_role); handler ported before its test (RED = missing dispatch); outbox built by a parallel worker (disjoint files; its CRLF→LF rewrite of 7 files reverted to original endings); X-07/golden insert the provisioning mapping directly (capture lacks `companies`/`users`).
+- Open (not expanded): legacy tenants without provisioning mapping would drop to included-only in product-level PRIMARY → adopt or per-tenant PRIMARY (before phase 18); operator env vars + MasterAdmin integration columns after GATE C; phase 17 outbox sender (needs UPDATE on status columns) and signed ingest; import hub aliases in phase 16; unify `appActive=false` criterion with TMS/EWM before PRIMARY; D-03/D-05/D-06, P-08 pending.
+- Evidence: `phase-13-esupplier.md` (+ SaaS evidence), `logs/SU13-X07-esupplier-e2e.txt`.
+- Status: PHASE_13=PASS.
+
+## 2026-09-28 — Phase 14 (eChange rollout)
+- LOCAL only. eChange worktree `eChange/.worktrees/ebim-commercial-control-plane-v1` (phase 06 head `ad3133b`, base `3d6f34e`). No push, no QAS, nothing remote; `config.toml` untouched. Resume check: phases 12 and 13 already PASS in this ledger; `RESUME-14` log empty and eChange worktree clean at `ad3133b` → phase 14 started from scratch (the runner's "resume phase 12" note was stale). Disposable DB `supabase db start/reset --workdir $TMPDIR/echange-ccp14` (Docker outside the sandbox, ports 5592x).
+- Supabase: CLI 2.116.0 help archived (`supabase-cli-echange.txt`, phase 14 section). Docs re-read (database functions + advisors 0028/0029): EXECUTE to PUBLIC + default grants → every new function revokes PUBLIC/anon/authenticated and grants narrowly; DEFINER with fixed search_path.
+- Commits (eChange): `a8040d4` baseline · `e07f0b2` pin FIX-ENT-v1 + JCS/contract/config/manifest · `23a90a5` migration `20261007100000_platform_entitlements.sql` (receiver + reversible materialization) · `9123942` PUT/GET/manifest routes (`echange:entitlements:write|read`, additive dispatch in `index.ts`) + golden · `1035875` migration `20261007103000_commercial_capability_gate.sql` + voice-note/report gate · `cf0bf97` migration `20261007105000_usage_outbox.sql` + AI/case usage hooks · `90d932d` migration `20261007110000_commercial_parity.sql` + `commercialParity.ts` + report · `741a994` evidence, rollback, `ENTITLEMENTS.md`. MasterAdmin: `scripts/ccp/echange-x07-e2e.mts` + this entry.
+- Map (EBIM licensing only, verified in code): add-on agents `report_writer` (existing gate) and `voice_transcriber` (new gate before Deepgram) ACTIVE; `asset_clerk`/`email_intake` DRAFT (no server gate); 5 included agents baseline; paid channels `whatsapp`/`phone`/`email` (managed mailbox)/`esupplier` ACTIVE (every webhook checks `channels.enabled`), `portal`/`teams` baseline; case allowance `echange.cases.included` ALLOWANCE DRAFT (D-05/D-06) measured, never blocking; `service_lines` → `echange.service_line` DRAFT; setup fees → billing axis. `service_rates` (provider's hourly rates to its own customers) out of scope.
+- Design: receiver tables in `privado` (RLS, zero grants), DEFINER RPCs for service_role only; tenant = organization of the ACTIVE provisioning mapping; last-good durable, append-only audit/diffs/alerts, single-use jti, modes per product/tenant (seeded SHADOW, one step). DUAL_READ/PRIMARY materialize into `ai_agents/channels.commercially_entitled` with `enabled = enabled ∧ grant`, only on `billing='addon'` rows of ACTIVE codes, with legacy backup; stepping back restores legacy exactly. Legacy entitlement writes: alert in DUAL_READ, blocked in PRIMARY; PRIMARY without snapshot = included only. Gate `echange_capacidad_activa` (service_role) / `echange_mi_capacidad` (session) reads local data only (offline by design). Usage: `privado.usage_outbox` (case event in the same transaction, never blocks intake; AI events from `callClaude` and 3 Deepgram paths with provider tokens/seconds or null; no content; `billable=false` by CHECK). Dual-read: `echange_modelo_comercial_local` (no prices) + typed mismatch report. Default at phase close: SHADOW.
+- Gate (eChange, fresh chain from zero, 245 migrations): vitest 742/742 (+81; golden and parity against the real DB) · build OK · pgTAP 25 files 1054 ok / 10 not ok — the same pre-existing 10 proven at the base chain in phase 06 (EC-05); new suites 74+34+30+18 = 156/156; protected `platform_provisioning_test` 31/31 · FIX-ENT-v1 golden 14/14 · X-07 24/24 (`logs/EC14-07-x07-e2e.txt`) · INV-1 diff empty (index.ts +31/−0) · INV-4 hash identical before/after the 4 migrations and after a SHADOW snapshot · rollback `14-echange.sql` dry-run restores exact legacy, 0 objects left, phase 06 intact · deno check per touched function identical to base (pre-existing errors in portal-ticket/ai-monthly-report/voice-recording, jose@5 cache in teams-webhook) · no duplicate migration timestamps · secret scan clean.
+- Deviations: ported modules and the comparator written before their tests in the same step (RED = unresolved import); `voice_transcriber` gate keeps legacy "yes" until cutover (`legacy_server_gate=false`); case allowance never blocks → explicit `OVERAGE_POLICY_MISMATCH` (local charges excess, contract v1 only BLOCK); `social-plan` not metered (EBIM-internal, no tenant); 4 migrations instead of 1; one SQL run failed the phase-06 P-07 assertion because the parity scenario left 3 synthetic tenants (global-state assertion) → cleanup added and rerun; finding: that P-07 assertion fails for any tenant provisioned after phase 06 (included agents born enabled without entitlement).
+- Open (not expanded): operator env vars + MasterAdmin eChange integration columns after GATE C, SQL + `migration repair` before functions; DUAL_READ/PRIMARY only in phase 18 with D-14; pre-MasterAdmin tenants (no mapping) stay legacy → adopt before PRIMARY; rows created after materialization governed from the next snapshot; D-01/D-05/D-06/D-15 and contract v1.1 for billable overage; unify `appActive=false` criterion (eChange withdraws paid add-ons only, like EWM/Comerza/eSupplier; TMS blocks operation); phase 17 outbox sender + signed ingest; phase 06 pre-existing definer EXECUTE debt still in backlog.
+- Evidence: `phase-14-echange.md` (+ SaaS evidence), `logs/EC14-07-x07-e2e.txt`.
+- Status: PHASE_14=PASS.
+
+## 2026-09-28 — Phase 15 (eExpense commercial migration)
+- LOCAL only. eExpense worktree `eExpenses/.worktrees/ebim-commercial-control-plane-v1` (phase 04 head `090645e`, base `f282dc4`). No push (eExpense: explicit order only), no QAS, nothing against `uvjmdphlnpyhtohobvzx` (P-05); `config.toml` untouched. Resume check: phases 12–14 already PASS; `RESUME-15` log empty; worktree clean at `090645e` → phase 15 started from scratch (the runner's "resume phase 12" note was stale). `git fetch` fails in the sandbox (SSH); cached `dev == origin/dev == f282dc4`.
+- Supabase: CLI 2.116.0 help archived (`supabase-cli-eexpense.txt`). Docs re-read (Database Functions, Securing your API, advisor 0029): EXECUTE to PUBLIC + default grants → every new function revokes PUBLIC/anon/authenticated and grants narrowly; DEFINER with fixed search_path.
+- Commits (eExpense): `d1d2be7` baseline · `efa9331` pin FIX-ENT-v1 + JCS/contract/config/manifest · `c021fb2` migration `20261008100000_platform_entitlements.sql` (receiver in `private`) · `84c6b46` PUT/GET/manifest routes (`eexpense:entitlements:write|read`, additive dispatch in `index.ts` +31/−0) + golden · `a5ae423` migration `20261008103000_ai_usage_outbox.sql` · `0c4e9b1` migration `20261008105000_commercial_capability_gate.sql` + `_shared/commercialAi.ts` on the 9 AI functions + UI gate · `0bccc49` migration `20261008110000_commercial_parity.sql` + `commercialParity.ts` · `5f3ebc4` migration `20261008113000_billing_authority.sql` + `billing-run/core.ts` + `billing-charge` guard · `444cfe2` evidence, rollback, `ENTITLEMENTS.md`. MasterAdmin: `scripts/ccp/eexpense-x07-e2e.mts` + this entry.
+- Design: receiver tables in `private` (RLS, zero grants, append-only audit/diffs/alerts, single-use jti, per-product/tenant mode seeded SHADOW, one step). **No materialization** into `tenant_addons` (legacy source written by the console and read by UI + hub); the gate `eexpense_capacidad_activa`/`eexpense_admitir_ia` (service_role) reads local data only: LEGACY/SHADOW legacy (AI/WhatsApp had no commercial gate before → legacy "yes", no behaviour change; `white_label` keeps its phase-04 gate), DUAL_READ snapshot else legacy + daily alert, PRIMARY snapshot only (baseline without one). Legacy `tenant_addons` writes: alert in DUAL_READ, blocked in PRIMARY. AI credits enforced only if a snapshot carries `eexpense.ai.credits` (no weight → deny). The 9 AI functions (`capture-receipt`, `cfo-insights`, `close-entry`, `copilot-chat`, `fraud-check`, `parse-statement`, `policy-check`, `suggest-classification`, `whatsapp-inbound` after the Twilio signature) admit before the provider key (403/503 fail-closed) and write one `private.usage_outbox` event in `finally` (meter `eexpense.ai.calls`, provider-returned tokens, `billable=false`, no content, immutable fact). UI (`useModuleGate`, UX only) follows the server snapshot (`eexpense_mis_capacidades`, own tenant only) and is fail-closed for sellables in fallback. Parity: `eexpense_paridad_comercial` typed diffs (plan, add-ons both ways, unmapped, app inactive BLOCKING; DRAFT granted, unknown, limit WARNING), no prices. **Billing axis** `private.billing_authority`: `LEGACY_AUTHORITY → SHADOW → MASTERADMIN_AUTHORITY → RETIRED` (no row = LEGACY_AUTHORITY); SHADOW computes and records the comparison without invoice or charge; MASTERADMIN_AUTHORITY guarded in the DB by DEV parity (mapped + snapshot + zero BLOCKING + latest SHADOW run green and newer than the snapshot); RETIRED after a closed period; trigger on `invoices` rejects local invoices outside LEGACY_AUTHORITY (never two collectors); unreadable authority → `billing-run` 503 without charging; `billing-charge` refuses non-local tenants. Tests use fake gateways only. Registry `2026-10-08.1`: 8 sellable + 3 baseline ACTIVE; 13 client-only modules, `eexpense.users.max` (D-05), `eexpense.ai.credits` (D-03) DRAFT. Default at phase close: entitlements SHADOW; 0 tenants outside LEGACY_AUTHORITY.
+- Gate (eExpense, fresh chain from zero, 132 migrations): pgTAP 244/244 (new 47+36+17+15+28 = 143; phase 04 16+41; protected `platform_provisioning_test` 44/44) · vitest 203 passed (+83 over 120) + golden 14/14 with the container · FIX-ENT-v1 golden 14/14 · X-07 29/29 (`logs/EX15-07-x07-e2e.txt`) · typecheck/build OK · deno check touched functions: no new errors vs `090645e` (whatsapp-inbound 4 = 4 pre-existing) · INV-1 protected diff empty (index.ts +31/−0) · INV-4 hash identical (pinned in `harness/inv4-price-hash.sql`) · advisors: only INFO `rls_enabled_no_policy` on new `private` tables · rollback `15-eexpense.sql` dry-run: 0 phase objects left, phase-04 guard restored, provisioning intact · secret scan clean (one negative-test literal `"-----BEGIN PRIVATE KEY-----"`, no key material).
+- Deviations: modules ported before some tests in the same step (RED = missing module/dispatch); phase-04 `aiEndpointsAuth.test.ts` widened to accept `serveForCapability` (actor first, pinned by a new test); phase-04 billing characterization hashes updated deliberately (algorithm patterns now asserted in `core.ts`); phase-04 INV-4 hash expression was not recorded → pinned anew; `usage_outbox.tenant_id` without FK (history survives tenant deletion); own `text[] || 'literal'` bug caught by pgTAP before commit.
+- Incident (environment, recorded): one `supabase db reset` run outside the sandbox resolved `$TMPDIR` to another path, so the CLI recreated the disposable `supabase_db_eexpense-ccp` container on default port 54322 (left stopped; no other stack touched). Rerun with the absolute workdir `/tmp/claude-501/eexpense-ccp` → full chain applied clean on 55822.
+- Finding: protected `platform_provisioning_test` 2.12 counts CREATED audit rows globally → after X-07 (real alta) it reads 2≠1; not a regression (44/44 on a fresh DB before and after); X-07 must run last or on a fresh DB.
+- Open (not expanded): pre-MasterAdmin tenants (local `demo`, remote CMH) are `TENANT_NOT_MAPPED` → always LEGACY and no billing SHADOW → adopt before any cutover; 13 DRAFT modules need a server gate to be sellable; MasterAdmin plan codes must match local `plans.code` or need an approved alias (`PLAN_MISMATCH` is BLOCKING); unify `appActive=false` criterion (eExpense withdraws baseline too) before PRIMARY; `billing-run` cron secret compare still non-constant-time (legacy); phase 17 outbox sender + signed ingest; D-03/D-05/D-06/D-14. Operator after GATE C + P-05: SQL + `migration repair` before functions, env vars + MasterAdmin eExpense integration columns; push on explicit order `git -C <eExpenses> push origin feature/ebim-commercial-control-plane-v1`.
+- Evidence: `phase-15-eexpense.md` (+ SaaS evidence), `logs/EX15-07-x07-e2e.txt`.
+- Status: PHASE_15=PASS.
+
+## 2026-09-28 — Phase 16 (GMAO hub migration)
+- LOCAL only.
+  - GMAO worktree `GMAO/.worktrees/ebim-commercial-control-plane-v1`, base = phase 05 head `39e5889`.
+  - PGlite harness; GMAO cannot `db reset`.
+  - No push, no QAS, nothing against `xikbhkfeaosasdltartg` (P-05). Nothing retired.
+- Resume check:
+  - The runner prompt said "resume phase 12", but phases 12–15 were already PASS in this ledger.
+  - The GMAO worktree was clean at `39e5889` and no phase-16 artifacts existed, so phase 16 started from scratch.
+  - Stale note, same as phase 15.
+- `git fetch` still fails in the sandbox (SSH).
+- GMAO commits:
+  - `e5686d4` pin FIX-ENT-v1 + GMAO manifest `2026-10-10.1`
+  - `124a3ab` PUT/GET/manifest dispatch in `platform-provisioning/index.ts` (+29/−1: the single `Deno.serve(createHandler(...))` line became `const provisioningHandler`; protected handler/m2m_auth/contract/service/adapters/errors/tests unchanged)
+  - `01223d8` migrations `20261010100000_ccp_commercial_authority`, `…110000_ccp_gmao_entitlements_receiver`, `…120000_ccp_gmao_commercial_gate`, `…130000_ccp_billing_authority_guard`, `…140000_ccp_hub_commercial_freeze`, plus harness `40_ccp_hub_capture.sql` and `run_ccp16_tests.mjs`
+  - `5f0930d` `charge`, `platform-register`, constant-time `X-EBIM-Service`
+  - `a1a1035` `hub-commercial-export`
+  - `eb3476a` rollback `16.sql`, dry-run, `docs/runbooks/gmao-hub-retirement-checklist.md`
+  - `b19dc4d` evidence
+- MasterAdmin commits:
+  - `b2d62db` hub export parser + deterministic mapping (`GMAO_HUB` alias → canonical → UNMAPPED, never invented, no prices)
+  - `f604866` dual-read parity + attestation + `gmao-hub-import-dryrun.mts`
+  - this commit: `scripts/ccp/gmao-x07-e2e.mts` + dry-run test fix. The synthetic remote URL is now built without userinfo; the secrets scan had flagged it.
+- Design:
+  - **State machine.** `private.commercial_authority` implements `LEGACY_AUTHORITY → DUAL_READ → SHADOW → MASTERADMIN_AUTHORITY → READONLY → RETIRED`.
+    - Per product: `gmao` with axes ENTITLEMENTS/BILLING, optional tenant cohort; `hub:<app>` with ENTITLEMENTS at product level.
+    - One step at a time; the service_role lever requires actor and reason. Tenants without a MasterAdmin mapping are always LEGACY.
+    - Advancing to MASTERADMIN_AUTHORITY is DB-gated: gmao parity green; BILLING also needs entitlements at MA+ and a green SHADOW billing comparison after entering SHADOW; hub needs a green parity attestation recorded after SHADOW.
+    - RETIRED needs `RETIREMENT-APPROVED:<ref>`, READONLY since a previous calendar month, no alerts since. It is terminal.
+  - **Receiver.** Tables in `private` (RLS, zero grants, append-only evidence).
+    - RPCs `platform.ccp_apply/get_entitlements`, `ccp_entitlements_use_jti`, `ccp_gmao_commercial_parity`.
+    - GET maps the authority to the contract enum (MA+ → PRIMARY). No materialization.
+  - **GMAO gate.** `ai_consume`/`ai_entitlement` read the last-good snapshot at MA+.
+    - Fail-closed: `SNAPSHOT_MISSING`, `DISABLED`, `ALLOWANCE_NOT_DEFINED`.
+    - Legacy commercial writes alert in DUAL_READ/SHADOW and are blocked at MA+: `tenant_addons.ai_assist`, lowering/deleting `ai_usage`, `tenants.plan_code`, `subscriptions.plan_id`. This covers `ccp_set_ai_entitlement`/`ccp_reset_ai_usage`, which replace tenant self-grant authority.
+  - **Billing.** Triggers on `payments`/`workspace_subscriptions`/`invoices` (catching unversioned RPCs too) reject local collection at MA+.
+    - `charge` reads the authority BEFORE the gateway: MA+ → 409; unreadable → 503.
+    - In SHADOW it keeps charging locally and records a shadow calculation (spec §15.2).
+  - **Hub.** Allowlisted read-only export (no `price_month`/`currency`, no secrets).
+    - M2M function with its own scope and single-use jti, JCS checksum, keys re-validated in TS.
+    - Per-app freeze trigger on `company_addons`/`workspace_subscriptions` at MA+; alerts in DUAL_READ/SHADOW; unresolvable codes alert and are allowed.
+    - `platform-register` pre-check → 409 `HUB_COMMERCIAL_FROZEN`.
+    - Identity (`org_context`, `upsert_org/company`, `activate_app`) untouched.
+  - **Registry.** `gmao.core` baseline + `gmao.ai.assist` ACTIVE. `gmao.ai.requests` (D-03), 3 limits (D-05) and 3 technical add-ons DRAFT. A tenant with AI cannot reach MA until D-03, by design.
+- Gate:
+  - GMAO:
+    - deno: provisioning 32/32 (INV-1), entitlements 58 (FIX-ENT-v1 golden 13/13), charge 19, platform-register/context 9, hub-commercial-export 9, translate 8; check/lint OK.
+    - SQL: 61/61, provisioning 20/20, ccp05 40/40 (also 40/40 with phase 16 applied), ccp16 48/48 including rollback dry-run.
+    - INV-1 empty. INV-4: no catalog price read or written; the only amount columns are the observed SHADOW charge calculation.
+    - Secret scan PASS: one reviewed negative-test PEM header literal. Web untouched.
+  - MasterAdmin: vitest 1123/1123, hub 82, node:test 15/15, typecheck/eslint/secrets PASS.
+  - X-07 MasterAdmin → GMAO 30/30 (`logs/GM16-07-x07-e2e.txt`): real emitter + M2M client → real GMAO receiver/SQL; charge with a fake counting gateway; hub export → parse → map → red and green parity → attestation → freeze → per-product isolation → rollback.
+- Deviations:
+  - **Hub schema.** The live hub DDL is not in git and no operator export exists. The harness captures hub tables by code usage; migrations 4/5 and 5/5 abort with `CCP16_SCHEMA_DRIFT` if columns are missing. The read-only operator SQL is in the GMAO evidence; live verification is deferred to phase 19.
+  - **State order.** The prompt's order (DUAL_READ before SHADOW) differs from spec §15.1 order. Semantics are documented; the contract enum is unchanged.
+  - **E2E transport.** The sandbox denies `listen` (EPERM), so X-07 delivers the signed HTTP request in-process via the client's `fetchImpl`. `sandbox.network.allowLocalBinding: true` would allow the socket variant.
+  - **Worker branch.** The MasterAdmin hub worker had to commit on its own worktree branch; fast-forwarded by the coordinator.
+- Open (not expanded):
+  - Business decisions D-01/D-03/D-05/D-14 are still open.
+  - `subscribe` still accepts `mode:"live"` from the caller.
+  - `charge` still has no currency conversion (P-06).
+  - `org_context` still lacks `app_active`.
+  - Live `workspace_subscriptions.tenant_id` semantics are unverified (org vs GMAO tenant).
+  - Pre-MasterAdmin tenants must be adopted before any cutover.
+  - `EBIM-ESTADO-GMAO.md` text is left for the operator (GUIDELINES_ROOT is read-only).
+- Status: PHASE_16=PASS.
+
+
+## 2026-09-28 — Phase 17 (suite usage metering and AI credits)
+- LOCAL only.
+  - MasterAdmin worktree, base `ba29ff3` (phase 16 close).
+  - No push, no QAS/PRD, no `link`/`db push`/`functions deploy`/`secrets set`.
+  - Nothing was run against `uvjmdphlnpyhtohobvzx` or `xikbhkfeaosasdltartg`.
+- Two invocations.
+  - The first built everything, but ended while the EWM `mvn clean verify` was still running, so it emitted no marker.
+  - The resume found no live Maven process. The old surefire fork had died with SIGTERM (exit 143), leaving no final result.
+  - The resume did not redo work that was already green.
+- MasterAdmin commits:
+  - `1557609` meters + append-only idempotent `usage_events`
+  - `c7964a7` signed ES256 `usage-ingest`
+  - `02403d6` FIX-USG-v1 (`9f77d3cd…ba7d6e1`)
+  - `7af9941` period aggregates/finalization + late-event policy + allowance/overage alerts
+  - `263b4a0` append-only `ai_credit_ledger` + derived balances
+  - `15658a5` runbook + rollback `17.sql`
+  - `c248935`, `0cc53e8` advisor fixes
+  - this commit: `scripts/ccp/usage-x07-e2e.mts`, the X-07 log, evidence and this entry
+- Nothing invented (D-02/D-03/D-04/D-06/D-12).
+  - Weights, policies and ledger are born empty; meters are non-billable; ingest is OFF by default.
+  - The "action quota = weight 1" compatibility was NOT applied (D-03 not approved).
+- SaaS commits (local, all FIX-USG-v1, senders OFF by default, no cron):
+
+  | Product | Commits |
+  | --- | --- |
+  | eCommerce | `9a67427`, `e82bd2e` |
+  | EWM | `2b90b19`, `c87ef5d`, `e75f4c3` |
+  | Comerza | `46863bc`, `0ee7537` |
+  | eSupplier | `86021db` |
+  | eChange | `5b879b9`, `0ea1166`, `916264b` |
+  | eExpense | `0022538`, `afb2850`, `0ddd0d1`, `085deb7`, `f2389dc` |
+  | GMAO | `587e94a` |
+  | TMS | none — no approved meter |
+- Gate:
+  - MasterAdmin: pgTAP 1581/1581, vitest 1185/1185, typecheck/lint/build OK, node:test 15/15, deno check OK, secrets PASS, advisors clean, INV-1 diff empty, rollback dry-run OK.
+  - Ingest E2E 32/32. X-07 usage 66/66: real senders of 6 TypeScript SaaS → real `usage-ingest` → real RPCs.
+  - Real DB:
+    - eExpense 295/295.
+    - Comerza `test:db` exit 0, including a two-session SKIP LOCKED run.
+    - eSupplier 227/227.
+    - eChange usage 52/52 + 30/30, provisioning 31/31.
+    - EWM `clean verify`:
+      - unit 1512/0/0;
+      - IT 1535 with 0 failures, program ITs all green;
+      - 25 errors: 24 in `YardVisitIT`, identical at the pre-17 head `86cb148` (harness context pollution from the class-scoped container of `NeoRetailSeedSmokeIT`; the class passes in isolation, no diff vs `7c086e8`), and 1 intermittent `InterWarehouseTransferIT` (green at the baseline and in 4 isolated runs).
+- Defect found and fixed on resume (EWM `c87ef5d`, introduced by phase 10).
+  - The entitlements GET returned 500 on real PostgreSQL, because the jti was consumed inside a `readOnly` transaction (25006). Phase 10 ITs had never run with a DB.
+  - Fix: `consumirJti` uses `REQUIRES_NEW`, with a new IT. RED, then GREEN 55/55. This also clears the 1 IT failure seen at `86cb148`.
+- eChange: the 10 pgTAP failures were classified against the ORIGINAL DEV base `3d6f34e`, not phase 14.
+  - A disposable DB from `git archive 3d6f34e` gives 818 ok / 10 not ok: the same 10 assertions as HEAD, with the test files unchanged.
+  - They are **pre-existing**, not introduced by phase 06/14/17. They stay in eChange's security backlog: anon/authenticated EXECUTE on portal/attachment DEFINER functions.
+- eCommerce: the `storage_buckets` blocker is a **pre-existing migration portability defect**, not local infrastructure.
+  - The statement is `alter table storage.objects enable row level security`, from `c5111cb`, already in base `7da2ae4`.
+  - `storage.objects` is owned by `supabase_storage_admin`, `postgres` is not a superuser, and RLS is already on.
+  - It breaks any fresh from-zero DB on current images; DBs that already applied it are not affected.
+  - Phase 19 must verify QAS on the existing DB without `db reset`. The fix is left to the eCommerce owner.
+  - Usage SQL verified on PGlite with the full chain (39/39).
+- GMAO: no versioned base schema, so PGlite on the captured schema is its only local harness. Phase 19 must first check the real QAS hub/GMAO schema (read-only operator SQL from phase 16), and only then apply migrations 16/17.
+- Deviations: see `phase-17-usage.md` §Decisiones (pgTAP renumbering 38–40, own ingest credential table, `internal` without column grant, CLOSING still accepts events, allowance overage is BLOCK only in contract v1, no CONSUME without policy/pool).
+- Open (not expanded):
+  - D-02/D-03/D-04/D-06/D-12 are still open. Ingest stays OFF everywhere until D-12.
+  - Operator after D-12/GATE C: per-product ES256 keys, `configure_usage_ingest_credential`, meters ACTIVE, SaaS secrets, sender and close/finalize schedules.
+  - `echange.voice.seconds` is not registered.
+  - `TENANT_NOT_MAPPED` events stay PENDING until those tenants are adopted.
+  - Backlog outside the program: EWM IT harness isolation (`NeoRetailSeedSmokeIT`), eChange DEFINER grants, eCommerce `storage_buckets`.
+  - The `USAGE_OVERAGE` invoice line belongs to phase 18.
+- Evidence: `phase-17-usage.md` (+ SaaS evidence), `logs/MA17-*`, `logs/MA-54-usage-ingest-e2e.txt`, `logs/MA17-X07-usage-e2e.txt`.
+- Status: PHASE_17=PASS.
+
+
+## 2026-09-29 — Phase 18 (billing integration + LOCAL 8-app certification)
+- LOCAL only.
+  - No push, no QAS/PRD, no `link`/`db push`/`functions deploy`/`secrets set`, nothing against remote Supabase.
+  - Culqi live untouched. No price, plan or tax was invented.
+- MasterAdmin commits:
+  - `1ab13a6` MA-60: finalized-aggregate usage/overage invoice lines, once per closed period, and corrected DISCOUNT.
+  - `be7d220` MA-61: recurring discounts subtracted from the card plan; gateway limits on variable amounts documented.
+  - `d2e279d` / `d8b0c16` MA-62: harness `certify-local.sh` + `summarize.mjs`, run from empty databases.
+  - This commit: the final run, the matrix and this entry.
+- Three invocations.
+  - The first two returned while the EWM/TMS Java suites were still running, so they recorded no final result.
+  - The third found no live Maven process. It ran the missing verifiers in the foreground; the IT half went past the tool limit and was waited on synchronously until `EXIT=`.
+- Root causes resolved:
+  - **EWM `YardVisitIT` 24 errors.** Phase 17's classification ("pre-existing NeoRetailSeedSmokeIT pollution") was **wrong**.
+    - The base `7c086e8` runs the full IT suite at 1525/0/0.
+    - The cause: `PlatformEntitlementsIT` (phase 10) has its own `@TestPropertySource` context, which makes 12 cached Hikari pools (11 at the base). `YardVisitIT`'s Flyway then gets "too many clients".
+    - Fix: EWM `601ebb5` adds `@DirtiesContext(AFTER_CLASS)`, test only.
+    - Result: unit 1512/0/0 (1 skipped), IT **1535/0/0**.
+  - **TMS `IdentityResolutionIntegrationTest` 10 errors.** A Flyway V13 deadlock under Testcontainers, not code.
+    - With the repo mechanism `TMS_TEST_DB_URL` on disposable PostGIS 17 (as in phase 12), the suite is **2103/0/0**, 1 skipped (opt-in bridge).
+    - The container `tms_ccp18_pg` was removed.
+- MasterAdmin gate (MA-60/61): pgTAP 1647/1647 after a local reset, vitest 1190/1190, typecheck/lint/build/deno check, node:test 15/15, secrets PASS, no new advisors.
+- Certification `certification/20260929-final/`:
+  - All 27 steps exit 0.
+  - The 15 checks are PASS or N/A (with reason) in all 8 products. See `DEV_SYNCHRONIZATION_MATRIX.md`.
+- Spec §19.1 verdict: **NOT SYNCHRONIZED ×8**. This comes from governance criteria, not from failing tests.
+  - (6) every product is seeded in SHADOW (GMAO DUAL_READ), not `MASTERADMIN_PRIMARY`.
+  - (8) eExpense/GMAO billers are still `LEGACY_AUTHORITY`.
+  - D-14 says no mode advances without explicit human approval, so the program did not advance any mode.
+  - Per-product prerequisites are listed in the matrix.
+- `certification/20260929T060259Z-DISCARDED-load-and-residue/` (untracked) is the run discarded because of residue from a previous run. `d8b0c16` fixed that.
+- Status: PHASE_18=BLOCKED (human gate D-14 + per-product cutover prerequisites). No functional defect remains open.
+
+## 2026-09-29 — Phase 18 resilient supervisor, attempt 1 (D-14 APPROVED for DEV/LOCAL)
+- Found on entry:
+  - D-14 work was already committed: MasterAdmin `f7c1bdf`, `980931e`, `e3ee747`, `9669c41`, `c9ff5c8`; EWM `88ec8c7`/`60167c2`; TMS `19875b2`/`3369f94`.
+  - The D-14 certification `certification/20260929-d14-final/` was killed during its first step (`masteradmin db-reset`) when the print-mode session exited. It recorded zero steps. It has been renamed `20260929T092338Z-DISCARDED-d14-killed-during-reset/` (untracked).
+  - No verifier or certification process was alive.
+- Java suites were not rerun. They are green at the current code heads, and only docs commits came after them. They go into the run through `--record`:
+  - EWM: `EW18-05-full-verify.txt` @ `88ec8c7`, unit 1512/0/0, IT 1535/0/0, `EXIT=0`.
+  - TMS: `TM18-05-full-it.txt` @ `19875b2`, 2114/0/0 with 1 skipped, `EXIT=0`.
+- Relaunched only the missing certification, fully detached with its own session via `setsid`:
+  - PID 31231.
+  - Output: `certification/20260929-d14-final2/`. Progress goes to `runner.log`, and `runner.done` gets `CERTIFY_EXIT=<n>` when it ends.
+  - It got past the MasterAdmin `db-reset` (where the previous run died).
+- Next attempt: do not relaunch while PID 31231 or `certify-local.sh` is alive. Once `runner.done` exists, collect `steps.tsv`, the summaries and `d14/`, then finalize the matrix.
+- Status: PHASE18_WORK_IN_PROGRESS.
+
+## 2026-09-29 — Phase 18 resilient supervisor, attempt 2 (D-14 APPROVED — DEV/LOCAL only)
+- **D-14: APPROVED for DEV/LOCAL only.**
+  - Entitlements → MASTERADMIN_PRIMARY once parity/security are green.
+  - `appActive=false` denies commercial capabilities only, never operational access.
+  - EWM server-side legacy-write block approved.
+  - Legacy tenants are adopted only with a deterministic mapping.
+  - eExpense/GMAO billing stops at BILLING_SHADOW, with diff 0 required.
+  - No QAS/PRD, no push/merge/publish, no remote Supabase.
+- Found on entry:
+  - The run launched in attempt 1 had just finished its product steps at `gmao · x07`. No duplicate was started.
+  - It then ended `CERTIFY_EXIT=1`: `masteradmin · d14-axes` failed at eSupplier with `COHORTE_NO_SINCRONIZADA: 1 tenants … no están IN_SYNC`. The script threw, so eChange/eExpense/GMAO were never evaluated.
+- Root cause (harness, not product):
+  - `entitlement-sync-e2e` step 9 deliberately ends with the kill-switch off: v4 is issued, not pushed. That leaves MasterAdmin's only *enabled* eSupplier integration (`esupplier-e2e-local`) with synthetic tenant `50000000-…0001` in `PENDING_PUSH`.
+  - The D-14 cohort guard of `set_commercial_cutover_state` refused PRIMARY. The guard was correct and was not bypassed or weakened.
+- Fix (test/harness only, MasterAdmin):
+  - `entitlement-sync-e2e` adds step 9b. The kill-switch goes back on, and the retained v4 is delivered without being re-issued → `IN_SYNC|4|4|0`, and the SaaS applies limit 40. The e2e is now 22/22.
+  - `d14-masteradmin-axes` records an RPC refusal as a per-product blocker instead of aborting the loop.
+- Rerun from empty DBs:
+  - Output `certification/20260929-d14-final3/` (stamp `20260929T170038Z`). Java suites were recorded, not rerun: EWM `EW18-05` IT 1535/0/0; TMS `TM18-05` 2114/0/0.
+  - **29/29 steps exit 0, `CERTIFY_EXIT=0`**. d14-axes 24/24. All 8 `SYNCHRONIZED`.
+  - SaaS D-14 checks: eCommerce 28, EWM 26, Comerza 26, TMS 25, eSupplier 26, eChange 30, eExpense 39, GMAO 41, all with 0 failures.
+  - eExpense/GMAO `BILLING_SHADOW` mismatches 0 (period 2026-10), no duplicate charge. MASTERADMIN_AUTHORITY not reached (correct).
+- Legacy tenants: 22 in total, all `UNRESOLVED`. None had a deterministic mapping, so none was adopted and nothing was invented. They stay under the product-scope mode (P-08 pending).
+- Discarded run: `20260929T165402Z-DISCARDED-d14-axes-cohort-fixture-pending/` (untracked).
+- Matrix: `DEV_SYNCHRONIZATION_MATRIX.md` rewritten for the D-14 final state; §19.1 (6) and (8) are met.
+- Status: **PHASE_18=PASS — DEV_ALL_8_SYNCHRONIZED=YES** (LOCAL/DEV only; QAS still behind GATE C).

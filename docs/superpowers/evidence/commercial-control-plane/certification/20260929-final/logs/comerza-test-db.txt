@@ -1,0 +1,1961 @@
+▸ base de trabajo: comerza_rebuild_check (contenedor comerza_ccp_db)
+▸ reponiendo superficie de plataforma (auth, vault, roles)
+▸ aplicando 83 migraciones
+  [32m✓[0m 20260814190000_core.sql
+  [32m✓[0m 20260814191000_identity_and_companies.sql
+  [32m✓[0m 20260814192000_sector_code_on_catalog.sql
+  [32m✓[0m 20260814194000_fix_app_schema_grants.sql
+  [32m✓[0m 20260814200000_operator_console.sql
+  [32m✓[0m 20260814210000_tenant_admin_invitation.sql
+  [32m✓[0m 20260815090000_document_chain.sql
+  [32m✓[0m 20260815091000_definer_fixes_and_returns.sql
+  [32m✓[0m 20260815120000_document_voids.sql
+  [32m✓[0m 20260815140000_fiscal_engine.sql
+  [32m✓[0m 20260815160000_reset_document_series.sql
+  [32m✓[0m 20260815180000_sale_customer.sql
+  [32m✓[0m 20260823090000_order_invoice_lines_and_status.sql
+  [32m✓[0m 20260823091000_index_foreign_keys.sql
+  [32m✓[0m 20260823100000_document_reference_integrity.sql
+  [32m✓[0m 20260823110000_invoice_order_command.sql
+  [32m✓[0m 20260823120000_credit_note_command.sql
+  [32m✓[0m 20260823130000_inventory_ledger.sql
+  [32m✓[0m 20260823140000_transactional_commands_and_rbac.sql
+  [32m✓[0m 20260823150000_fiscal_job_queue.sql
+  [32m✓[0m 20260823160000_credit_note_reason_code.sql
+  [32m✓[0m 20260823170000_peru_void_summary_gre.sql
+  [32m✓[0m 20260823180000_ecuador_fiscal_foundation.sql
+  [32m✓[0m 20260823190000_fiscal_operations_health.sql
+  [32m✓[0m 20260823200000_close_document_write_paths.sql
+  [32m✓[0m 20260823210000_cash_audit_integrity.sql
+  [32m✓[0m 20260823220000_operator_schema_hardening.sql
+  [32m✓[0m 20260824100000_expose_business_permission.sql
+  [32m✓[0m 20260824110000_operational_audit.sql
+  [32m✓[0m 20260824120000_sale_documents_only.sql
+  [32m✓[0m 20260824130000_subject_upsert_from_pos.sql
+  [32m✓[0m 20260824140000_delivery_transport_correction.sql
+  [32m✓[0m 20260824150000_public_data_privileges_baseline.sql
+  [32m✓[0m 20260824160000_tenant_masters.sql
+  [32m✓[0m 20260824170000_stock_receipt_and_adjustment.sql
+  [32m✓[0m 20260824180000_audit_actor_names.sql
+  [32m✓[0m 20260824190000_authorized_line_discount.sql
+  [32m✓[0m 20260825090000_quotations.sql
+  [32m✓[0m 20260825100000_quotation_expiry.sql
+  [32m✓[0m 20260826100000_channels_whatsapp.sql
+  [32m✓[0m 20260826110000_channel_connector.sql
+  [32m✓[0m 20260826120000_channel_chats.sql
+  [32m✓[0m 20260826130000_meta_webhook_support.sql
+  [32m✓[0m 20260828090000_catalog_extended.sql
+  [32m✓[0m 20260828100000_ticket_fields.sql
+  [32m✓[0m 20260828110000_sale_payments.sql
+  [32m✓[0m 20260828120000_party_360.sql
+  [32m✓[0m 20260828130000_dashboard.sql
+  [32m✓[0m 20260828140000_suppliers_and_purchases.sql
+  [32m✓[0m 20260828150000_transfers_and_counts.sql
+  [32m✓[0m 20260828160000_sales_command_only.sql
+  [32m✓[0m 20260903100000_team_users_and_read_only_role.sql
+  [32m✓[0m 20260903120000_role_module_access.sql
+  [32m✓[0m 20260903130000_tenant_roles.sql
+  [32m✓[0m 20260903140000_catalog_categories.sql
+  [32m✓[0m 20260903150000_nota_venta_no_fiscal.sql
+  [32m✓[0m 20260903160000_tenant_branding.sql
+  [32m✓[0m 20260903170000_item_barcodes.sql
+  [32m✓[0m 20260908100000_channel_number_exclusivity.sql
+  [32m✓[0m 20260908110000_my_access_organization.sql
+  [32m✓[0m 20260908120000_channel_conversations_customer_index.sql
+  [32m✓[0m 20260908130000_unknown_permission_is_never_granted.sql
+  [32m✓[0m 20260908140000_org_config_layer_is_unique.sql
+  [32m✓[0m 20260908150000_backfill_item_categories_function.sql
+  [32m✓[0m 20260908160000_barcode_primary_depth_guard.sql
+  [32m✓[0m 20260909100000_record_sale_command.sql
+  [32m✓[0m 20260909110000_credit_note_amount_cap.sql
+  [32m✓[0m 20260909120000_shift_post_close_entries.sql
+  [32m✓[0m 20260910100000_server_owned_fiscal_totals.sql
+  [32m✓[0m 20260910110000_stock_transfers.sql
+  [32m✓[0m 20260910120000_replenishment_min_max.sql
+  [32m✓[0m 20260910130000_purchases.sql
+  [32m✓[0m 20260911100000_loyalty_and_customer_360.sql
+  [32m✓[0m 20260911110000_return_policy.sql
+  [32m✓[0m 20260911120000_promotions.sql
+  [32m✓[0m 20260911130000_sale_pricing_is_server_owned.sql
+  [32m✓[0m 20260915100000_void_sale_idempotent.sql
+  [32m✓[0m 20260916100000_platform_provisioning.sql
+  [32m✓[0m 20260918100000_integracion_ramas.sql
+  [32m✓[0m 20260918110000_sale_line_truth.sql
+  [32m✓[0m 20261003100000_platform_entitlements.sql
+  [32m✓[0m 20261003110000_commercial_capability_gate.sql
+  [32m✓[0m 20261010100000_usage_outbox.sql
+▸ aplicando seed
+  [32m✓[0m seed.sql
+▸ verificando el esquema resultante
+                                               aserciones                                               
+--------------------------------------------------------------------------------------------------------
+   ✓ A referencias · B rls · C policies · D definer · E stock · F fks · G rpcs · H embebidos · I avance
+(1 row)
+
+           aserciones           
+--------------------------------
+   ✓ J suelos de los contadores
+(1 row)
+
+         aserciones         
+----------------------------
+   ✓ K ledger de inventario
+(1 row)
+
+        aserciones         
+---------------------------
+   ✓ L cola fiscal durable
+(1 row)
+
+                aserciones                 
+-------------------------------------------
+   ✓ M motivo fiscal de la nota de credito
+(1 row)
+
+                    aserciones                    
+--------------------------------------------------
+   ✓ N resumen diario agregado y guia de remision
+(1 row)
+
+                                aserciones                                
+--------------------------------------------------------------------------
+   ✓ O credenciales fiscales por tipo, cifradas y sin salida al navegador
+(1 row)
+
+                      aserciones                       
+-------------------------------------------------------
+   ✓ P la historia de caja no se borra ni se reescribe
+(1 row)
+
+                             aserciones                              
+---------------------------------------------------------------------
+   ✓ Q el plano de control del operador es inalcanzable desde la API
+(1 row)
+
+                     aserciones                      
+-----------------------------------------------------
+   ✓ R rastro de auditoria de las acciones de riesgo
+(1 row)
+
+               aserciones               
+----------------------------------------
+   ✓ S arbol de categorias del catalogo
+(1 row)
+
+                     aserciones                      
+-----------------------------------------------------
+   ✓ T el documento interno no llega al motor fiscal
+(1 row)
+
+▸ la venta y sus lineas entran juntas (record_sale)
+Pager usage is off.
+BEGIN
+SET
+SET
+psql:<stdin>:216: NOTICE:  record_sale · 1-5 la venta entra con sus lineas, es idempotente y rechaza lo incoherente: OK
+DO
+DO
+psql:<stdin>:320: NOTICE:  record_sale · 6,7,9 la sociedad, el local y el estado los pone el servidor: OK
+SET
+DO
+psql:<stdin>:392: NOTICE:  record_sale · 8 la cajera vende pero no rebaja: OK
+SET
+RESET
+INSERT 0 1
+SET
+psql:<stdin>:493: NOTICE:  record_sale · 10 completa una venta que se habia quedado sin lineas: OK
+DO
+                                      resultado                                      
+-------------------------------------------------------------------------------------
+   ✓ record_sale: la venta y sus lineas entran juntas, y el trabajo fiscal ya las ve
+(1 row)
+
+ROLLBACK
+▸ los totales fiscales los calcula el servidor
+Pager usage is off.
+BEGIN
+SET
+SET
+psql:<stdin>:288: NOTICE:  OK · bloques 1 a 6 · la tasa, la base, el impuesto y el descuento son del servidor
+DO
+SET
+psql:<stdin>:415: NOTICE:  OK · bloque 7 · Ecuador declara su quince por ciento
+DO
+SET
+psql:<stdin>:674: NOTICE:  OK · los totales fiscales los calcula el servidor
+DO
+ROLLBACK
+▸ prueba funcional del nucleo
+Pager usage is off.
+BEGIN
+              set_config              
+--------------------------------------
+ be075061-8632-4f48-9727-b0aca2b58a85
+(1 row)
+
+SET
+SET
+psql:<stdin>:394: NOTICE:  smoke · 1 correlativos · 2 anulacion directa · 4 entrega y estado derivado · 5 relaciones del comprobante: OK
+DO
+SET
+DO
+psql:<stdin>:431: NOTICE:  3 · la RLS oculta el comprobante de la otra sociedad: OK
+ROLLBACK
+                                       resultado                                        
+----------------------------------------------------------------------------------------
+   ✓ smoke funcional: correlativos, anulacion, aislamiento, estado derivado, relaciones
+(1 row)
+
+▸ cadena pedido → entrega → factura → anulacion
+Pager usage is off.
+BEGIN
+SET
+SET
+psql:<stdin>:350: NOTICE:  invoice · 1-4 parciales e idempotencia · 5-7 rechazos · 8-10 anulacion · 11-13 estado derivado · 14 venta suelta: OK
+DO
+SET
+DO
+psql:<stdin>:380: NOTICE:  15 · facturacion cruzada rechazada: OK
+ROLLBACK
+                                            resultado                                            
+-------------------------------------------------------------------------------------------------
+   ✓ facturacion de pedidos: parciales, idempotencia, conflicto, limites, anulacion, aislamiento
+(1 row)
+
+▸ lo que entra en un turno cerrado queda contado aparte
+Pager usage is off.
+BEGIN
+SET
+SET
+psql:<stdin>:177: NOTICE:  turno · lo que entra despues del arqueo queda contado aparte: OK
+DO
+                             resultado                              
+--------------------------------------------------------------------
+   ✓ turno: la venta tardia entra, y el cierre dice que entro tarde
+(1 row)
+
+ROLLBACK
+▸ el importe de la devolucion esta topado por lo vendido
+Pager usage is off.
+BEGIN
+SET
+SET
+DO
+psql:<stdin>:164: NOTICE:  nota de credito · el importe esta topado por lo vendido y lo legitimo pasa: OK
+SET
+psql:<stdin>:209: NOTICE:  nota de credito · 5 el tope vive en la tabla y no en el comando: OK
+DO
+                                resultado                                
+-------------------------------------------------------------------------
+   ✓ nota de credito: el importe no puede pasar del valor de lo devuelto
+(1 row)
+
+ROLLBACK
+▸ devoluciones parciales sucesivas (nota de credito)
+Pager usage is off.
+BEGIN
+DO
+SET
+SET
+psql:<stdin>:662: NOTICE:  credit note · 1-2 parciales sucesivas · 3-4 idempotencia y conflicto · 5-6 limites · 7 importe derivado · 8 venta intacta · 9-10 anulada y aislamiento · 11 camino a mano · 12 listo para fiscal · 13 motivo fiscal declarado: OK
+DO
+ROLLBACK
+                                                resultado                                                
+---------------------------------------------------------------------------------------------------------
+   ✓ notas de credito: parciales sucesivas, idempotencia, conflicto, limites, aislamiento, motivo fiscal
+(1 row)
+
+▸ inventario con ledger de movimientos
+Pager usage is off.
+BEGIN
+DO
+SET
+SET
+psql:<stdin>:300: NOTICE:  inventario · 1 venta -5 · 2 reintento · 3 devolucion +2 · 4 reenvio · 5 sin restock: OK
+DO
+psql:<stdin>:516: NOTICE:  inventario · 6 entrega -3 e idempotencia · 7 factura sin movimiento · 8 anular factura sin reingreso · 9 anular venta directa +5: OK
+DO
+psql:<stdin>:627: NOTICE:  inventario · 10 lotes separados · 11 lote nuevo y negativo · 12 aislamiento: OK
+DO
+psql:<stdin>:706: NOTICE:  inventario · 13 reconciliacion cuadrada · 14 camino a mano cerrado: OK
+DO
+RESET
+psql:<stdin>:762: NOTICE:  inventario · 15 libro append-only y clave unica: OK
+DO
+ROLLBACK
+                                            resultado                                            
+-------------------------------------------------------------------------------------------------
+   ✓ inventario: venta, reintento, devolucion, entrega, factura, anulaciones, lotes, aislamiento
+(1 row)
+
+▸ traslados entre locales y reposicion min-max
+Pager usage is off.
+BEGIN
+SET
+SET
+psql:<stdin>:166: NOTICE:  OK · la reposicion cuenta el transito y lo pedido, y explica su aritmetica
+DO
+SET
+psql:<stdin>:203: NOTICE:  OK · cuanto se repone lo decide quien administra, no la caja
+DO
+SET
+DO
+SET
+psql:<stdin>:295: NOTICE:  OK · lo de Ecuador no se ve desde Peru, ni por la tabla ni por el comando
+DO
+RESET
+UPDATE 1
+SET
+DO
+RESET
+psql:<stdin>:334: NOTICE:  OK · sin permiso de despacho no sale mercaderia
+UPDATE 1
+ROLLBACK
+▸ promociones: tipos, desempate y quien puede crearlas
+Pager usage is off.
+BEGIN
+INSERT 0 1
+SET
+SET
+psql:<stdin>:251: NOTICE:  OK · los tres tipos de promocion dan la cifra que dice su aritmetica
+DO
+psql:<stdin>:360: NOTICE:  OK · el desempate es un orden total: prioridad, beneficio, antiguedad, id
+DO
+psql:<stdin>:480: NOTICE:  OK · caducada, futura y apagada no descuentan, y la ventana es semiabierta
+DO
+psql:<stdin>:590: NOTICE:  OK · el ambito baja por el arbol y no se sale de su rama
+DO
+SET
+DO
+psql:<stdin>:678: NOTICE:  OK · decidir el precio y cobrarlo son dos permisos distintos
+DO
+psql:<stdin>:745: NOTICE:  OK · las promociones de Ecuador no se ven ni se aplican desde Peru
+RESET
+ROLLBACK
+▸ politica de devolucion y la cadena cotizacion -> venta
+Pager usage is off.
+BEGIN
+DO
+SET
+SET
+psql:<stdin>:146: NOTICE:  devoluciones · A configurar la politica es del administrador: OK
+DO
+SET
+psql:<stdin>:216: NOTICE:  devoluciones · B el reparto de fabrica se instala entero y es idempotente: OK
+DO
+SET
+psql:<stdin>:523: NOTICE:  devoluciones · C cadena cotizacion → pedido → guia → venta → factura → devolucion: OK
+DO
+SET
+psql:<stdin>:583: NOTICE:  devoluciones · D un motivo con galones no lo firma la cajera: OK
+DO
+SET
+DO
+psql:<stdin>:641: NOTICE:  devoluciones · E el supervisor firma la anulacion y el anaquel no se mueve: OK
+DO
+psql:<stdin>:710: NOTICE:  devoluciones · F fuera de plazo se autoriza y queda en la bitacora: OK
+SET
+psql:<stdin>:740: NOTICE:  devoluciones · G la politica se endurece desde la pantalla de maestros: OK
+DO
+SET
+DO
+psql:<stdin>:780: NOTICE:  devoluciones · H con la politica en rechazar, la nota no se emite: OK
+SET
+psql:<stdin>:837: NOTICE:  devoluciones · I la sociedad sin politica configurada devuelve como siempre: OK
+DO
+                                  resultado                                   
+------------------------------------------------------------------------------
+   ✓ politica de devolucion y cadena cotizacion → pedido → venta → devolucion
+(1 row)
+
+ROLLBACK
+▸ fidelizacion: el libro de puntos y la vista 360
+Pager usage is off.
+BEGIN
+SET
+SET
+psql:<stdin>:231: NOTICE:  OK · la venta acumula una sola vez y el saldo es la suma del libro
+DO
+DO
+psql:<stdin>:303: NOTICE:  OK · el canje descuenta una vez y nunca deja el saldo negativo
+SET
+psql:<stdin>:356: NOTICE:  OK · canjear y ajustar son dos permisos distintos
+DO
+SET
+psql:<stdin>:429: NOTICE:  OK · el ajuste a mano exige motivo y no deja el saldo negativo
+DO
+DO
+psql:<stdin>:488: NOTICE:  OK · los puntos vuelven en la misma proporcion que el dinero
+psql:<stdin>:584: NOTICE:  OK · anular revierte lo que la venta movio, leyendo el libro
+DO
+DO
+psql:<stdin>:642: NOTICE:  OK · la vista 360 contesta las cinco preguntas del mostrador
+RESET
+psql:<stdin>:747: NOTICE:  OK · el libro es inmutable, idempotente y las reglas son por sociedad
+DO
+SET
+SET
+psql:<stdin>:845: NOTICE:  OK · los puntos de Ecuador no se ven desde Peru y el saldo no se teclea
+DO
+RESET
+ROLLBACK
+▸ el precio de la venta lo gobierna el servidor
+Pager usage is off.
+BEGIN
+SET
+SET
+DO
+psql:<stdin>:165: NOTICE:  OK · el precio no puede subir y la promocion la resuelve la base
+psql:<stdin>:246: NOTICE:  OK · sin tarifa se cobra igual, y la sugerencia dice numeros
+DO
+ROLLBACK
+▸ anular dos veces devuelve lo mismo
+Pager usage is off.
+BEGIN
+SET
+SET
+psql:<stdin>:124: NOTICE:  OK · anular dos veces devuelve lo mismo y no mueve nada de nuevo
+DO
+SET
+psql:<stdin>:157: NOTICE:  OK · sin permiso de anular no hay respuesta, ni siquiera de exito
+DO
+ROLLBACK
+▸ la linea de venta: tipo del maestro, lote y precio vigilados
+Pager usage is off.
+BEGIN
+SET
+SET
+DO
+                                     resultado                                     
+-----------------------------------------------------------------------------------
+   ✓ la linea de venta: tipo del maestro, lote desconocido avisado, libro cuadrado
+(1 row)
+
+SET
+DO
+                        resultado                         
+----------------------------------------------------------
+   ✓ la rebaja de precio sin permiso queda en la bitacora
+(1 row)
+
+ROLLBACK
+▸ camino completo: caja, anaquel, autoridad y arqueo
+Pager usage is off.
+BEGIN
+SET
+SET
+psql:<stdin>:207: NOTICE:  OK · caja → anaquel → autoridad → arqueo, con el mismo turno y el mismo articulo
+DO
+ROLLBACK
+▸ permisos de negocio y coherencia de la jerarquia
+Pager usage is off.
+BEGIN
+              set_config              
+--------------------------------------
+ 50000000-0000-4000-8000-000000000004
+(1 row)
+
+              set_config              
+--------------------------------------
+ 08e44dc1-1d14-4d18-ac13-e3ae8aa8383a
+(1 row)
+
+SET
+SET
+DO
+psql:<stdin>:175: NOTICE:  rbac · 1 cajera: crea pedido y despacha; no anula, no toca maestro ni numeracion: OK
+SET
+DO
+psql:<stdin>:223: NOTICE:  rbac · 2 supervisor: anula lo que la cajera no pudo; no toca maestro: OK
+SET
+psql:<stdin>:269: NOTICE:  rbac · 3 admin: escribe el maestro y reinicia la numeracion: OK
+DO
+DO
+psql:<stdin>:333: NOTICE:  rbac · 4 puertas directas cerradas: orders, order_lines, deliveries, register_delivery: OK
+SET
+DO
+psql:<stdin>:443: NOTICE:  rbac · 5-6 scope cruzado: local, caja, turno y guia: OK
+DO
+psql:<stdin>:591: NOTICE:  rbac · 7 el comando no mezcla sociedades ni locales, y la FK compuesta sigue: OK
+SET
+DO
+psql:<stdin>:695: NOTICE:  rbac · 8-9 atomicidad, derivacion e idempotencia de create_order: OK
+SET
+psql:<stdin>:734: NOTICE:  rbac · 10 el claim del hub gana sobre la membresia local: OK
+DO
+SET
+DO
+psql:<stdin>:866: NOTICE:  rbac · 11 la guia no se borra ni se despacha por PATCH, y la baja no se falsifica: OK
+SET
+DO
+psql:<stdin>:918: NOTICE:  rbac · 12 el reenvio de la matriz conserva la respuesta para la cajera: OK
+SET
+psql:<stdin>:944: NOTICE:  rbac · 12 la administradora conserva config.fiscal y lo desconocido sigue negado: OK
+DO
+ROLLBACK
+                                                      resultado                                                       
+----------------------------------------------------------------------------------------------------------------------
+   ✓ rbac y scope: roles, puertas directas, jerarquia cruzada, atomicidad, precedencia del claim y la matriz expuesta
+(1 row)
+
+▸ cola fiscal durable (arriendo, backoff, dead letter)
+Pager usage is off.
+BEGIN
+DO
+SET
+SET
+psql:<stdin>:191: NOTICE:  cola · 1-2 sin configuracion queda on_hold y el reenvio no duplica: OK
+DO
+DO
+psql:<stdin>:243: NOTICE:  cola · 4 la cola no se escribe desde el navegador: OK
+SET
+DO
+psql:<stdin>:292: NOTICE:  cola · 3 encender suelta lo retenido y apagar lo retiene: OK
+SET
+SET
+DO
+psql:<stdin>:400: NOTICE:  cola · 5-8 reclamo, backoff determinista y dead_letter: OK
+SET
+SET
+psql:<stdin>:427: NOTICE:  cola · 9a la cajera no reencola: OK
+DO
+SET
+psql:<stdin>:464: NOTICE:  cola · 9b el admin reencola y el documento no retrocede: OK
+DO
+SET
+SET
+DO
+psql:<stdin>:545: NOTICE:  cola · 10-11 aceptado terminal e idempotente; rechazado no se reintenta solo: OK
+DO
+psql:<stdin>:587: NOTICE:  cola · 15 arriendo vencido: el trabajo vuelve y el intento queda: OK
+SET
+SET
+psql:<stdin>:674: NOTICE:  cola · 14 descartar cancela el envio; anular lo enviado encola el aviso: OK
+DO
+psql:<stdin>:731: NOTICE:  cola · 13 la nota de credito se encola sola: OK
+DO
+SET
+DO
+psql:<stdin>:789: NOTICE:  cola · 16-17 aislamiento y superficie de lectura: OK
+ROLLBACK
+                                       resultado                                       
+---------------------------------------------------------------------------------------
+   ✓ cola fiscal: idempotencia, arriendo, backoff, dead letter, terminal y aislamiento
+(1 row)
+
+▸ salud fiscal (contadores, definiciones compartidas y aislamiento)
+Pager usage is off.
+BEGIN
+SET
+DO
+SET
+psql:<stdin>:173: NOTICE:  salud · 1-3, 6, 8 contadores, definiciones compartidas y relojes: OK
+DO
+psql:<stdin>:209: NOTICE:  salud · 5 el motivo llega accionable y sin conversacion: OK
+DO
+psql:<stdin>:234: NOTICE:  salud · 7 aislamiento por sociedad: OK
+DO
+SET
+DO
+psql:<stdin>:281: NOTICE:  salud · 4 configuracion: sin fila, apagada y encendida: OK
+ROLLBACK
+                                      resultado                                       
+--------------------------------------------------------------------------------------
+   ✓ salud fiscal: contadores, definiciones compartidas, motivo saneado y aislamiento
+(1 row)
+
+▸ peru: anulaciones, resumen diario agrupado y guia de remision
+Pager usage is off.
+BEGIN
+DO
+SET
+SET
+DO
+psql:<stdin>:192: NOTICE:  peru · 1 no_enviado: anulado, terminal y sin tramite: OK
+psql:<stdin>:239: NOTICE:  peru · 2 baja: un tramite por documento, una sola vez: OK
+DO
+psql:<stdin>:329: NOTICE:  peru · 3-4 el resumen diario agrupa por dia y serie: OK
+DO
+SET
+psql:<stdin>:369: NOTICE:  peru · 5 adjuntar es idempotente: OK
+DO
+SET
+SET
+psql:<stdin>:428: NOTICE:  peru · 6-7 el resumen se cierra al salir y su estado baja a lo que informa: OK
+DO
+SET
+SET
+DO
+psql:<stdin>:476: NOTICE:  peru · 6b lo anulado despues abre el resumen siguiente del dia: OK
+psql:<stdin>:597: NOTICE:  peru · 8-10 la GRE se encola una vez, se retiene con motivo y se suelta sola: OK
+DO
+psql:<stdin>:665: NOTICE:  peru · 11-12 el navegador no escribe el resumen y la otra sociedad no existe: OK
+DO
+psql:<stdin>:696: NOTICE:  peru · 11b nada consta aceptado sin que un worker lo cerrara: OK
+DO
+ROLLBACK
+                                             resultado                                              
+----------------------------------------------------------------------------------------------------
+   ✓ peru: descarte terminal, baja por documento, resumen diario agrupado y GRE retenida con motivo
+(1 row)
+
+▸ ecuador: credenciales fiscales por tipo (certificado y su clave)
+Pager usage is off.
+BEGIN
+INSERT 0 1
+SET
+SET
+                                                          p12_de_juguete                                                          
+----------------------------------------------------------------------------------------------------------------------------------
+ MIIBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+(1 row)
+
+psql:<stdin>:130: NOTICE:  ec · 1 el proveedor se valida contra el país de la sociedad: OK
+DO
+psql:<stdin>:159: NOTICE:  ec · 2 no se enciende sin las credenciales del proveedor: OK
+DO
+psql:<stdin>:219: NOTICE:  ec · 3 sanity check del certificado y huella calculada por la base: OK
+DO
+RESET
+DO
+SET
+DO
+RESET
+psql:<stdin>:284: NOTICE:  ec · 4 renovar actualiza el secreto y no acumula: OK
+DO
+SET
+psql:<stdin>:339: NOTICE:  ec · 5 el material no vuelve al navegador por ninguna vía: OK
+DO
+DO
+psql:<stdin>:378: NOTICE:  ec · 7 la sociedad ajena no se configura ni se le quita nada: OK
+SET
+psql:<stdin>:413: NOTICE:  ec · 8 el cajero no toca las credenciales fiscales: OK
+DO
+SET
+SET
+psql:<stdin>:454: NOTICE:  ec · 6 el proceso de envío lee las dos piezas en un viaje: OK
+DO
+SET
+SET
+psql:<stdin>:539: NOTICE:  ec · 9 no se deja sin credencial a quien está emitiendo: OK
+DO
+DO
+RESET
+psql:<stdin>:574: NOTICE:  ec · 10 el token de Peru se adopta y no se duplica: OK
+DO
+SET
+SET
+psql:<stdin>:590: NOTICE:  ec · 10b las dos puertas al Vault abren el mismo secreto: OK
+DO
+ROLLBACK
+                               resultado                               
+-----------------------------------------------------------------------
+   ✓ ecuador: credenciales por tipo, cifradas, sin salida al navegador
+(1 row)
+
+▸ caja: el turno y el efectivo no se borran ni se reescriben
+Pager usage is off.
+BEGIN
+              set_config              
+--------------------------------------
+ a0000000-0000-4000-8000-000000000001
+(1 row)
+
+              set_config              
+--------------------------------------
+ d1000000-0000-4000-8000-000000000001
+(1 row)
+
+              set_config              
+--------------------------------------
+ 50000000-0000-4000-8000-000000000001
+(1 row)
+
+              set_config              
+--------------------------------------
+ b0000000-0000-4000-8000-000000000003
+(1 row)
+
+              set_config              
+--------------------------------------
+ b0000000-0000-4000-8000-000000000002
+(1 row)
+
+              set_config              
+--------------------------------------
+ b0000000-0000-4000-8000-000000000001
+(1 row)
+
+              set_config              
+--------------------------------------
+ 20b796c2-7dd2-4515-a221-cce607c66c91
+(1 row)
+
+SET
+SET
+DO
+psql:<stdin>:155: NOTICE:  caja · 1 movimiento append-only · 2 fondo inicial y titular inmutables: OK
+DO
+psql:<stdin>:211: NOTICE:  caja · 3 el cierre es final · 4 el reenvio del mismo cierre pasa: OK
+DO
+psql:<stdin>:270: NOTICE:  caja · 5 nada de efectivo tras el cierre (y el reenvio pasa) · 6 el turno no se borra: OK
+SET
+DO
+SET
+DO
+psql:<stdin>:366: NOTICE:  caja · 7 el supervisor y la administradora tampoco (ni por TRUNCATE): OK
+SET
+DO
+psql:<stdin>:442: NOTICE:  caja · 8 abrir, mover, compensar y cerrar siguen funcionando: OK
+RESET
+RESET
+psql:<stdin>:502: NOTICE:  caja · 9 los disparadores no miran el rol, y la FK ya no cascadea: OK
+DO
+ROLLBACK
+                                          resultado                                           
+----------------------------------------------------------------------------------------------
+   ✓ caja: movimiento append-only, cierre final, turno indestructible y el dia normal intacto
+(1 row)
+
+▸ operador: el plano de control cerrado y la consola intacta
+BEGIN
+INSERT 0 1
+INSERT 0 1
+              set_config              
+--------------------------------------
+ d1000000-0000-4000-8000-000000000001
+(1 row)
+
+              set_config              
+--------------------------------------
+ d1000000-0000-4000-8000-000000000002
+(1 row)
+
+CREATE TABLE
+CREATE FUNCTION
+GRANT
+GRANT
+SET
+SET
+psql:<stdin>:165: NOTICE:  operador · 1 el esquema no existe para la cajera: OK
+DO
+SET
+DO
+psql:<stdin>:225: NOTICE:  operador · 2 el admin del tenant tampoco sube a plataforma: OK
+SET
+psql:<stdin>:342: NOTICE:  operador · 3 lista, da de alta, vincula y deriva la activacion: OK
+DO
+psql:<stdin>:391: NOTICE:  operador · 4 el admin de tenant no cruza de sociedad ni sube: OK
+DO
+RESET
+SET
+SET
+psql:<stdin>:431: NOTICE:  operador · 5 anon no alcanza nada: OK
+DO
+RESET
+psql:<stdin>:507: NOTICE:  operador · 6 la identidad de operador esta atada a su dominio: OK
+DO
+psql:<stdin>:561: NOTICE:  operador · 7 force rls puesto y las DEFINER siguen escribiendo: OK
+DO
+SET
+SET
+psql:<stdin>:603: NOTICE:  operador · 8 el `where` del que llama no ve lo que la vista no devuelve: OK
+DO
+ROLLBACK
+                                         resultado                                         
+-------------------------------------------------------------------------------------------
+   ✓ operador: esquema cerrado, consola intacta, identidad atada al dominio y sin escalada
+(1 row)
+
+▸ provisioning de MasterAdmin: alta, idempotencia, atomicidad y estado
+Pager usage is off.
+BEGIN
+              set_config              
+--------------------------------------
+ f0f00000-0000-4000-8000-00000000c001
+(1 row)
+
+              set_config              
+--------------------------------------
+ f0f00000-0000-4000-8000-00000000a001
+(1 row)
+
+              set_config              
+--------------------------------------
+ f0f00000-0000-4000-8000-00000000b001
+(1 row)
+
+                            set_config                            
+------------------------------------------------------------------
+ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+(1 row)
+
+                                                               set_config                                                                
+-----------------------------------------------------------------------------------------------------------------------------------------
+ {"correlationId":"corr-sql-1","m2mSubject":"masteradmin-service","m2mJti":"jti-sql-1","actorId":"user-42","actorRole":"PLATFORM_ADMIN"}
+(1 row)
+
+                                                                                                                                                                                                                                                                                                                                        set_config                                                                                                                                                                                                                                                                                                                                        
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"admin": {"email": "admin@cliente-sql.test", "fullName": "Admin SQL"}, "comerza": {"store": {"name": "Sede Central", "address": "Av. Uno 1"}, "sectorCode": "farmacia"}, "company": {"id": "f0f00000-0000-4000-8000-00000000b001", "name": "Cliente SQL", "taxId": "20999999001", "currency": "PEN", "legalName": "Cliente SQL SAC", "countryCode": "PE"}, "organization": {"id": "f0f00000-0000-4000-8000-00000000a001", "name": "Cliente SQL", "slug": "cliente-sql", "taxId": null, "currency": "PEN", "timezone": "America/Lima", "legalName": "Cliente SQL SAC", "countryCode": "PE"}, "deploymentMode": "SHARED", "controlPlaneTenantId": "f0f00000-0000-4000-8000-00000000c001"}
+(1 row)
+
+DO
+RESET
+                                  platform_provisioning                                  
+-----------------------------------------------------------------------------------------
+   ✓ 1 anon y authenticated (incluso con claims de operador) no alcanzan el provisioning
+(1 row)
+
+DO
+                         platform_provisioning                         
+-----------------------------------------------------------------------
+   ✓ 2 sin service_role en los claims, NO_AUTORIZADO aunque haya GRANT
+(1 row)
+
+SET
+SET
+DO
+RESET
+DO
+                     platform_provisioning                      
+----------------------------------------------------------------
+   ✓ 3 alta completa, con el id del plano de control y auditada
+(1 row)
+
+SELECT 1
+GRANT
+CREATE FUNCTION
+SET
+SET
+DO
+RESET
+DO
+                  platform_provisioning                   
+----------------------------------------------------------
+   ✓ 4 misma clave y mismo contrato: REPLAYED, nada nuevo
+(1 row)
+
+                  platform_provisioning                  
+---------------------------------------------------------
+   ✓ 5 misma clave y otro contrato: IDEMPOTENCY_CONFLICT
+(1 row)
+
+                                  platform_provisioning                                  
+-----------------------------------------------------------------------------------------
+   ✓ 6 mismo tenant: REPLAYED con el mismo contrato, TENANT_ALREADY_PROVISIONED con otro
+(1 row)
+
+CREATE FUNCTION
+CREATE TRIGGER
+SET
+SET
+DO
+RESET
+DROP TRIGGER
+DO
+SET
+SET
+DO
+RESET
+                                    platform_provisioning                                    
+---------------------------------------------------------------------------------------------
+   ✓ 7 atomicidad: un fallo a mitad del alta no deja estructura, registro ni clave consumida
+(1 row)
+
+DROP TABLE
+SELECT 1
+SET
+SET
+DO
+RESET
+DO
+                                      platform_provisioning                                       
+--------------------------------------------------------------------------------------------------
+   ✓ 8 RUC o sociedad existentes, admin de operador y datos invalidos: rechazo sin rastro de alta
+(1 row)
+
+SET
+SET
+DO
+RESET
+DO
+                                   platform_provisioning                                   
+-------------------------------------------------------------------------------------------
+   ✓ 9 Ecuador: USD, 8 series y los defaults del producto (sector retail, local Principal)
+(1 row)
+
+INSERT 0 1
+SET
+SET
+DO
+RESET
+UPDATE 1
+SET
+SET
+DO
+RESET
+UPDATE 1
+SET
+SET
+DO
+RESET
+DO
+                                   platform_provisioning                                   
+-------------------------------------------------------------------------------------------
+   ✓ 10 estado FOUND/NOT_FOUND auditado y admin PREPROVISIONED → INVITED → ACTIVE derivado
+(1 row)
+
+DO
+                            platform_provisioning                             
+------------------------------------------------------------------------------
+   ✓ 11 la bitacora de provisioning es append-only (ni el dueño la reescribe)
+(1 row)
+
+SET
+SET
+DO
+RESET
+SET
+SET
+DO
+RESET
+                                     platform_provisioning                                     
+-----------------------------------------------------------------------------------------------
+   ✓ 12 el frontend no lee ni escribe provisioning; la consola del operador ve el tenant nuevo
+(1 row)
+
+ROLLBACK
+▸ entitlements de MasterAdmin: receptor, versiones, jti y modo
+Pager usage is off.
+BEGIN
+              set_config              
+--------------------------------------
+ e0e00000-0000-4000-8000-00000000c001
+(1 row)
+
+              set_config              
+--------------------------------------
+ e0e00000-0000-4000-8000-00000000a001
+(1 row)
+
+              set_config              
+--------------------------------------
+ e0e00000-0000-4000-8000-00000000b001
+(1 row)
+
+              set_config              
+--------------------------------------
+ e0e00000-0000-4000-8000-00000000c099
+(1 row)
+
+                                                               set_config                                                                
+-----------------------------------------------------------------------------------------------------------------------------------------
+ {"correlationId":"corr-ent-1","m2mSubject":"masteradmin-service","m2mJti":"jti-ent-1","actorId":"user-42","actorRole":"PLATFORM_ADMIN"}
+(1 row)
+
+CREATE FUNCTION
+CREATE FUNCTION
+DO
+RESET
+                                platform_entitlements                                
+-------------------------------------------------------------------------------------
+   ✓ 1 anon y authenticated (incluso con claims de operador) no alcanzan el receptor
+(1 row)
+
+DO
+                         platform_entitlements                         
+-----------------------------------------------------------------------
+   ✓ 2 sin service_role en los claims, NO_AUTORIZADO aunque haya GRANT
+(1 row)
+
+SET
+SET
+RESET
+DO
+                       platform_entitlements                       
+-------------------------------------------------------------------
+   ✓ service_role ejecuta las cuatro puertas y no alcanza operator
+(1 row)
+
+DO
+                            platform_entitlements                            
+-----------------------------------------------------------------------------
+   ✓ 3 GET antes del primer snapshot: NONE en SHADOW; sin provisioning, null
+(1 row)
+
+DO
+                      platform_entitlements                       
+------------------------------------------------------------------
+   ✓ 4 PUT v1 → APPLIED, guardado entero y auditado; el GET lo ve
+(1 row)
+
+DO
+                      platform_entitlements                      
+-----------------------------------------------------------------
+   ✓ 5 misma version y checksum → replayed, sin volver a aplicar
+(1 row)
+
+DO
+                             platform_entitlements                              
+--------------------------------------------------------------------------------
+   ✓ 6 misma version, otro checksum → 409 VERSION_CONFLICT, lo aplicado intacto
+(1 row)
+
+DO
+                        platform_entitlements                         
+----------------------------------------------------------------------
+   ✓ 7 los saltos se aplican; una version vieja es 409 STALE_SNAPSHOT
+(1 row)
+
+DO
+                                platform_entitlements                                 
+--------------------------------------------------------------------------------------
+   ✓ 8 desconocido → APPLIED_WITH_WARNINGS; lista explicita de compañias → sin mapear
+(1 row)
+
+DO
+                         platform_entitlements                         
+-----------------------------------------------------------------------
+   ✓ 9 sin provisioning → 404 auditado; tenant del path ≠ cuerpo → 422
+(1 row)
+
+DO
+         platform_entitlements         
+---------------------------------------
+   ✓ 10 jti de un solo uso, por emisor
+(1 row)
+
+DO
+                            platform_entitlements                             
+------------------------------------------------------------------------------
+   ✓ 11 SHADOW anota solo donde la decision legada y la del snapshot difieren
+(1 row)
+
+DO
+                         platform_entitlements                         
+-----------------------------------------------------------------------
+   ✓ 12 modo: un paso por vez, por producto o por tenant, con bitacora
+(1 row)
+
+RESET
+DO
+                              platform_entitlements                               
+----------------------------------------------------------------------------------
+   ✓ 13 auditoria, bitacora de modos y diferencias no se reescriben (ni el dueño)
+(1 row)
+
+ROLLBACK
+▸ gate comercial: snapshot por modo, flags que solo restan, proveedor compartido y uso de IA
+Pager usage is off.
+BEGIN
+              set_config              
+--------------------------------------
+ a0000000-0000-4000-8000-000000000001
+(1 row)
+
+              set_config              
+--------------------------------------
+ d1000000-0000-4000-8000-000000000001
+(1 row)
+
+              set_config              
+--------------------------------------
+ d1000000-0000-4000-8000-000000000002
+(1 row)
+
+              set_config              
+--------------------------------------
+ c9c90000-0000-4000-8000-00000000c001
+(1 row)
+
+              set_config              
+--------------------------------------
+ c9c90000-0000-4000-8000-00000000c002
+(1 row)
+
+              set_config              
+--------------------------------------
+ c9c90000-0000-4000-8000-00000000a001
+(1 row)
+
+              set_config              
+--------------------------------------
+ c9c90000-0000-4000-8000-00000000b001
+(1 row)
+
+              set_config              
+--------------------------------------
+ c9c90000-0000-4000-8000-00000000a002
+(1 row)
+
+              set_config              
+--------------------------------------
+ c9c90000-0000-4000-8000-00000000b002
+(1 row)
+
+                                      set_config                                      
+--------------------------------------------------------------------------------------
+ {"correlationId":"corr-gate","m2mSubject":"masteradmin-service","m2mJti":"jti-gate"}
+(1 row)
+
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+DO
+RESET
+DO
+                   commercial_capability_gate                    
+-----------------------------------------------------------------
+   ✓ 1 anon y authenticated no alcanzan el gate; service_role si
+(1 row)
+
+DO
+                      commercial_capability_gate                       
+-----------------------------------------------------------------------
+   ✓ 2 sin service_role en los claims, NO_AUTORIZADO aunque haya GRANT
+(1 row)
+
+SET
+DO
+                                  commercial_capability_gate                                   
+-----------------------------------------------------------------------------------------------
+   ✓ 3 SHADOW decide con el legado: el agente contesta, Vitrina/ERP no, lo desconocido tampoco
+(1 row)
+
+DO
+                           commercial_capability_gate                           
+--------------------------------------------------------------------------------
+   ✓ 4 un flag del tenant en true no concede; en false apaga, en cualquier capa
+(1 row)
+
+DO
+DO
+                           commercial_capability_gate                            
+---------------------------------------------------------------------------------
+   ✓ 5 DUAL_READ y PRIMARY deciden con el snapshot local; contratado ≠ encendido
+(1 row)
+
+DO
+                          commercial_capability_gate                           
+-------------------------------------------------------------------------------
+   ✓ 6 sin snapshot: DUAL_READ cae al legado y alerta; PRIMARY no concede nada
+(1 row)
+
+DO
+                             commercial_capability_gate                             
+------------------------------------------------------------------------------------
+   ✓ 7 PRIMARY sin enabled:true no enciende nada, ni con todos los flags del tenant
+(1 row)
+
+DO
+                       commercial_capability_gate                        
+-------------------------------------------------------------------------
+   ✓ 8 appActive=false, lista de compañias y codigo desconocido: negados
+(1 row)
+
+DO
+                               commercial_capability_gate                                
+-----------------------------------------------------------------------------------------
+   ✓ 9 presupuesto del proveedor: por sociedad y dia, operativo, sin gastar en negativas
+(1 row)
+
+DO
+                              commercial_capability_gate                              
+--------------------------------------------------------------------------------------
+   ✓ 10 uso de IA: atribuido a la sociedad, idempotente, no facturable, sin contenido
+(1 row)
+
+DO
+                   commercial_capability_gate                    
+-----------------------------------------------------------------
+   ✓ 11 uso, cambios de tope y caidas al legado no se reescriben
+(1 row)
+
+ROLLBACK
+▸ outbox de uso: misma transaccion, tenant del mapping, claim/lease, marcas y backoff
+Pager usage is off.
+BEGIN
+              set_config              
+--------------------------------------
+ a0000000-0000-4000-8000-000000000001
+(1 row)
+
+              set_config              
+--------------------------------------
+ d1000000-0000-4000-8000-000000000001
+(1 row)
+
+              set_config              
+--------------------------------------
+ c17c0000-0000-4000-8000-00000000a001
+(1 row)
+
+              set_config              
+--------------------------------------
+ c17c0000-0000-4000-8000-00000000b001
+(1 row)
+
+              set_config              
+--------------------------------------
+ c17c0000-0000-4000-8000-00000000b002
+(1 row)
+
+              set_config              
+--------------------------------------
+ c17c0000-0000-4000-8000-00000000c001
+(1 row)
+
+              set_config              
+--------------------------------------
+ c17c0000-0000-4000-8000-00000000a002
+(1 row)
+
+              set_config              
+--------------------------------------
+ c17c0000-0000-4000-8000-00000000b011
+(1 row)
+
+              set_config              
+--------------------------------------
+ c17c0000-0000-4000-8000-00000000b012
+(1 row)
+
+              set_config              
+--------------------------------------
+ c17c0000-0000-4000-8000-00000000b013
+(1 row)
+
+              set_config              
+--------------------------------------
+ c17c0000-0000-4000-8000-00000000c011
+(1 row)
+
+              set_config              
+--------------------------------------
+ c17c0000-0000-4000-8000-00000000c012
+(1 row)
+
+              set_config              
+--------------------------------------
+ c17c0000-0000-4000-8000-00000000c021
+(1 row)
+
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+INSERT 0 5
+ mapping 
+---------
+ 
+(1 row)
+
+ mapping 
+---------
+ 
+(1 row)
+
+ mapping 
+---------
+ 
+(1 row)
+
+DO
+RESET
+DO
+                                          usage_outbox                                          
+------------------------------------------------------------------------------------------------
+   ✓ 1 la tabla sin grants para la API; claim/mark solo service_role, DEFINER, search_path fijo
+(1 row)
+
+DO
+                             usage_outbox                              
+-----------------------------------------------------------------------
+   ✓ 2 sin service_role en los claims, NO_AUTORIZADO aunque haya GRANT
+(1 row)
+
+SET
+DO
+                                            usage_outbox                                             
+-----------------------------------------------------------------------------------------------------
+   ✓ 3 uso y evento en la misma transaccion (mismo xmin); comerza.ai.calls/call, cantidad = llamadas
+(1 row)
+
+DO
+                                       usage_outbox                                       
+------------------------------------------------------------------------------------------
+   ✓ 4 idempotente por eventId; sin tokens no hay claves de tokens; 0 llamadas no se mide
+(1 row)
+
+DO
+                                              usage_outbox                                              
+--------------------------------------------------------------------------------------------------------
+   ✓ 5 sin mapping ACTIVE, o ambiguo por organizacion: PENDING + TENANT_NOT_MAPPED, sin inventar tenant
+(1 row)
+
+DO
+DO
+                                        usage_outbox                                         
+---------------------------------------------------------------------------------------------
+   ✓ 6 claim: solo pendiente+mapeado+vencido, lease que protege, limite acotado, SKIP LOCKED
+(1 row)
+
+DO
+                                    usage_outbox                                    
+------------------------------------------------------------------------------------
+   ✓ 7 un mapping ACTIVE posterior rescata el pendiente; el ambiguo sigue esperando
+(1 row)
+
+DO
+                                       usage_outbox                                        
+-------------------------------------------------------------------------------------------
+   ✓ 8 mark: SENT con sent_at, DEAD con su codigo, RETRY con backoff 30/60/.../15360/21600
+(1 row)
+
+DO
+                           usage_outbox                           
+------------------------------------------------------------------
+   ✓ 9 sin el lease vigente, o sobre SENT/DEAD, mark no hace nada
+(1 row)
+
+DO
+                                     usage_outbox                                      
+---------------------------------------------------------------------------------------
+   ✓ 10 el hecho, el tenant atribuido y los terminales no se reescriben; nada se borra
+(1 row)
+
+DO
+                                               usage_outbox                                                
+-----------------------------------------------------------------------------------------------------------
+   ✓ 11 cantidad no negativa, medidor/unidad de Comerza, internal solo COGS, estado cerrado, sin contenido
+(1 row)
+
+ROLLBACK
+▸ auditoria: quien hizo cada accion de riesgo, y lo que no llego a pasar
+Pager usage is off.
+BEGIN
+              set_config              
+--------------------------------------
+ a0000000-0000-4000-8000-000000000001
+(1 row)
+
+              set_config              
+--------------------------------------
+ d1000000-0000-4000-8000-000000000001
+(1 row)
+
+              set_config              
+--------------------------------------
+ d1000000-0000-4000-8000-000000000002
+(1 row)
+
+              set_config              
+--------------------------------------
+ 50000000-0000-4000-8000-000000000001
+(1 row)
+
+              set_config              
+--------------------------------------
+ 50000000-0000-4000-8000-000000000004
+(1 row)
+
+              set_config              
+--------------------------------------
+ b0000000-0000-4000-8000-000000000003
+(1 row)
+
+              set_config              
+--------------------------------------
+ b0000000-0000-4000-8000-000000000002
+(1 row)
+
+              set_config              
+--------------------------------------
+ b0000000-0000-4000-8000-000000000001
+(1 row)
+
+              set_config              
+--------------------------------------
+ 20b796c2-7dd2-4515-a221-cce607c66c91
+(1 row)
+
+              set_config              
+--------------------------------------
+ 08e44dc1-1d14-4d18-ac13-e3ae8aa8383a
+(1 row)
+
+SET
+SET
+DO
+RESET
+DO
+psql:<stdin>:335: NOTICE:  auditoria · 1-4 la cajera deja rastro, y lo rechazado no deja ninguno: OK
+SET
+SET
+psql:<stdin>:395: NOTICE:  auditoria · 5-6 la anulacion se atribuye a quien la hizo, y el supervisor lee: OK
+DO
+SET
+DO
+SET
+psql:<stdin>:450: NOTICE:  auditoria · 7 la bitacora de la sociedad de al lado no se ve: OK
+DO
+SET
+psql:<stdin>:472: NOTICE:  auditoria · 6.b la bitacora no es dato de mostrador: OK
+DO
+SET
+psql:<stdin>:488: NOTICE:  auditoria · 8 el operador de plataforma no ve un solo evento: OK
+DO
+SET
+psql:<stdin>:551: NOTICE:  auditoria · 9-10 la bitacora no se escribe ni se borra desde una sesion: OK
+DO
+RESET
+psql:<stdin>:582: NOTICE:  auditoria · 10 append-only tambien para los caminos elevados: OK
+DO
+SET
+SET
+DO
+psql:<stdin>:651: NOTICE:  auditoria · 11 configurar y cargar credencial dejan rastro, el secreto no: OK
+RESET
+DO
+SET
+SET
+DO
+psql:<stdin>:714: NOTICE:  auditoria · 11.d el reintento manual queda con nombre y estado de origen: OK
+RESET
+DO
+SET
+SET
+psql:<stdin>:766: NOTICE:  auditoria · 12 el reinicio de la numeracion es un evento, no veinte: OK
+DO
+RESET
+psql:<stdin>:831: NOTICE:  auditoria · 13 metadatos tachados, aplanados y recortados: OK
+DO
+ROLLBACK
+                                   resultado                                   
+-------------------------------------------------------------------------------
+   ✓ auditoria: quien lo hizo queda escrito, lo rechazado no, y nadie lo borra
+(1 row)
+
+▸ cotizacion: ciclo de vida y conversion idempotente a pedido
+BEGIN
+SET
+SET
+DO
+psql:<stdin>:88: NOTICE:  cotizacion · 1 nace en borrador, deriva sus totales y no mueve nada: OK
+DO
+psql:<stdin>:134: NOTICE:  cotizacion · 2 se edita en borrador y se cierra al emitirla: OK
+psql:<stdin>:190: NOTICE:  cotizacion · 3 el ciclo de estados no admite atajos, y aceptar es idempotente: OK
+DO
+DO
+psql:<stdin>:252: NOTICE:  cotizacion · 4 la conversion es atomica, vinculada y una sola vez: OK
+psql:<stdin>:281: NOTICE:  cotizacion · 5 la tabla no se escribe desde el navegador: OK
+DO
+SET
+psql:<stdin>:298: NOTICE:  cotizacion · 6 la oferta de la sociedad de al lado no se ve: OK
+DO
+psql:<stdin>:356: NOTICE:  cotizacion · 7 una vencida no se acepta ni se convierte, aunque la fila diga emitida: OK
+DO
+RESET
+psql:<stdin>:400: NOTICE:  cotizacion · 8 el proceso de vencimiento es idempotente y no toca lo vigente: OK
+DO
+ROLLBACK
+▸ bypass: la venta no se puede crear sin su comando
+BEGIN
+SET
+SET
+psql:<stdin>:422: NOTICE:  bypass · 1-4 escritura directa DENEGADA · 5 el comando funciona · 6 los estados imposibles no entran · 7 aislamiento · 8 replay idempotente y correlativo unico: OK
+DO
+                                   resultado                                    
+--------------------------------------------------------------------------------
+   ✓ bypass: la venta solo entra por record_sale(), y el replay no duplica nada
+(1 row)
+
+ROLLBACK
+▸ venta atomica: cabecera, lineas y pagos en una transaccion
+BEGIN
+SET
+SET
+psql:<stdin>:275: NOTICE:  venta atomica · 1-7 la venta entra entera y el reparto cuadra: OK
+DO
+psql:<stdin>:320: NOTICE:  venta atomica · 9 el local de otra sociedad no emite: OK
+DO
+                                   resultado                                   
+-------------------------------------------------------------------------------
+   ✓ venta atomica: cabecera, lineas y pagos entran juntos y el reparto cuadra
+(1 row)
+
+ROLLBACK
+▸ descuento autorizado: PostgREST cerrado, y el permiso vivo en los comandos
+BEGIN
+SET
+SET
+psql:<stdin>:159: NOTICE:  descuento · 1 PostgREST cerrado, y por el comando la cajera vende y no rebaja: OK
+DO
+SET
+psql:<stdin>:257: NOTICE:  descuento · 2 el supervisor rebaja por el comando, y el rango sigue siendo 0..100: OK
+DO
+SET
+DO
+psql:<stdin>:307: NOTICE:  descuento · 3 el RPC pide el mismo permiso que la tabla: OK
+psql:<stdin>:332: NOTICE:  descuento · 4 la autorizacion se suma con AND, no con OR: OK
+DO
+ROLLBACK
+▸ auditoria: quien lee el rastro y quien recibe cero filas
+BEGIN
+DO
+SET
+SET
+DO
+psql:<stdin>:70: NOTICE:  auditoria · 1 el mostrador recibe cero filas, no una pantalla escondida: OK
+SET
+psql:<stdin>:126: NOTICE:  auditoria · 2 el supervisor lee su sociedad y no la otra: OK
+DO
+SET
+DO
+psql:<stdin>:172: NOTICE:  auditoria · 3 el rastro no se reescribe, no se borra y no se inventa: OK
+ROLLBACK
+▸ inventario: recepcion y ajuste, cada uno con su permiso
+BEGIN
+SET
+SET
+psql:<stdin>:74: NOTICE:  inventario · 1 la cajera recibe mercaderia y el saldo sube: OK
+DO
+DO
+psql:<stdin>:104: NOTICE:  inventario · 2 la cajera no ajusta: OK
+SET
+psql:<stdin>:160: NOTICE:  inventario · 3 la administradora ajusta, y con motivo: OK
+DO
+DO
+psql:<stdin>:224: NOTICE:  inventario · 4 idempotente, y una clave reusada con otro contenido se rechaza: OK
+SET
+psql:<stdin>:275: NOTICE:  inventario · 5 el anaquel de otra sociedad no se alcanza por id: OK
+DO
+SET
+psql:<stdin>:313: NOTICE:  inventario · 6 las salidas solo las emite su documento: OK
+DO
+ROLLBACK
+▸ aislamiento entre sociedades de lo nuevo (dos tenants)
+BEGIN
+DO
+SET
+SET
+DO
+psql:<stdin>:205: NOTICE:  aislamiento v2 · 2.a-2.d las tablas y funciones nuevas no cruzan: OK
+SET
+psql:<stdin>:259: NOTICE:  aislamiento v2 · 3 quien tiene las dos sociedades ve las dos: OK
+DO
+RESET
+SET
+psql:<stdin>:302: NOTICE:  aislamiento v2 · 4 anon no llega a ninguna tabla nueva: OK
+DO
+RESET
+                                           resultado                                            
+------------------------------------------------------------------------------------------------
+   ✓ aislamiento: las tablas y funciones nuevas no cruzan de sociedad, y quien tiene dos ve dos
+(1 row)
+
+ROLLBACK
+▸ abastecimiento: compra, recepcion, traslado y conteo
+BEGIN
+SET
+SET
+psql:<stdin>:367: NOTICE:  abastecimiento · 1-10 compra, recepcion, traslado y conteo: OK
+DO
+                                               resultado                                                
+--------------------------------------------------------------------------------------------------------
+   ✓ abastecimiento: la compra alimenta el costo, el traslado pasa por transito y el conteo deja rastro
+(1 row)
+
+ROLLBACK
+▸ maestros del tenant: equipo, acceso y series sin psql
+BEGIN
+SET
+SET
+psql:<stdin>:48: NOTICE:  maestros · 1 el supervisor no lista el equipo: OK
+DO
+SET
+psql:<stdin>:85: NOTICE:  maestros · 2 la administradora lista su equipo, por sociedad: OK
+DO
+psql:<stdin>:136: NOTICE:  maestros · 3 el rol cambia, y no a uno mismo ni a uno inventado: OK
+DO
+SET
+DO
+psql:<stdin>:185: NOTICE:  maestros · 4 nunca se queda sin administrador activo: OK
+SET
+psql:<stdin>:254: NOTICE:  maestros · 5 el acceso retirado deja de resolver identidad: OK
+DO
+SET
+SET
+DO
+psql:<stdin>:337: NOTICE:  maestros · 6 las series se derivan, se abren una vez y no se duplican: OK
+psql:<stdin>:369: NOTICE:  maestros · 7 cada cambio dejo su rastro con actor: OK
+DO
+ROLLBACK
+▸ rol efectivo por sociedad activa (mismo usuario, dos roles)
+BEGIN
+SET
+SET
+psql:<stdin>:102: NOTICE:  rol por sociedad · el mismo usuario manda en PE y no en EC: OK
+DO
+DO
+psql:<stdin>:132: NOTICE:  rol por sociedad · el dato sigue aislado por sociedad: OK
+ROLLBACK
+▸ roles a medida: fabrica en toda sociedad, calcado, retiro y borrado
+Pager usage is off.
+BEGIN
+psql:<stdin>:79: NOTICE:  roles · 1 los cinco de fabrica en toda sociedad, incluida una recien creada: OK
+DO
+SET
+SET
+DO
+psql:<stdin>:156: NOTICE:  roles · 2 rol nuevo calcado del efectivo, e independiente desde ese momento: OK
+psql:<stdin>:203: NOTICE:  roles · 3 el rol nuevo se asigna, se ofrece y tiene columna en Permisos: OK
+DO
+SET
+psql:<stdin>:259: NOTICE:  roles · 4 el rol a medida puede lo copiado y nada mas — ni lo del rol anterior: OK
+DO
+SET
+psql:<stdin>:397: NOTICE:  roles · 5-7 codigos reservados, borrados imposibles y retirar sin recortar: OK
+DO
+SET
+psql:<stdin>:418: NOTICE:  roles · 7b quien tiene un rol retirado lo conserva con sus permisos: OK
+DO
+SET
+psql:<stdin>:497: NOTICE:  roles · 8 borrar se lleva el reparto del rol y nada mas; el codigo se reutiliza limpio: OK
+DO
+SET
+psql:<stdin>:583: NOTICE:  roles · 9 la cajera no crea, no edita, no borra y solo ve los de su sociedad: OK
+DO
+ROLLBACK
+                                                        resultado                                                         
+--------------------------------------------------------------------------------------------------------------------------
+   ✓ roles a medida: fabrica en toda sociedad, calcado del efectivo, retirar sin recortar y borrado que no deja huerfanos
+(1 row)
+
+▸ permisos por rol y modulo: recorte, ampliacion y vuelta a fabrica
+Pager usage is off.
+BEGIN
+SET
+SET
+psql:<stdin>:84: NOTICE:  permisos · 1 sin configurar, la matriz es la de siempre: OK
+DO
+SET
+DO
+psql:<stdin>:107: NOTICE:  permisos · 1b el supervisor conserva lo suyo y nada mas: OK
+SET
+psql:<stdin>:182: NOTICE:  permisos · 2 la administradora recorta al cajero, con rastro: OK
+DO
+SET
+DO
+SET
+psql:<stdin>:257: NOTICE:  permisos · 3-4 la cajera deja de cobrar por comando Y por PostgREST, y conserva lo demas: OK
+DO
+SET
+psql:<stdin>:304: NOTICE:  permisos · 5 la sociedad tambien puede ampliar, y solo lo que amplia: OK
+DO
+SET
+psql:<stdin>:388: NOTICE:  permisos · 6-8 ni el admin, ni un rol inventado, ni un nivel que el modulo no ofrece: OK
+DO
+SET
+psql:<stdin>:460: NOTICE:  permisos · 7-9 la cajera no reparte, ni por comando ni por PostgREST, y si lee: OK
+DO
+psql:<stdin>:506: NOTICE:  permisos · 10 my_access() y la matriz cuentan lo mismo: OK
+DO
+psql:<stdin>:517: NOTICE:  permisos · 12 role_access() no contesta a quien no administra: OK
+DO
+SET
+psql:<stdin>:581: NOTICE:  permisos · 11 restablecer devuelve el reparto de fabrica, entero: OK
+DO
+SET
+psql:<stdin>:603: NOTICE:  permisos · 11b la cajera vuelve a cobrar y deja de anular: OK
+DO
+ROLLBACK
+                                                  resultado                                                   
+--------------------------------------------------------------------------------------------------------------
+   ✓ permisos por rol y modulo: recorte y ampliacion, comando y PostgREST, admin intocable y vuelta a fabrica
+(1 row)
+
+▸ marca del cliente: mezcla de capas, override y logo que no puede ser html
+Pager usage is off.
+BEGIN
+SET
+SET
+psql:<stdin>:67: NOTICE:  marca · 1 el punto de partida es lo que dejo el seed, sin inventar claves: OK
+DO
+psql:<stdin>:135: NOTICE:  marca · 2 la administradora guarda la marca del grupo y la hermana la hereda: OK
+DO
+SET
+psql:<stdin>:154: NOTICE:  marca · 2b la cajera ve la marca de su empresa: OK
+DO
+SET
+DO
+psql:<stdin>:217: NOTICE:  marca · 3-4 el override hereda lo que no pisa y no toca el resto de la config: OK
+DO
+psql:<stdin>:311: NOTICE:  marca · 5 clave, color, modo, texto, logo y alcance: todo lo malo se rechaza: OK
+SET
+psql:<stdin>:373: NOTICE:  marca · 6 la cajera no cambia la marca ni por comando ni por PostgREST: OK
+DO
+psql:<stdin>:392: NOTICE:  marca · 8 una sociedad que no es suya no le contesta: OK
+DO
+SET
+psql:<stdin>:448: NOTICE:  marca · 7 restablecer borra branding y solo branding: OK
+DO
+ROLLBACK
+                                                     resultado                                                     
+-------------------------------------------------------------------------------------------------------------------
+   ✓ marca del cliente: mezcla de capas, override que hereda, logo que no puede ser html y solo el admin la cambia
+(1 row)
+
+▸ documento interno: la nota de venta se numera, no sale y no admite nota de credito
+Pager usage is off.
+BEGIN
+DO
+SET
+SET
+DO
+                                           paso                                           
+------------------------------------------------------------------------------------------
+   ✓ 1-5 la nota de venta se numera aparte, no sale, mueve stock y se anula sin comunicar
+(1 row)
+
+DO
+                                      paso                                       
+---------------------------------------------------------------------------------
+   ✓ 6 la nota de credito no corrige un documento que la autoridad nunca recibio
+(1 row)
+
+ROLLBACK
+▸ categorias: arbol recursivo, propagacion y borrado que no arrastra
+Pager usage is off.
+BEGIN
+DO
+                            paso                            
+------------------------------------------------------------
+   ✓ 0 el catalogo que ya existia quedo convertido en arbol
+(1 row)
+
+SET
+SET
+DO
+                      paso                       
+-------------------------------------------------
+   ✓ 1 profundidad, raiz y ruta salen calculadas
+(1 row)
+
+DO
+                   paso                    
+-------------------------------------------
+   ✓ 2 el arbol se corta en cuatro niveles
+(1 row)
+
+DO
+                            paso                             
+-------------------------------------------------------------
+   ✓ 3 el nombre es unico entre hermanas y libre entre ramas
+(1 row)
+
+DO
+                               paso                               
+------------------------------------------------------------------
+   ✓ 4 renombrar reescribe la rama entera y el grupo del articulo
+(1 row)
+
+DO
+                              paso                               
+-----------------------------------------------------------------
+   ✓ 5 mover una rama recalcula raiz, nivel y ruta de los nietos
+(1 row)
+
+DO
+                 paso                 
+--------------------------------------
+   ✓ 6 el ciclo se rechaza en la base
+(1 row)
+
+DO
+                              paso                              
+----------------------------------------------------------------
+   ✓ 7 item_group se deriva de la categoria y no se sobrescribe
+(1 row)
+
+DO
+                            paso                            
+------------------------------------------------------------
+   ✓ 8 retirar saca de la lista y conserva lo que ya estaba
+(1 row)
+
+DO
+                         paso                          
+-------------------------------------------------------
+   ✓ 9 con hijas o con articulos no se borra; vacia si
+(1 row)
+
+DO
+                         paso                          
+-------------------------------------------------------
+   ✓ 10 el arbol llega en preorden y con sus recuentos
+(1 row)
+
+SET
+DO
+                     paso                      
+-----------------------------------------------
+   ✓ 11 la cajera lee el arbol y no lo escribe
+(1 row)
+
+RESET
+DO
+                                 paso                                  
+-----------------------------------------------------------------------
+   ✓ 12 el arbol no cruza organizaciones ni por el camino privilegiado
+(1 row)
+
+ROLLBACK
+▸ codigos de barras: normalizacion, verificador, duplicado y principal
+Pager usage is off.
+BEGIN
+SET
+SET
+DO
+                                      paso                                       
+---------------------------------------------------------------------------------
+   ✓ 1 un codigo entra solo con escanearlo: formato y principal los pone la base
+(1 row)
+
+DO
+                                   paso                                    
+---------------------------------------------------------------------------
+   ✓ 2 espacios y guiones no hacen un codigo distinto, y el vacio no entra
+(1 row)
+
+DO
+                                     paso                                      
+-------------------------------------------------------------------------------
+   ✓ 3 el verificador atrapa el codigo mal tecleado y «interno» sigue entrando
+(1 row)
+
+DO
+                             paso                              
+---------------------------------------------------------------
+   ✓ 4 varios codigos por articulo y exactamente uno principal
+(1 row)
+
+DO
+                                 paso                                  
+-----------------------------------------------------------------------
+   ✓ 5 un codigo resuelve a un solo articulo, y retirarlo no lo libera
+(1 row)
+
+DO
+                                    paso                                    
+----------------------------------------------------------------------------
+   ✓ 6 al irse el principal asciende el siguiente, por retiro y por borrado
+(1 row)
+
+DO
+                               paso                                
+-------------------------------------------------------------------
+   ✓ 7 borrar el articulo se lleva sus codigos y no deja huerfanos
+(1 row)
+
+SET
+DO
+                           paso                            
+-----------------------------------------------------------
+   ✓ 8 la cajera resuelve el escaneo y no toca el catalogo
+(1 row)
+
+RESET
+SET
+DO
+                                     paso                                      
+-------------------------------------------------------------------------------
+   ✓ 9 el codigo no cruza organizaciones, y el mismo EAN cabe en dos catalogos
+(1 row)
+
+ROLLBACK
+▸ dirigido: comprobante de venta, alta de sujeto y guia retenida corregible
+Pager usage is off.
+BEGIN
+DO
+SET
+SET
+DO
+psql:<stdin>:163: NOTICE:  dirigido · 1 la venta se emite con comprobante de venta: OK
+psql:<stdin>:295: NOTICE:  dirigido · 2-5 la caja da de alta el sujeto y el maestro sigue cerrado: OK
+DO
+DO
+psql:<stdin>:449: NOTICE:  dirigido · 6-9 la guia retenida se corrige por el comando y solo por el: OK
+SET
+SET
+DO
+SET
+SET
+psql:<stdin>:505: NOTICE:  dirigido · 10 lo aceptado por la autoridad no se reescribe: OK
+DO
+SET
+psql:<stdin>:543: NOTICE:  dirigido · 11 la guia de la otra sociedad no se toca: OK
+DO
+SET
+DO
+psql:<stdin>:603: NOTICE:  dirigido · 12 las dos puertas nuevas dejan escrito quien las uso: OK
+ROLLBACK
+                                                resultado                                                
+---------------------------------------------------------------------------------------------------------
+   ✓ dirigido: la venta no se emite como guia, la caja da de alta su sujeto y la GRE retenida se corrige
+(1 row)
+
+▸ concurrencia de la facturacion (dos sesiones)
+                              resultado                              
+---------------------------------------------------------------------
+   ✓ concurrencia: dos cajas facturando la misma linea se serializan
+(1 row)
+
+  [32m✓[0m la segunda sesion espero y rechazo por EXCEDE_LO_ENTREGADO
+▸ concurrencia del worker fiscal (dos sesiones)
+                                   resultado                                    
+--------------------------------------------------------------------------------
+   ✓ concurrencia: dos workers se reparten la cola y ninguno repite comprobante
+(1 row)
+
+  [32m✓[0m dos workers se repartieron la cola sin repetir comprobante
+▸ concurrencia del outbox de uso (dos sesiones)
+                             asercion                             
+------------------------------------------------------------------
+   ✓ cada sesion se llevo un evento distinto, con su propio lease
+(1 row)
+
+  [32m✓[0m dos emisores se repartieron el outbox sin repetir evento
+▸ concurrencia de la recepcion de un traslado (dos sesiones)
+                                        resultado                                         
+------------------------------------------------------------------------------------------
+   ✓ concurrencia: dos sesiones recibiendo el mismo traslado acreditan el destino una vez
+(1 row)
+
+  [32m✓[0m la segunda sesion espero y devolvio already_applied sin acreditar de nuevo
+▸ concurrencia de la recepcion de una compra (dos sesiones)
+                             resultado                             
+-------------------------------------------------------------------
+   ✓ concurrencia: la segunda recepcion no metio mercaderia de mas
+(1 row)
+
+  [32m✓[0m la segunda sesion espero y rechazo por EXCEDE_LO_PEDIDO
+▸ concurrencia del canje de puntos (dos sesiones)
+                           resultado                            
+----------------------------------------------------------------
+   ✓ concurrencia: el segundo canje no saco puntos que no habia
+(1 row)
+
+  [32m✓[0m la segunda sesion espero y rechazo por SALDO_INSUFICIENTE
+▸ concurrencia del provisioning de MasterAdmin (tres sesiones)
+                                     resultado                                      
+------------------------------------------------------------------------------------
+    ✓ concurrencia: tres altas simultaneas del mismo tenant crearon exactamente una
+(1 row)
+
+  [32m✓[0m las sesiones B (misma clave) y C (mismo tenant) esperaron y respondieron REPLAYED
+▸ re-aplicar el seed no descuadra el libro de inventario
+  [32m✓[0m el libro y el anaquel siguen cuadrando posicion por posicion
+▸ entitlements: los 13 fixtures FIX-ENT-v1 contra el receptor real
+  [32m✓[0m los 13 fixtures: PUT, replay, stale, conflict y GET como dice el contrato
+[32m✓ el esquema se reconstruye desde cero (83 migraciones)[0m
