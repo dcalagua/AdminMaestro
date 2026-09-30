@@ -83,7 +83,7 @@ de las 8; eCommerce `functions deploy platform-provisioning`.
 - Secrets (nombres): 9 `EBIM_MASTERADMIN_M2M_*` preexistentes + los 3 de entitlements. **Ningún** `USAGE_*`.
 - `platform-provisioning` desplegado: v7 (pre-CCP) → manifiesto aún 404 hasta el deploy (§5).
 
-### EWM CI — `EWM_CI_FIXED=YES` (local; CI remoto en §6)
+### EWM CI — `EWM_CI_FIXED=YES` (GitHub CI run 36688489969 sobre `24a57d6`: 4/4 jobs success)
 - Causa 1: `MasterAdminMailboxBridgeTest` es el puente X-07 (`@EnabledIfEnvironmentVariable(CCP_X07_MAILBOX)`),
   no una prueba; en la suite por defecto quedaba SKIPPED. Fix: exclusión en surefire documentada; el script
   `masteradmin/scripts/ccp/ewm-x07-e2e.mts` lo sigue lanzando con `-Dtest=` (que ignora excludes). El receptor
