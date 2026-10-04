@@ -184,7 +184,20 @@ Deno.serve(async (req: Request) => {
         currency: charge.currency,
       });
 
-      if (body.apply_missing && charge.status === 'CONFIRMED' && charge.externalSubscriptionId) {
+      if (body.apply_missing && charge.status === 'CONFIRMED' && charge.invoiceId) {
+        // M1/M2 · Cargo del portal o de la tarjeta guardada: se imputa a su
+        // factura. Idempotente por reference: si ya entró, es DUPLICATE.
+        await admin.rpc('register_provider_invoice_payment', {
+          p_provider_account_id: account.id,
+          p_external_event_key: `reconcile:${charge.externalChargeId}`,
+          p_external_charge_id: charge.externalChargeId,
+          p_invoice_id: charge.invoiceId,
+          p_amount: charge.amount,
+          p_currency: charge.currency,
+          p_paid_at: charge.paidAt,
+          p_payload: { origin: 'payment-reconcile' },
+        });
+      } else if (body.apply_missing && charge.status === 'CONFIRMED' && charge.externalSubscriptionId) {
         // Incluso aquí se pasa por la RPC: idempotente y auditada.
         await admin.rpc('register_provider_payment', {
           p_provider_account_id: account.id,
