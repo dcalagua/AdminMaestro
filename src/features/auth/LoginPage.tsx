@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useAppearance } from '@/hooks/useAppearance';
 import { EbimMark } from '@/components/ui/EbimMark';
+import { requestPasswordReset } from './passwordReset';
 
 /* ==========================================================================
    Anatomía de login — contrato §4.5. OBLIGATORIA, no es elección de la app.
@@ -72,16 +73,19 @@ const BULLETS = [
 ];
 
 /**
- * Ayuda de acceso (spec §11.5). NO existe flujo de restablecimiento ni de
- * solicitud de acceso en esta consola, y esta fase no lo construye: se explica
- * con honestidad a quién pedirlo, sin simular un proceso automático.
+ * Ayuda de acceso (spec §11.5). La solicitud de acceso NO es un formulario: las
+ * cuentas se crean por invitación (M5) y se explica a quién pedirla.
+ *
+ * M5 · «¿Olvidaste tu contraseña?» sí es un flujo real: Supabase Auth envía al
+ * correo del titular un enlace a `/bienvenida?mode=reset`. La respuesta es la
+ * misma exista o no la cuenta.
  */
 type HelpTopic = 'recover' | 'access';
 
 const HELP_TEXT: Record<HelpTopic, { title: string; body: string }> = {
   recover: {
     title: 'Restablecer la contraseña',
-    body: 'Esta consola no tiene restablecimiento automático de contraseña. Pide el restablecimiento al equipo de plataforma EBIM (operador), indicando tu correo corporativo.',
+    body: 'Te enviaremos un enlace a tu correo corporativo para crear una nueva contraseña. El enlace vence en una hora.',
   },
   access: {
     title: 'Solicitar acceso',
@@ -90,7 +94,7 @@ const HELP_TEXT: Record<HelpTopic, { title: string; body: string }> = {
 };
 
 export function LoginPage() {
-  const { signIn } = useAuth();
+  const { signIn, notice } = useAuth();
   const { mode, toggleMode } = useAppearance();
   const navigate = useNavigate();
   const location = useLocation();
@@ -102,12 +106,38 @@ export function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [help, setHelp] = useState<HelpTopic | null>(null);
   const helpRef = useRef<HTMLDivElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const [reset, setReset] = useState<{ state: 'idle' | 'sending' | 'sent' | 'error'; message?: string }>({
+    state: 'idle',
+  });
+
+  async function sendReset() {
+    const target = email.trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(target)) {
+      setReset({ state: 'error', message: 'Escribe arriba tu correo corporativo y vuelve a intentarlo.' });
+      emailRef.current?.focus();
+      return;
+    }
+    setReset({ state: 'sending' });
+    try {
+      await requestPasswordReset(target);
+      setReset({
+        state: 'sent',
+        message: `Si ${target} tiene una cuenta, recibirás el enlace en unos minutos. Revisa también la carpeta de correo no deseado.`,
+      });
+    } catch (err) {
+      setReset({ state: 'error', message: err instanceof Error ? err.message : 'No se pudo enviar el enlace.' });
+    }
+  }
 
   useEffect(() => {
     if (help) helpRef.current?.focus();
   }, [help]);
 
-  const toggleHelp = (topic: HelpTopic) => setHelp((current) => (current === topic ? null : topic));
+  const toggleHelp = (topic: HelpTopic) => {
+    setReset({ state: 'idle' });
+    setHelp((current) => (current === topic ? null : topic));
+  };
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -230,6 +260,7 @@ export function LoginPage() {
                 Correo corporativo
               </label>
               <input
+                ref={emailRef}
                 id="login-email"
                 type="email"
                 autoComplete="username"
@@ -274,8 +305,8 @@ export function LoginPage() {
                   </svg>
                 </button>
               </div>
-              {/* 11 · Recuperar, alineado a la derecha, bajo el campo. No hay flujo
-                  automático: abre la explicación honesta de a quién pedirlo. */}
+              {/* 11 · Recuperar, alineado a la derecha, bajo el campo. Abre el panel
+                  que envía el enlace de restablecimiento (M5). */}
               <div className="mt-1.5 text-right">
                 <button
                   type="button"
@@ -288,6 +319,12 @@ export function LoginPage() {
                 </button>
               </div>
             </div>
+
+            {notice && !error ? (
+              <p role="status" className="rounded-field bg-warn-soft px-3 py-2.5 text-[13px] font-medium text-warn">
+                {notice}
+              </p>
+            ) : null}
 
             {error ? (
               <p
@@ -341,12 +378,32 @@ export function LoginPage() {
                 {HELP_TEXT[help].title}
               </p>
               <p className="mt-1 text-muted">{HELP_TEXT[help].body}</p>
+              {help === 'recover' ? (
+                <div className="mt-3">
+                  {reset.state === 'sent' ? (
+                    <p role="status" className="text-ok">{reset.message}</p>
+                  ) : (
+                    <button
+                      type="button"
+                      className="ebim-btn-primary"
+                      disabled={reset.state === 'sending'}
+                      aria-busy={reset.state === 'sending' || undefined}
+                      onClick={() => void sendReset()}
+                    >
+                      {reset.state === 'sending' ? 'Enviando…' : 'Enviar enlace de restablecimiento'}
+                    </button>
+                  )}
+                  {reset.state === 'error' ? (
+                    <p role="alert" className="mt-2 text-danger">{reset.message}</p>
+                  ) : null}
+                </div>
+              ) : null}
               <button
                 type="button"
-                className="mt-2 rounded text-[13px] font-semibold text-accent-deep hover:underline"
+                className="mt-2 block rounded text-[13px] font-semibold text-accent-deep hover:underline"
                 onClick={() => setHelp(null)}
               >
-                Entendido
+                {help === 'recover' ? 'Volver' : 'Entendido'}
               </button>
             </div>
           ) : null}

@@ -1,13 +1,16 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 /*
- * P01 · Sin anclas vacías: no existe flujo de restablecimiento ni de solicitud,
- * así que la consola lo explica con honestidad sin simular un proceso.
+ * P01 · Sin anclas vacías. La solicitud de acceso se explica (no hay formulario);
+ * M5 · «¿Olvidaste tu contraseña?» envía el enlace de restablecimiento al correo
+ * del titular, con la misma respuesta exista o no la cuenta.
  */
 
-vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ signIn: vi.fn() }) }));
+const m = vi.hoisted(() => ({ reset: vi.fn(), notice: null as string | null }));
+vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ signIn: vi.fn(), notice: m.notice }) }));
+vi.mock('./passwordReset', () => ({ requestPasswordReset: m.reset }));
 vi.mock('@/hooks/useAppearance', () => ({ useAppearance: () => ({ mode: 'light', toggleMode: vi.fn() }) }));
 vi.mock('@/components/ui/EbimMark', () => ({ EbimMark: () => null }));
 
@@ -38,12 +41,34 @@ describe('LoginPage', () => {
     expect(screen.getByRole('note')).toHaveTextContent(/no permite auto-registro/);
   });
 
-  it('«¿Olvidaste tu contraseña?» explica que no hay restablecimiento automático', () => {
+  it('«¿Olvidaste tu contraseña?» pide el correo antes de enviar el enlace', () => {
+    m.reset.mockReset();
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: '¿Olvidaste tu contraseña?' }));
-    expect(screen.getByRole('note')).toHaveTextContent(/no tiene restablecimiento automático/);
-    fireEvent.click(screen.getByRole('button', { name: 'Entendido' }));
+    expect(screen.getByRole('note')).toHaveTextContent(/enlace a tu correo corporativo/);
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar enlace de restablecimiento' }));
+    expect(screen.getByRole('alert')).toHaveTextContent(/Escribe arriba tu correo/);
+    expect(m.reset).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Volver' }));
     expect(screen.queryByRole('note')).not.toBeInTheDocument();
+  });
+
+  it('envía el enlace y responde igual exista o no la cuenta', async () => {
+    m.reset.mockReset();
+    m.reset.mockResolvedValue(undefined);
+    renderPage();
+    fireEvent.change(screen.getByLabelText('Correo corporativo'), { target: { value: 'ana@andina.ebim.test' } });
+    fireEvent.click(screen.getByRole('button', { name: '¿Olvidaste tu contraseña?' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar enlace de restablecimiento' }));
+    await waitFor(() => expect(m.reset).toHaveBeenCalledWith('ana@andina.ebim.test'));
+    expect(await screen.findByText(/Si ana@andina.ebim.test tiene una cuenta/)).toBeInTheDocument();
+  });
+
+  it('muestra el aviso de cuenta desactivada tras un cierre forzado', () => {
+    m.notice = 'Tu cuenta está desactivada.';
+    renderPage();
+    expect(screen.getByRole('status')).toHaveTextContent('Tu cuenta está desactivada.');
+    m.notice = null;
   });
 
   it('los campos conservan sus etiquetas', () => {
