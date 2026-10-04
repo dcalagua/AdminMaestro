@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { QueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types/database.types';
+import type { InviteGrant } from '@/features/users/userModel';
 
 /**
  * Capa de ESCRITURA del Control Plane.
@@ -471,7 +472,8 @@ export function useDeactivateProductOwner() {
 }
 
 export function useGrantProvisioningRole() {
-  return useRpc('grant_provisioning_role', ['provisioning-permissions']);
+  // M5: la ficha de usuario también muestra los roles de provisioning.
+  return useRpc('grant_provisioning_role', ['provisioning-permissions', 'admin-users', 'admin-user', 'user-activity']);
 }
 
 export function useCreateSaasProvisioningRequest() {
@@ -846,3 +848,115 @@ export function useRecordBillingShadowComparison() {
  * Puntos de enganche en la UI: `AggregatesTab` (fila OPEN con período vencido),
  * `AlertsTab` (columna de acuse) y `PoliciesTab` (fila vigente).
  */
+
+/* ==========================================================================
+   M5 · Usuarios y perfiles (spec §6)
+   --------------------------------------------------------------------------
+   Toda escritura es una RPC `SECURITY DEFINER` con auditoría; la Edge Function
+   `user-admin` (invitar, reenviar, desactivar con baneo) autoriza llamando esas
+   mismas RPC con el JWT del operador. La UI ofrece según `usePermissions`, pero
+   la base es la autoridad.
+   ========================================================================== */
+
+const USER_KEYS = ['admin-users', 'admin-user', 'user-activity', 'user-invitations', 'platform-people'];
+
+export function useAdminUpdateProfile() {
+  return useRpc('admin_update_profile', [...USER_KEYS, 'my-profile']);
+}
+
+/** Super admin. Nunca EBIM_SUPER_ADMIN (la base lo rechaza igualmente). */
+export function useGrantPlatformRole() {
+  return useRpc('grant_platform_role', USER_KEYS);
+}
+
+export function useRevokePlatformRole() {
+  return useRpc('revoke_platform_role', USER_KEYS);
+}
+
+export function useUpsertOrganizationMembership() {
+  return useRpc('upsert_organization_membership', USER_KEYS);
+}
+
+export function useSetOrganizationMembershipActive() {
+  return useRpc('set_organization_membership_active', USER_KEYS);
+}
+
+export function useUpsertTenantMembership() {
+  return useRpc('upsert_tenant_membership', USER_KEYS);
+}
+
+export function useSetTenantMembershipActive() {
+  return useRpc('set_tenant_membership_active', USER_KEYS);
+}
+
+/** Revoca un rol transversal de provisioning (RPC existente, super admin). */
+export function useRevokeProvisioningRole() {
+  return useRpc('revoke_provisioning_role', ['provisioning-permissions', ...USER_KEYS]);
+}
+
+/** Vincula (o desvincula con `p_user_id` vacío) un usuario a un comercial. */
+export function useLinkUserSalesAgent() {
+  return useRpc('link_user_sales_agent', [...USER_KEYS, 'sales-agents']);
+}
+
+/** /bienvenida: marca aceptadas las invitaciones del usuario recién activado. */
+export function useAcceptMyInvitations() {
+  return useRpc('accept_my_invitations', ['user-invitations']);
+}
+
+export type UserAdminRequest =
+  | { action: 'invite'; email: string; full_name?: string; grant: InviteGrant }
+  | { action: 'resend'; user_id: string }
+  | { action: 'ban'; user_id: string; reason: string }
+  | { action: 'unban'; user_id: string; reason?: string };
+
+export interface UserAdminResult {
+  status: 'INVITED' | 'EXISTING_USER' | 'RESENT' | 'DEACTIVATED' | 'REACTIVATED';
+  user_id: string;
+  delivery?: 'EMAIL' | 'LINK';
+  /** Enlace de invitación de un solo uso. Solo cuando no hubo correo; no se guarda. */
+  action_link?: string;
+  grant_applied?: boolean;
+  grant_error?: string;
+  grant_message?: string;
+  auth_updated?: boolean;
+  summary?: Record<string, unknown>;
+}
+
+/** Error de la Edge Function con su código canónico (`NO_AUTORIZADO`, …). */
+export class UserAdminError extends Error {
+  constructor(public readonly code: string, message: string) {
+    super(`${code}: ${message}`);
+    this.name = 'UserAdminError';
+  }
+}
+
+export async function invokeUserAdmin(body: UserAdminRequest): Promise<UserAdminResult> {
+  const { data, error } = await supabase.functions.invoke<UserAdminResult>('user-admin', { body });
+  if (error) {
+    const context = (error as { context?: Response }).context;
+    if (context && typeof context.json === 'function') {
+      let payload: { error?: string; message?: string } | null = null;
+      try {
+        payload = (await context.json()) as { error?: string; message?: string };
+      } catch {
+        payload = null;
+      }
+      if (payload?.error) throw new UserAdminError(payload.error, payload.message ?? 'Operación rechazada.');
+    }
+    throw new Error(error.message);
+  }
+  if (!data) throw new Error('Respuesta vacía del servicio de usuarios.');
+  return data;
+}
+
+/** invite / resend / ban / unban (Edge Function `user-admin`). */
+export function useUserAdminAction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: invokeUserAdmin,
+    onSettled: () => invalidate(qc, [...USER_KEYS, 'audit-logs']),
+  });
+}
+
+/* ---- fin M5 · Usuarios y perfiles ---------------------------------------- */

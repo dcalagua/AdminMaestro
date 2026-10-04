@@ -162,6 +162,7 @@ export function SalesAgentsPage() {
                                 agent_type: a.agent_type,
                                 organization_id: a.organization_id,
                                 contact_email: a.contact_email,
+                                user_id: a.user_id,
                                 status: a.status,
                                 valid_from: a.valid_from,
                                 valid_to: a.valid_to,

@@ -3,7 +3,7 @@ import {
   ChartLineUpIcon, CloudArrowUpIcon, CoinsIcon, CurrencyCircleDollarIcon, FlagIcon, GaugeIcon, GearSixIcon, GitDiffIcon,
   HandCoinsIcon, HandshakeIcon, HardDrivesIcon, HouseIcon, LinkIcon, ListChecksIcon, PercentIcon,
   PlugsConnectedIcon, PuzzlePieceIcon, ReceiptIcon, RocketLaunchIcon, ScalesIcon, ShieldCheckIcon, SquaresFourIcon,
-  StackIcon, TreeStructureIcon, UsersThreeIcon,
+  StackIcon, TreeStructureIcon, UserGearIcon, UsersThreeIcon,
 } from '@phosphor-icons/react';
 import type { PersonaKind } from '@/features/auth/session';
 import type { SessionRoles } from '@/types/domain';
@@ -91,6 +91,8 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/provisioning', label: 'Solicitudes de infraestructura', icon: HardDrivesIcon, group: 'Operación SaaS', personas: ['EBIM', 'PARTNER'] },
 
   // ---- Gobierno -----------------------------------------------------------
+  // M5 · administración de usuarios (EBIM: todos; admin de partner/cliente: su organización).
+  { to: '/users', label: 'Usuarios y accesos', icon: UserGearIcon, group: 'Gobierno', personas: ['EBIM', 'PARTNER'], detailLabel: 'Ficha de usuario' },
   { to: '/audit', label: 'Auditoría', icon: ShieldCheckIcon, group: 'Gobierno', personas: ['EBIM', 'PARTNER'] },
   { to: '/settings', label: 'Configuración', icon: GearSixIcon, group: 'Gobierno' },
 ];
