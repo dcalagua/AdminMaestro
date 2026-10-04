@@ -61,6 +61,21 @@ export type PortalResult<T> =
 
 const GENERIC_ERROR = 'No pudimos conectar con el portal de pago. Revisa tu conexión e inténtalo otra vez.';
 
+/**
+ * Mensajes para el cliente por código estable, para cuando la respuesta no
+ * trae el suyo (proxy, versión anterior de la función). Un código conocido
+ * nunca se muestra crudo.
+ */
+export const PORTAL_ERROR_MESSAGES: Record<string, string> = {
+  COBRO_EN_CURSO: 'Ya hay un pago en curso para esta factura. Espera un momento y recarga la página.',
+  PAGO_EN_REVISION:
+    'Recibimos tu pago pero no pudimos confirmarlo todavía. No lo repitas: lo revisaremos y te avisaremos.',
+  DEMASIADOS_INTENTOS: 'Hiciste demasiados intentos. Espera una hora antes de volver a intentarlo.',
+  SOBRECOBRO: 'El importe supera el saldo pendiente de la factura. Recarga la página.',
+  FACTURA_NO_PAGABLE: 'Esta factura ya no tiene saldo pendiente o no puede pagarse en línea.',
+  TARJETA_RECHAZADA: 'Tu tarjeta fue rechazada. Prueba con otra tarjeta o contacta a tu banco.',
+};
+
 export async function callPortal<T>(
   route: 'statement' | 'charge' | 'enroll' | 'unenroll',
   body: Record<string, unknown>,
@@ -95,7 +110,10 @@ export async function callPortal<T>(
       ok: false,
       status: res.status,
       error: typeof payload.error === 'string' ? payload.error : 'ERROR_INTERNO',
-      message: typeof payload.message === 'string' ? payload.message : GENERIC_ERROR,
+      message:
+        typeof payload.message === 'string' && payload.message.trim() !== ''
+          ? payload.message
+          : (PORTAL_ERROR_MESSAGES[String(payload.error)] ?? GENERIC_ERROR),
       ...(Array.isArray(payload.missing_fields) ? { missing_fields: payload.missing_fields as string[] } : {}),
     };
   }

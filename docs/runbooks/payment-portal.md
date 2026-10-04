@@ -93,6 +93,22 @@ automáticamente (podría haberse cobrado). Revisar en Culqi y en `payment-recon
 reconciliación con `apply_missing = true` lo registra contra su factura (`metadata.invoice_id`). Cerrar un intento
 `PENDING` manualmente no tiene pantalla en v1 (limitación conocida).
 
+### Candado de cobro por factura (anti doble cargo)
+
+Antes de llamar a la pasarela, `pay-portal` (`/charge`) y `payment-autocharge` reclaman el candado de la factura
+(`claim_invoice_charge_lock`, migración `20261010000400`). Un solo cargo en vuelo por factura:
+
+| Estado (`invoice_charge_locks.status`) | Significado | Se libera |
+| --- | --- | --- |
+| `ACTIVE` | Cargo en vuelo (TTL 2 min) | Al registrar el pago o con un rechazo definitivo; si la función se cae, al vencer |
+| `REVIEW` | Resultado ambiguo (timeout/5xx o cobrado y no registrado → `PAGO_EN_REVISION`) | Al registrarse un pago `CONFIRMED` de la factura (webhook/reconciliación) o a los 30 min |
+| `RELEASED` | Libre | — |
+
+Mientras está tomado, el portal responde **409 `COBRO_EN_CURSO`** («Ya hay un pago en curso para esta factura.
+Espera un momento y recarga la página.») y el cobro automático omite la factura (`SKIPPED`, `COBRO_EN_CURSO`). Un
+intento `PENDING` de cobro automático de los últimos 30 min también cuenta como cobro en curso. El cargo se hace por
+el saldo leído con el candado tomado (no por el que vio la página).
+
 ## 6. Diagnóstico
 
 | Síntoma | Dónde mirar |
@@ -100,6 +116,7 @@ reconciliación con `apply_missing = true` lo registra contra su factura (`metad
 | Cliente ve «enlace no válido / venció / ya no está disponible» | `v_payment_links.status` del enlace (pista de 4 caracteres) |
 | «Hiciste demasiados intentos» | `payment_link_events` con `kind = 'RATE_LIMITED'` (10/enlace/h, 5/factura/h) |
 | Pago cobrado pero «en revisión» | `payment_link_events` `CHARGE_FAILED` con `error_code` de la base; `provider_webhook_events` |
+| «Ya hay un pago en curso» (`COBRO_EN_CURSO`) | `invoice_charge_locks` de la factura (`status`, `holder`, `expires_at`, `outcome_code`) |
 | Cobro automático agotado | `billing_alerts` con `metadata->>'code' = 'CARD_ON_FILE_EXHAUSTED'` |
 
 ## 7. Pendiente para activar Culqi TEST (humano)

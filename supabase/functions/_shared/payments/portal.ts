@@ -14,6 +14,9 @@
  *   · en una cuenta sin credenciales (MOCK) solo se cobra si el entorno lo
  *     permite explícitamente (`allowMock`): un portal público no puede
  *     fabricar pagos simulados en un entorno desplegado por un descuido;
+ *   · un solo cargo en vuelo por factura: `/charge` reclama el candado de la
+ *     factura (compartido con `payment-autocharge`) antes de llamar a la
+ *     pasarela; si está tomado responde COBRO_EN_CURSO (409);
  *   · respuestas con códigos estables y mensaje en lenguaje de cliente.
  */
 import { toMinorUnits } from './money.ts';
@@ -52,6 +55,7 @@ export const PORTAL_MESSAGES: Record<string, string> = {
   RUTA_NO_ENCONTRADA: 'Operación no encontrada.',
   PAGO_EN_REVISION:
     'Recibimos tu pago pero no pudimos confirmarlo todavía. No lo repitas: lo revisaremos y te avisaremos.',
+  COBRO_EN_CURSO: 'Ya hay un pago en curso para esta factura. Espera un momento y recarga la página.',
   ERROR_INTERNO: 'Ocurrió un problema al procesar tu solicitud. Inténtalo más tarde.',
 };
 
@@ -73,6 +77,7 @@ const STATUS: Record<string, number> = {
   METODO_NO_PERMITIDO: 405,
   RUTA_NO_ENCONTRADA: 404,
   PAGO_EN_REVISION: 502,
+  COBRO_EN_CURSO: 409,
   ERROR_INTERNO: 500,
 };
 
@@ -120,6 +125,77 @@ export function portalError(code: string, extra: Record<string, unknown> = {}): 
 export function rpcErrorCode(error: { message?: string } | null | undefined): string | null {
   const match = /^([A-Z][A-Z0-9_]{2,}):/.exec(String(error?.message ?? '').trim());
   return match ? match[1]! : null;
+}
+
+/**
+ * Rechazos DEFINITIVOS de la pasarela: el cargo NO se hizo. Cualquier otro
+ * fallo (sin respuesta, 5xx, error inesperado) es AMBIGUO: el cargo pudo
+ * hacerse, así que no se reintenta y el candado de la factura queda en revisión.
+ */
+const DEFINITIVE_PROVIDER_CODES = new Set([
+  'TARJETA_RECHAZADA',
+  'TARJETA_REQUIERE_AUTENTICACION',
+  'IMPORTE_INVALIDO',
+  'ORIGEN_INVALIDO',
+  'PROVEEDOR_RECHAZO',
+  'LIVE_NO_AUTORIZADO',
+  'CULQI_LIVE_SIN_CONFIGURAR',
+  'LLAVE_NO_COINCIDE',
+]);
+
+/** Código del rechazo definitivo, o `null` si el fallo es ambiguo. */
+export function definitiveProviderFailure(error: unknown): string | null {
+  if (!(error instanceof ProviderError)) return null;
+  if (DEFINITIVE_PROVIDER_CODES.has(error.code)) return error.code;
+  const http = /^PROVEEDOR_HTTP_(\d{3})$/.exec(error.code);
+  if (http && Number(http[1]) >= 400 && Number(http[1]) < 500) return error.code;
+  return null;
+}
+
+/** Candado de cobro por factura (migración 20261010000400): un solo cargo en vuelo. */
+export type ChargeLockClaim =
+  | { ok: true; lockId: string; balance: string }
+  | { ok: false; error: string };
+
+export async function claimChargeLock(
+  rpc: PortalDeps['rpc'],
+  invoiceId: string,
+  holder: 'PORTAL' | 'AUTOCHARGE',
+  holderRef: string | null,
+): Promise<ChargeLockClaim> {
+  const res = await rpc('claim_invoice_charge_lock', {
+    p_invoice_id: invoiceId,
+    p_holder: holder,
+    p_holder_ref: holderRef,
+  });
+  if (res.error) return { ok: false, error: 'ERROR_INTERNO' };
+  const data = (res.data ?? {}) as Record<string, unknown>;
+  if (data.ok !== true || typeof data.lock_id !== 'string') {
+    return { ok: false, error: typeof data.error === 'string' ? data.error : 'COBRO_EN_CURSO' };
+  }
+  return { ok: true, lockId: data.lock_id, balance: String(data.balance) };
+}
+
+/**
+ * RELEASE: cobro registrado o fallo definitivo. REVIEW: resultado ambiguo, el
+ * candado se mantiene hasta que se registre el pago o venza. Nunca lanza: si
+ * falla, el candado vence solo.
+ */
+export async function releaseChargeLock(
+  rpc: PortalDeps['rpc'],
+  lockId: string,
+  outcome: 'RELEASE' | 'REVIEW',
+  code: string | null = null,
+): Promise<void> {
+  try {
+    await rpc('release_invoice_charge_lock', {
+      p_lock_id: lockId,
+      p_outcome: outcome,
+      p_outcome_code: code && /^[A-Z][A-Z0-9_]{1,63}$/.test(code) ? code : null,
+    });
+  } catch {
+    // El candado vence solo (TTL); no se oculta el resultado del cobro por esto.
+  }
 }
 
 /** `chr_test_abcdef123456` → `chr_…3456`: identificable en el comprobante sin exponerlo entero. */
@@ -294,7 +370,7 @@ async function charge(req: PortalRequest, deps: PortalDeps, body: Record<string,
   if (ctx.ok !== true) return portalError(String(ctx.error ?? 'ENLACE_INVALIDO'));
 
   const linkId = String(ctx.link_id);
-  const invoice = ctx.invoice as { id: string; number: string; currency: string; balance: number | string };
+  const invoice = ctx.invoice as { id: string; number: string; currency: string };
   const fp = await fingerprint(deps, req);
 
   const resolved = await providerFor(deps, String(ctx.provider_account_id));
@@ -313,10 +389,17 @@ async function charge(req: PortalRequest, deps: PortalDeps, body: Record<string,
   if (attempt.error) return portalError('ERROR_INTERNO');
   if ((attempt.data as { rate_limited?: boolean } | null)?.rate_limited) return portalError('DEMASIADOS_INTENTOS');
 
+  // Un solo cargo en vuelo por factura (doble clic, dos pestañas, cobro
+  // automático a la vez). El saldo que se cobra es el que la base lee CON el
+  // candado tomado: el del contexto pudo quedar viejo si otro pago terminó.
+  const lock = await claimChargeLock(deps.rpc, invoice.id, 'PORTAL', linkId);
+  if (!lock.ok) return portalError(lock.error);
+
   let amountMinor: number;
   try {
-    amountMinor = toMinorUnits(invoice.balance);
+    amountMinor = toMinorUnits(lock.balance);
   } catch {
+    await releaseChargeLock(deps.rpc, lock.lockId, 'RELEASE', 'IMPORTE_INVALIDO');
     return portalError('FACTURA_NO_PAGABLE');
   }
   const email =
@@ -338,6 +421,8 @@ async function charge(req: PortalRequest, deps: PortalDeps, body: Record<string,
     });
   } catch (error) {
     const code = error instanceof ProviderError ? error.code : 'PROVEEDOR_NO_DISPONIBLE';
+    const definitive = definitiveProviderFailure(error);
+    await releaseChargeLock(deps.rpc, lock.lockId, definitive ? 'RELEASE' : 'REVIEW', code);
     await deps.rpc('register_payment_link_event', {
       p_link_id: linkId,
       p_kind: 'CHARGE_FAILED',
@@ -345,6 +430,9 @@ async function charge(req: PortalRequest, deps: PortalDeps, body: Record<string,
       p_error_code: /^[A-Z][A-Z0-9_]{1,63}$/.test(code) ? code : 'PROVEEDOR_ERROR',
       p_client_fingerprint: fp,
     });
+    // Sin respuesta clara de la pasarela el cargo pudo hacerse: no se pide
+    // repetirlo (el candado sigue en revisión hasta la reconciliación).
+    if (!definitive) return portalError('PAGO_EN_REVISION');
     if (code === 'TARJETA_REQUIERE_AUTENTICACION') return portalError(code);
     if (code === 'TARJETA_RECHAZADA') {
       // El mensaje del emisor (user_message) está pensado para el titular.
@@ -366,6 +454,7 @@ async function charge(req: PortalRequest, deps: PortalDeps, body: Record<string,
 
   if (reg.error) {
     const code = rpcErrorCode(reg.error) ?? 'REGISTRO_FALLIDO';
+    await releaseChargeLock(deps.rpc, lock.lockId, 'REVIEW', code);
     await deps.rpc('register_payment_link_event', {
       p_link_id: linkId,
       p_kind: 'CHARGE_FAILED',
@@ -381,6 +470,7 @@ async function charge(req: PortalRequest, deps: PortalDeps, body: Record<string,
     return portalError('PAGO_EN_REVISION');
   }
 
+  await releaseChargeLock(deps.rpc, lock.lockId, 'RELEASE');
   await deps.rpc('register_payment_link_event', {
     p_link_id: linkId,
     p_kind: 'CHARGE_OK',

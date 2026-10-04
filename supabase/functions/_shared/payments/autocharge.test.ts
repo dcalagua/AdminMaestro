@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { handleAutocharge, type AutochargeDeps } from './autocharge.ts';
 import { MockPaymentProvider } from './mock.ts';
+import { handlePayPortal, type PortalDeps } from './portal.ts';
 import { ProviderError, type PaymentProvider, type ProviderAccountConfig } from './types.ts';
 
 /**
@@ -27,6 +28,7 @@ function begun(invoiceId: string, method = 'crd_mock_card') {
 
 function makeDeps(opts: {
   begin?: (args: Record<string, unknown>) => unknown;
+  claim?: (args: Record<string, unknown>) => unknown;
   due?: unknown[];
   provider?: PaymentProvider;
   completeError?: string;
@@ -35,6 +37,13 @@ function makeDeps(opts: {
   const deps: AutochargeDeps = {
     rpc: vi.fn(async (fn: string, args: Record<string, unknown>) => {
       calls.push([fn, args]);
+      if (fn === 'claim_invoice_charge_lock') {
+        return {
+          data: opts.claim ? opts.claim(args) : { ok: true, lock_id: `lock-${String(args.p_invoice_id).slice(0, 4)}`, balance: '850.00' },
+          error: null,
+        };
+      }
+      if (fn === 'release_invoice_charge_lock') return { data: { ok: true }, error: null };
       if (fn === 'begin_card_charge_attempt') {
         return { data: opts.begin ? opts.begin(args) : begun(String(args.p_invoice_id)), error: null };
       }
@@ -60,7 +69,14 @@ describe('payment-autocharge', () => {
     const { deps, calls, called } = makeDeps();
     const res = await handleAutocharge(post({ invoice_id: INVOICE }), user, deps);
     expect(res.status).toBe(200);
-    expect(calls.map(([f]) => f)).toEqual(['begin_card_charge_attempt', 'complete_card_charge_attempt']);
+    expect(calls.map(([f]) => f)).toEqual([
+      'claim_invoice_charge_lock',
+      'begin_card_charge_attempt',
+      'complete_card_charge_attempt',
+      'release_invoice_charge_lock',
+    ]);
+    expect(called('claim_invoice_charge_lock')[0]![1]).toMatchObject({ p_invoice_id: INVOICE, p_holder: 'AUTOCHARGE' });
+    expect(called('release_invoice_charge_lock')[0]![1]).toMatchObject({ p_outcome: 'RELEASE' });
     expect(called('begin_card_charge_attempt')[0]![1]).toMatchObject({
       p_invoice_id: INVOICE, p_trigger_source: 'MANUAL', p_actor: user.userId, p_ignore_schedule: true,
     });
@@ -100,6 +116,7 @@ describe('payment-autocharge', () => {
     const { deps, called } = makeDeps({ begin: (args) => begun(String(args.p_invoice_id), 'crd_mock_decline') });
     const res = await handleAutocharge(post({ invoice_id: INVOICE }), user, deps);
     expect(called('complete_card_charge_attempt')[0]![1]).toMatchObject({ p_succeeded: false, p_error_code: 'TARJETA_RECHAZADA' });
+    expect(called('release_invoice_charge_lock')[0]![1]).toMatchObject({ p_outcome: 'RELEASE', p_outcome_code: 'TARJETA_RECHAZADA' });
     expect(res.body).toMatchObject({ failed: 1, succeeded: 0 });
   });
 
@@ -111,6 +128,7 @@ describe('payment-autocharge', () => {
     const { deps, called } = makeDeps({ provider: flaky });
     const res = await handleAutocharge(post({ invoice_id: INVOICE }), user, deps);
     expect(called('complete_card_charge_attempt')).toHaveLength(0);
+    expect(called('release_invoice_charge_lock')[0]![1]).toMatchObject({ p_outcome: 'REVIEW' });
     expect((res.body.results as Array<Record<string, unknown>>)[0]).toMatchObject({ status: 'REVIEW', error_code: 'PROVEEDOR_NO_DISPONIBLE' });
   });
 
@@ -120,13 +138,96 @@ describe('payment-autocharge', () => {
     expect((res.body.results as Array<Record<string, unknown>>)[0]).toMatchObject({ status: 'REVIEW', error_code: 'SOBRECOBRO' });
   });
 
-  it('si la base dice que no procede (intento en curso, sin autorización) se omite sin cobrar', async () => {
+  it('si la base dice que no procede (intento en curso, sin autorización) se omite sin cobrar y libera el candado', async () => {
     const provider = new MockPaymentProvider(account);
     const spy = vi.spyOn(provider, 'createCharge');
-    const { deps } = makeDeps({ provider, begin: () => ({ ok: false, error: 'COBRO_NO_PROCEDE' }) });
+    const { deps, called } = makeDeps({ provider, begin: () => ({ ok: false, error: 'COBRO_NO_PROCEDE' }) });
     const res = await handleAutocharge(post({ invoice_id: INVOICE }), user, deps);
     expect(spy).not.toHaveBeenCalled();
     expect(res.body).toMatchObject({ skipped: 1 });
+    expect(called('release_invoice_charge_lock')[0]![1]).toMatchObject({ p_outcome: 'RELEASE' });
+  });
+
+  it('candado tomado (el cliente paga desde el portal) → SKIPPED COBRO_EN_CURSO sin abrir intento ni cobrar', async () => {
+    const provider = new MockPaymentProvider(account);
+    const spy = vi.spyOn(provider, 'createCharge');
+    const { deps, called } = makeDeps({ provider, claim: () => ({ ok: false, error: 'COBRO_EN_CURSO' }) });
+    const res = await handleAutocharge(post({ invoice_id: INVOICE }), user, deps);
+    expect(spy).not.toHaveBeenCalled();
+    expect(called('begin_card_charge_attempt')).toHaveLength(0);
+    expect((res.body.results as Array<Record<string, unknown>>)[0]).toMatchObject({ status: 'SKIPPED', error_code: 'COBRO_EN_CURSO' });
+  });
+
+  it('portal y cobro automático a la vez sobre la misma factura: la pasarela cobra UNA sola vez', async () => {
+    // Base doble con un candado real en memoria compartido por las dos funciones.
+    const locks = new Map<string, string>();
+    let seq = 0;
+    const lockRpc = (fn: string, args: Record<string, unknown>) => {
+      if (fn === 'claim_invoice_charge_lock') {
+        if (locks.has(String(args.p_invoice_id))) return { ok: false, error: 'COBRO_EN_CURSO' };
+        const id = `lock-${++seq}`;
+        locks.set(String(args.p_invoice_id), id);
+        return { ok: true, lock_id: id, balance: '850.00' };
+      }
+      for (const [inv, id] of locks) if (id === args.p_lock_id && args.p_outcome === 'RELEASE') locks.delete(inv);
+      return { ok: true };
+    };
+
+    let open!: () => void;
+    const gate = new Promise<void>((resolve) => (open = resolve));
+    const inner = new MockPaymentProvider(account);
+    const createCharge = vi.fn(async (input: Parameters<PaymentProvider['createCharge']>[0]) => {
+      await gate;
+      return inner.createCharge(input);
+    });
+    const gateway = { name: 'mock', mode: 'MOCK', createCharge } as unknown as PaymentProvider;
+
+    const portalDeps: PortalDeps = {
+      rpc: vi.fn(async (fn: string, args: Record<string, unknown>) => {
+        if (fn === 'claim_invoice_charge_lock' || fn === 'release_invoice_charge_lock') {
+          return { data: lockRpc(fn, args), error: null };
+        }
+        if (fn === 'payment_link_charge_context') {
+          return {
+            data: {
+              ok: true, link_id: 'link-1', billing_email: 'pagos@alpha.ebim.test', provider_account_id: ACCOUNT_ID,
+              invoice: { id: INVOICE, number: 'INV-1', currency: 'USD', balance: '850.00' },
+            },
+            error: null,
+          };
+        }
+        if (fn === 'register_payment_link_event') return { data: { rate_limited: false }, error: null };
+        if (fn === 'register_provider_invoice_payment') return { data: { duplicate: false }, error: null };
+        throw new Error(`rpc no esperada ${fn}`);
+      }),
+      loadAccount: vi.fn(async () => ({ id: ACCOUNT_ID })),
+      resolveProvider: vi.fn(() => gateway),
+      allowMock: true,
+      sha256Hex: async () => 'f'.repeat(64),
+    };
+    const auto = makeDeps({ provider: gateway });
+    (auto.deps.rpc as ReturnType<typeof vi.fn>).mockImplementation(async (fn: string, args: Record<string, unknown>) => {
+      if (fn === 'claim_invoice_charge_lock' || fn === 'release_invoice_charge_lock') {
+        return { data: lockRpc(fn, args), error: null };
+      }
+      if (fn === 'begin_card_charge_attempt') return { data: begun(INVOICE), error: null };
+      return { data: { status: 'SUCCEEDED' }, error: null };
+    });
+
+    const portal = handlePayPortal(
+      { method: 'POST', route: 'charge', bodyText: JSON.stringify({ token: 'A'.repeat(43), invoice_id: INVOICE, source_token: 'tkn_mock_ok' }) },
+      portalDeps,
+    );
+    // Deja que el portal llegue a la pasarela (y tome el candado) antes del cobro automático.
+    await vi.waitFor(() => expect(createCharge).toHaveBeenCalledTimes(1));
+    const autoRes = await handleAutocharge(post({ invoice_id: INVOICE }), user, auto.deps);
+    open();
+    const portalRes = await portal;
+
+    expect(portalRes.status).toBe(200);
+    expect((autoRes.body.results as Array<Record<string, unknown>>)[0]).toMatchObject({ status: 'SKIPPED', error_code: 'COBRO_EN_CURSO' });
+    expect(createCharge).toHaveBeenCalledTimes(1);
+    expect(locks.size).toBe(0);
   });
 
   it('LIVE sin autorización explícita: el selector falla y el intento queda FALLIDO sin cargo', async () => {

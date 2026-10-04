@@ -39,6 +39,13 @@ describe('portalApi', () => {
       ok: false, status: 429, error: 'DEMASIADOS_INTENTOS', message: 'Espera una hora.',
     });
 
+    // Cobro en curso sin mensaje en la respuesta: el mensaje de cliente sale del código.
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: 'COBRO_EN_CURSO' }), { status: 409 })));
+    expect(await callPortal('charge', { token: TOKEN })).toEqual({
+      ok: false, status: 409, error: 'COBRO_EN_CURSO',
+      message: 'Ya hay un pago en curso para esta factura. Espera un momento y recarga la página.',
+    });
+
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
     const offline = await callPortal('statement', { token: TOKEN });
     expect(offline.ok).toBe(false);

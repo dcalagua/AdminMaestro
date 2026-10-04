@@ -10,9 +10,11 @@
  *                   solo las facturas que la política de reintentos habilita
  *                   (al vencer, +3 d, +7 d; máximo 3 — lo decide la base).
  *
- * Cada factura sigue: begin_card_charge_attempt (PENDING, idempotente por
- * invoice:attempt_no) → createCharge con la tarjeta guardada (`crd_`) →
- * complete_card_charge_attempt (éxito registra el pago en la MISMA transacción).
+ * Cada factura sigue: claim_invoice_charge_lock (candado compartido con el
+ * portal: un solo cargo en vuelo por factura) → begin_card_charge_attempt
+ * (PENDING, idempotente por invoice:attempt_no) → createCharge con la tarjeta
+ * guardada (`crd_`) → complete_card_charge_attempt (éxito registra el pago en
+ * la MISMA transacción) → release_invoice_charge_lock.
  *
  * Un fallo AMBIGUO de la pasarela (sin respuesta, 5xx) deja el intento PENDING
  * en vez de marcarlo fallido: si el cargo llegó a hacerse, reintentarlo
@@ -20,7 +22,13 @@
  */
 import { toMinorUnits } from './money.ts';
 import { ProviderError, type PaymentProvider } from './types.ts';
-import { rpcErrorCode, type RpcResult } from './portal.ts';
+import {
+  claimChargeLock,
+  definitiveProviderFailure,
+  releaseChargeLock,
+  rpcErrorCode,
+  type RpcResult,
+} from './portal.ts';
 
 export type AutochargeCaller = { kind: 'service' } | { kind: 'user'; userId: string };
 
@@ -44,28 +52,8 @@ export interface AutochargeResponse {
   body: Record<string, unknown>;
 }
 
-/** Rechazos DEFINITIVOS: el cargo no se hizo, el intento cuenta como fallido. */
-const DEFINITIVE = new Set([
-  'TARJETA_RECHAZADA',
-  'TARJETA_REQUIERE_AUTENTICACION',
-  'IMPORTE_INVALIDO',
-  'ORIGEN_INVALIDO',
-  'PROVEEDOR_RECHAZO',
-  'LIVE_NO_AUTORIZADO',
-  'CULQI_LIVE_SIN_CONFIGURAR',
-  'LLAVE_NO_COINCIDE',
-]);
-
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const AUTOCHARGE_MAX_BATCH = 100;
-
-function isDefinitive(error: unknown): string | null {
-  if (!(error instanceof ProviderError)) return null;
-  if (DEFINITIVE.has(error.code)) return error.code;
-  const http = /^PROVEEDOR_HTTP_(\d{3})$/.exec(error.code);
-  if (http && Number(http[1]) >= 400 && Number(http[1]) < 500) return error.code;
-  return null;
-}
 
 export async function chargeInvoice(
   invoiceId: string,
@@ -74,6 +62,17 @@ export async function chargeInvoice(
   ignoreSchedule: boolean,
   deps: AutochargeDeps,
 ): Promise<AutochargeItem> {
+  const skipped = (code: string): AutochargeItem => ({
+    invoice_number: null, status: 'SKIPPED', error_code: code, amount: null, currency: null, attempt_no: null,
+  });
+
+  // Mismo candado que el portal: si el cliente está pagando esta factura en
+  // este momento (o hay un cargo en revisión), no se cobra otra vez.
+  const lock = await claimChargeLock(deps.rpc, invoiceId, 'AUTOCHARGE', actor);
+  if (!lock.ok) return skipped(lock.error);
+  const release = (outcome: 'RELEASE' | 'REVIEW', code: string | null = null) =>
+    releaseChargeLock(deps.rpc, lock.lockId, outcome, code);
+
   const begin = await deps.rpc('begin_card_charge_attempt', {
     p_invoice_id: invoiceId,
     p_trigger_source: source,
@@ -81,11 +80,13 @@ export async function chargeInvoice(
     p_ignore_schedule: ignoreSchedule,
   });
   if (begin.error) {
-    return { invoice_number: null, status: 'SKIPPED', error_code: rpcErrorCode(begin.error) ?? 'ERROR_INTERNO', amount: null, currency: null, attempt_no: null };
+    await release('RELEASE');
+    return skipped(rpcErrorCode(begin.error) ?? 'ERROR_INTERNO');
   }
   const a = (begin.data ?? {}) as Record<string, unknown>;
   if (a.ok !== true) {
-    return { invoice_number: null, status: 'SKIPPED', error_code: String(a.error ?? 'COBRO_NO_PROCEDE'), amount: null, currency: null, attempt_no: null };
+    await release('RELEASE');
+    return skipped(String(a.error ?? 'COBRO_NO_PROCEDE'));
   }
 
   const base = {
@@ -100,6 +101,7 @@ export async function chargeInvoice(
       p_succeeded: false,
       p_error_code: code,
     });
+    await release('RELEASE', code);
     return { ...base, status: 'FAILED', error_code: code };
   };
 
@@ -130,10 +132,13 @@ export async function chargeInvoice(
       metadata: { invoice_id: invoiceId, attempt_id: String(a.attempt_id), origin: 'payment-autocharge' },
     });
   } catch (error) {
-    const code = isDefinitive(error);
+    const code = definitiveProviderFailure(error);
     if (code) return fail(code);
-    // Ambiguo: el intento queda PENDING (bloquea otro cargo de la factura).
-    return { ...base, status: 'REVIEW', error_code: error instanceof ProviderError ? error.code : 'PROVEEDOR_NO_DISPONIBLE' };
+    // Ambiguo: el intento queda PENDING y el candado en revisión (bloquean
+    // otro cargo de la factura, también desde el portal).
+    const ambiguous = error instanceof ProviderError ? error.code : 'PROVEEDOR_NO_DISPONIBLE';
+    await release('REVIEW', ambiguous);
+    return { ...base, status: 'REVIEW', error_code: ambiguous };
   }
 
   const done = await deps.rpc('complete_card_charge_attempt', {
@@ -146,8 +151,11 @@ export async function chargeInvoice(
   });
   if (done.error) {
     // Cobrado en la pasarela y NO registrado: revisión humana / reconciliación.
-    return { ...base, status: 'REVIEW', error_code: rpcErrorCode(done.error) ?? 'REGISTRO_FALLIDO' };
+    const code = rpcErrorCode(done.error) ?? 'REGISTRO_FALLIDO';
+    await release('REVIEW', code);
+    return { ...base, status: 'REVIEW', error_code: code };
   }
+  await release('RELEASE');
   return { ...base, status: 'SUCCEEDED', error_code: null };
 }
 

@@ -70,6 +70,8 @@ function makeDeps(overrides: Partial<Record<string, Handler>> = {}, opts: { allo
       },
     }),
     register_payment_link_event: () => ({ data: { event_id: 'e', rate_limited: false } }),
+    claim_invoice_charge_lock: () => ({ data: { ok: true, lock_id: 'lock-1', balance: '1200.00' } }),
+    release_invoice_charge_lock: (a) => ({ data: { ok: true, status: a.p_outcome === 'REVIEW' ? 'REVIEW' : 'RELEASED' } }),
     register_provider_invoice_payment: () => ({ data: { duplicate: false, payment_id: 'p1' } }),
     payment_link_enrollment_context: () => ({
       data: {
@@ -179,16 +181,20 @@ describe('pay-portal · /statement', () => {
 describe('pay-portal · /charge', () => {
   const body = { token: TOKEN, invoice_id: INVOICE, source_token: 'tkn_mock_ok', email: 'Ana@Alpha.ebim.test' };
 
-  it('camino feliz: contexto → intento → cargo → registro → CHARGE_OK; comprobante enmascarado', async () => {
+  it('camino feliz: contexto → intento → candado → cargo → registro → liberar → CHARGE_OK; comprobante enmascarado', async () => {
     const { deps, calls, called } = makeDeps();
     const res = await handlePayPortal(req('charge', body), deps);
     expect(res.status).toBe(200);
     expect(calls.map(([f]) => f)).toEqual([
       'payment_link_charge_context',
       'register_payment_link_event',
+      'claim_invoice_charge_lock',
       'register_provider_invoice_payment',
+      'release_invoice_charge_lock',
       'register_payment_link_event',
     ]);
+    expect(called('claim_invoice_charge_lock')[0]![1]).toMatchObject({ p_invoice_id: INVOICE, p_holder: 'PORTAL' });
+    expect(called('release_invoice_charge_lock')[0]![1]).toMatchObject({ p_lock_id: 'lock-1', p_outcome: 'RELEASE' });
     expect(called('register_payment_link_event')[0]![1]).toMatchObject({ p_kind: 'CHARGE_ATTEMPT', p_invoice_id: INVOICE });
     const [, reg] = called('register_provider_invoice_payment')[0]!;
     expect(reg).toMatchObject({ p_invoice_id: INVOICE, p_amount: 1200, p_currency: 'USD', p_provider_account_id: ACCOUNT_ID });
@@ -209,6 +215,46 @@ describe('pay-portal · /charge', () => {
     spy.mockRestore();
   });
 
+  it('se cobra el saldo leído CON el candado tomado, no el del contexto (que pudo quedar viejo)', async () => {
+    const provider = new MockPaymentProvider(mockAccount);
+    const spy = vi.spyOn(provider, 'createCharge');
+    const { deps } = makeDeps(
+      { claim_invoice_charge_lock: () => ({ data: { ok: true, lock_id: 'lock-1', balance: '200.00' } }) },
+      { provider },
+    );
+    await handlePayPortal(req('charge', body), deps);
+    expect(spy.mock.calls[0]![0]).toMatchObject({ amountMinor: 20000 });
+  });
+
+  it('candado tomado → 409 COBRO_EN_CURSO con mensaje para el cliente y sin llamar a la pasarela', async () => {
+    const provider = new MockPaymentProvider(mockAccount);
+    const spy = vi.spyOn(provider, 'createCharge');
+    const { deps, called } = makeDeps(
+      { claim_invoice_charge_lock: () => ({ data: { ok: false, error: 'COBRO_EN_CURSO', retry_after_seconds: 90 } }) },
+      { provider },
+    );
+    const res = await handlePayPortal(req('charge', body), deps);
+    expect(res).toMatchObject({
+      status: 409,
+      body: { error: 'COBRO_EN_CURSO', message: 'Ya hay un pago en curso para esta factura. Espera un momento y recarga la página.' },
+    });
+    expect(spy).not.toHaveBeenCalled();
+    expect(called('release_invoice_charge_lock')).toHaveLength(0);
+  });
+
+  it('fallo AMBIGUO de la pasarela → PAGO_EN_REVISION y el candado queda en revisión (no se pide repetir)', async () => {
+    const flaky = {
+      name: 'culqi', mode: 'MOCK',
+      createCharge: vi.fn().mockRejectedValue(new ProviderError('PROVEEDOR_NO_DISPONIBLE', 'timeout', 502)),
+    } as unknown as PaymentProvider;
+    const { deps, called } = makeDeps({}, { provider: flaky });
+    const res = await handlePayPortal(req('charge', body), deps);
+    expect(res).toMatchObject({ status: 502, body: { error: 'PAGO_EN_REVISION' } });
+    expect(called('release_invoice_charge_lock')[0]![1]).toMatchObject({
+      p_outcome: 'REVIEW', p_outcome_code: 'PROVEEDOR_NO_DISPONIBLE',
+    });
+  });
+
   it('límite de intentos → 429 DEMASIADOS_INTENTOS y no se llama a la pasarela', async () => {
     const provider = new MockPaymentProvider(mockAccount);
     const spy = vi.spyOn(provider, 'createCharge');
@@ -223,6 +269,8 @@ describe('pay-portal · /charge', () => {
     const res = await handlePayPortal(req('charge', { ...body, source_token: 'tkn_mock_decline' }), deps);
     expect(res).toMatchObject({ status: 402, body: { error: 'TARJETA_RECHAZADA' } });
     expect(called('register_provider_invoice_payment')).toHaveLength(0);
+    // Rechazo definitivo: el cargo no se hizo, el candado se libera.
+    expect(called('release_invoice_charge_lock')[0]![1]).toMatchObject({ p_outcome: 'RELEASE', p_outcome_code: 'TARJETA_RECHAZADA' });
     expect(called('register_payment_link_event')[1]![1]).toMatchObject({ p_kind: 'CHARGE_FAILED', p_error_code: 'TARJETA_RECHAZADA' });
   });
 
@@ -259,6 +307,8 @@ describe('pay-portal · /charge', () => {
     // El dinero ya se cobró: no se le pide al cliente que repita el pago.
     expect(res.body.error).toBe('PAGO_EN_REVISION');
     expect(over.called('register_payment_link_event').at(-1)![1]).toMatchObject({ p_kind: 'CHARGE_FAILED', p_error_code: 'SOBRECOBRO' });
+    // Cobrado y no registrado: el candado se mantiene hasta la reconciliación.
+    expect(over.called('release_invoice_charge_lock')[0]![1]).toMatchObject({ p_outcome: 'REVIEW', p_outcome_code: 'SOBRECOBRO' });
   });
 
   it('valida invoice_id y source_token antes de tocar la base', async () => {
@@ -266,6 +316,71 @@ describe('pay-portal · /charge', () => {
     expect((await handlePayPortal(req('charge', { ...body, invoice_id: 'x' }), deps)).body.error).toBe('FACTURA_NO_PAGABLE');
     expect((await handlePayPortal(req('charge', { ...body, source_token: 'crd_x' }), deps)).body.error).toBe('SOLICITUD_INVALIDA');
     expect(calls).toHaveLength(0);
+  });
+});
+
+/**
+ * Doble de la base con un candado REAL en memoria (misma semántica que
+ * claim/release_invoice_charge_lock) y una pasarela que tarda: lo que se fija
+ * es que dos `/charge` simultáneos de la misma factura solo cobren UNA vez.
+ */
+function makeLockStore() {
+  const locks = new Map<string, { lockId: string; status: 'ACTIVE' | 'REVIEW' | 'RELEASED' }>();
+  let seq = 0;
+  return {
+    locks,
+    claim: (a: Record<string, unknown>) => {
+      const current = locks.get(String(a.p_invoice_id));
+      if (current && current.status !== 'RELEASED') return { data: { ok: false, error: 'COBRO_EN_CURSO' } };
+      const lockId = `lock-${++seq}`;
+      locks.set(String(a.p_invoice_id), { lockId, status: 'ACTIVE' });
+      return { data: { ok: true, lock_id: lockId, balance: '1200.00' } };
+    },
+    release: (a: Record<string, unknown>) => {
+      for (const lock of locks.values()) {
+        if (lock.lockId === a.p_lock_id) lock.status = a.p_outcome === 'REVIEW' ? 'REVIEW' : 'RELEASED';
+      }
+      return { data: { ok: true } };
+    },
+  };
+}
+
+describe('pay-portal · cobros simultáneos de la misma factura', () => {
+  const body = { token: TOKEN, invoice_id: INVOICE, source_token: 'tkn_mock_ok' };
+
+  it('doble clic / dos pestañas: un solo cargo; el segundo recibe 409 COBRO_EN_CURSO', async () => {
+    const store = makeLockStore();
+    let releaseGateway!: () => void;
+    const gate = new Promise<void>((resolve) => (releaseGateway = resolve));
+    const inner = new MockPaymentProvider(mockAccount);
+    const slow = {
+      name: 'mock', mode: 'MOCK',
+      createCharge: vi.fn(async (input: Parameters<PaymentProvider['createCharge']>[0]) => {
+        await gate;
+        return inner.createCharge(input);
+      }),
+    } as unknown as PaymentProvider;
+    const { deps, called } = makeDeps(
+      { claim_invoice_charge_lock: store.claim, release_invoice_charge_lock: store.release },
+      { provider: slow },
+    );
+
+    const first = handlePayPortal(req('charge', body), deps);
+    const second = handlePayPortal(req('charge', body), deps);
+    // El segundo termina mientras el primero sigue esperando a la pasarela.
+    const secondRes = await second;
+    expect(secondRes).toMatchObject({ status: 409, body: { error: 'COBRO_EN_CURSO' } });
+    releaseGateway();
+    const firstRes = await first;
+
+    expect(firstRes.status).toBe(200);
+    expect(slow.createCharge).toHaveBeenCalledTimes(1);
+    expect(called('register_provider_invoice_payment')).toHaveLength(1);
+    expect(store.locks.get(INVOICE)?.status).toBe('RELEASED');
+
+    // Terminado el primero, un nuevo intento vuelve a poder reclamar el candado.
+    const third = await handlePayPortal(req('charge', body), deps);
+    expect(third.status).toBe(200);
   });
 });
 

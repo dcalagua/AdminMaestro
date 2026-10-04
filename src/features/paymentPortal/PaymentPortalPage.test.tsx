@@ -133,6 +133,23 @@ describe('PaymentPortalPage', () => {
     expect(screen.queryByText('TARJETA_RECHAZADA')).not.toBeInTheDocument();
   });
 
+  it('cobro en curso (doble clic / otra pestaña): mensaje de espera, sin código y recarga el estado', async () => {
+    api.callPortal
+      .mockResolvedValueOnce(okStatement(statement()))
+      .mockResolvedValueOnce({
+        ok: false, status: 409, error: 'COBRO_EN_CURSO',
+        message: 'Ya hay un pago en curso para esta factura. Espera un momento y recarga la página.',
+      })
+      .mockResolvedValueOnce(okStatement(statement()));
+    render(<PaymentPortalPage />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Pagar' }));
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Continuar' }));
+    const alert = await screen.findByText(/Ya hay un pago en curso para esta factura/);
+    expect(alert).toHaveAttribute('role', 'alert');
+    expect(screen.queryByText(/COBRO_EN_CURSO/)).not.toBeInTheDocument();
+    await waitFor(() => expect(api.callPortal).toHaveBeenCalledTimes(3));
+  });
+
   it('cuenta TEST: abre Culqi Checkout con la llave pública y el saldo en céntimos', async () => {
     const test = statement();
     test.invoices[0]!.checkout = { public_key: 'pk_test_demo', mode: 'TEST' };
