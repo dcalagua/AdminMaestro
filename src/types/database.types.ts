@@ -2976,6 +2976,85 @@ export type Database = {
           },
         ];
       };
+      invoice_charge_locks: {
+        Row: {
+          claimed_at: string;
+          expires_at: string;
+          holder: string;
+          holder_ref: string | null;
+          invoice_id: string;
+          lock_id: string;
+          outcome_code: string | null;
+          released_at: string | null;
+          status: string;
+        };
+        Insert: {
+          claimed_at?: string;
+          expires_at: string;
+          holder: string;
+          holder_ref?: string | null;
+          invoice_id: string;
+          lock_id?: string;
+          outcome_code?: string | null;
+          released_at?: string | null;
+          status?: string;
+        };
+        Update: {
+          claimed_at?: string;
+          expires_at?: string;
+          holder?: string;
+          holder_ref?: string | null;
+          invoice_id?: string;
+          lock_id?: string;
+          outcome_code?: string | null;
+          released_at?: string | null;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'invoice_charge_locks_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: true;
+            referencedRelation: 'invoices';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'invoice_charge_locks_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: true;
+            referencedRelation: 'v_collected_payments';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'invoice_charge_locks_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: true;
+            referencedRelation: 'v_collected_revenue';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'invoice_charge_locks_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: true;
+            referencedRelation: 'v_commission_detail';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'invoice_charge_locks_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: true;
+            referencedRelation: 'v_discount_sign_legacy_invoices';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'invoice_charge_locks_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: true;
+            referencedRelation: 'v_invoice_balances';
+            referencedColumns: ['invoice_id'];
+          },
+        ];
+      };
       invoice_lines: {
         Row: {
           ai_credit_entry_id: string | null;
@@ -8204,6 +8283,52 @@ export type Database = {
           },
         ];
       };
+      usage_alert_acks: {
+        Row: {
+          acknowledged_at: string;
+          acknowledged_by: string;
+          alert_id: string;
+          id: string;
+          note: string | null;
+        };
+        Insert: {
+          acknowledged_at?: string;
+          acknowledged_by: string;
+          alert_id: string;
+          id?: string;
+          note?: string | null;
+        };
+        Update: {
+          acknowledged_at?: string;
+          acknowledged_by?: string;
+          alert_id?: string;
+          id?: string;
+          note?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'usage_alert_acks_acknowledged_by_fkey';
+            columns: ['acknowledged_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'usage_alert_acks_alert_id_fkey';
+            columns: ['alert_id'];
+            isOneToOne: true;
+            referencedRelation: 'usage_alerts';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'usage_alert_acks_alert_id_fkey';
+            columns: ['alert_id'];
+            isOneToOne: true;
+            referencedRelation: 'v_usage_alerts';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       usage_alerts: {
         Row: {
           aggregate_id: string | null;
@@ -9587,6 +9712,38 @@ export type Database = {
             referencedColumns: ['tenant_id'];
           },
         ];
+      };
+      v_commercial_cutover_axes: {
+        Row: {
+          cutover_state_billing: string | null;
+          cutover_state_entitlements: string | null;
+          integration_code: string | null;
+          integration_id: string | null;
+          integration_name: string | null;
+          product_code: string | null;
+          product_short_name: string | null;
+          saas_product_id: string | null;
+          updated_at: string | null;
+          usage_ingest_enabled: boolean | null;
+        };
+        Relationships: [];
+      };
+      v_commercial_cutover_history: {
+        Row: {
+          actor_name: string | null;
+          actor_user_id: string | null;
+          axis: string | null;
+          from_state: string | null;
+          id: number | null;
+          integration_code: string | null;
+          integration_id: string | null;
+          occurred_at: string | null;
+          product_code: string | null;
+          reason: string | null;
+          saas_product_id: string | null;
+          to_state: string | null;
+        };
+        Relationships: [];
       };
       v_commission_detail: {
         Row: {
@@ -12171,16 +12328,115 @@ export type Database = {
         };
         Relationships: [];
       };
+      v_usage_alerts: {
+        Row: {
+          ack_id: string | null;
+          ack_note: string | null;
+          acknowledged: boolean | null;
+          acknowledged_at: string | null;
+          acknowledged_by: string | null;
+          acknowledged_by_name: string | null;
+          aggregate_id: string | null;
+          code: string | null;
+          created_at: string | null;
+          detail: Json | null;
+          id: string | null;
+          saas_product_id: string | null;
+          tenant_id: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'usage_alert_acks_acknowledged_by_fkey';
+            columns: ['acknowledged_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'usage_alerts_aggregate_id_fkey';
+            columns: ['aggregate_id'];
+            isOneToOne: false;
+            referencedRelation: 'usage_period_aggregates';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'usage_alerts_aggregate_id_fkey';
+            columns: ['aggregate_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_usage_period_aggregates';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'usage_alerts_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'saas_products';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'usage_alerts_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_product_finance';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'usage_alerts_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_product_margin';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'usage_alerts_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'usage_alerts_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'usage_alerts_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'usage_alerts_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_margin';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'usage_alerts_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['tenant_id'];
+          },
+        ];
+      };
       v_usage_period_aggregates: {
         Row: {
           allowance_included: number | null;
           allowance_status: string | null;
+          closing_at: string | null;
           event_count: number | null;
           finalized_at: string | null;
+          finalized_by: string | null;
           id: string | null;
           is_billable: boolean | null;
           late_event_count: number | null;
           meter_code: string | null;
+          meter_id: string | null;
           overage_policy: string | null;
           overage_quantity: number | null;
           period_end: string | null;
@@ -12195,6 +12451,20 @@ export type Database = {
           unit: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: 'usage_period_aggregates_finalized_by_fkey';
+            columns: ['finalized_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'usage_period_aggregates_meter_id_fkey';
+            columns: ['meter_id'];
+            isOneToOne: false;
+            referencedRelation: 'usage_meters';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'usage_period_aggregates_saas_product_id_fkey';
             columns: ['saas_product_id'];
@@ -12255,6 +12525,7 @@ export type Database = {
       };
     };
     Functions: {
+      acknowledge_usage_alert: { Args: { p_alert_id: string; p_note?: string }; Returns: Json };
       ai_credit_applicable_policies: {
         Args: { p_at: string; p_tenant_id: string };
         Returns: {
@@ -12337,6 +12608,7 @@ export type Database = {
       can_manage_regional_catalog: { Args: Record<PropertyKey, never>; Returns: boolean };
       can_manage_subscription_documents: { Args: { p_subscription_id: string }; Returns: boolean };
       can_manage_tenant: { Args: { p_tenant: string }; Returns: boolean };
+      can_read_commercial_cutover: { Args: { p_saas_product_id: string }; Returns: boolean };
       can_read_entitlement_sync: { Args: { p_tenant_id: string }; Returns: boolean };
       can_read_finance: { Args: Record<PropertyKey, never>; Returns: boolean };
       can_read_saas_provisioning: { Args: { p_request_id: string }; Returns: boolean };
@@ -12434,10 +12706,24 @@ export type Database = {
           tenant_id: string;
         }[];
       };
+      claim_invoice_charge_lock: {
+        Args: {
+          p_holder: string;
+          p_holder_ref?: string;
+          p_invoice_id: string;
+          p_ttl_seconds?: number;
+        };
+        Returns: Json;
+      };
+      clear_catalog_item_usage_binding: {
+        Args: { p_catalog_item_code: string; p_reason: string };
+        Returns: Json;
+      };
       close_entitlement_grant: {
         Args: { p_grant_id: string; p_reason: string; p_valid_to: string };
         Returns: undefined;
       };
+      close_usage_aggregate: { Args: { p_aggregate_id: string; p_reason: string }; Returns: Json };
       close_usage_periods: { Args: { p_now?: string }; Returns: number };
       collections_by_month: {
         Args: { p_from?: string; p_organization_id?: string; p_to?: string };
@@ -12446,6 +12732,38 @@ export type Database = {
           currency: string;
           month: string;
           payment_count: number;
+        }[];
+      };
+      commercial_cutover_axes: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          cutover_state_billing: string;
+          cutover_state_entitlements: string;
+          integration_code: string;
+          integration_id: string;
+          integration_name: string;
+          product_code: string;
+          product_short_name: string;
+          saas_product_id: string;
+          updated_at: string;
+          usage_ingest_enabled: boolean;
+        }[];
+      };
+      commercial_cutover_history: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          actor_name: string;
+          actor_user_id: string;
+          axis: string;
+          from_state: string;
+          id: number;
+          integration_code: string;
+          integration_id: string;
+          occurred_at: string;
+          product_code: string;
+          reason: string;
+          saas_product_id: string;
+          to_state: string;
         }[];
       };
       commission_summary: { Args: { p_search?: string; p_status?: string }; Returns: Json };
@@ -12693,6 +13011,10 @@ export type Database = {
       deployment_health_context: { Args: { p_deployment_target_id: string }; Returns: Json };
       effective_config: { Args: { p_company: string }; Returns: Json };
       effective_tenant_config: { Args: { p_tenant: string }; Returns: Json };
+      end_ai_credit_policy: {
+        Args: { p_policy_id: string; p_reason: string; p_valid_to: string };
+        Returns: Json;
+      };
       end_product_agreement: {
         Args: { p_agreement_id: string; p_reason?: string; p_valid_to?: string };
         Returns: undefined;
@@ -13354,6 +13676,10 @@ export type Database = {
         Returns: undefined;
       };
       release_ai_credit_reservation: { Args: { p_reservation_id: string }; Returns: string };
+      release_invoice_charge_lock: {
+        Args: { p_lock_id: string; p_outcome?: string; p_outcome_code?: string };
+        Returns: Json;
+      };
       reporting_settings: {
         Args: Record<PropertyKey, never>;
         Returns: {
