@@ -224,9 +224,13 @@ web3 = 30
 
 [auth.email]
 # Allow/disallow new user signups via email to your project.
-# M5: apagado también aquí; el proveedor email sigue activo para ingresar,
-# aceptar invitaciones y restablecer la contraseña.
-enable_signup = false
+# M5: se DEJA en true a propósito. En el CLI esta clave es el interruptor del
+# PROVEEDOR email (GOTRUE_EXTERNAL_EMAIL_ENABLED): en false bloquea también el
+# ingreso con contraseña, las invitaciones y el restablecimiento
+# (`email_provider_disabled`, verificado en local). El registro abierto lo
+# corta `[auth] enable_signup = false` (GOTRUE_DISABLE_SIGNUP), que responde
+# `signup_disabled` a /auth/v1/signup.
+enable_signup = true
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
