@@ -223,3 +223,18 @@ fue compensado (`has_reversal`), sin obligar a cruzar tablas a mano.
   evento no puede quedar en una liquidación de otra moneda (`LIQUIDACION_MULTIMONEDA`).
 - Los **reversos** conservan la moneda del evento y netean dentro de ella.
 - El dashboard puede mostrar comisiones en la moneda de reporte solo como analítica.
+
+## M3 · La tarifa de plataforma del partner NO es una comisión
+
+La **tarifa de plataforma** (`partner_fee_statements`, spec §4) es dinero que el **partner le paga a EBIM** por
+usar la plataforma cuando él factura al cliente final. Las **comisiones** (`commission_events`) son dinero que
+**EBIM paga a sus vendedores** por cobros confirmados. Son flujos opuestos y viven en tablas distintas.
+
+- Las líneas de la factura al partner llevan `charge_kind = 'PARTNER_PLATFORM_FEE'`. Igual que `USAGE_OVERAGE`
+  y `CREDIT_PURCHASE`, **solo comisionan con una regla que nombre ese `charge_kind`**: una regla genérica
+  `COLLECTED_ANY` o `FIXED_AMOUNT` no las incluye, y `COLLECTED_LICENSE` tampoco (no es una licencia).
+- Si negocio decide comisionar la tarifa (p. ej. al gestor del canal), se crea una regla explícita con
+  `charge_kind = 'PARTNER_PLATFORM_FEE'`. La comisión, como siempre, se devenga con el cobro `CONFIRMED` de esa
+  factura y en su moneda.
+- `generate_commission_events` se recreó en `20261011000100` copiando su última definición
+  (`20261008000100`) con ese único cambio. Test: `supabase/tests/47_partner_platform_fee.test.sql` (49–50).
