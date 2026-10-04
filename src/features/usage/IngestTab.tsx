@@ -311,12 +311,17 @@ function CredentialDialog({
       <FieldRow>
         <SelectField label="Producto" required placeholder="Elige el producto…" options={productOptions}
           error={form.formState.errors.product_code} {...form.register('product_code')} />
-        <SelectField label="Ambiente" required disabled={Boolean(credential)}
-          options={ENVIRONMENTS.map((e) => ({ value: e, label: PROVISIONING_ENVIRONMENT_LABEL[e] }))}
-          error={form.formState.errors.environment} {...form.register('environment')} />
+        {/* Emisor × ambiente es la clave: al editar, solo lectura (`readOnly`, no `disabled`). */}
+        {credential ? (
+          <TextField label="Ambiente" required readOnly error={form.formState.errors.environment} {...form.register('environment')} />
+        ) : (
+          <SelectField label="Ambiente" required
+            options={ENVIRONMENTS.map((e) => ({ value: e, label: PROVISIONING_ENVIRONMENT_LABEL[e] }))}
+            error={form.formState.errors.environment} {...form.register('environment')} />
+        )}
       </FieldRow>
       <FieldRow>
-        <TextField label="Emisor (iss)" required disabled={Boolean(credential)} placeholder="ewm.ebim"
+        <TextField label="Emisor (iss)" required readOnly={Boolean(credential)} placeholder="ewm.ebim"
           error={form.formState.errors.issuer} {...form.register('issuer')} />
         <TextField label="Audiencia (aud)" required error={form.formState.errors.audience} {...form.register('audience')} />
       </FieldRow>

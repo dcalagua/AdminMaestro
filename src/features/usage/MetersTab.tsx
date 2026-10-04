@@ -293,9 +293,18 @@ function MeterDialog({
       onCancel={onClose}
     >
       <FieldRow>
-        <SelectField label="Producto" required disabled={Boolean(meter)} placeholder="Elige el producto…"
-          options={productOptions} error={form.formState.errors.product_code} {...form.register('product_code')} />
-        <TextField label="Código" required disabled={Boolean(meter)} placeholder="ai.pages"
+        {/*
+          Al editar, producto y código son la clave del medidor: se muestran de
+          solo lectura (`readOnly`, no `disabled`: un control deshabilitado no
+          entrega su valor a React Hook Form).
+        */}
+        {meter ? (
+          <TextField label="Producto" required readOnly error={form.formState.errors.product_code} {...form.register('product_code')} />
+        ) : (
+          <SelectField label="Producto" required placeholder="Elige el producto…"
+            options={productOptions} error={form.formState.errors.product_code} {...form.register('product_code')} />
+        )}
+        <TextField label="Código" required readOnly={Boolean(meter)} placeholder="ai.pages"
           error={form.formState.errors.code} {...form.register('code')} />
       </FieldRow>
       <FieldRow>

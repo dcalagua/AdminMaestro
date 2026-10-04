@@ -186,6 +186,22 @@ describe('MetersTab', () => {
     });
   });
 
+  it('«Editar» conserva producto y código (clave) y llama a upsert_usage_meter', async () => {
+    const user = userEvent.setup();
+    permissions.mockReturnValue(PRODUCT_ADMIN);
+    upsertMeter.mockResolvedValue('m1');
+    metersHook.mockReturnValue(ok([meter()]));
+    wrap(<MetersTab />);
+    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByLabelText(/Código/)).toHaveAttribute('readonly');
+    await user.selectOptions(within(dialog).getByLabelText(/Estado/), 'DEPRECATED');
+    await user.click(within(dialog).getByRole('button', { name: 'Guardar' }));
+    expect(upsertMeter).toHaveBeenCalledWith(
+      expect.objectContaining({ p_product_code: 'ewm', p_code: 'ai.pages', p_status: 'DEPRECATED', p_capability_code: 'ewm.ai_docs' }),
+    );
+  });
+
   it('una foto diaria exige agregación por máximo', async () => {
     const user = userEvent.setup();
     permissions.mockReturnValue(PRODUCT_ADMIN);
@@ -291,6 +307,24 @@ describe('IngestTab', () => {
     expect(configureCredential).toHaveBeenCalledWith({
       p_product_code: 'ewm', p_environment: 'DEV', p_issuer: 'ewm.ebim', p_public_key_ref: 'EWM_DEV_USAGE_PUBLIC_JWK',
       p_enabled: false, p_kid: undefined, p_audience: 'masteradmin.ebim',
+    });
+  });
+
+  it('editar una credencial conserva emisor y ambiente y exige volver a indicar la referencia', async () => {
+    const user = userEvent.setup();
+    permissions.mockReturnValue(PRODUCT_ADMIN);
+    configureCredential.mockResolvedValue('cred-1');
+    credentialsHook.mockReturnValue(
+      ok([{ id: 'cred-1', saas_product_id: 'p-ewm', environment: 'QAS', issuer: 'ewm.ebim', audience: 'masteradmin.ebim', algorithm: 'ES256', kid: 'k1', enabled: true, created_at: '2026-10-01T00:00:00Z', updated_at: '2026-10-01T00:00:00Z' }]),
+    );
+    wrap(<IngestTab />);
+    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    const dialog = screen.getByRole('dialog');
+    await user.type(within(dialog).getByLabelText(/Referencia de la clave pública/), 'EWM_QAS_USAGE_PUBLIC_JWK');
+    await user.click(within(dialog).getByRole('button', { name: 'Guardar' }));
+    expect(configureCredential).toHaveBeenCalledWith({
+      p_product_code: 'ewm', p_environment: 'QAS', p_issuer: 'ewm.ebim', p_public_key_ref: 'EWM_QAS_USAGE_PUBLIC_JWK',
+      p_enabled: true, p_kid: 'k1', p_audience: 'masteradmin.ebim',
     });
   });
 
