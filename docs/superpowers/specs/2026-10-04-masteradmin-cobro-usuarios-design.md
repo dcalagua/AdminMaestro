@@ -34,6 +34,7 @@ Cerrar las brechas de la revisión del 4 de octubre entre MasterAdmin y la visi�
 - `comercial ≠ acceso operativo`: una venta no crea `tenant_memberships`.
 - Comisiones solo desde pagos `CONFIRMED` (trigger existente). Las líneas nuevas `PARTNER_PLATFORM_FEE` solo comisionan con una regla que las nombre (igual que `USAGE_OVERAGE`/`CREDIT_PURCHASE`).
 - Culqi LIVE sigue bloqueado por `CULQI_ALLOW_LIVE`. Nunca se guarda PAN, CVV ni token `tkn_`; solo ids opacos (`cus_`, `crd_`, `chr_`) y brand/last4.
+- Convenciones `docs/architecture/EBIM_CONVENTIONS.md`: buscador único y pestañas de estado (U-06), detalle en `SectionTabs` con `#hash` (U-07), toda la UI en español (U-13), estados vacío/carga/error (U-14), Super Admin único no asignable (S-01), secretos solo en servidor (S-05).
 - Decisiones abiertas del CCP (D-01…D-06, D-12) no se resuelven aquí: la UI muestra «No decidido (D-xx)», nunca 0 ni «gratis».
 
 ---
@@ -197,7 +198,7 @@ Pantallas sobre el backend existente (fases 17–18), con estos complementos mí
 
 ### 5.1 «Uso» (`/usage`, Operación SaaS)
 
-Pestañas: **Medidores** (alta/edición/estado `upsert_usage_meter`; facturable `set_usage_meter_billable` con motivo y badge D-06), **Ingest** (credenciales por producto/entorno, kill-switch `set_usage_ingest_enabled`; aviso de que el flag global `USAGE_INGEST_ENABLED` vive en el entorno y está apagado hasta D-12), **Agregados** (filtros producto/tenant/período/estado; «Cerrar período» y «Finalizar» para finanzas), **Eventos** (por tenant y rango; COGS solo finanzas), **Rechazos** (agrupados por código), **Alertas** (con acuse).
+Pestañas: **Medidores** (alta/edición/estado `upsert_usage_meter`; facturable `set_usage_meter_billable` con motivo y badge D-06), **Ingest** (credenciales por producto/entorno, kill-switch `set_usage_ingest_enabled`; aviso de que el flag global `USAGE_INGEST_ENABLED` vive en el entorno y está apagado hasta D-12), **Agregados** (buscador único por producto/tenant/medidor y pestañas de estado OPEN/CLOSING/FINALIZED; «Cerrar período» y «Finalizar» para finanzas), **Eventos** (por tenant y rango; COGS solo finanzas), **Rechazos** (agrupados por código), **Alertas** (con acuse).
 
 ### 5.2 «Créditos IA» (`/ai-credits`, Finanzas)
 
@@ -246,7 +247,7 @@ Página `/bienvenida` (pública): recibe la sesión del enlace de invitación y 
 
 ### 6.4 Consola
 
-- **Gobierno → «Usuarios y accesos»** (`/users`): lista con búsqueda y filtros (tipo EBIM/partner/cliente, rol, estado), «Invitar usuario» (email, nombre, tipo de acceso y su destino).
+- **Gobierno → «Usuarios y accesos»** (`/users`): lista con buscador único (nombre, email, organización) y pestañas Todos/EBIM/Partners/Clientes/Inactivos (U-06), «Invitar usuario» (email, nombre, tipo de acceso y su destino).
 - **Detalle de usuario**: Perfil · Rol de consola · Organizaciones · Tenants · Provisioning · Vendedor · Actividad (auditoría del usuario) · Desactivar/Reactivar.
 - Admin de partner/cliente ve la misma página limitada a su organización.
 - **Configuración → «Mi perfil»**: nombre, teléfono, cargo; cambio de contraseña.
