@@ -640,3 +640,77 @@ export function useCheckDeploymentHealth() {
       invalidate(qc, ['provisioning-targets', 'deployment-targets', ...PROVISIONING_KEYS]),
   });
 }
+
+/* ==========================================================================
+   M1 · Portal de pago por enlace · M2 · Tarjeta guardada
+   ========================================================================== */
+
+const PAYMENT_LINK_KEYS = ['payment-links', 'payment-link-events'];
+
+/** Devuelve el token en claro UNA sola vez: la base solo guarda su hash. */
+export function useCreatePaymentLink() {
+  return useRpc('create_payment_link', PAYMENT_LINK_KEYS);
+}
+
+export function useRevokePaymentLink() {
+  return useRpc('revoke_payment_link', PAYMENT_LINK_KEYS);
+}
+
+const CARD_ON_FILE_KEYS = [
+  'card-on-file', 'provider-payment-methods', 'charge-attempts', ...COLLECTION_KEYS,
+];
+
+/** Revoca la autorización: la tarjeta queda inactiva y el perfil pasa a cobro manual. */
+export function useRevokeCardOnFile() {
+  return useRpc('revoke_card_on_file_authorization', CARD_ON_FILE_KEYS);
+}
+
+export interface AutochargeResult {
+  invoice_number?: string | null;
+  status: 'SUCCEEDED' | 'FAILED' | 'SKIPPED' | 'REVIEW';
+  error_code?: string | null;
+  amount?: number | null;
+  currency?: string | null;
+}
+
+export interface AutochargeSummary {
+  mode?: string;
+  processed: number;
+  succeeded: number;
+  failed: number;
+  skipped: number;
+  results: AutochargeResult[];
+}
+
+/**
+ * Cobro con tarjeta guardada (Edge Function `payment-autocharge`, JWT de
+ * finanzas). `{ invoiceId }` = «Cobrar ahora»; `{ run: true }` = «Ejecutar
+ * cobros pendientes» según la política de reintentos.
+ */
+export function useAutocharge() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { invoiceId: string } | { run: true }): Promise<AutochargeSummary> => {
+      const body = 'invoiceId' in input ? { invoice_id: input.invoiceId } : { run: true };
+      const { data, error } = await supabase.functions.invoke<AutochargeSummary>('payment-autocharge', { body });
+      if (error) {
+        const context = (error as { context?: Response }).context;
+        if (context && typeof context.json === 'function') {
+          try {
+            const payload = (await context.json()) as { error?: string; message?: string };
+            throw new Error(payload.message ?? payload.error ?? error.message);
+          } catch (parsed) {
+            if (parsed instanceof Error && parsed.message !== error.message) throw parsed;
+          }
+        }
+        throw new Error(error.message);
+      }
+      return data ?? { processed: 0, succeeded: 0, failed: 0, skipped: 0, results: [] };
+    },
+    onSettled: () =>
+      invalidate(qc, [
+        'invoices', 'charge-attempts', 'billing-alerts', 'renewal-dashboard', 'finance-reconciliation',
+        'commission-events', ...AGGREGATE_KEYS,
+      ]),
+  });
+}

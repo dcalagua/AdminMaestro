@@ -1139,3 +1139,100 @@ export function useTenantEntitlements(tenantId: string | undefined) {
       ),
   });
 }
+
+/* ==========================================================================
+   M1 · Portal de pago por enlace · M2 · Tarjeta guardada
+   ========================================================================== */
+
+/**
+ * Enlaces de pago de una organización con su estado derivado (ACTIVE / EXPIRED /
+ * REVOKED). La vista no expone el token ni su hash; RLS la limita a finanzas.
+ */
+export function usePaymentLinks(organizationId: string | undefined) {
+  return useQuery({
+    queryKey: ['payment-links', organizationId],
+    enabled: Boolean(organizationId),
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('v_payment_links')
+          .select('*')
+          .eq('organization_id', organizationId!)
+          .order('created_at', { ascending: false }),
+      ),
+  });
+}
+
+/** Bitácora de un enlace (vistas, intentos, cobros, tarjeta guardada). */
+export function usePaymentLinkEvents(linkId: string | null) {
+  return useQuery({
+    queryKey: ['payment-link-events', linkId],
+    enabled: Boolean(linkId),
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('payment_link_events')
+          .select('id, kind, error_code, amount, currency, created_at, invoices(number)')
+          .eq('link_id', linkId!)
+          .order('created_at', { ascending: false })
+          .limit(50),
+      ),
+  });
+}
+
+/** Autorizaciones de tarjeta guardada (brand/last4, nunca PAN ni token). */
+export function useCardOnFileAuthorizations(organizationId: string | undefined) {
+  return useQuery({
+    queryKey: ['card-on-file', organizationId],
+    enabled: Boolean(organizationId),
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('v_card_on_file_authorizations')
+          .select('*')
+          .eq('organization_id', organizationId!)
+          .order('accepted_at', { ascending: false }),
+      ),
+  });
+}
+
+/** Historial de intentos de cobro con tarjeta guardada de una suscripción. */
+export function useChargeAttempts(subscriptionId: string | undefined) {
+  return useQuery({
+    queryKey: ['charge-attempts', subscriptionId],
+    enabled: Boolean(subscriptionId),
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('v_payment_charge_attempts')
+          .select('*')
+          .eq('subscription_id', subscriptionId!)
+          .order('created_at', { ascending: false })
+          .limit(100),
+      ),
+  });
+}
+
+/**
+ * Perfil de cobro VIGENTE con su modo recurrente y la cuenta resuelta (V3: la
+ * elige el servidor). Es lo que necesita el panel de tarjeta para decir si la
+ * cuenta tiene credenciales, sin depender de una suscripción del proveedor.
+ */
+export function useCurrentCollectionProfile(subscriptionId: string | undefined) {
+  return useQuery({
+    queryKey: ['subscription-collection', 'current-profile', subscriptionId],
+    enabled: Boolean(subscriptionId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('subscription_collection_profiles')
+        .select(
+          'id, collection_method, recurring_mode, payment_method_id, auto_charge, provider_account_id, payment_provider_accounts(code, environment, public_key, secret_key_ref, status)',
+        )
+        .eq('subscription_id', subscriptionId!)
+        .is('effective_to', null)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      return data;
+    },
+  });
+}
