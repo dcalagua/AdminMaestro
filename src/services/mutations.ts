@@ -640,3 +640,133 @@ export function useCheckDeploymentHealth() {
       invalidate(qc, ['provisioning-targets', 'deployment-targets', ...PROVISIONING_KEYS]),
   });
 }
+
+/* ==========================================================================
+   CCP M4 · Uso, créditos IA y billing shadow (fases 17–18)
+
+   Toda escritura es una RPC `SECURITY DEFINER` con motivo y auditoría. La UI
+   ofrece cada acción según `usePermissions`, pero la RPC es la autoridad:
+   medidores → EBIM_PRODUCT_ADMIN; facturable, finalizar, créditos y shadow →
+   EBIM_FINANCE; eje BILLING → `can_manage_commercial`.
+   ========================================================================== */
+
+const USAGE_AGGREGATE_KEYS = ['usage-aggregates', 'usage-alerts', 'ai-credit-ledger', 'ai-credit-balances'];
+const AI_CREDIT_KEYS = ['ai-credit-ledger', 'ai-credit-balances', 'usage-alerts'];
+
+export function useUpsertUsageMeter() {
+  return useRpc('upsert_usage_meter', ['usage-meters']);
+}
+
+/** D-06: solo finanzas decide si un medidor es facturable, con motivo. */
+export function useSetUsageMeterBillable() {
+  return useRpc('set_usage_meter_billable', ['usage-meters']);
+}
+
+export function useConfigureUsageIngestCredential() {
+  return useRpc('configure_usage_ingest_credential', ['usage-ingest-credentials']);
+}
+
+/** Kill-switch por producto (`product_integrations.usage_ingest_enabled`). */
+export function useSetUsageIngestEnabled() {
+  return useRpc('set_usage_ingest_enabled', ['product-integrations', 'product-integration']);
+}
+
+/** CLOSING → FINALIZED. Recalcula desde los eventos y, si es IA, consume créditos. */
+export function useFinalizeUsageAggregate() {
+  return useRpc('finalize_usage_aggregate', USAGE_AGGREGATE_KEYS);
+}
+
+export function useReverseAiCreditEntry() {
+  return useRpc('reverse_ai_credit_entry', AI_CREDIT_KEYS);
+}
+
+/** Versiona el peso: cierra el vigente y abre uno nuevo. Re-emite snapshots del producto. */
+export function useSetAiCreditWeight() {
+  return useRpc('set_ai_credit_weight', ['ai-credit-weights', 'entitlement-sync-status']);
+}
+
+/**
+ * Los campos comerciales de la política admiten NULL = «no decidido» (D-03).
+ * El tipo generado no lo refleja (los argumentos sin default salen no nulos),
+ * así que se declara aquí explícitamente.
+ */
+export type CreateAiCreditPolicyArgs = Omit<
+  Args<'create_ai_credit_policy'>,
+  'p_pool_scope' | 'p_included_credits' | 'p_overage_mode'
+> & {
+  p_pool_scope: string | null;
+  p_included_credits: number | null;
+  p_overage_mode: string | null;
+};
+
+export function useCreateAiCreditPolicy() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: CreateAiCreditPolicyArgs) =>
+      callRpc('create_ai_credit_policy', args as unknown as Args<'create_ai_credit_policy'>),
+    onSuccess: () => invalidate(qc, ['ai-credit-policies', ...AGGREGATE_KEYS]),
+  });
+}
+
+/** GRANT_PERIOD de los incluidos. Idempotente por política × período. */
+export function useOpenAiCreditPeriod() {
+  return useRpc('open_ai_credit_period', AI_CREDIT_KEYS);
+}
+
+/** Movimiento manual de finanzas. La UI lo limita a GRANT_BONUS / ADJUST. */
+export function useRecordAiCreditEntry() {
+  return useRpc('record_ai_credit_entry', AI_CREDIT_KEYS);
+}
+
+/** CREDIT_PURCHASE (ítem ONE_TIME en el contrato) + GRANT_PURCHASE en el ledger. */
+export function usePurchaseAiCredits() {
+  return useRpc('purchase_ai_credits', [...AI_CREDIT_KEYS, 'subscriptions', 'subscription']);
+}
+
+export function useSetCatalogItemCreditPack() {
+  return useRpc('set_catalog_item_credit_pack', ['catalog-items']);
+}
+
+/** Para `AI_CREDIT` el medidor DEBE ir nulo; el tipo generado no lo admite. */
+export type SetCatalogItemUsageBindingArgs = Omit<Args<'set_catalog_item_usage_binding'>, 'p_meter_code'> & {
+  p_meter_code: string | null;
+};
+
+export function useSetCatalogItemUsageBinding() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: SetCatalogItemUsageBindingArgs) =>
+      callRpc('set_catalog_item_usage_binding', args as unknown as Args<'set_catalog_item_usage_binding'>),
+    onSuccess: () => invalidate(qc, ['catalog-items', ...AGGREGATE_KEYS]),
+  });
+}
+
+/** Mueve un eje de cutover un paso (adelante o atrás), con motivo. */
+export function useSetCommercialCutoverState() {
+  return useRpc('set_commercial_cutover_state', ['product-integrations', 'product-integration']);
+}
+
+/** Compara el biller local con lo que MasterAdmin facturaría y guarda el reporte. */
+export function useRecordBillingShadowComparison() {
+  return useRpc('record_billing_shadow_comparison', ['billing-shadow-comparisons']);
+}
+
+/*
+ * TODO(M4-DB) · RPCs que añade el stream de base de datos (spec §5). No existen
+ * aún en `database.types.ts`, así que NO se declaran hooks que no compilarían ni
+ * botones muertos. Cuando la migración `20261012000100_usage_credits_console.sql`
+ * llegue y se regeneren los tipos:
+ *
+ *   export function useCloseUsageAggregate() {
+ *     return useRpc('close_usage_aggregate', USAGE_AGGREGATE_KEYS);       // (p_aggregate_id, p_reason)
+ *   }
+ *   export function useAcknowledgeUsageAlert() {
+ *     return useRpc('acknowledge_usage_alert', ['usage-alerts', 'usage-alert-acks']); // (p_alert_id, p_note)
+ *   }
+ *   export function useEndAiCreditPolicy() {
+ *     return useRpc('end_ai_credit_policy', ['ai-credit-policies']);       // (p_policy_id, p_valid_to, p_reason)
+ *   }
+ *
+ * Puntos de enganche en la UI: `AggregatesTab` (fila OPEN con período vencido),
+ * `AlertsTab` (columna de acuse) y `PoliciesTab` (fila vigente).
+ */
