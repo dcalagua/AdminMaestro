@@ -11,6 +11,7 @@ import { createAppQueryClient } from './queryClient';
 import { AppearanceProvider } from './AppearanceProvider';
 
 import { LoginPage } from '@/features/auth/LoginPage';
+import { PaymentPortalPage } from '@/features/paymentPortal/PaymentPortalPage';
 import { ProductsPage } from '@/features/catalog/ProductsPage';
 import { ProductDetailPage } from '@/features/catalog/ProductDetailPage';
 import { PlansPage } from '@/features/catalog/PlansPage';
@@ -66,6 +67,12 @@ export function App() {
               <AppearanceProvider>
                 <Routes>
                   <Route path="/login" element={<LoginPage />} />
+                  {/*
+                    M1 · Portal de pago PÚBLICO (/pagar#<token>). Fuera de
+                    RequireAuth/AppShell: quien paga no tiene sesión. No usa
+                    PostgREST: habla solo con la Edge Function pay-portal.
+                  */}
+                  <Route path="/pagar" element={<PaymentPortalPage />} />
 
                   <Route
                     element={
