@@ -435,6 +435,22 @@ verify_jwt = true
 # con una suscripción existente. NO se inventa una firma.
 verify_jwt = false
 
+[functions.pay-portal]
+# M1/M2 · Portal de pago PÚBLICO (spec §2.3): quien paga no tiene sesión de
+# MasterAdmin. Su credencial es el token del enlace, que viaja en el CUERPO
+# (la página lo lee del fragmento `#`). La función lo convierte en sha256 y
+# consulta la base con la clave de servicio; un token inválido y uno
+# inexistente responden igual. Cuerpo ≤ 16 KB, CORS = MASTERADMIN_ALLOWED_ORIGINS,
+# límite de intentos en la base. Las cuentas sin credenciales (MOCK) solo
+# cobran con PAYMENT_PORTAL_ALLOW_MOCK=true. Runbook: docs/runbooks/payment-portal.md.
+verify_jwt = false
+
+[functions.payment-autocharge]
+# M2 · Cobro con tarjeta guardada. Exige JWT, y eso NO basta: la función pide a
+# la base `can_read_finance()` (finanzas o super admin) o recibe la clave de
+# servicio (cron futuro, D-07: no programado) ANTES de usar service_role.
+verify_jwt = true
+
 [functions.provisioning-worker]
 # Exige JWT, pero eso NO basta: la función comprueba además
 # `platform.can_run_provisioning()` (super admin o EBIM_PRODUCT_ADMIN) antes de
