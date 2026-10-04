@@ -830,6 +830,132 @@ export type Database = {
           },
         ];
       };
+      card_on_file_authorizations: {
+        Row: {
+          accepted_at: string;
+          client_fingerprint: string | null;
+          created_at: string;
+          id: string;
+          link_id: string | null;
+          organization_id: string;
+          payment_method_id: string;
+          provider_account_id: string;
+          revoke_reason: string | null;
+          revoke_source: string | null;
+          revoked_at: string | null;
+          revoked_by: string | null;
+          terms_version: string;
+        };
+        Insert: {
+          accepted_at?: string;
+          client_fingerprint?: string | null;
+          created_at?: string;
+          id?: string;
+          link_id?: string | null;
+          organization_id: string;
+          payment_method_id: string;
+          provider_account_id: string;
+          revoke_reason?: string | null;
+          revoke_source?: string | null;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+          terms_version: string;
+        };
+        Update: {
+          accepted_at?: string;
+          client_fingerprint?: string | null;
+          created_at?: string;
+          id?: string;
+          link_id?: string | null;
+          organization_id?: string;
+          payment_method_id?: string;
+          provider_account_id?: string;
+          revoke_reason?: string | null;
+          revoke_source?: string | null;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+          terms_version?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'card_on_file_authorizations_link_id_fkey';
+            columns: ['link_id'];
+            isOneToOne: false;
+            referencedRelation: 'payment_links';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'card_on_file_authorizations_link_id_fkey';
+            columns: ['link_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_payment_links';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'card_on_file_authorizations_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'card_on_file_authorizations_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_billing_contact_readiness';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'card_on_file_authorizations_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_partner_finance';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'card_on_file_authorizations_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_partner_margin';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'card_on_file_authorizations_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['customer_organization_id'];
+          },
+          {
+            foreignKeyName: 'card_on_file_authorizations_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['managing_organization_id'];
+          },
+          {
+            foreignKeyName: 'card_on_file_authorizations_payment_method_id_fkey';
+            columns: ['payment_method_id'];
+            isOneToOne: false;
+            referencedRelation: 'provider_payment_methods';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'card_on_file_authorizations_provider_account_id_fkey';
+            columns: ['provider_account_id'];
+            isOneToOne: false;
+            referencedRelation: 'payment_provider_accounts';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'card_on_file_authorizations_provider_account_id_fkey';
+            columns: ['provider_account_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_provider_account_routes';
+            referencedColumns: ['provider_account_id'];
+          },
+        ];
+      };
       catalog_item_prices: {
         Row: {
           amount: number;
@@ -3904,6 +4030,346 @@ export type Database = {
         };
         Relationships: [];
       };
+      payment_charge_attempts: {
+        Row: {
+          amount: number;
+          attempt_no: number;
+          completed_at: string | null;
+          created_at: string;
+          created_by: string | null;
+          currency: string;
+          error_code: string | null;
+          external_charge_id: string | null;
+          id: string;
+          idempotency_key: string;
+          invoice_id: string;
+          next_retry_at: string | null;
+          payment_id: string | null;
+          payment_method_id: string;
+          provider_account_id: string;
+          status: string;
+          trigger_source: string;
+        };
+        Insert: {
+          amount: number;
+          attempt_no: number;
+          completed_at?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          currency: string;
+          error_code?: string | null;
+          external_charge_id?: string | null;
+          id?: string;
+          idempotency_key: string;
+          invoice_id: string;
+          next_retry_at?: string | null;
+          payment_id?: string | null;
+          payment_method_id: string;
+          provider_account_id: string;
+          status?: string;
+          trigger_source: string;
+        };
+        Update: {
+          amount?: number;
+          attempt_no?: number;
+          completed_at?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          currency?: string;
+          error_code?: string | null;
+          external_charge_id?: string | null;
+          id?: string;
+          idempotency_key?: string;
+          invoice_id?: string;
+          next_retry_at?: string | null;
+          payment_id?: string | null;
+          payment_method_id?: string;
+          provider_account_id?: string;
+          status?: string;
+          trigger_source?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'payment_charge_attempts_currency_fkey';
+            columns: ['currency'];
+            isOneToOne: false;
+            referencedRelation: 'currencies';
+            referencedColumns: ['code'];
+          },
+          {
+            foreignKeyName: 'payment_charge_attempts_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'invoices';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'payment_charge_attempts_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_collected_payments';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'payment_charge_attempts_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_collected_revenue';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'payment_charge_attempts_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_commission_detail';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'payment_charge_attempts_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_discount_sign_legacy_invoices';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'payment_charge_attempts_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_invoice_balances';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'payment_charge_attempts_payment_id_fkey';
+            columns: ['payment_id'];
+            isOneToOne: false;
+            referencedRelation: 'payments';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'payment_charge_attempts_payment_id_fkey';
+            columns: ['payment_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_collected_payments';
+            referencedColumns: ['payment_id'];
+          },
+          {
+            foreignKeyName: 'payment_charge_attempts_payment_method_id_fkey';
+            columns: ['payment_method_id'];
+            isOneToOne: false;
+            referencedRelation: 'provider_payment_methods';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'payment_charge_attempts_provider_account_id_fkey';
+            columns: ['provider_account_id'];
+            isOneToOne: false;
+            referencedRelation: 'payment_provider_accounts';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'payment_charge_attempts_provider_account_id_fkey';
+            columns: ['provider_account_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_provider_account_routes';
+            referencedColumns: ['provider_account_id'];
+          },
+        ];
+      };
+      payment_link_events: {
+        Row: {
+          amount: number | null;
+          client_fingerprint: string | null;
+          created_at: string;
+          currency: string | null;
+          error_code: string | null;
+          external_id: string | null;
+          id: string;
+          invoice_id: string | null;
+          kind: string;
+          link_id: string;
+        };
+        Insert: {
+          amount?: number | null;
+          client_fingerprint?: string | null;
+          created_at?: string;
+          currency?: string | null;
+          error_code?: string | null;
+          external_id?: string | null;
+          id?: string;
+          invoice_id?: string | null;
+          kind: string;
+          link_id: string;
+        };
+        Update: {
+          amount?: number | null;
+          client_fingerprint?: string | null;
+          created_at?: string;
+          currency?: string | null;
+          error_code?: string | null;
+          external_id?: string | null;
+          id?: string;
+          invoice_id?: string | null;
+          kind?: string;
+          link_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'payment_link_events_currency_fkey';
+            columns: ['currency'];
+            isOneToOne: false;
+            referencedRelation: 'currencies';
+            referencedColumns: ['code'];
+          },
+          {
+            foreignKeyName: 'payment_link_events_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'invoices';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'payment_link_events_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_collected_payments';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'payment_link_events_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_collected_revenue';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'payment_link_events_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_commission_detail';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'payment_link_events_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_discount_sign_legacy_invoices';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'payment_link_events_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_invoice_balances';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'payment_link_events_link_id_fkey';
+            columns: ['link_id'];
+            isOneToOne: false;
+            referencedRelation: 'payment_links';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'payment_link_events_link_id_fkey';
+            columns: ['link_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_payment_links';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      payment_links: {
+        Row: {
+          access_count: number;
+          allow_card_enrollment: boolean;
+          created_at: string;
+          created_by: string | null;
+          expires_at: string;
+          id: string;
+          last_accessed_at: string | null;
+          organization_id: string;
+          revoke_reason: string | null;
+          revoked_at: string | null;
+          revoked_by: string | null;
+          token_hash: string;
+          token_hint: string;
+          payment_link_error: string | null;
+        };
+        Insert: {
+          access_count?: number;
+          allow_card_enrollment?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          expires_at: string;
+          id?: string;
+          last_accessed_at?: string | null;
+          organization_id: string;
+          revoke_reason?: string | null;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+          token_hash: string;
+          token_hint: string;
+        };
+        Update: {
+          access_count?: number;
+          allow_card_enrollment?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          expires_at?: string;
+          id?: string;
+          last_accessed_at?: string | null;
+          organization_id?: string;
+          revoke_reason?: string | null;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+          token_hash?: string;
+          token_hint?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'payment_links_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'payment_links_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_billing_contact_readiness';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'payment_links_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_partner_finance';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'payment_links_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_partner_margin';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'payment_links_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['customer_organization_id'];
+          },
+          {
+            foreignKeyName: 'payment_links_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['managing_organization_id'];
+          },
+        ];
+      };
       payment_provider_account_currencies: {
         Row: {
           created_at: string;
@@ -6247,7 +6713,9 @@ export type Database = {
           invoice_lead_days: number;
           notes: string | null;
           payment_due_days: number;
+          payment_method_id: string | null;
           provider_account_id: string | null;
+          recurring_mode: string;
           renewal_notice_days: number;
           requires_purchase_order: boolean;
           requires_service_order: boolean;
@@ -6269,7 +6737,9 @@ export type Database = {
           invoice_lead_days?: number;
           notes?: string | null;
           payment_due_days?: number;
+          payment_method_id?: string | null;
           provider_account_id?: string | null;
+          recurring_mode?: string;
           renewal_notice_days?: number;
           requires_purchase_order?: boolean;
           requires_service_order?: boolean;
@@ -6291,7 +6761,9 @@ export type Database = {
           invoice_lead_days?: number;
           notes?: string | null;
           payment_due_days?: number;
+          payment_method_id?: string | null;
           provider_account_id?: string | null;
+          recurring_mode?: string;
           renewal_notice_days?: number;
           requires_purchase_order?: boolean;
           requires_service_order?: boolean;
@@ -6306,6 +6778,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'currencies';
             referencedColumns: ['code'];
+          },
+          {
+            foreignKeyName: 'subscription_collection_profiles_payment_method_id_fkey';
+            columns: ['payment_method_id'];
+            isOneToOne: false;
+            referencedRelation: 'provider_payment_methods';
+            referencedColumns: ['id'];
           },
           {
             foreignKeyName: 'subscription_collection_profiles_provider_account_id_fkey';
@@ -8578,6 +9057,108 @@ export type Database = {
         };
         Relationships: [];
       };
+      v_card_on_file_authorizations: {
+        Row: {
+          accepted_at: string | null;
+          brand: string | null;
+          external_payment_method_id: string | null;
+          id: string | null;
+          is_active: boolean | null;
+          last4: string | null;
+          link_id: string | null;
+          organization_id: string | null;
+          organization_name: string | null;
+          payment_method_id: string | null;
+          payment_method_status: Database['platform']['Enums']['provider_mapping_status'] | null;
+          provider_account_code: string | null;
+          provider_account_id: string | null;
+          provider_environment: Database['platform']['Enums']['provider_environment'] | null;
+          revoke_reason: string | null;
+          revoke_source: string | null;
+          revoked_at: string | null;
+          subscriptions_on_card: number | null;
+          terms_version: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'card_on_file_authorizations_link_id_fkey';
+            columns: ['link_id'];
+            isOneToOne: false;
+            referencedRelation: 'payment_links';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'card_on_file_authorizations_link_id_fkey';
+            columns: ['link_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_payment_links';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'card_on_file_authorizations_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'card_on_file_authorizations_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_billing_contact_readiness';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'card_on_file_authorizations_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_partner_finance';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'card_on_file_authorizations_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_partner_margin';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'card_on_file_authorizations_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['customer_organization_id'];
+          },
+          {
+            foreignKeyName: 'card_on_file_authorizations_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['managing_organization_id'];
+          },
+          {
+            foreignKeyName: 'card_on_file_authorizations_payment_method_id_fkey';
+            columns: ['payment_method_id'];
+            isOneToOne: false;
+            referencedRelation: 'provider_payment_methods';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'card_on_file_authorizations_provider_account_id_fkey';
+            columns: ['provider_account_id'];
+            isOneToOne: false;
+            referencedRelation: 'payment_provider_accounts';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'card_on_file_authorizations_provider_account_id_fkey';
+            columns: ['provider_account_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_provider_account_routes';
+            referencedColumns: ['provider_account_id'];
+          },
+        ];
+      };
       v_catalog_item_current_prices: {
         Row: {
           amount: number | null;
@@ -9754,6 +10335,250 @@ export type Database = {
           organization_id: string | null;
         };
         Relationships: [];
+      };
+      v_payment_charge_attempts: {
+        Row: {
+          amount: number | null;
+          attempt_no: number | null;
+          brand: string | null;
+          completed_at: string | null;
+          created_at: string | null;
+          created_by: string | null;
+          currency: string | null;
+          error_code: string | null;
+          external_charge_id: string | null;
+          id: string | null;
+          invoice_id: string | null;
+          invoice_number: string | null;
+          last4: string | null;
+          next_retry_at: string | null;
+          organization_id: string | null;
+          payment_id: string | null;
+          status: string | null;
+          subscription_id: string | null;
+          trigger_source: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'invoices_customer_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'invoices_customer_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_billing_contact_readiness';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'invoices_customer_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_partner_finance';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'invoices_customer_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_partner_margin';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'invoices_customer_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['customer_organization_id'];
+          },
+          {
+            foreignKeyName: 'invoices_customer_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['managing_organization_id'];
+          },
+          {
+            foreignKeyName: 'invoices_subscription_id_fkey';
+            columns: ['subscription_id'];
+            isOneToOne: false;
+            referencedRelation: 'subscriptions';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'invoices_subscription_id_fkey';
+            columns: ['subscription_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_renewal_dashboard';
+            referencedColumns: ['subscription_id'];
+          },
+          {
+            foreignKeyName: 'invoices_subscription_id_fkey';
+            columns: ['subscription_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_renewal_pipeline';
+            referencedColumns: ['subscription_id'];
+          },
+          {
+            foreignKeyName: 'invoices_subscription_id_fkey';
+            columns: ['subscription_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_subscription_collection';
+            referencedColumns: ['subscription_id'];
+          },
+          {
+            foreignKeyName: 'invoices_subscription_id_fkey';
+            columns: ['subscription_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_subscription_documents';
+            referencedColumns: ['subscription_id'];
+          },
+          {
+            foreignKeyName: 'invoices_subscription_id_fkey';
+            columns: ['subscription_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_subscription_mrr';
+            referencedColumns: ['subscription_id'];
+          },
+          {
+            foreignKeyName: 'invoices_subscription_id_fkey';
+            columns: ['subscription_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['subscription_id'];
+          },
+          {
+            foreignKeyName: 'payment_charge_attempts_currency_fkey';
+            columns: ['currency'];
+            isOneToOne: false;
+            referencedRelation: 'currencies';
+            referencedColumns: ['code'];
+          },
+          {
+            foreignKeyName: 'payment_charge_attempts_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'invoices';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'payment_charge_attempts_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_collected_payments';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'payment_charge_attempts_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_collected_revenue';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'payment_charge_attempts_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_commission_detail';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'payment_charge_attempts_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_discount_sign_legacy_invoices';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'payment_charge_attempts_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_invoice_balances';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'payment_charge_attempts_payment_id_fkey';
+            columns: ['payment_id'];
+            isOneToOne: false;
+            referencedRelation: 'payments';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'payment_charge_attempts_payment_id_fkey';
+            columns: ['payment_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_collected_payments';
+            referencedColumns: ['payment_id'];
+          },
+        ];
+      };
+      v_payment_links: {
+        Row: {
+          access_count: number | null;
+          allow_card_enrollment: boolean | null;
+          charges_failed: number | null;
+          charges_ok: number | null;
+          created_at: string | null;
+          created_by: string | null;
+          expires_at: string | null;
+          id: string | null;
+          last_accessed_at: string | null;
+          last_event_at: string | null;
+          organization_id: string | null;
+          organization_name: string | null;
+          rate_limited: number | null;
+          revoke_reason: string | null;
+          revoked_at: string | null;
+          status: string | null;
+          token_hint: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'payment_links_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'payment_links_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_billing_contact_readiness';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'payment_links_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_partner_finance';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'payment_links_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_partner_margin';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'payment_links_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['customer_organization_id'];
+          },
+          {
+            foreignKeyName: 'payment_links_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['managing_organization_id'];
+          },
+        ];
       };
       v_plan_price_catalog: {
         Row: {
@@ -11482,6 +12307,16 @@ export type Database = {
         };
         Returns: string;
       };
+      begin_card_charge_attempt: {
+        Args: {
+          p_actor?: string;
+          p_as_of?: string;
+          p_ignore_schedule?: boolean;
+          p_invoice_id: string;
+          p_trigger_source: string;
+        };
+        Returns: Json;
+      };
       begin_saas_provisioning: {
         Args: { p_actor_id?: string; p_actor_role?: string; p_request_id: string };
         Returns: Json;
@@ -11519,6 +12354,33 @@ export type Database = {
       cancel_tenant_addon: {
         Args: { p_reason: string; p_tenant_addon_id: string };
         Returns: undefined;
+      };
+      card_on_file_due_invoices: {
+        Args: {
+          p_as_of?: string;
+          p_ignore_schedule?: boolean;
+          p_invoice_id?: string;
+          p_limit?: number;
+        };
+        Returns: {
+          balance: number;
+          billing_email: string;
+          currency: string;
+          due_date: string;
+          external_customer_id: string;
+          external_payment_method_id: string;
+          invoice_id: string;
+          invoice_number: string;
+          next_attempt_no: number;
+          organization_id: string;
+          payment_method_id: string;
+          provider_account_id: string;
+          subscription_id: string;
+        }[];
+      };
+      card_on_file_retry_at: {
+        Args: { p_attempt_no: number; p_due_date: string };
+        Returns: string;
       };
       check_provisioning_preconditions: { Args: { p_request_id: string }; Returns: Json };
       claim_entitlement_push_for: {
@@ -11587,6 +12449,18 @@ export type Database = {
         }[];
       };
       commission_summary: { Args: { p_search?: string; p_status?: string }; Returns: Json };
+      complete_card_charge_attempt: {
+        Args: {
+          p_amount?: number;
+          p_attempt_id: string;
+          p_currency?: string;
+          p_error_code?: string;
+          p_external_charge_id?: string;
+          p_paid_at?: string;
+          p_succeeded: boolean;
+        };
+        Returns: Json;
+      };
       complete_saas_provisioning: {
         Args: {
           p_actor_id?: string;
@@ -11706,6 +12580,15 @@ export type Database = {
           p_tenant_id: string;
         };
         Returns: string;
+      };
+      create_payment_link: {
+        Args: {
+          p_allow_card_enrollment?: boolean;
+          p_expires_in_days?: number;
+          p_organization_id: string;
+          p_reason?: string;
+        };
+        Returns: Json;
       };
       create_saas_provisioning_request: {
         Args: {
@@ -11833,6 +12716,21 @@ export type Database = {
           p_tenant_id?: string;
         };
         Returns: string;
+      };
+      enroll_card_on_file: {
+        Args: {
+          p_brand: string;
+          p_client_fingerprint?: string;
+          p_exp_month?: number;
+          p_exp_year?: number;
+          p_external_customer_id: string;
+          p_external_payment_method_id: string;
+          p_last4: string;
+          p_link_id: string;
+          p_provider_account_id: string;
+          p_terms_version?: string;
+        };
+        Returns: Json;
       };
       entitlement_checksum: { Args: { p_document: Json }; Returns: string };
       entitlement_delivery_context: {
@@ -12043,6 +12941,11 @@ export type Database = {
         };
         Returns: string[];
       };
+      invoice_balance: { Args: { p_invoice_id: string }; Returns: number };
+      invoice_card_account_eligible: {
+        Args: { p_account_id: string; p_invoice_id: string };
+        Returns: boolean;
+      };
       invoice_summary: {
         Args: {
           p_aging?: string;
@@ -12142,6 +13045,7 @@ export type Database = {
         Returns: number;
       };
       market_id_by_code: { Args: { p_code: string }; Returns: string };
+      mask_email: { Args: { p_email: string }; Returns: string };
       materialize_tenant_features: { Args: { p_tenant_id: string }; Returns: number };
       my_attributed_org_ids: { Args: Record<PropertyKey, never>; Returns: string[] };
       my_attributed_tenant_ids: { Args: Record<PropertyKey, never>; Returns: string[] };
@@ -12196,6 +13100,45 @@ export type Database = {
       };
       open_ai_credit_period: {
         Args: { p_period_start: string; p_tenant_id: string };
+        Returns: Json;
+      };
+      payment_link_card_on_file: { Args: { p_organization_id: string }; Returns: Json };
+      payment_link_charge_context: {
+        Args: { p_invoice_id: string; p_token_hash: string };
+        Returns: Json;
+      };
+      payment_link_enrollment: { Args: { p_link_id: string }; Returns: Json };
+      payment_link_enrollment_context: { Args: { p_token_hash: string }; Returns: Json };
+      payment_link_error: {
+        Args: { p_link: Database['platform']['Tables']['payment_links']['Row'] };
+        Returns: string;
+      };
+      payment_link_lookup: {
+        Args: { p_token_hash: string };
+        Returns: {
+          access_count: number;
+          allow_card_enrollment: boolean;
+          created_at: string;
+          created_by: string | null;
+          expires_at: string;
+          id: string;
+          last_accessed_at: string | null;
+          organization_id: string;
+          revoke_reason: string | null;
+          revoked_at: string | null;
+          revoked_by: string | null;
+          token_hash: string;
+          token_hint: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'payment_links';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      payment_link_statement: {
+        Args: { p_client_fingerprint?: string; p_token_hash: string };
         Returns: Json;
       };
       plan_has_regional_price: {
@@ -12338,6 +13281,32 @@ export type Database = {
         };
         Returns: string;
       };
+      register_payment_link_event: {
+        Args: {
+          p_amount?: number;
+          p_client_fingerprint?: string;
+          p_currency?: string;
+          p_error_code?: string;
+          p_external_id?: string;
+          p_invoice_id?: string;
+          p_kind: string;
+          p_link_id: string;
+        };
+        Returns: Json;
+      };
+      register_provider_invoice_payment: {
+        Args: {
+          p_amount: number;
+          p_currency: string;
+          p_external_charge_id: string;
+          p_external_event_key: string;
+          p_invoice_id: string;
+          p_paid_at?: string;
+          p_payload?: Json;
+          p_provider_account_id: string;
+        };
+        Returns: Json;
+      };
       register_provider_payment: {
         Args: {
           p_amount: number;
@@ -12467,10 +13436,12 @@ export type Database = {
         };
         Returns: Json;
       };
+      resolve_invoice_card_account: { Args: { p_invoice_id: string }; Returns: string };
       resolve_market_currency: {
         Args: { p_currency: string; p_market_id: string };
         Returns: string;
       };
+      resolve_org_card_account: { Args: { p_organization_id: string }; Returns: string };
       resume_tenant_addon: {
         Args: { p_reason: string; p_tenant_addon_id: string };
         Returns: undefined;
@@ -12480,10 +13451,25 @@ export type Database = {
       reveal_credential_secret_ref: { Args: { p_id: string }; Returns: Json };
       reverse_ai_credit_entry: { Args: { p_entry_id: string; p_reason: string }; Returns: string };
       reverse_payment: { Args: { p_payment_id: string; p_reason: string }; Returns: Json };
+      revoke_card_on_file_authorization: {
+        Args: { p_authorization_id: string; p_reason: string };
+        Returns: Json;
+      };
+      revoke_card_on_file_internal: {
+        Args: {
+          p_actor: string;
+          p_authorization_id: string;
+          p_organization_id: string;
+          p_reason: string;
+          p_source: string;
+        };
+        Returns: number;
+      };
       revoke_entitlement_override: {
         Args: { p_override_id: string; p_reason: string };
         Returns: undefined;
       };
+      revoke_payment_link: { Args: { p_link_id: string; p_reason: string }; Returns: Json };
       revoke_provisioning_role: { Args: { p_id: string }; Returns: string };
       schedule_cancel_tenant_addon: {
         Args: { p_effective_to?: string; p_reason: string; p_tenant_addon_id: string };
@@ -12522,6 +13508,18 @@ export type Database = {
           p_phone: string;
         };
         Returns: string;
+      };
+      set_billing_contact_from_portal: {
+        Args: {
+          p_address: string;
+          p_city: string;
+          p_email: string;
+          p_first_name: string;
+          p_last_name: string;
+          p_link_id: string;
+          p_phone: string;
+        };
+        Returns: Json;
       };
       set_catalog_item_credit_pack: {
         Args: { p_catalog_item_code: string; p_credits: number; p_reason: string };
@@ -12687,6 +13685,15 @@ export type Database = {
         Args: { p_reason: string; p_tenant_addon_id: string };
         Returns: undefined;
       };
+      switch_profile_to_card_on_file: {
+        Args: {
+          p_account_id: string;
+          p_note: string;
+          p_payment_method_id: string;
+          p_subscription_id: string;
+        };
+        Returns: string;
+      };
       to_reporting_amount: {
         Args: {
           p_amount: number;
@@ -12743,6 +13750,10 @@ export type Database = {
           isOneToOne: true;
           isSetofReturn: false;
         };
+      };
+      unenroll_card_on_file: {
+        Args: { p_client_fingerprint?: string; p_token_hash: string };
+        Returns: Json;
       };
       update_tenant: {
         Args: {
