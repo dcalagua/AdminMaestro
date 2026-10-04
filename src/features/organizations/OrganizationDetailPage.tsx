@@ -26,6 +26,7 @@ import {
 import { useOrgPartnerMargin, useOrgSalesAgents } from './org360Queries';
 import { CompanyFormDialog, type CompanyDraft } from './CompanyFormDialog';
 import { BillingContactPanel } from './BillingContactPanel';
+import { PaymentPortalPanel } from './PaymentPortalPanel';
 import type { AgreementDraft } from './AgreementFormDialog';
 
 /**
@@ -131,6 +132,18 @@ export function OrganizationDetailPage() {
             id: 'billing',
             label: 'Cobros y saldo',
             content: <Org360Billing organizationId={o.id} />,
+          },
+          {
+            id: 'payment-portal',
+            label: 'Portal de pago',
+            hidden: !perms.canReadFinance,
+            content: (
+              <PaymentPortalPanel
+                organizationId={o.id}
+                organizationName={o.display_name}
+                billingEmail={o.billing_email}
+              />
+            ),
           },
           {
             id: 'documents',

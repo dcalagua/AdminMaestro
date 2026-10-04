@@ -679,6 +679,8 @@ export interface AutochargeSummary {
   succeeded: number;
   failed: number;
   skipped: number;
+  /** Cobrado en la pasarela pero sin confirmar, o fallo ambiguo: queda en revisión. */
+  review?: number;
   results: AutochargeResult[];
 }
 

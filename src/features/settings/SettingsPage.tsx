@@ -1,5 +1,7 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useAppearance } from '@/hooks/useAppearance';
+import { usePermissions } from '@/hooks/usePermissions';
+import { PaymentAccountsPanel } from './PaymentAccountsPanel';
 import { SectionTabs } from '@/components/ui/SectionTabs';
 import { PageContainer, Card, Badge, DataTable, EmptyState } from '@/components/ui/primitives';
 import { PLATFORM_ROLE_LABEL, ORG_ROLE_LABEL } from '@/types/domain';
@@ -23,6 +25,7 @@ const APP_ENV_LABEL: Record<string, string> = {
 export function SettingsPage() {
   const { roles, persona } = useAuth();
   const { mode, density, setMode, setDensity, persistence } = useAppearance();
+  const perms = usePermissions();
 
   return (
     <PageContainer title="Configuración" description="Tu sesión, tu apariencia y el entorno de esta consola.">
@@ -143,6 +146,13 @@ export function SettingsPage() {
                 </Card>
               </div>
             ),
+          },
+          {
+            id: 'payment-accounts',
+            label: 'Cuentas de pago',
+            // UX: la RPC exige EBIM_FINANCE o super admin igualmente.
+            hidden: !perms.canReadFinance,
+            content: <PaymentAccountsPanel />,
           },
           {
             id: 'environment',

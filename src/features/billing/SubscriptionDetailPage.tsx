@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   useSubscription, useSubscriptionCollection, useCommercialDocuments, useSubscriptionInvoices,
+  useCurrentCollectionProfile,
 } from '@/services/queries';
-import { useRejectDocument, useCancelDocument } from '@/services/mutations';
+import { useRejectDocument, useCancelDocument, useAutocharge } from '@/services/mutations';
 import { usePermissions } from '@/hooks/usePermissions';
 import { SectionTabs } from '@/components/ui/SectionTabs';
 import {
@@ -19,6 +20,8 @@ import {
   CollectionProfileDialog, RequestDocumentDialog, ReceiveDocumentDialog, ApproveDocumentDialog,
 } from './CollectionDialogs';
 import { CulqiCardPanel } from './CulqiCardPanel';
+import { ChargeAttemptsCard } from './ChargeAttemptsCard';
+import { autochargeToast } from './autochargeSummary';
 import { ManualPaymentDialog } from './ManualPaymentDialog';
 import { PeriodInvoiceAction } from './PeriodInvoiceAction';
 import {
@@ -73,6 +76,8 @@ export function SubscriptionDetailPage() {
   const collection = useSubscriptionCollection(subscriptionId);
   const documents = useCommercialDocuments(subscriptionId);
   const invoices = useSubscriptionInvoices(subscriptionId);
+  const currentProfile = useCurrentCollectionProfile(subscriptionId);
+  const autocharge = useAutocharge();
   const perms = usePermissions();
   const toast = useToast();
   const rejectDoc = useRejectDocument();
@@ -87,6 +92,7 @@ export function SubscriptionDetailPage() {
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [paying, setPaying] = useState<{ id: string; number: string; currency: string; outstanding: number } | null>(null);
+  const [charging, setCharging] = useState<{ id: string; number: string; amount: string } | null>(null);
 
   if (subscription.isLoading) return <LoadingState />;
   if (subscription.error) return <ErrorState error={subscription.error} />;
@@ -110,6 +116,23 @@ export function SubscriptionDetailPage() {
   const subInvoices = invoices.data ?? [];
 
   const charges = splitCharges(items, s.currency);
+
+  const isCardOnFile =
+    (currentProfile.data as { recurring_mode?: string } | null | undefined)?.recurring_mode === 'CARD_ON_FILE';
+
+  async function doChargeNow() {
+    if (!charging) return;
+    try {
+      const summary = await autocharge.mutateAsync({ invoiceId: charging.id });
+      const [tone, title, detail] = autochargeToast(summary, charging.number);
+      if (tone === 'success') toast.success(title, detail);
+      else toast.error(title, detail);
+    } catch (error) {
+      toast.error('No se pudo cobrar', businessErrorMessage(error));
+    } finally {
+      setCharging(null);
+    }
+  }
 
   const needsDocument =
     profile?.requires_service_order === true || profile?.requires_purchase_order === true;
@@ -305,6 +328,7 @@ export function SubscriptionDetailPage() {
 
                 <CulqiCardPanel
                   subscriptionId={subscriptionId}
+                  organizationId={s.billed_organization_id}
                   collectionMethod={profile?.collection_method as string | null}
                   providerAccountCode={profile?.provider_account_code as string | null}
                   providerEnvironment={profile?.provider_environment as string | null}
@@ -429,9 +453,20 @@ export function SubscriptionDetailPage() {
             label: 'Facturación y cobros',
             hidden: !perms.canReadFinance && !perms.canManagePlatform,
             content: (
+              <div className="space-y-4">
               <Card
                 title="Facturas de esta suscripción"
                 description="Aquí sí hay dinero: una factura PAGADA implica un pago CONFIRMED, y solo eso devenga comisión."
+                actions={
+                  perms.canReadFinance ? (
+                    <Link
+                      className="ebim-btn-ghost h-8 px-3 text-xs"
+                      to={`/organizations/${s.billed_organization_id}#payment-portal`}
+                    >
+                      Compartir enlace de pago
+                    </Link>
+                  ) : null
+                }
               >
                 {perms.canReadFinance && (s.status === 'ACTIVE' || s.status === 'PAST_DUE') ? (
                   <PeriodInvoiceAction subscriptionId={s.id} currency={s.currency} />
@@ -481,13 +516,26 @@ export function SubscriptionDetailPage() {
                           </td>
                           <td className="ebim-td text-right">
                             {perms.canReadFinance && (i.status === 'ISSUED' || i.status === 'PARTIALLY_PAID') && outstanding > 0 ? (
-                              <button
-                                type="button"
-                                className="ebim-link text-[13px]"
-                                onClick={() => setPaying({ id: i.id, number: i.number, currency: i.currency, outstanding })}
-                              >
-                                Registrar cobro
-                              </button>
+                              <div className="flex items-center justify-end gap-3">
+                                {isCardOnFile ? (
+                                  <button
+                                    type="button"
+                                    className="ebim-link text-[13px]"
+                                    onClick={() =>
+                                      setCharging({ id: i.id, number: i.number, amount: formatMoney(outstanding, i.currency) })
+                                    }
+                                  >
+                                    Cobrar ahora
+                                  </button>
+                                ) : null}
+                                <button
+                                  type="button"
+                                  className="ebim-link text-[13px]"
+                                  onClick={() => setPaying({ id: i.id, number: i.number, currency: i.currency, outstanding })}
+                                >
+                                  Registrar cobro
+                                </button>
+                              </div>
                             ) : null}
                           </td>
                         </tr>
@@ -496,9 +544,22 @@ export function SubscriptionDetailPage() {
                   </DataTable>
                 )}
               </Card>
+              <ChargeAttemptsCard subscriptionId={s.id} />
+              </div>
             ),
           },
         ]}
+      />
+
+      <ConfirmDialog
+        open={Boolean(charging)}
+        tone="primary"
+        title="¿Cobrar ahora con la tarjeta guardada?"
+        message={`Se cobrará el saldo de la factura ${charging?.number ?? ''} (${charging?.amount ?? ''}) con la tarjeta autorizada por el cliente. Si el emisor la rechaza, queda registrado como un intento fallido.`}
+        confirmLabel="Cobrar ahora"
+        busy={autocharge.isPending}
+        onConfirm={doChargeNow}
+        onCancel={() => setCharging(null)}
       />
 
       <ManualPaymentDialog invoice={paying} onClose={() => setPaying(null)} />
