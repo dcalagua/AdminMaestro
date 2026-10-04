@@ -3790,6 +3790,10 @@ export type Database = {
           max_tenants: number | null;
           notes: string | null;
           organization_id: string;
+          platform_fee_currency: string | null;
+          platform_fee_fixed_amount: number | null;
+          platform_fee_model: string;
+          platform_fee_rate: number | null;
           saas_product_id: string;
           status: Database['platform']['Enums']['entity_status'];
           terms: NonNullable<Json>;
@@ -3810,6 +3814,10 @@ export type Database = {
           max_tenants?: number | null;
           notes?: string | null;
           organization_id: string;
+          platform_fee_currency?: string | null;
+          platform_fee_fixed_amount?: number | null;
+          platform_fee_model?: string;
+          platform_fee_rate?: number | null;
           saas_product_id: string;
           status?: Database['platform']['Enums']['entity_status'];
           terms?: NonNullable<Json>;
@@ -3830,6 +3838,10 @@ export type Database = {
           max_tenants?: number | null;
           notes?: string | null;
           organization_id?: string;
+          platform_fee_currency?: string | null;
+          platform_fee_fixed_amount?: number | null;
+          platform_fee_model?: string;
+          platform_fee_rate?: number | null;
           saas_product_id?: string;
           status?: Database['platform']['Enums']['entity_status'];
           terms?: NonNullable<Json>;
@@ -3879,6 +3891,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'v_tenant_overview';
             referencedColumns: ['managing_organization_id'];
+          },
+          {
+            foreignKeyName: 'organization_product_agreements_platform_fee_currency_fkey';
+            columns: ['platform_fee_currency'];
+            isOneToOne: false;
+            referencedRelation: 'currencies';
+            referencedColumns: ['code'];
           },
           {
             foreignKeyName: 'organization_product_agreements_saas_product_id_fkey';
@@ -4108,6 +4127,383 @@ export type Database = {
           white_label?: boolean;
         };
         Relationships: [];
+      };
+      partner_fee_statement_lines: {
+        Row: {
+          agreement_id: string;
+          base_list_amount: number;
+          basis: NonNullable<Json>;
+          created_at: string;
+          currency: string;
+          fee_amount: number;
+          fee_fixed_amount: number | null;
+          fee_rate: number | null;
+          id: string;
+          line_kind: string;
+          saas_product_id: string;
+          statement_id: string;
+          subscription_id: string | null;
+          tenant_id: string;
+        };
+        Insert: {
+          agreement_id: string;
+          base_list_amount?: number;
+          basis?: NonNullable<Json>;
+          created_at?: string;
+          currency: string;
+          fee_amount: number;
+          fee_fixed_amount?: number | null;
+          fee_rate?: number | null;
+          id?: string;
+          line_kind: string;
+          saas_product_id: string;
+          statement_id: string;
+          subscription_id?: string | null;
+          tenant_id: string;
+        };
+        Update: {
+          agreement_id?: string;
+          base_list_amount?: number;
+          basis?: NonNullable<Json>;
+          created_at?: string;
+          currency?: string;
+          fee_amount?: number;
+          fee_fixed_amount?: number | null;
+          fee_rate?: number | null;
+          id?: string;
+          line_kind?: string;
+          saas_product_id?: string;
+          statement_id?: string;
+          subscription_id?: string | null;
+          tenant_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'partner_fee_statement_lines_agreement_id_fkey';
+            columns: ['agreement_id'];
+            isOneToOne: false;
+            referencedRelation: 'organization_product_agreements';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_agreement_id_fkey';
+            columns: ['agreement_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_partner_agreements';
+            referencedColumns: ['agreement_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_currency_fkey';
+            columns: ['currency'];
+            isOneToOne: false;
+            referencedRelation: 'currencies';
+            referencedColumns: ['code'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'saas_products';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_product_finance';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_product_margin';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_statement_id_fkey';
+            columns: ['statement_id'];
+            isOneToOne: false;
+            referencedRelation: 'partner_fee_statements';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_statement_id_fkey';
+            columns: ['statement_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_partner_fee_statements';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_subscription_id_fkey';
+            columns: ['subscription_id'];
+            isOneToOne: false;
+            referencedRelation: 'subscriptions';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_subscription_id_fkey';
+            columns: ['subscription_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_renewal_dashboard';
+            referencedColumns: ['subscription_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_subscription_id_fkey';
+            columns: ['subscription_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_renewal_pipeline';
+            referencedColumns: ['subscription_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_subscription_id_fkey';
+            columns: ['subscription_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_subscription_collection';
+            referencedColumns: ['subscription_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_subscription_id_fkey';
+            columns: ['subscription_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_subscription_documents';
+            referencedColumns: ['subscription_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_subscription_id_fkey';
+            columns: ['subscription_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_subscription_mrr';
+            referencedColumns: ['subscription_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_subscription_id_fkey';
+            columns: ['subscription_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['subscription_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_margin';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['tenant_id'];
+          },
+        ];
+      };
+      partner_fee_statements: {
+        Row: {
+          base_total: number;
+          computed_at: string;
+          computed_by: string | null;
+          created_at: string;
+          currency: string;
+          fee_total: number;
+          id: string;
+          invoice_id: string | null;
+          issued_at: string | null;
+          issued_by: string | null;
+          line_count: number;
+          partner_organization_id: string;
+          period_end: string;
+          period_start: string;
+          source_hash: string;
+          status: string;
+          tenant_count: number;
+          updated_at: string;
+          void_reason: string | null;
+          voided_at: string | null;
+          voided_by: string | null;
+        };
+        Insert: {
+          base_total?: number;
+          computed_at?: string;
+          computed_by?: string | null;
+          created_at?: string;
+          currency: string;
+          fee_total?: number;
+          id?: string;
+          invoice_id?: string | null;
+          issued_at?: string | null;
+          issued_by?: string | null;
+          line_count?: number;
+          partner_organization_id: string;
+          period_end: string;
+          period_start: string;
+          source_hash: string;
+          status?: string;
+          tenant_count?: number;
+          updated_at?: string;
+          void_reason?: string | null;
+          voided_at?: string | null;
+          voided_by?: string | null;
+        };
+        Update: {
+          base_total?: number;
+          computed_at?: string;
+          computed_by?: string | null;
+          created_at?: string;
+          currency?: string;
+          fee_total?: number;
+          id?: string;
+          invoice_id?: string | null;
+          issued_at?: string | null;
+          issued_by?: string | null;
+          line_count?: number;
+          partner_organization_id?: string;
+          period_end?: string;
+          period_start?: string;
+          source_hash?: string;
+          status?: string;
+          tenant_count?: number;
+          updated_at?: string;
+          void_reason?: string | null;
+          voided_at?: string | null;
+          voided_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'partner_fee_statements_computed_by_fkey';
+            columns: ['computed_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statements_currency_fkey';
+            columns: ['currency'];
+            isOneToOne: false;
+            referencedRelation: 'currencies';
+            referencedColumns: ['code'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statements_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'invoices';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statements_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_collected_payments';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statements_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_collected_revenue';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statements_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_commission_detail';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statements_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_discount_sign_legacy_invoices';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statements_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_invoice_balances';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statements_issued_by_fkey';
+            columns: ['issued_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statements_partner_organization_id_fkey';
+            columns: ['partner_organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statements_partner_organization_id_fkey';
+            columns: ['partner_organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_billing_contact_readiness';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statements_partner_organization_id_fkey';
+            columns: ['partner_organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_partner_finance';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statements_partner_organization_id_fkey';
+            columns: ['partner_organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_partner_margin';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statements_partner_organization_id_fkey';
+            columns: ['partner_organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['customer_organization_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statements_partner_organization_id_fkey';
+            columns: ['partner_organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['managing_organization_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statements_voided_by_fkey';
+            columns: ['voided_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       payment_charge_attempts: {
         Row: {
@@ -7245,6 +7641,7 @@ export type Database = {
       subscriptions: {
         Row: {
           billed_organization_id: string;
+          billing_channel: string;
           billing_interval: Database['platform']['Enums']['billing_interval'];
           cancelled_at: string | null;
           channel_margin_rate: number | null;
@@ -7266,6 +7663,7 @@ export type Database = {
         };
         Insert: {
           billed_organization_id: string;
+          billing_channel?: string;
           billing_interval?: Database['platform']['Enums']['billing_interval'];
           cancelled_at?: string | null;
           channel_margin_rate?: number | null;
@@ -7287,6 +7685,7 @@ export type Database = {
         };
         Update: {
           billed_organization_id?: string;
+          billing_channel?: string;
           billing_interval?: Database['platform']['Enums']['billing_interval'];
           cancelled_at?: string | null;
           channel_margin_rate?: number | null;
@@ -10462,6 +10861,317 @@ export type Database = {
           },
         ];
       };
+      v_partner_fee_statement_lines: {
+        Row: {
+          agreement_id: string | null;
+          base_list_amount: number | null;
+          basis: Json | null;
+          created_at: string | null;
+          currency: string | null;
+          fee_amount: number | null;
+          fee_fixed_amount: number | null;
+          fee_rate: number | null;
+          id: string | null;
+          line_kind: string | null;
+          product_code: string | null;
+          product_short_name: string | null;
+          saas_product_id: string | null;
+          statement_id: string | null;
+          subscription_code: string | null;
+          subscription_id: string | null;
+          tenant_id: string | null;
+          tenant_name: string | null;
+          tenant_slug: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'partner_fee_statement_lines_agreement_id_fkey';
+            columns: ['agreement_id'];
+            isOneToOne: false;
+            referencedRelation: 'organization_product_agreements';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_agreement_id_fkey';
+            columns: ['agreement_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_partner_agreements';
+            referencedColumns: ['agreement_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_currency_fkey';
+            columns: ['currency'];
+            isOneToOne: false;
+            referencedRelation: 'currencies';
+            referencedColumns: ['code'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'saas_products';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_product_finance';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_product_margin';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_statement_id_fkey';
+            columns: ['statement_id'];
+            isOneToOne: false;
+            referencedRelation: 'partner_fee_statements';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_statement_id_fkey';
+            columns: ['statement_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_partner_fee_statements';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_subscription_id_fkey';
+            columns: ['subscription_id'];
+            isOneToOne: false;
+            referencedRelation: 'subscriptions';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_subscription_id_fkey';
+            columns: ['subscription_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_renewal_dashboard';
+            referencedColumns: ['subscription_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_subscription_id_fkey';
+            columns: ['subscription_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_renewal_pipeline';
+            referencedColumns: ['subscription_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_subscription_id_fkey';
+            columns: ['subscription_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_subscription_collection';
+            referencedColumns: ['subscription_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_subscription_id_fkey';
+            columns: ['subscription_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_subscription_documents';
+            referencedColumns: ['subscription_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_subscription_id_fkey';
+            columns: ['subscription_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_subscription_mrr';
+            referencedColumns: ['subscription_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_subscription_id_fkey';
+            columns: ['subscription_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['subscription_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_margin';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['tenant_id'];
+          },
+        ];
+      };
+      v_partner_fee_statements: {
+        Row: {
+          base_total: number | null;
+          computed_at: string | null;
+          computed_by: string | null;
+          created_at: string | null;
+          currency: string | null;
+          fee_total: number | null;
+          id: string | null;
+          invoice_balance: number | null;
+          invoice_due_date: string | null;
+          invoice_id: string | null;
+          invoice_number: string | null;
+          invoice_status: Database['platform']['Enums']['invoice_status'] | null;
+          invoice_total: number | null;
+          issued_at: string | null;
+          issued_by: string | null;
+          line_count: number | null;
+          partner_name: string | null;
+          partner_organization_id: string | null;
+          partner_slug: string | null;
+          period_end: string | null;
+          period_start: string | null;
+          source_hash: string | null;
+          status: string | null;
+          tenant_count: number | null;
+          updated_at: string | null;
+          void_reason: string | null;
+          voided_at: string | null;
+          voided_by: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'partner_fee_statements_computed_by_fkey';
+            columns: ['computed_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statements_currency_fkey';
+            columns: ['currency'];
+            isOneToOne: false;
+            referencedRelation: 'currencies';
+            referencedColumns: ['code'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statements_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'invoices';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statements_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_collected_payments';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statements_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_collected_revenue';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statements_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_commission_detail';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statements_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_discount_sign_legacy_invoices';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statements_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_invoice_balances';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statements_issued_by_fkey';
+            columns: ['issued_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statements_partner_organization_id_fkey';
+            columns: ['partner_organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statements_partner_organization_id_fkey';
+            columns: ['partner_organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_billing_contact_readiness';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statements_partner_organization_id_fkey';
+            columns: ['partner_organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_partner_finance';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statements_partner_organization_id_fkey';
+            columns: ['partner_organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_partner_margin';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statements_partner_organization_id_fkey';
+            columns: ['partner_organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['customer_organization_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statements_partner_organization_id_fkey';
+            columns: ['partner_organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['managing_organization_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statements_voided_by_fkey';
+            columns: ['voided_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       v_partner_finance: {
         Row: {
           active_agreements: number | null;
@@ -12793,6 +13503,7 @@ export type Database = {
         Returns: Json;
       };
       complete_scheduled_addon_cancellations: { Args: { p_as_of?: string }; Returns: number };
+      compute_all_partner_fee_statements: { Args: { p_period_start: string }; Returns: Json };
       compute_entitlements: {
         Args: { p_at?: string; p_product_id: string; p_tenant_id: string };
         Returns: {
@@ -12810,6 +13521,10 @@ export type Database = {
           unit: string;
           value: number;
         }[];
+      };
+      compute_partner_fee_statement: {
+        Args: { p_partner_id: string; p_period_start: string };
+        Returns: Json;
       };
       configure_deployment_provisioning: {
         Args: {
@@ -13316,6 +14031,7 @@ export type Database = {
         Args: { p_effective_at?: string; p_product_id: string; p_tenant_id: string };
         Returns: Json;
       };
+      issue_partner_fee_statement: { Args: { p_statement_id: string }; Returns: Json };
       issue_subscription_invoice: {
         Args: { p_period_start?: string; p_subscription_id: string };
         Returns: Json;
@@ -13423,6 +14139,26 @@ export type Database = {
       open_ai_credit_period: {
         Args: { p_period_start: string; p_tenant_id: string };
         Returns: Json;
+      };
+      partner_billing_channel_for: {
+        Args: { p_at?: string; p_tenant_id: string };
+        Returns: string;
+      };
+      partner_fee_lines: {
+        Args: { p_partner_id: string; p_period_start: string };
+        Returns: {
+          agreement_id: string;
+          base_list_amount: number;
+          basis: Json;
+          currency: string;
+          fee_amount: number;
+          fee_fixed_amount: number;
+          fee_rate: number;
+          line_kind: string;
+          saas_product_id: string;
+          subscription_id: string;
+          tenant_id: string;
+        }[];
       };
       payment_link_card_on_file: { Args: { p_organization_id: string }; Returns: Json };
       payment_link_charge_context: {
@@ -13805,6 +14541,17 @@ export type Database = {
         Args: { p_amount: number; p_invoice_line_id: string; p_reason: string };
         Returns: Json;
       };
+      set_agreement_platform_fee: {
+        Args: {
+          p_agreement_id: string;
+          p_currency?: string;
+          p_fixed_amount?: number;
+          p_model: string;
+          p_rate?: number;
+          p_reason?: string;
+        };
+        Returns: Json;
+      };
       set_ai_credit_weight: {
         Args: {
           p_capability_code: string;
@@ -13922,6 +14669,10 @@ export type Database = {
       };
       set_saas_provisioning_configuration: {
         Args: { p_configuration: Json; p_request_id: string };
+        Returns: Json;
+      };
+      set_subscription_billing_channel: {
+        Args: { p_channel: string; p_reason: string; p_subscription_id: string };
         Returns: Json;
       };
       set_subscription_collection_profile: {
@@ -14477,6 +15228,10 @@ export type Database = {
       };
       usage_internal_is_valid: { Args: { p_internal: Json }; Returns: boolean };
       void_exchange_rate: { Args: { p_rate_id: string; p_reason: string }; Returns: undefined };
+      void_partner_fee_statement: {
+        Args: { p_reason: string; p_statement_id: string };
+        Returns: Json;
+      };
     };
     Enums: {
       attribution_source: 'DIRECT' | 'PARTNER' | 'REFERRAL' | 'INBOUND' | 'CAMPAIGN';
@@ -14503,7 +15258,8 @@ export type Database = {
         | 'PROFESSIONAL_SERVICES'
         | 'DISCOUNT'
         | 'USAGE_OVERAGE'
-        | 'CREDIT_PURCHASE';
+        | 'CREDIT_PURCHASE'
+        | 'PARTNER_PLATFORM_FEE';
       collection_method:
         'CULQI_CARD' | 'SERVICE_ORDER' | 'PURCHASE_ORDER' | 'BANK_TRANSFER' | 'MANUAL';
       collection_profile_status: 'ACTIVE' | 'INACTIVE' | 'PENDING_SETUP';
@@ -14716,6 +15472,7 @@ export const Constants = {
         'DISCOUNT',
         'USAGE_OVERAGE',
         'CREDIT_PURCHASE',
+        'PARTNER_PLATFORM_FEE',
       ],
       collection_method: [
         'CULQI_CARD',
