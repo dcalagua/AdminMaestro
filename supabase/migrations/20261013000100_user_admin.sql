@@ -1098,16 +1098,20 @@ declare
   v_inv platform.user_invitations%rowtype;
 begin
   perform platform.assert_active_profile(p_user_id);
+  -- Pendiente = hubo invitación y ninguna fue aceptada. Una invitación REVOKED
+  -- por una desactivación se puede reenviar tras reactivar el perfil.
   select * into v_inv from platform.user_invitations i
-   where i.user_id = p_user_id and i.status = 'SENT'
+   where i.user_id = p_user_id
    order by i.created_at desc limit 1;
-  if v_inv.id is null then
+  if v_inv.id is null or exists (
+    select 1 from platform.user_invitations i where i.user_id = p_user_id and i.status = 'ACCEPTED'
+  ) then
     raise exception 'INVITACION_NO_PENDIENTE: el usuario no tiene una invitación pendiente'
       using errcode = '23514';
   end if;
   if not (platform.can_manage_platform_entities()
           or exists (select 1 from platform.user_invitations i
-                      where i.user_id = p_user_id and i.status = 'SENT' and i.invited_by = auth.uid())) then
+                      where i.user_id = p_user_id and i.invited_by = auth.uid())) then
     raise exception 'NO_AUTORIZADO: solo EBIM o quien emitió la invitación la reenvía' using errcode = '42501';
   end if;
   return v_inv;

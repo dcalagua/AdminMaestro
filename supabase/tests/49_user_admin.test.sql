@@ -9,7 +9,7 @@
 -- Fixtures nuevos solo en @ebim.test (S-04).
 -- ============================================================================
 begin;
-select plan(76);
+select plan(78);
 
 create or replace function pg_temp.act_as(p_user uuid)
 returns void language plpgsql as $$
@@ -370,7 +370,7 @@ select ok(
   '62 reactivar solo reactiva el perfil: los accesos se otorgan de nuevo explícitamente');
 
 -- ---------------------------------------------------------------------------
--- 63-76. Invitaciones
+-- 63-78. Invitaciones
 -- ---------------------------------------------------------------------------
 select pg_temp.act_as(pg_temp.andina_admin());
 select throws_like($$ select platform.authorize_user_invitation('nuevo@andina.ebim.test',
@@ -421,6 +421,15 @@ select is(platform.accept_my_invitations(), 2, '74 el invitado acepta (todas sus
 select pg_temp.act_as(pg_temp.super());
 select throws_like($$ select platform.authorize_invitation_resend('10000000-0000-4000-a000-0000000000a2') $$,
   'INVITACION_NO_PENDIENTE%', '75 una cuenta ya activada no recibe enlaces de invitación (ni del super admin)');
+-- Desactivar anula la invitación pendiente; tras reactivar se puede reenviar.
+insert into qa select 'inv3', to_jsonb(platform.record_user_invitation('m5.cliente@ebim.test', pg_temp.n3(),
+  jsonb_build_object('kind', 'ORG_MEMBERSHIP', 'role', 'ORG_VIEWER', 'organization_id', pg_temp.alpha()), 'EMAIL'));
+insert into qa select 'deact3', platform.deactivate_user(pg_temp.n3(), 'prueba de anulación');
+select is((pg_temp.v('deact3') ->> 'invitations')::int, 1, '77 desactivar anula (REVOKED) la invitación pendiente');
+insert into qa select 'react3', to_jsonb(platform.reactivate_user(pg_temp.n3(), 'vuelve'));
+select is((platform.authorize_invitation_resend(pg_temp.n3())) ->> 'email', 'm5.cliente@ebim.test',
+  '78 reactivado y sin aceptar: la invitación se puede reenviar');
+
 select pg_temp.act_as_postgres();
 select ok(
   (select status = 'ACCEPTED' and accepted_at is not null and delivery = 'LINK'
