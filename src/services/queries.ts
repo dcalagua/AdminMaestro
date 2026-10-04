@@ -7,6 +7,7 @@ import {
   EMPTY_PROVISIONING_PERMISSIONS,
   type ProvisioningPermissions,
 } from '@/lib/provisioning';
+import { toAdminUser, type AdminUser } from '@/features/users/userModel';
 
 /**
  * Capa de acceso a datos.
@@ -1531,3 +1532,97 @@ export function usePartnerFeeStatementLines(statementId: string | null) {
       ),
   });
 }
+
+/* ==========================================================================
+   M5 · Usuarios y perfiles (spec §6)
+   --------------------------------------------------------------------------
+   `admin_list_users` decide el alcance en la base: EBIM ve a todos; un admin
+   de organización solo a sus miembros (y nunca roles de consola). Aquí no hay
+   filtros de seguridad: igual que el resto de este archivo.
+   ========================================================================== */
+
+/** Lista de «Usuarios y accesos». `scopeOrgId` acota a una organización. */
+export function useAdminUsers(scopeOrgId?: string | null) {
+  return useQuery({
+    queryKey: ['admin-users', scopeOrgId ?? null],
+    retry: false,
+    queryFn: async (): Promise<AdminUser[]> => {
+      const { data, error } = await supabase.rpc(
+        'admin_list_users',
+        scopeOrgId ? { p_scope_org_id: scopeOrgId } : {},
+      );
+      if (error) throw error;
+      return (data ?? []).map(toAdminUser);
+    },
+  });
+}
+
+/** Ficha de un usuario (misma RPC, una fila). `null` = fuera de alcance o inexistente. */
+export function useAdminUser(userId: string | undefined) {
+  return useQuery({
+    queryKey: ['admin-user', userId],
+    enabled: Boolean(userId),
+    retry: false,
+    queryFn: async (): Promise<AdminUser | null> => {
+      const { data, error } = await supabase.rpc('admin_list_users', { p_user_id: userId! });
+      if (error) throw error;
+      const row = (data ?? [])[0];
+      return row ? toAdminUser(row) : null;
+    },
+  });
+}
+
+/**
+ * Actividad de/para un usuario: lo que hizo (actor) y lo que se hizo sobre él
+ * (entidad o `metadata.user_id`). RLS de audit_logs decide qué filas ve cada uno.
+ */
+export function useUserActivity(userId: string | undefined) {
+  return useQuery({
+    queryKey: ['user-activity', userId],
+    enabled: Boolean(userId),
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('audit_logs')
+          .select('id, action, entity_type, entity_id, actor_email, actor_user_id, metadata, occurred_at')
+          .or(`actor_user_id.eq.${userId},entity_id.eq.${userId},metadata->>user_id.eq.${userId}`)
+          .order('occurred_at', { ascending: false })
+          .limit(100),
+      ),
+  });
+}
+
+/** Invitaciones de un usuario (el enlace NUNCA se guarda: solo el rastro). */
+export function useUserInvitations(userId: string | undefined) {
+  return useQuery({
+    queryKey: ['user-invitations', userId],
+    enabled: Boolean(userId),
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('user_invitations')
+          .select('id, email, status, delivery, created_at, accepted_at, revoked_at, access_grant')
+          .eq('user_id', userId!)
+          .order('created_at', { ascending: false }),
+      ),
+  });
+}
+
+/** Perfil propio para «Mi perfil» (RLS: el propio usuario siempre se ve). */
+export function useMyProfile(userId: string | undefined) {
+  return useQuery({
+    queryKey: ['my-profile', userId],
+    enabled: Boolean(userId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, email, full_name, phone, job_title')
+        .eq('id', userId!)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      return data;
+    },
+  });
+}
+
+/* ---- fin M5 · Usuarios y perfiles ---------------------------------------- */

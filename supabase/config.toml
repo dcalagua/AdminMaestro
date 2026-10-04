@@ -160,7 +160,9 @@ site_url = "http://127.0.0.1:5173"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["http://127.0.0.1:5173", "http://localhost:5173"]
+# M5: la consola corre en 5199 (vite.config.ts); /bienvenida recibe invitaciones y
+# restablecimientos de contraseña.
+additional_redirect_urls = ["http://127.0.0.1:5173", "http://localhost:5173", "http://127.0.0.1:5199/**", "http://localhost:5199/**"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
@@ -173,7 +175,11 @@ enable_refresh_token_rotation = true
 # Requires enable_refresh_token_rotation = true.
 refresh_token_reuse_interval = 10
 # Allow/disallow new user signups to your project.
-enable_signup = true
+# M5 (spec §6.3): registro abierto DESACTIVADO. Las cuentas solo se crean por
+# invitación (Edge Function `user-admin`, Auth admin API). En QAS/PRD es un
+# ajuste del Dashboard (Authentication → Sign In / Providers → «Allow new users
+# to sign up» apagado): ver docs/runbooks/user-admin.md.
+enable_signup = false
 # Allow/disallow anonymous sign-ins to your project.
 enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts
@@ -218,6 +224,12 @@ web3 = 30
 
 [auth.email]
 # Allow/disallow new user signups via email to your project.
+# M5: se DEJA en true a propósito. En el CLI esta clave es el interruptor del
+# PROVEEDOR email (GOTRUE_EXTERNAL_EMAIL_ENABLED): en false bloquea también el
+# ingreso con contraseña, las invitaciones y el restablecimiento
+# (`email_provider_disabled`, verificado en local). El registro abierto lo
+# corta `[auth] enable_signup = false` (GOTRUE_DISABLE_SIGNUP), que responde
+# `signup_disabled` a /auth/v1/signup.
 enable_signup = true
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
@@ -485,3 +497,12 @@ verify_jwt = true
 # platform.usage_ingest_credentials ANTES de usar service_role. Apagado por
 # defecto: USAGE_INGEST_ENABLED != 'true' → 503 (D-12) + kill-switch por producto.
 verify_jwt = false
+
+[functions.user-admin]
+# M5 · Administración de usuarios (spec §6.3): invite / resend / ban / unban.
+# Exige JWT, y eso NO basta: cada acción la autoriza la base con el JWT del
+# operador (authorize_user_invitation, authorize_invitation_resend,
+# deactivate_user, reactivate_user) ANTES de usar service_role, que solo se usa
+# para la API de administración de Auth. Sin SMTP devuelve el enlace de
+# invitación para copiar (nunca se guarda). Runbook: docs/runbooks/user-admin.md.
+verify_jwt = true

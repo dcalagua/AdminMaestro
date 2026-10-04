@@ -49,6 +49,11 @@ import { AiCreditsPage } from '@/features/credits/AiCreditsPage';
 import { BillingShadowPage } from '@/features/billing/shadow/BillingShadowPage';
 import { PartnerFeesPage } from '@/features/partnerFees/PartnerFeesPage';
 import { NotFoundPage } from '@/features/settings/NotFoundPage';
+// ---- M5 · Usuarios y perfiles -----------------------------------------------
+import { WelcomePage } from '@/features/auth/WelcomePage';
+import { UsersPage } from '@/features/users/UsersPage';
+import { UserDetailPage } from '@/features/users/UserDetailPage';
+// ---- fin M5 -------------------------------------------------------------------
 
 /**
  * El inicio ejecutivo es la única pantalla con gráficos (Recharts ≈ 170 kB gzip):
@@ -77,6 +82,11 @@ export function App() {
                     PostgREST: habla solo con la Edge Function pay-portal.
                   */}
                   <Route path="/pagar" element={<PaymentPortalPage />} />
+                  {/*
+                    M5 · /bienvenida PÚBLICA: recibe la sesión del enlace de
+                    invitación o de restablecimiento y pide fijar la contraseña.
+                  */}
+                  <Route path="/bienvenida" element={<WelcomePage />} />
 
                   <Route
                     element={
@@ -351,6 +361,28 @@ export function App() {
                       }
                     />
                     <Route path="settings" element={<SettingsPage />} />
+
+                    {/*
+                    M5 · «Usuarios y accesos». EBIM ve a todos; un admin de
+                    partner o de cliente, a los miembros de su organización.
+                    `admin_list_users` y cada RPC deciden; esto es UX.
+                  */}
+                    <Route
+                      path="users"
+                      element={
+                        <RequirePersona personas={['EBIM', 'PARTNER']}>
+                          <UsersPage />
+                        </RequirePersona>
+                      }
+                    />
+                    <Route
+                      path="users/:userId"
+                      element={
+                        <RequirePersona personas={['EBIM', 'PARTNER']}>
+                          <UserDetailPage />
+                        </RequirePersona>
+                      }
+                    />
 
                     <Route path="404" element={<NotFoundPage />} />
                     <Route path="*" element={<Navigate to="/404" replace />} />

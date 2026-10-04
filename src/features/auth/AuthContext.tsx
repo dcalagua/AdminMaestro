@@ -4,7 +4,7 @@ import type { Session } from '@supabase/supabase-js';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { setSessionScope } from '@/app/queryClient';
-import { loadSessionRoles, resolvePersona } from './session';
+import { DEACTIVATED_ACCOUNT_NOTICE, loadSessionRoles, resolvePersona } from './session';
 import { AuthContext } from './auth-context';
 import type { AuthContextValue } from './auth-context';
 import type { SessionRoles } from '@/types/domain';
@@ -13,6 +13,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [roles, setRoles] = useState<SessionRoles | null>(null);
   const [loading, setLoading] = useState(true);
+  const [notice, setNotice] = useState<string | null>(null);
   const queryClient = useQueryClient();
   // Identidad vigente. Una hidratación de roles que termina cuando la identidad
   // ya cambió (A salió, B entró) se descarta: nunca pinta roles de A en B (E11).
@@ -42,7 +43,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const requestedFor = next.user.id;
     const loaded = await loadSessionRoles(next.user.id, next.user.email);
-    if (identityRef.current === requestedFor) setRoles(loaded);
+    if (identityRef.current !== requestedFor) return;
+    if (loaded.isActive === false) {
+      // M5: cuenta desactivada. Sin persona y fuera: el JWT aún vigente ya no
+      // abre nada en la base (membresías apagadas en cascada), pero la consola
+      // no debe quedarse abierta mostrando una sesión vacía.
+      setNotice(DEACTIVATED_ACCOUNT_NOTICE);
+      setRoles(null);
+      void supabase.auth.signOut();
+      return;
+    }
+    setRoles(loaded);
   }, []);
 
   useEffect(() => {
@@ -79,13 +90,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [hydrateRoles, adoptIdentity]);
 
   const signIn = useCallback(async (email: string, password: string) => {
+    setNotice(null);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       // Mensaje en español (regla de suite) y sin filtrar si el correo existe.
       throw new Error(
         error.message === 'Invalid login credentials'
           ? 'Credenciales incorrectas. Verifica tu correo y contraseña.'
-          : `No se pudo iniciar sesión: ${error.message}`,
+          : /banned/i.test(error.message)
+            ? DEACTIVATED_ACCOUNT_NOTICE
+            : `No se pudo iniciar sesión: ${error.message}`,
       );
     }
   }, []);
@@ -110,8 +124,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signIn,
       signOut,
       refreshRoles,
+      notice,
     }),
-    [session, roles, loading, signIn, signOut, refreshRoles],
+    [session, roles, loading, signIn, signOut, refreshRoles, notice],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

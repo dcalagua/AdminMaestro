@@ -2,6 +2,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useAppearance } from '@/hooks/useAppearance';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PaymentAccountsPanel } from './PaymentAccountsPanel';
+import { MyProfilePanel } from './MyProfilePanel';
 import { SectionTabs } from '@/components/ui/SectionTabs';
 import { PageContainer, Card, Badge, DataTable, EmptyState } from '@/components/ui/primitives';
 import { PLATFORM_ROLE_LABEL, ORG_ROLE_LABEL } from '@/types/domain';
@@ -96,6 +97,12 @@ export function SettingsPage() {
                 </div>
               </Card>
             ),
+          },
+          {
+            // M5: nombre, teléfono, cargo y contraseña propios.
+            id: 'profile',
+            label: 'Mi perfil',
+            content: <MyProfilePanel />,
           },
           {
             id: 'session',

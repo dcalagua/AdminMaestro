@@ -49,17 +49,18 @@ describe('navegación por perfil', () => {
     expect(new Set(grupos).size).toBe(grupos.length);
   });
 
-  it('conserva exactamente las 32 rutas existentes', () => {
+  it('conserva exactamente las 33 rutas existentes', () => {
     // CCP fase 07 añade `/catalog/addons` y `/commercial/capabilities`;
     // CCP fase 08 añade `/commercial/entitlement-sync`;
-    // CCP M4 añade `/usage`, `/ai-credits` y `/billing-shadow`; M3 añade `/partner-fees`.
+    // CCP M4 añade `/usage`, `/ai-credits` y `/billing-shadow`; M3 añade `/partner-fees`;
+    // M5 añade `/users`.
     expect(NAV_ITEMS.map((i) => i.to).sort()).toEqual([
       '/', '/ai-credits', '/attributions', '/audit', '/billing', '/billing-shadow', '/catalog/addons',
       '/commercial/capabilities', '/commercial/entitlement-sync',
       '/commission-plans', '/commissions', '/costs',
       '/customers', '/deployments', '/feature-flags', '/integrations', '/onboarding', '/organizations',
       '/partner-fees', '/partners', '/plans', '/products', '/provisioning', '/reconciliation', '/regional', '/renewals',
-      '/saas-provisioning', '/sales-agents', '/settings', '/subscriptions', '/tenants', '/usage',
+      '/saas-provisioning', '/sales-agents', '/settings', '/subscriptions', '/tenants', '/usage', '/users',
     ]);
   });
 
@@ -228,5 +229,18 @@ describe('migas y títulos humanos', () => {
   it('inicio y no encontrado', () => {
     expect(routeMeta('/').title).toBe('Resumen ejecutivo');
     expect(routeMeta('/nada').title).toBe('Página no encontrada');
+  });
+
+  it('«Usuarios y accesos» es Gobierno para EBIM y admins de partner/cliente (M5)', () => {
+    expect(navItemsFor('EBIM').map((i) => i.to)).toContain('/users');
+    expect(navItemsFor('PARTNER').map((i) => i.to)).toContain('/users');
+    expect(navItemsFor('SALES_AGENT').map((i) => i.to)).not.toContain('/users');
+    expect(navItemsFor('TENANT').map((i) => i.to)).not.toContain('/users');
+    // No es financiero: el perfil técnico de EBIM también la ve (la RPC decide).
+    expect(navItemsFor('EBIM', { finance: false }).map((i) => i.to)).toContain('/users');
+    expect(routeMeta('/users')).toMatchObject({ group: 'Gobierno', title: 'Usuarios y accesos', isDetail: false });
+    expect(routeMeta('/users/10000000-0000-4000-a000-000000000001')).toMatchObject({
+      group: 'Gobierno', title: 'Ficha de usuario', isDetail: true,
+    });
   });
 });

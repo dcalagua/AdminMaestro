@@ -5654,6 +5654,8 @@ export type Database = {
           full_name: string | null;
           id: string;
           is_active: boolean;
+          job_title: string | null;
+          phone: string | null;
           settings: NonNullable<Json>;
           updated_at: string;
         };
@@ -5664,6 +5666,8 @@ export type Database = {
           full_name?: string | null;
           id: string;
           is_active?: boolean;
+          job_title?: string | null;
+          phone?: string | null;
           settings?: NonNullable<Json>;
           updated_at?: string;
         };
@@ -5674,6 +5678,8 @@ export type Database = {
           full_name?: string | null;
           id?: string;
           is_active?: boolean;
+          job_title?: string | null;
+          phone?: string | null;
           settings?: NonNullable<Json>;
           updated_at?: string;
         };
@@ -9361,6 +9367,63 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'v_tenant_overview';
             referencedColumns: ['tenant_id'];
+          },
+        ];
+      };
+      user_invitations: {
+        Row: {
+          accepted_at: string | null;
+          access_grant: NonNullable<Json>;
+          created_at: string;
+          delivery: string;
+          email: string;
+          full_name: string | null;
+          id: string;
+          invited_by: string | null;
+          revoked_at: string | null;
+          status: string;
+          user_id: string | null;
+        };
+        Insert: {
+          accepted_at?: string | null;
+          access_grant?: NonNullable<Json>;
+          created_at?: string;
+          delivery: string;
+          email: string;
+          full_name?: string | null;
+          id?: string;
+          invited_by?: string | null;
+          revoked_at?: string | null;
+          status?: string;
+          user_id?: string | null;
+        };
+        Update: {
+          accepted_at?: string | null;
+          access_grant?: NonNullable<Json>;
+          created_at?: string;
+          delivery?: string;
+          email?: string;
+          full_name?: string | null;
+          id?: string;
+          invited_by?: string | null;
+          revoked_at?: string | null;
+          status?: string;
+          user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'user_invitations_invited_by_fkey';
+            columns: ['invited_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'user_invitations_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -13235,7 +13298,35 @@ export type Database = {
       };
     };
     Functions: {
+      accept_my_invitations: { Args: Record<PropertyKey, never>; Returns: number };
       acknowledge_usage_alert: { Args: { p_alert_id: string; p_note?: string }; Returns: Json };
+      admin_list_users: {
+        Args: { p_scope_org_id?: string; p_search?: string; p_user_id?: string };
+        Returns: {
+          banned: boolean;
+          created_at: string;
+          email: string;
+          email_confirmed_at: string;
+          full_name: string;
+          id: string;
+          invited_at: string;
+          is_active: boolean;
+          job_title: string;
+          last_sign_in_at: string;
+          organizations: Json;
+          phone: string;
+          platform_role: Database['platform']['Enums']['platform_role'];
+          platform_role_active: boolean;
+          product_ownerships: Json;
+          provisioning_roles: Json;
+          sales_agent: Json;
+          tenants: Json;
+        }[];
+      };
+      admin_update_profile: {
+        Args: { p_full_name: string; p_job_title?: string; p_phone?: string; p_user_id: string };
+        Returns: string;
+      };
       ai_credit_applicable_policies: {
         Args: { p_at: string; p_tenant_id: string };
         Returns: {
@@ -13278,7 +13369,44 @@ export type Database = {
         Args: { p_product_id: string; p_reason?: string };
         Returns: undefined;
       };
+      assert_active_profile: { Args: { p_user_id: string }; Returns: string };
+      assert_can_resend_invitation: {
+        Args: { p_user_id: string };
+        Returns: {
+          accepted_at: string | null;
+          access_grant: NonNullable<Json>;
+          created_at: string;
+          delivery: string;
+          email: string;
+          full_name: string | null;
+          id: string;
+          invited_by: string | null;
+          revoked_at: string | null;
+          status: string;
+          user_id: string | null;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'user_invitations';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       assert_entitlement_sync_service: { Args: Record<PropertyKey, never>; Returns: undefined };
+      assert_org_role_assignable: {
+        Args: {
+          p_existing_role?: Database['platform']['Enums']['org_role'];
+          p_org: string;
+          p_role: Database['platform']['Enums']['org_role'];
+          p_target?: string;
+        };
+        Returns: undefined;
+      };
+      assert_tenant_member_domain: {
+        Args: { p_email: string; p_tenant_id: string };
+        Returns: undefined;
+      };
+      assert_user_grant: { Args: { p_email: string; p_grant: Json }; Returns: Json };
       attach_tenant_to_target: {
         Args: {
           p_deployment_target_id: string;
@@ -13288,6 +13416,8 @@ export type Database = {
         };
         Returns: string;
       };
+      authorize_invitation_resend: { Args: { p_user_id: string }; Returns: Json };
+      authorize_user_invitation: { Args: { p_email: string; p_grant: Json }; Returns: Json };
       begin_card_charge_attempt: {
         Args: {
           p_actor?: string;
@@ -13723,6 +13853,7 @@ export type Database = {
         Returns: undefined;
       };
       deactivate_product_owner: { Args: { p_id: string }; Returns: string };
+      deactivate_user: { Args: { p_reason: string; p_user_id: string }; Returns: Json };
       deployment_health_context: { Args: { p_deployment_target_id: string }; Returns: Json };
       effective_config: { Args: { p_company: string }; Returns: Json };
       effective_tenant_config: { Args: { p_tenant: string }; Returns: Json };
@@ -13947,6 +14078,14 @@ export type Database = {
         Args: { p_period_start?: string; p_subscription_id: string };
         Returns: Json;
       };
+      grant_platform_role: {
+        Args: {
+          p_reason?: string;
+          p_role: Database['platform']['Enums']['platform_role'];
+          p_user_id: string;
+        };
+        Returns: string;
+      };
       grant_provisioning_role: {
         Args: {
           p_notes?: string;
@@ -14038,6 +14177,10 @@ export type Database = {
       };
       jcs_canonical: { Args: { p_value: Json }; Returns: string };
       jsonb_deep_merge: { Args: { a: Json; b: Json }; Returns: Json };
+      link_user_sales_agent: {
+        Args: { p_reason?: string; p_sales_agent_id: string; p_user_id: string };
+        Returns: string;
+      };
       log_audit: {
         Args: {
           p_action: string;
@@ -14139,6 +14282,14 @@ export type Database = {
       open_ai_credit_period: {
         Args: { p_period_start: string; p_tenant_id: string };
         Returns: Json;
+      };
+      org_role_family: {
+        Args: { p_role: Database['platform']['Enums']['org_role'] };
+        Returns: string;
+      };
+      org_role_rank: {
+        Args: { p_role: Database['platform']['Enums']['org_role'] };
+        Returns: number;
       };
       partner_billing_channel_for: {
         Args: { p_at?: string; p_tenant_id: string };
@@ -14246,6 +14397,7 @@ export type Database = {
         Args: { p_reason: string; p_tenant_addon_id: string };
         Returns: undefined;
       };
+      reactivate_user: { Args: { p_reason?: string; p_user_id: string }; Returns: string };
       receivables_aging: {
         Args: { p_organization_id?: string };
         Returns: {
@@ -14307,6 +14459,10 @@ export type Database = {
         Args: { p_observed: Json; p_product_id: string; p_tenant_id: string; p_worker: string };
         Returns: string;
       };
+      record_invitation_resend: {
+        Args: { p_delivery: string; p_user_id: string };
+        Returns: string;
+      };
       record_provisioning_event: {
         Args: {
           p_action: string;
@@ -14318,6 +14474,16 @@ export type Database = {
           p_request_id: string;
         };
         Returns: number;
+      };
+      record_user_invitation: {
+        Args: {
+          p_delivery: string;
+          p_email: string;
+          p_full_name?: string;
+          p_grant: Json;
+          p_user_id: string;
+        };
+        Returns: string;
       };
       refresh_billing_alerts: { Args: { p_as_of?: string }; Returns: number };
       refresh_entitlement_gates_for_integration: {
@@ -14532,6 +14698,7 @@ export type Database = {
         Returns: undefined;
       };
       revoke_payment_link: { Args: { p_link_id: string; p_reason: string }; Returns: Json };
+      revoke_platform_role: { Args: { p_reason: string; p_user_id: string }; Returns: string };
       revoke_provisioning_role: { Args: { p_id: string }; Returns: string };
       schedule_cancel_tenant_addon: {
         Args: { p_effective_to?: string; p_reason: string; p_tenant_addon_id: string };
@@ -14651,6 +14818,10 @@ export type Database = {
         };
         Returns: string;
       };
+      set_organization_membership_active: {
+        Args: { p_active: boolean; p_membership_id: string; p_reason?: string };
+        Returns: string;
+      };
       set_plan_price: {
         Args: {
           p_amount: number;
@@ -14708,6 +14879,10 @@ export type Database = {
       set_tenant_feature: {
         Args: { p_enabled: boolean; p_feature_key: string; p_tenant_id: string; p_value?: Json };
         Returns: undefined;
+      };
+      set_tenant_membership_active: {
+        Args: { p_active: boolean; p_membership_id: string; p_reason?: string };
+        Returns: string;
       };
       set_tenant_status: {
         Args: {
@@ -14993,6 +15168,16 @@ export type Database = {
         };
         Returns: string;
       };
+      upsert_organization_membership: {
+        Args: {
+          p_company_id?: string;
+          p_org_id: string;
+          p_reason?: string;
+          p_role: Database['platform']['Enums']['org_role'];
+          p_user_id: string;
+        };
+        Returns: string;
+      };
       upsert_payment_provider_account: {
         Args: {
           p_code: string;
@@ -15152,6 +15337,15 @@ export type Database = {
           p_unit_amount: number;
           p_valid_from?: string;
           p_valid_to?: string;
+        };
+        Returns: string;
+      };
+      upsert_tenant_membership: {
+        Args: {
+          p_reason?: string;
+          p_role: Database['platform']['Enums']['tenant_role'];
+          p_tenant_id: string;
+          p_user_id: string;
         };
         Returns: string;
       };
