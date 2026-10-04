@@ -44,6 +44,9 @@ import { IntegrationDetailPage } from '@/features/platform/IntegrationDetailPage
 import { AuditPage } from '@/features/settings/AuditPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { RegionalPage } from '@/features/regional/RegionalPage';
+import { UsagePage } from '@/features/usage/UsagePage';
+import { AiCreditsPage } from '@/features/credits/AiCreditsPage';
+import { BillingShadowPage } from '@/features/billing/shadow/BillingShadowPage';
 import { NotFoundPage } from '@/features/settings/NotFoundPage';
 
 /**
@@ -118,6 +121,36 @@ export function App() {
                       element={
                         <RequirePersona personas={['EBIM']}>
                           <EntitlementSyncPage />
+                        </RequirePersona>
+                      }
+                    />
+                    {/*
+                    CCP M4. «Uso» es operación SaaS de EBIM (medidores e ingest
+                    los administra producto; facturable y finalizar, finanzas).
+                    «Créditos IA» y «Billing shadow» son pantallas financieras.
+                    Todo es UX: RLS y las RPC son la autoridad.
+                  */}
+                    <Route
+                      path="usage"
+                      element={
+                        <RequirePersona personas={['EBIM']}>
+                          <UsagePage />
+                        </RequirePersona>
+                      }
+                    />
+                    <Route
+                      path="ai-credits"
+                      element={
+                        <RequirePersona personas={['EBIM']}>
+                          <RequireFinanceView><AiCreditsPage /></RequireFinanceView>
+                        </RequirePersona>
+                      }
+                    />
+                    <Route
+                      path="billing-shadow"
+                      element={
+                        <RequirePersona personas={['EBIM']}>
+                          <RequireFinanceView><BillingShadowPage /></RequireFinanceView>
                         </RequirePersona>
                       }
                     />

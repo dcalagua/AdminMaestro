@@ -1236,3 +1236,214 @@ export function useCurrentCollectionProfile(subscriptionId: string | undefined) 
     },
   });
 }
+
+/* ==========================================================================
+   CCP M4 · Uso, créditos IA y billing shadow (fases 17–18)
+
+   Lecturas de pantalla sobre el backend existente. RLS decide filas y GRANT
+   por columna decide columnas: `usage_events.internal` (COGS) y
+   `usage_ingest_credentials.public_key_ref` NO se piden nunca con `*`.
+   ========================================================================== */
+
+/** Tope de filas en listados de bitácoras append-only (eventos, rechazos, alertas, ledger). */
+export const USAGE_LIST_LIMIT = 500;
+
+export function useUsageMeters() {
+  return useQuery({
+    queryKey: ['usage-meters'],
+    queryFn: async () =>
+      unwrap(await supabase.from('usage_meters').select('*').order('code')),
+  });
+}
+
+/** Sin `public_key_ref`: es el NOMBRE de una variable de entorno y no tiene grant de columna. */
+const USAGE_INGEST_CREDENTIAL_COLUMNS =
+  'id, saas_product_id, environment, issuer, audience, algorithm, kid, enabled, created_at, updated_at';
+
+export function useUsageIngestCredentials() {
+  return useQuery({
+    queryKey: ['usage-ingest-credentials'],
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('usage_ingest_credentials')
+          .select(USAGE_INGEST_CREDENTIAL_COLUMNS)
+          .order('issuer'),
+      ),
+  });
+}
+
+/** Agregados por tenant × medidor × período. Sin `tenantId`, todos los que RLS deja ver. */
+export function useUsageAggregates(tenantId?: string) {
+  return useQuery({
+    queryKey: ['usage-aggregates', tenantId ?? 'all'],
+    queryFn: async () => {
+      let q = supabase.from('v_usage_period_aggregates').select('*');
+      if (tenantId) q = q.eq('tenant_id', tenantId);
+      return unwrap(
+        await q
+          .order('period_start', { ascending: false })
+          .order('product_code')
+          .order('meter_code')
+          .limit(2000),
+      );
+    },
+  });
+}
+
+/** Todo menos `internal` (COGS): sin grant de columna para `authenticated`. */
+const USAGE_EVENT_COLUMNS =
+  'id, saas_product_id, event_id, tenant_id, meter_id, meter_code, quantity, unit, occurred_at, received_at, environment, external_company_id, subject_ref, capability_code, event_hash, period_start, late, ingest_batch_id';
+
+export interface UsageEventsParams {
+  /** Tenant concreto o `null` para todos los visibles. */
+  tenantId: string | null;
+  /** Instante inicial (incluido), ISO. */
+  from: string;
+  /** Instante final (excluido), ISO. */
+  to: string;
+}
+
+export function useUsageEvents(params: UsageEventsParams) {
+  return useQuery({
+    queryKey: ['usage-events', params.tenantId ?? 'all', params.from, params.to],
+    queryFn: async () => {
+      let q = supabase
+        .from('usage_events')
+        .select(USAGE_EVENT_COLUMNS)
+        .gte('occurred_at', params.from)
+        .lt('occurred_at', params.to);
+      if (params.tenantId) q = q.eq('tenant_id', params.tenantId);
+      return unwrap(await q.order('occurred_at', { ascending: false }).limit(USAGE_LIST_LIMIT));
+    },
+  });
+}
+
+/**
+ * COGS interno (proveedor, modelo, tokens, costo) de los eventos de UN tenant.
+ * Solo EBIM_FINANCE: la RPC responde 42501 a cualquier otro rol.
+ */
+export function useUsageEventCogs(params: { tenantId: string; from: string; to: string } | null) {
+  return useQuery({
+    queryKey: ['usage-event-cogs', params?.tenantId, params?.from, params?.to],
+    enabled: Boolean(params),
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('usage_event_cogs', {
+        p_tenant_id: params!.tenantId,
+        p_from: params!.from,
+        p_to: params!.to,
+      });
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    },
+  });
+}
+
+export function useUsageIngestRejections() {
+  return useQuery({
+    queryKey: ['usage-ingest-rejections'],
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('usage_ingest_rejections')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(USAGE_LIST_LIMIT),
+      ),
+  });
+}
+
+export function useUsageAlerts(tenantId?: string) {
+  return useQuery({
+    queryKey: ['usage-alerts', tenantId ?? 'all'],
+    queryFn: async () => {
+      let q = supabase.from('usage_alerts').select('*');
+      if (tenantId) q = q.eq('tenant_id', tenantId);
+      return unwrap(await q.order('created_at', { ascending: false }).limit(USAGE_LIST_LIMIT));
+    },
+  });
+}
+
+/** Saldo derivado por tenant × pool × período (vista SECURITY INVOKER). */
+export function useAiCreditBalances(tenantId?: string) {
+  return useQuery({
+    queryKey: ['ai-credit-balances', tenantId ?? 'all'],
+    queryFn: async () => {
+      let q = supabase.from('v_ai_credit_balances').select('*');
+      if (tenantId) q = q.eq('tenant_id', tenantId);
+      return unwrap(await q.order('period_start', { ascending: false }).order('pool_key'));
+    },
+  });
+}
+
+/** Ledger append-only de créditos IA, del más reciente al más antiguo. */
+export function useAiCreditLedger(tenantId?: string, limit = USAGE_LIST_LIMIT) {
+  return useQuery({
+    queryKey: ['ai-credit-ledger', tenantId ?? 'all', limit],
+    queryFn: async () => {
+      let q = supabase.from('ai_credit_ledger').select('*');
+      if (tenantId) q = q.eq('tenant_id', tenantId);
+      return unwrap(await q.order('created_at', { ascending: false }).limit(limit));
+    },
+  });
+}
+
+/** Pesos de crédito por capacidad AI_FEATURE, con su historia de versiones. */
+export function useAiCreditWeights() {
+  return useQuery({
+    queryKey: ['ai-credit-weights'],
+    queryFn: async () =>
+      unwrap(await supabase.from('ai_credit_weights').select('*').order('valid_from', { ascending: false })),
+  });
+}
+
+/** Políticas de créditos por plan o add-on. Campos comerciales nulos = no decidido. */
+export function useAiCreditPolicies() {
+  return useQuery({
+    queryKey: ['ai-credit-policies'],
+    queryFn: async () =>
+      unwrap(await supabase.from('ai_credit_policies').select('*').order('valid_from', { ascending: false })),
+  });
+}
+
+/** Reportes BILLING_SHADOW (append-only). Solo finanzas los ve (RLS). */
+export function useBillingShadowComparisons() {
+  return useQuery({
+    queryKey: ['billing-shadow-comparisons'],
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('billing_shadow_comparisons')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(USAGE_LIST_LIMIT),
+      ),
+  });
+}
+
+export interface BillingShadowExpectedParams {
+  productCode: string;
+  tenantId: string;
+  periodStart: string;
+}
+
+/**
+ * «Lo que MasterAdmin facturaría» al tenant en el mes. SOLO LECTURA: la RPC no
+ * emite facturas ni reserva números. Se ejecuta solo cuando hay parámetros.
+ */
+export function useBillingShadowExpected(params: BillingShadowExpectedParams | null) {
+  return useQuery({
+    queryKey: ['billing-shadow-expected', params?.productCode, params?.tenantId, params?.periodStart],
+    enabled: Boolean(params),
+    retry: false,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('billing_shadow_expected_lines', {
+        p_saas_product_code: params!.productCode,
+        p_tenant_id: params!.tenantId,
+        p_period_start: params!.periodStart,
+      });
+      if (error) throw new Error(error.message);
+      return data;
+    },
+  });
+}

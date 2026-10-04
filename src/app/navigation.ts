@@ -1,6 +1,6 @@
 import {
   type Icon, ArrowsClockwiseIcon, BellRingingIcon, BuildingOfficeIcon, BuildingsIcon, CertificateIcon,
-  ChartLineUpIcon, CloudArrowUpIcon, CurrencyCircleDollarIcon, FlagIcon, GearSixIcon,
+  ChartLineUpIcon, CloudArrowUpIcon, CoinsIcon, CurrencyCircleDollarIcon, FlagIcon, GaugeIcon, GearSixIcon, GitDiffIcon,
   HandCoinsIcon, HandshakeIcon, HardDrivesIcon, HouseIcon, LinkIcon, ListChecksIcon, PercentIcon,
   PlugsConnectedIcon, PuzzlePieceIcon, ReceiptIcon, RocketLaunchIcon, ScalesIcon, ShieldCheckIcon, SquaresFourIcon,
   StackIcon, TreeStructureIcon, UsersThreeIcon,
@@ -79,10 +79,13 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/renewals', label: 'Renovaciones', icon: BellRingingIcon, group: 'Finanzas', personas: ['EBIM', 'PARTNER'], finance: true },
   { to: '/reconciliation', label: 'Conciliación', icon: ScalesIcon, group: 'Finanzas', personas: ['EBIM'], finance: true },
   { to: '/regional', label: 'Monedas y FX', icon: CurrencyCircleDollarIcon, group: 'Finanzas', personas: ['EBIM'], finance: true },
+  { to: '/ai-credits', label: 'Créditos IA', icon: CoinsIcon, group: 'Finanzas', personas: ['EBIM'], finance: true },
+  { to: '/billing-shadow', label: 'Billing shadow', icon: GitDiffIcon, group: 'Finanzas', personas: ['EBIM'], finance: true },
 
   // ---- Operación SaaS -----------------------------------------------------
   { to: '/integrations', label: 'Integraciones', icon: PlugsConnectedIcon, group: 'Operación SaaS', personas: ['EBIM'], detailLabel: 'Ficha de integración' },
   { to: '/commercial/entitlement-sync', label: 'Sincronización de entitlements', icon: ArrowsClockwiseIcon, group: 'Operación SaaS', personas: ['EBIM'] },
+  { to: '/usage', label: 'Uso', icon: GaugeIcon, group: 'Operación SaaS', personas: ['EBIM'] },
   { to: '/deployments', label: 'Entornos y despliegues', icon: CloudArrowUpIcon, group: 'Operación SaaS', personas: ['EBIM', 'PARTNER'] },
   { to: '/saas-provisioning', label: 'Altas SaaS', icon: StackIcon, group: 'Operación SaaS', personas: ['EBIM', 'PARTNER'] },
   { to: '/provisioning', label: 'Solicitudes de infraestructura', icon: HardDrivesIcon, group: 'Operación SaaS', personas: ['EBIM', 'PARTNER'] },
