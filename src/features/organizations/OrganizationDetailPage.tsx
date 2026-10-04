@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { useOrganization, usePartnerAgreements } from '@/services/queries';
+import { useOrganization, useOrganizationAgreements, usePartnerAgreements } from '@/services/queries';
 import { useEndProductAgreement } from '@/services/mutations';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -28,6 +28,9 @@ import { CompanyFormDialog, type CompanyDraft } from './CompanyFormDialog';
 import { BillingContactPanel } from './BillingContactPanel';
 import { PaymentPortalPanel } from './PaymentPortalPanel';
 import type { AgreementDraft } from './AgreementFormDialog';
+import { PlatformFeeDialog, type PlatformFeeTarget } from '@/features/partnerFees/PlatformFeeDialog';
+import { PartnerFeeStatementsPanel } from '@/features/partnerFees/PartnerFeeStatementsPanel';
+import { feeTermsText, type FeeTerms } from '@/features/partnerFees/feeLabels';
 
 /**
  * Cliente / partner 360 (P22), en tabs centrados con deep-link `#hash`
@@ -41,6 +44,8 @@ export function OrganizationDetailPage() {
   const { roles } = useAuth();
   const org = useOrganization(organizationId);
   const agreements = usePartnerAgreements(organizationId);
+  // Términos de la tarifa de plataforma (M3): columnas del acuerdo, no de la vista de uso.
+  const agreementRows = useOrganizationAgreements(organizationId);
   const margin = useOrgPartnerMargin(organizationId ?? '');
   const agents = useOrgSalesAgents(organizationId ?? '');
   const [companyDialog, setCompanyDialog] = useState<{ open: boolean; company: CompanyDraft | null }>({
@@ -55,6 +60,7 @@ export function OrganizationDetailPage() {
     open: boolean;
     agreement: AgreementDraft | null;
   }>({ open: false, agreement: null });
+  const [feeTarget, setFeeTarget] = useState<PlatformFeeTarget | null>(null);
   const [endingAgreement, setEndingAgreement] = useState<{ id: string; product: string } | null>(
     null,
   );
@@ -100,6 +106,18 @@ export function OrganizationDetailPage() {
   const orgMargins = (margin.data ?? []).filter((m) => m.currency);
   const orgAgents = agents.data ?? [];
   const canManageCompanies = perms.canManageOrganization(o.id);
+  const feeById = new Map<string, FeeTerms>(
+    (agreementRows.data ?? []).map((a) => [
+      a.id,
+      {
+        platform_fee_model: a.platform_fee_model,
+        platform_fee_rate: a.platform_fee_rate,
+        platform_fee_fixed_amount: a.platform_fee_fixed_amount,
+        platform_fee_currency: a.platform_fee_currency,
+      },
+    ]),
+  );
+  const isPartner = (agreements.data ?? []).length > 0;
 
   return (
     <PageContainer
@@ -144,6 +162,13 @@ export function OrganizationDetailPage() {
                 billingEmail={o.billing_email}
               />
             ),
+          },
+          {
+            id: 'platform-fee',
+            label: 'Tarifa de plataforma',
+            // M3: lo ve finanzas y el admin del propio partner (RLS lo exige igual).
+            hidden: !isPartner || !(perms.canReadFinance || perms.isOrgAdmin(o.id)),
+            content: <PartnerFeeStatementsPanel organizationId={o.id} />,
           },
           {
             id: 'documents',
@@ -292,7 +317,7 @@ export function OrganizationDetailPage() {
                   <DataTable
                     columns={[
                       'Producto', 'Revende', 'Administra', 'Margen', 'Modelos permitidos',
-                      'Tipos', 'Tenants', 'Factura', 'Vigencia', '',
+                      'Tipos', 'Tenants', 'Factura', 'Tarifa plataforma', 'Vigencia', '',
                     ]}
                   >
                     {(agreements.data ?? []).map((a) => (
@@ -330,11 +355,36 @@ export function OrganizationDetailPage() {
                           ) : null}
                         </td>
                         <td className="ebim-td text-xs text-muted">{a.billing_responsibility}</td>
+                        <td className="ebim-td text-xs">{feeTermsText(feeById.get(a.agreement_id as string))}</td>
                         <td className="ebim-td text-xs text-muted">
                           {formatDate(a.valid_from as string)} →{' '}
                           {a.valid_to ? formatDate(a.valid_to as string) : 'sin fin'}
                         </td>
                         <td className="ebim-td">
+                          {perms.canReadFinance && a.status === 'ACTIVE' ? (
+                            <div className="flex items-center justify-end">
+                              <button
+                                type="button"
+                                className="ebim-link text-[13px]"
+                                onClick={() =>
+                                  setFeeTarget({
+                                    agreementId: a.agreement_id as string,
+                                    productName: a.product_short_name as string,
+                                    partnerName: o.display_name,
+                                    billingResponsibility: a.billing_responsibility as string,
+                                    ...(feeById.get(a.agreement_id as string) ?? {
+                                      platform_fee_model: 'NONE',
+                                      platform_fee_rate: null,
+                                      platform_fee_fixed_amount: null,
+                                      platform_fee_currency: null,
+                                    }),
+                                  })
+                                }
+                              >
+                                Tarifa
+                              </button>
+                            </div>
+                          ) : null}
                           {perms.canManagePlatform ? (
                             <div className="flex items-center justify-end gap-3">
                               <button
@@ -456,6 +506,8 @@ export function OrganizationDetailPage() {
         agreement={agreementDialog.agreement}
         onClose={() => setAgreementDialog({ open: false, agreement: null })}
       />
+
+      <PlatformFeeDialog target={feeTarget} onClose={() => setFeeTarget(null)} />
 
       <CompanyFormDialog
         open={companyDialog.open}

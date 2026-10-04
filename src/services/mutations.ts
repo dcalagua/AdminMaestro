@@ -852,3 +852,35 @@ export function useEndAiCreditPolicy() {
 export function useClearCatalogItemUsageBinding() {
   return useRpc('clear_catalog_item_usage_binding', ['catalog-items']);
 }
+
+/* ==========================================================================
+   M3 · Tarifa de plataforma de partners (spec §4). Finanzas o super admin.
+   ========================================================================== */
+
+const PARTNER_FEE_KEYS = ['partner-fee-statements', 'partner-fee-statement-lines'];
+
+/** Términos de la tarifa del acuerdo; NONE si factura EBIM (la base lo exige). */
+export function useSetAgreementPlatformFee() {
+  return useRpc('set_agreement_platform_fee', ['agreements', 'partner-agreements', 'platform-fee-agreements']);
+}
+
+/** DIRECT ↔ PARTNER_STATEMENT para corregir un contrato existente. */
+export function useSetSubscriptionBillingChannel() {
+  return useRpc('set_subscription_billing_channel', ['subscriptions', 'subscription']);
+}
+
+export function useComputePartnerFeeStatement() {
+  return useRpc('compute_partner_fee_statement', PARTNER_FEE_KEYS);
+}
+
+export function useComputeAllPartnerFeeStatements() {
+  return useRpc('compute_all_partner_fee_statements', PARTNER_FEE_KEYS);
+}
+
+export function useIssuePartnerFeeStatement() {
+  return useRpc('issue_partner_fee_statement', [...PARTNER_FEE_KEYS, 'invoices']);
+}
+
+export function useVoidPartnerFeeStatement() {
+  return useRpc('void_partner_fee_statement', [...PARTNER_FEE_KEYS, 'invoices']);
+}

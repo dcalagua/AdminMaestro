@@ -49,16 +49,16 @@ describe('navegación por perfil', () => {
     expect(new Set(grupos).size).toBe(grupos.length);
   });
 
-  it('conserva exactamente las 31 rutas existentes', () => {
+  it('conserva exactamente las 32 rutas existentes', () => {
     // CCP fase 07 añade `/catalog/addons` y `/commercial/capabilities`;
     // CCP fase 08 añade `/commercial/entitlement-sync`;
-    // CCP M4 añade `/usage`, `/ai-credits` y `/billing-shadow`.
+    // CCP M4 añade `/usage`, `/ai-credits` y `/billing-shadow`; M3 añade `/partner-fees`.
     expect(NAV_ITEMS.map((i) => i.to).sort()).toEqual([
       '/', '/ai-credits', '/attributions', '/audit', '/billing', '/billing-shadow', '/catalog/addons',
       '/commercial/capabilities', '/commercial/entitlement-sync',
       '/commission-plans', '/commissions', '/costs',
       '/customers', '/deployments', '/feature-flags', '/integrations', '/onboarding', '/organizations',
-      '/partners', '/plans', '/products', '/provisioning', '/reconciliation', '/regional', '/renewals',
+      '/partner-fees', '/partners', '/plans', '/products', '/provisioning', '/reconciliation', '/regional', '/renewals',
       '/saas-provisioning', '/sales-agents', '/settings', '/subscriptions', '/tenants', '/usage',
     ]);
   });
@@ -78,6 +78,15 @@ describe('navegación por perfil', () => {
     expect(routeMeta('/usage')).toMatchObject({ group: 'Operación SaaS', title: 'Uso', isDetail: false });
     expect(routeMeta('/ai-credits')).toMatchObject({ group: 'Finanzas', title: 'Créditos IA' });
     expect(routeMeta('/billing-shadow')).toMatchObject({ group: 'Finanzas', title: 'Billing shadow' });
+  });
+
+  it('«Tarifas de partners» es una pantalla de finanzas de EBIM (M3)', () => {
+    expect(navItemsFor('EBIM').map((i) => i.to)).toContain('/partner-fees');
+    expect(navItemsFor('EBIM', { finance: false }).map((i) => i.to)).not.toContain('/partner-fees');
+    for (const persona of ['PARTNER', 'SALES_AGENT', 'TENANT'] as const) {
+      expect(navItemsFor(persona).map((i) => i.to)).not.toContain('/partner-fees');
+    }
+    expect(routeMeta('/partner-fees')).toMatchObject({ group: 'Finanzas', title: 'Tarifas de partners' });
   });
 
   it('etiquetas de negocio de la spec', () => {

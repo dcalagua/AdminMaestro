@@ -1479,3 +1479,55 @@ export function useBillingShadowExpected(params: BillingShadowExpectedParams | n
     },
   });
 }
+
+/* ==========================================================================
+   M3 · Tarifa de plataforma de partners (spec §4)
+   ========================================================================== */
+
+/** Acuerdos con tarifa de plataforma (modelo ≠ NONE): partners a calcular. */
+export function usePlatformFeeAgreements() {
+  return useQuery({
+    queryKey: ['platform-fee-agreements'],
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('organization_product_agreements')
+          .select(
+            'id, organization_id, saas_product_id, status, billing_responsibility, platform_fee_model, platform_fee_rate, platform_fee_fixed_amount, platform_fee_currency, organizations(display_name, slug), saas_products(code, short_name)',
+          )
+          .neq('platform_fee_model', 'NONE')
+          .order('organization_id'),
+      ),
+  });
+}
+
+/** Estados de cuenta del período (o de un partner). RLS: finanzas todos; el admin del partner, los suyos. */
+export function usePartnerFeeStatements(params: { periodStart?: string; partnerId?: string }) {
+  return useQuery({
+    queryKey: ['partner-fee-statements', params.periodStart ?? 'all', params.partnerId ?? 'all'],
+    queryFn: async () => {
+      let q = supabase.from('v_partner_fee_statements').select('*');
+      if (params.periodStart) q = q.eq('period_start', params.periodStart);
+      if (params.partnerId) q = q.eq('partner_organization_id', params.partnerId);
+      return unwrap(await q.order('period_start', { ascending: false }).order('partner_name').order('currency'));
+    },
+  });
+}
+
+/** Detalle por tenant de un estado de cuenta. */
+export function usePartnerFeeStatementLines(statementId: string | null) {
+  return useQuery({
+    queryKey: ['partner-fee-statement-lines', statementId],
+    enabled: Boolean(statementId),
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('v_partner_fee_statement_lines')
+          .select('*')
+          .eq('statement_id', statementId!)
+          .order('product_short_name')
+          .order('tenant_slug')
+          .order('line_kind'),
+      ),
+  });
+}

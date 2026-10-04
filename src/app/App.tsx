@@ -47,6 +47,7 @@ import { RegionalPage } from '@/features/regional/RegionalPage';
 import { UsagePage } from '@/features/usage/UsagePage';
 import { AiCreditsPage } from '@/features/credits/AiCreditsPage';
 import { BillingShadowPage } from '@/features/billing/shadow/BillingShadowPage';
+import { PartnerFeesPage } from '@/features/partnerFees/PartnerFeesPage';
 import { NotFoundPage } from '@/features/settings/NotFoundPage';
 
 /**
@@ -151,6 +152,14 @@ export function App() {
                       element={
                         <RequirePersona personas={['EBIM']}>
                           <RequireFinanceView><BillingShadowPage /></RequireFinanceView>
+                        </RequirePersona>
+                      }
+                    />
+                    <Route
+                      path="partner-fees"
+                      element={
+                        <RequirePersona personas={['EBIM']}>
+                          <RequireFinanceView><PartnerFeesPage /></RequireFinanceView>
                         </RequirePersona>
                       }
                     />

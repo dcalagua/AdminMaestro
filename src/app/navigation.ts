@@ -3,7 +3,7 @@ import {
   ChartLineUpIcon, CloudArrowUpIcon, CoinsIcon, CurrencyCircleDollarIcon, FlagIcon, GaugeIcon, GearSixIcon, GitDiffIcon,
   HandCoinsIcon, HandshakeIcon, HardDrivesIcon, HouseIcon, LinkIcon, ListChecksIcon, PercentIcon,
   PlugsConnectedIcon, PuzzlePieceIcon, ReceiptIcon, RocketLaunchIcon, ScalesIcon, ShieldCheckIcon, SquaresFourIcon,
-  StackIcon, TreeStructureIcon, UsersThreeIcon,
+  StackIcon, StorefrontIcon, TreeStructureIcon, UsersThreeIcon,
 } from '@phosphor-icons/react';
 import type { PersonaKind } from '@/features/auth/session';
 import type { SessionRoles } from '@/types/domain';
@@ -81,6 +81,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/regional', label: 'Monedas y FX', icon: CurrencyCircleDollarIcon, group: 'Finanzas', personas: ['EBIM'], finance: true },
   { to: '/ai-credits', label: 'Créditos IA', icon: CoinsIcon, group: 'Finanzas', personas: ['EBIM'], finance: true },
   { to: '/billing-shadow', label: 'Billing shadow', icon: GitDiffIcon, group: 'Finanzas', personas: ['EBIM'], finance: true },
+  { to: '/partner-fees', label: 'Tarifas de partners', icon: StorefrontIcon, group: 'Finanzas', personas: ['EBIM'], finance: true },
 
   // ---- Operación SaaS -----------------------------------------------------
   { to: '/integrations', label: 'Integraciones', icon: PlugsConnectedIcon, group: 'Operación SaaS', personas: ['EBIM'], detailLabel: 'Ficha de integración' },

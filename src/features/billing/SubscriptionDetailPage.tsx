@@ -24,6 +24,9 @@ import { ChargeAttemptsCard } from './ChargeAttemptsCard';
 import { autochargeToast } from './autochargeSummary';
 import { ManualPaymentDialog } from './ManualPaymentDialog';
 import { PeriodInvoiceAction } from './PeriodInvoiceAction';
+import { BillingChannelDialog } from './BillingChannelDialog';
+import { BILLING_CHANNEL } from '@/features/partnerFees/feeLabels';
+import { labelOf } from '@/features/usage/usageLabels';
 import {
   BILLING_INTERVAL_LABEL, CHARGE_KIND_LABEL, SUBSCRIPTION_STATUS_LABEL, SUBSCRIPTION_STATUS_TONE, splitCharges,
 } from './subscriptionLabels';
@@ -93,6 +96,7 @@ export function SubscriptionDetailPage() {
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [paying, setPaying] = useState<{ id: string; number: string; currency: string; outstanding: number } | null>(null);
   const [charging, setCharging] = useState<{ id: string; number: string; amount: string } | null>(null);
+  const [channelOpen, setChannelOpen] = useState(false);
 
   if (subscription.isLoading) return <LoadingState />;
   if (subscription.error) return <ErrorState error={subscription.error} />;
@@ -180,9 +184,19 @@ export function SubscriptionDetailPage() {
         <Link className="text-xs text-muted hover:text-fg" to="/subscriptions">← Suscripciones</Link>
       }
       actions={
-        <Badge tone={SUBSCRIPTION_STATUS_TONE[s.status] ?? 'neutral'}>
-          Contrato: {SUBSCRIPTION_STATUS_LABEL[s.status] ?? s.status}
-        </Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge tone={SUBSCRIPTION_STATUS_TONE[s.status] ?? 'neutral'}>
+            Contrato: {SUBSCRIPTION_STATUS_LABEL[s.status] ?? s.status}
+          </Badge>
+          <Badge tone={labelOf(BILLING_CHANNEL, s.billing_channel).tone}>
+            Facturación: {labelOf(BILLING_CHANNEL, s.billing_channel).label}
+          </Badge>
+          {perms.canReadFinance ? (
+            <button type="button" className="ebim-link text-xs" onClick={() => setChannelOpen(true)}>
+              Cambiar canal
+            </button>
+          ) : null}
+        </div>
       }
     >
       <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -468,7 +482,12 @@ export function SubscriptionDetailPage() {
                   ) : null
                 }
               >
-                {perms.canReadFinance && (s.status === 'ACTIVE' || s.status === 'PAST_DUE') ? (
+                {s.billing_channel === 'PARTNER_STATEMENT' ? (
+                  <p role="note" className="mb-3 rounded-lg border border-border bg-accent-soft px-3 py-2 text-sm text-fg">
+                    Este contrato lo <strong>factura el partner</strong> al cliente final: EBIM no le emite facturas. EBIM
+                    cobra al partner la tarifa de plataforma en <Link className="ebim-link" to="/partner-fees">Tarifas de partners</Link>.
+                  </p>
+                ) : perms.canReadFinance && (s.status === 'ACTIVE' || s.status === 'PAST_DUE') ? (
                   <PeriodInvoiceAction subscriptionId={s.id} currency={s.currency} />
                 ) : null}
                 {invoices.isLoading ? (
@@ -612,6 +631,13 @@ export function SubscriptionDetailPage() {
         confirmLabel="Anular"
         onConfirm={doCancel}
         onCancel={() => setCancelId(null)}
+      />
+      <BillingChannelDialog
+        open={channelOpen}
+        subscriptionId={s.id}
+        subscriptionCode={s.code}
+        current={s.billing_channel ?? 'DIRECT'}
+        onClose={() => setChannelOpen(false)}
       />
     </PageContainer>
   );
