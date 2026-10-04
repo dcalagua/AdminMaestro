@@ -279,3 +279,23 @@ Cada una con su archivo pgTAP (`43_` en adelante).
 ## 9. Fuera de alcance v1
 
 3DS; envío de email propio (se copia el enlace o se usa la invitación de Supabase Auth); programación de crons (D-07); facturación fiscal (D-13); uso y créditos en la base de la tarifa de partner; portal autenticado del cliente; promoción a QAS.
+
+---
+
+## 10. Notas de implementación (M1 y M2, 2026-10-04)
+
+Desviaciones y precisiones respecto de §2–§3, decididas durante la implementación (P-04):
+
+1. **Evento `ENROLL_ATTEMPT`.** `payment_link_events.kind` admite además `ENROLL_ATTEMPT`. El alta de tarjeta también consume el cupo de 10 intentos por enlace y hora (defensa contra pruebas de tarjetas con un enlace filtrado).
+2. **RPCs de servidor adicionales.** Además de las de §2.2: `payment_link_charge_context` (revalida enlace, pertenencia y saldo y resuelve la cuenta antes de cobrar), `payment_link_enrollment_context` (cuenta, cliente previo y datos de facturación para el alta) y `set_billing_contact_from_portal`. Esta última sustituye a «`set_billing_contact` en contexto de servicio»: `set_billing_contact` autoriza por usuario y abrirla al servicio la habría debilitado; la variante del portal **solo completa campos vacíos** (quien tiene el enlace no reescribe datos fiscales existentes) con las mismas validaciones.
+3. **`unenroll_card_on_file(p_token_hash, …)`** recibe el hash del token, no el id del enlace: la baja funciona con cualquier enlace vigente aunque ya no ofrezca guardar tarjeta.
+4. **Baja = perfil `MANUAL`.** Tras revocar, el perfil `CARD_ON_FILE` se versiona a `MANUAL` (sin cuenta ni tarjeta). «`auto_charge = false`» no es representable con `CULQI_CARD` por el CHECK V2 `scp_culqi_autocharge_ck`.
+5. **Alerta de agotamiento.** Se usa el tipo existente `PAYMENT_FAILURE` con `metadata.code = 'CARD_ON_FILE_EXHAUSTED'` y `dedupe_key = '<factura>:CARD_ON_FILE_EXHAUSTED'`, en vez de un valor de enum nuevo (que exigiría una migración aislada). El trigger existente la resuelve al cobrarse la factura.
+6. **Intentos en dos pasos.** `begin_card_charge_attempt` (PENDING, idempotente por `invoice:attempt_no`, un solo PENDING por factura) y `complete_card_charge_attempt` (éxito → `register_provider_invoice_payment` en la misma transacción; fallo → próximo reintento o alerta). «Cobrar ahora» ignora el calendario (`p_ignore_schedule`) y puede pasar del tercer intento. Un fallo **ambiguo** de la pasarela (timeout/5xx) deja el intento PENDING («en revisión») para no arriesgar un doble cargo.
+7. **MOCK en el portal público.** Las cuentas sin credenciales solo cobran desde `/pagar` si el entorno define `PAYMENT_PORTAL_ALLOW_MOCK=true`; si no, la factura aparece «no pagable con tarjeta». `payment-autocharge` (JWT de finanzas) sí opera en MOCK, igual que `payment-setup`.
+8. **Cuenta del alta (M2).** `resolve_org_card_account`: la ruta 1 de la primera suscripción activa con candidato Culqi; si no hay, la cuenta Culqi del país de la organización. Solo se pasan a `CARD_ON_FILE` las suscripciones cuya ruta admite esa cuenta (el resto se informa como omitidas).
+9. **`register_provider_invoice_payment`** levanta excepciones con código (`SOBRECOBRO`, `MONEDA_INCOHERENTE`, `FACTURA_NO_PAGABLE`, `CUENTA_PROVEEDOR_NO_COINCIDE`, …) en lugar de devolver `accepted:false`; el webhook registra el rechazo en `provider_webhook_events`. Comprueba la duplicidad por `reference` **antes** que el estado de la factura (un replay tras quedar PAID es `duplicate:true`). Acepta la cuenta resuelta o cualquier candidato elegible que cobre la moneda (un cargo hecho con la cuenta vigente ayer no se rechaza si hoy cambió el perfil). Deja rastro en `provider_webhook_events` (`event_type = 'invoice.charge'`).
+10. **Respuesta del portal.** La Edge Function devuelve el id de factura (necesario para `/charge`) pero nunca ids de cuenta, enlace u organización ni `secret_key_ref`; la página no pinta ningún id. El comprobante muestra el cargo enmascarado (`chr_…1234`).
+11. **Consola.** El atajo «Compartir enlace de pago» está en el detalle de suscripción (pestaña «Facturación y cobros»); en el listado de facturas las filas ya enlazan a la organización. «Cuentas de pago» es una pestaña de Configuración (finanzas).
+
+Limitaciones conocidas v1: sin llave Culqi TEST en este entorno (TEST probado solo con `fetch` simulado); un intento PENDING por fallo ambiguo no tiene acción de cierre en la consola (se resuelve por reconciliación); el importe de Culqi Checkout para guardar la tarjeta es solo informativo; sin envío de correo (copiar / `mailto:`); cron no programado (D-07).

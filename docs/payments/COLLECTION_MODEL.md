@@ -131,3 +131,71 @@ comprueba `03_v2_security.test.sql` §4.
 `v_subscription_collection` (security_invoker) une suscripción + perfil +
 producto + tenant + cuenta de proveedor. Es la fuente tanto de la pestaña
 **Cobranza** de la UI como del motor de alertas.
+
+---
+
+## 10. Cobro por factura con tarjeta guardada (M2 · `recurring_mode`)
+
+Migración `20261010000300_card_on_file.sql`. Spec
+`docs/superpowers/specs/2026-10-04-masteradmin-cobro-usuarios-design.md` §3.
+
+Hasta V3.2 el único cobro automático con tarjeta era la **suscripción del
+proveedor**: Culqi cobra un Plan de importe fijo. M2 añade un segundo modo en el
+mismo perfil de cobranza:
+
+| `recurring_mode` | Quién decide el importe | Quién dispara el cargo |
+|---|---|---|
+| `PROVIDER_SUBSCRIPTION` (por defecto, V3.2) | El Plan del proveedor (fijo) | Culqi, en su calendario |
+| `CARD_ON_FILE` (M2) | **Cada factura emitida** (admite uso, add-ons, prorrateos) | MasterAdmin (`payment-autocharge`) |
+
+`CHECK scp_card_on_file_ck`: `CARD_ON_FILE` exige `payment_method_id`,
+`auto_charge` y `collection_method = 'CULQI_CARD'`.
+
+### 10.1 Cómo se activa
+
+Lo activa **el cliente** desde el portal de pago (`/pagar#<token>`), aceptando
+los términos `CARD_ON_FILE_V1`. `enroll_card_on_file` (solo servidor):
+
+1. guarda Customer + Card (`provider_customers`, `provider_payment_methods`,
+   solo `cus_`/`crd_` y brand/last4);
+2. registra `card_on_file_authorizations` (una vigente por organización y cuenta;
+   la anterior queda revocada con `revoke_source = PORTAL`);
+3. **versiona** el perfil de las suscripciones activas de la organización cuya
+   ruta admite esa cuenta → `CULQI_CARD` + `CARD_ON_FILE`. El perfil anterior se
+   cierra, no se pisa (mismo criterio que §5).
+
+### 10.2 Cómo se desactiva
+
+El cliente (portal, «Desactivar pago automático») o finanzas (consola,
+`revoke_card_on_file_authorization` con motivo). La autorización queda revocada,
+la tarjeta `INACTIVE` y el perfil pasa a **`MANUAL`** en una versión nueva: el
+CHECK de V2 `scp_culqi_autocharge_ck` no permite `CULQI_CARD` sin cargo
+automático, así que «sin cobro automático» se representa como cobro manual.
+
+### 10.3 Política de reintentos
+
+| Intento | Cuándo |
+|---|---|
+| 1 | al vencer la factura (`due_date`) |
+| 2 | `due_date + 3 días` |
+| 3 | `due_date + 7 días` |
+| — | tras el 3.º fallo: alerta `PAYMENT_FAILURE` con `metadata.code = 'CARD_ON_FILE_EXHAUSTED'` (dedupe `<factura>:CARD_ON_FILE_EXHAUSTED`) |
+
+La decide la base (`card_on_file_due_invoices`, `card_on_file_retry_at`); la
+Edge Function solo la ejecuta. «Cobrar ahora» desde la consola ignora el
+calendario (intento `MANUAL`). Un cobro correcto cierra la alerta por el
+trigger existente `resolve_alerts_on_payment`.
+
+Un intento `PENDING` bloquea otro sobre la misma factura (índice parcial único):
+nunca se cobra dos veces en paralelo. Un fallo **ambiguo** de la pasarela (sin
+respuesta) deja el intento `PENDING` para revisión en vez de reintentarlo.
+
+### 10.4 Superficie
+
+| RPC | Quién | Qué hace |
+|---|---|---|
+| `enroll_card_on_file`, `unenroll_card_on_file`, `payment_link_enrollment_context`, `set_billing_contact_from_portal` | Solo servidor (`pay-portal`) | Alta/baja desde el portal |
+| `card_on_file_due_invoices`, `begin_card_charge_attempt`, `complete_card_charge_attempt` | Solo servidor (`payment-autocharge`) | Cola, intento y cierre |
+| `revoke_card_on_file_authorization` | `EBIM_FINANCE` o super admin | Revocación desde la consola (auditada) |
+
+Vistas: `v_card_on_file_authorizations`, `v_payment_charge_attempts`.

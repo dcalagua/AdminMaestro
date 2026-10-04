@@ -415,3 +415,92 @@ Solo documentación oficial (regla de la Fase 09: nada de blogs).
 - El webhook **exige** `?account=<código>` en la URL: ya no asume `culqi-pe-test` (400
   `CUENTA_REQUERIDA`). Cada cuenta regional registra su propia URL en el panel del proveedor.
 - El adapter falla (`CUENTA_SIN_MONEDA`) si una cuenta no declara moneda, en vez de asumir PEN.
+
+---
+
+## M1 · Portal de pago por enlace y M2 · tarjeta guardada (2026-10-04)
+
+Spec: `docs/superpowers/specs/2026-10-04-masteradmin-cobro-usuarios-design.md` §2–§3.
+Runbook: `docs/runbooks/payment-portal.md`. Migraciones `20261010000100..300`.
+
+### Objetos nuevos
+
+| Concepto | Dónde | Nota |
+|---|---|---|
+| Enlace al estado de cuenta | `payment_links` | Solo `sha256` del token + pista de 4 caracteres. El token se muestra una vez. |
+| Bitácora del portal | `payment_link_events` | VIEW, intentos, cobros, alta/baja de tarjeta, RATE_LIMITED. Huella = hash de IP+UA. |
+| Autorización de cobro | `card_on_file_authorizations` | Términos `CARD_ON_FILE_V1`, una vigente por organización y cuenta. |
+| Intento de cobro | `payment_charge_attempts` | Idempotente por `invoice:attempt_no`. |
+| Cargo único | Charge `chr_` | `POST /charges` con `source_id` = `tkn_` (portal) o `crd_` (tarjeta guardada). |
+
+### Flujo de pago desde el portal
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Cliente (/pagar#token)
+    participant C4 as Culqi Checkout v4
+    participant PP as Edge Function<br/>pay-portal
+    participant CU as API Culqi
+    participant DB as PostgreSQL
+
+    C->>PP: POST /statement {token}
+    PP->>DB: payment_link_statement(sha256(token))
+    DB-->>PP: facturas con saldo + cuenta resuelta por factura
+    PP-->>C: estado de cuenta (sin ids internos ni secretos)
+    C->>C4: abre Checkout con pk_ de la cuenta de ESA factura
+    C4-->>C: tkn_ (efímero)
+    C->>PP: POST /charge {token, invoice_id, source_token}
+    PP->>DB: payment_link_charge_context (revalida enlace y saldo)
+    PP->>DB: register_payment_link_event(CHARGE_ATTEMPT) → límite 10/enlace/h, 5/factura/h
+    PP->>CU: POST /charges {amount=saldo en céntimos, currency_code, email, source_id, metadata{invoice_id, link_id, origin}}
+    PP->>CU: GET /charges/{id} (verificación server-to-server)
+    PP->>DB: register_provider_invoice_payment (reference culqi:chr_)
+    DB->>DB: payments CONFIRMED → comisiones (trigger existente)
+    PP-->>C: comprobante (chr_…últimos 4, importe, fecha)
+```
+
+- El **importe** es el saldo que calcula la base (`total − Σ CONFIRMED`), nunca
+  uno que mande el navegador. `SOBRECOBRO`, `MONEDA_INCOHERENTE` y
+  `FACTURA_NO_PAGABLE` los rechaza `register_provider_invoice_payment`.
+- **Cuenta por factura:** perfil `CULQI_CARD` vigente → primer candidato
+  elegible de `provider_account_candidates` → (factura de partner sin
+  suscripción) cuenta Culqi del país con menor `routing_priority`. Sin cuenta, la
+  factura se lista como «no pagable con tarjeta».
+- **3-D Secure** queda fuera de v1: `action_code` en la respuesta del cargo o una
+  Card `active = false` → `TARJETA_REQUIERE_AUTENTICACION` y se ofrece
+  transferencia.
+
+### Webhook y reconciliación
+
+`culqi-webhook` y `payment-reconcile` aceptan cargos con `metadata.invoice_id` y
+sin suscripción del proveedor: tras verificar el cargo con `GET /charges/{id}`,
+llaman a `register_provider_invoice_payment`. Como la idempotencia es por
+`reference = 'culqi:' || chr_`, el mismo cargo que ya registró el portal responde
+`DUPLICATE` y no crea un segundo pago ni una segunda comisión.
+
+### Cobro automático (M2)
+
+`payment-autocharge` (`verify_jwt = true` + `can_read_finance()` o clave de
+servicio) toma la cola de `card_on_file_due_invoices`, abre un intento
+(`begin_card_charge_attempt`), cobra con `source_id = crd_` y cierra el intento
+(`complete_card_charge_attempt`, que registra el pago en la misma transacción).
+Política de reintentos y estados: `docs/payments/COLLECTION_MODEL.md` §10.
+
+### Modo de prueba
+
+- Cuenta sin credenciales → `MockPaymentProvider`: `createCharge` y `saveCard`
+  son deterministas (`chr_mock_…`, `crd_mock_…`). Un origen con `decline` se
+  rechaza y uno con `3ds` pide autenticación.
+- El portal público **solo** cobra con una cuenta MOCK si el entorno define
+  `PAYMENT_PORTAL_ALLOW_MOCK=true`. Sin esa variable, la factura aparece como no
+  pagable con tarjeta: un portal público no debe poder fabricar pagos simulados
+  en un entorno desplegado.
+- LIVE sigue bloqueado por `CULQI_ALLOW_LIVE` (§7).
+
+### Lo que NO se validó contra Culqi TEST
+
+No había llave TEST en este entorno. `createCharge` y `saveCard` están
+probados con `fetch` simulado (mapeo de céntimos, metadatos, verificación por
+GET y rechazos) y el flujo completo en MOCK; falta ejercitar Checkout v4 y
+`POST /charges` con `pk_test_`/`sk_test_` reales (checklist en el runbook).
