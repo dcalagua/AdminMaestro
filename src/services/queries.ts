@@ -825,6 +825,37 @@ export function useProductIntegrations() {
   });
 }
 
+/**
+ * Ejes de cutover (BILLING / ENTITLEMENTS) y `usage_ingest_enabled` por
+ * integración, SIN el contrato M2M. Lo leen finanzas, gestión comercial y
+ * quien lee la integración (`v_commercial_cutover_axes`): finanzas no necesita
+ * `platform.integration.read` para /billing-shadow ni para el Ingest.
+ */
+export function useCommercialCutoverAxes() {
+  return useQuery({
+    queryKey: ['commercial-cutover-axes'],
+    queryFn: async () =>
+      unwrap(
+        await supabase.from('v_commercial_cutover_axes').select('*').order('product_short_name').order('integration_code'),
+      ),
+  });
+}
+
+/** Historial del eje BILLING (append-only), del más reciente al más antiguo. */
+export function useCommercialCutoverHistory(limit = 50) {
+  return useQuery({
+    queryKey: ['commercial-cutover-history', limit],
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('v_commercial_cutover_history')
+          .select('*')
+          .order('occurred_at', { ascending: false })
+          .limit(limit),
+      ),
+  });
+}
+
 export function useProductIntegration(integrationId: string | undefined) {
   return useQuery({
     queryKey: ['product-integration', integrationId],
@@ -1353,11 +1384,12 @@ export function useUsageIngestRejections() {
   });
 }
 
+/** Alertas de uso con su acuse (`v_usage_alerts`, security_invoker). */
 export function useUsageAlerts(tenantId?: string) {
   return useQuery({
     queryKey: ['usage-alerts', tenantId ?? 'all'],
     queryFn: async () => {
-      let q = supabase.from('usage_alerts').select('*');
+      let q = supabase.from('v_usage_alerts').select('*');
       if (tenantId) q = q.eq('tenant_id', tenantId);
       return unwrap(await q.order('created_at', { ascending: false }).limit(USAGE_LIST_LIMIT));
     },

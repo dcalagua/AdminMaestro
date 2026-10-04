@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAiCreditPolicies, useCatalogItemsWithLifecycle, usePlans } from '@/services/queries';
-import { useCreateAiCreditPolicy } from '@/services/mutations';
+import { useCreateAiCreditPolicy, useEndAiCreditPolicy } from '@/services/mutations';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { StatusTabs } from '@/components/ui/SectionTabs';
@@ -44,6 +44,7 @@ export function PoliciesTab() {
   const perms = usePermissions();
   const [tab, setTab] = useState<Tab>('CURRENT');
   const [creating, setCreating] = useState(false);
+  const [ending, setEnding] = useState<Policy | null>(null);
   const at = today();
 
   const planById = useMemo(() => new Map((plans.data ?? []).map((p) => [p.id, { code: p.code, name: p.name }])), [plans.data]);
@@ -99,7 +100,7 @@ export function PoliciesTab() {
           }
         />
       ) : (
-        <DataTable columns={['Origen', 'Producto', 'Pool', 'Incluidos', 'Exceso', 'Rollover / expiración', 'Vigencia']}>
+        <DataTable columns={['Origen', 'Producto', 'Pool', 'Incluidos', 'Exceso', 'Rollover / expiración', 'Vigencia', '']}>
           {visible.map((p) => {
             const src = sourceOf(p);
             return (
@@ -130,11 +131,13 @@ export function PoliciesTab() {
                 <td className="ebim-td whitespace-nowrap text-xs">
                   {formatDate(p.valid_from)} → {p.valid_to ? formatDate(p.valid_to) : 'sin fin'}
                   <div className="max-w-[220px] text-[11px] text-muted" title={p.reason}>{p.reason}</div>
-                  {/*
-                    TODO(M4-DB): «Cerrar» (finanzas) en filas vigentes o programadas →
-                    end_ai_credit_policy(p_policy_id, p_valid_to, p_reason), FormDialog con
-                    fecha de fin y motivo. Pendiente de la migración 20261012000100.
-                  */}
+                </td>
+                <td className="ebim-td text-right">
+                  {perms.canReadFinance && !p.valid_to ? (
+                    <button type="button" className="ebim-link text-[13px]" onClick={() => setEnding(p)}>
+                      Cerrar
+                    </button>
+                  ) : null}
                 </td>
               </tr>
             );
@@ -148,7 +151,81 @@ export function PoliciesTab() {
         itemOptions={(items.data ?? []).map((i) => ({ value: i.code, label: `${i.name} (${i.code})` }))}
         onClose={() => setCreating(false)}
       />
+      <EndPolicyDialog
+        policy={ending}
+        sourceLabel={ending ? `${sourceOf(ending)?.name ?? '—'} (${sourceOf(ending)?.code ?? '—'})` : ''}
+        onClose={() => setEnding(null)}
+      />
     </Card>
+  );
+}
+
+/** Día siguiente (YYYY-MM-DD) de una fecha ISO. */
+function dayAfter(date: string): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+/** La fecha de cierre mínima: hoy, y siempre posterior al inicio. */
+function minEndDate(validFrom: string, at: string): string {
+  const afterStart = dayAfter(validFrom);
+  return afterStart > at ? afterStart : at;
+}
+
+const endSchema = z.object({
+  valid_to: z.string().min(1, 'Indica hasta cuándo rige'),
+  reason: z.string().trim().min(3, 'El motivo es obligatorio'),
+});
+type EndValues = z.input<typeof endSchema>;
+
+/**
+ * Cierra la vigencia (valid_to, exclusivo). La base solo lo admite una vez y
+ * nunca en el pasado: los períodos ya concedidos no cambian.
+ */
+function EndPolicyDialog({ policy, sourceLabel, onClose }: { policy: Policy | null; sourceLabel: string; onClose: () => void }) {
+  const toast = useToast();
+  const end = useEndAiCreditPolicy();
+  const form = useForm<EndValues>({ resolver: zodResolver(endSchema) });
+  const min = policy ? minEndDate(policy.valid_from, today()) : today();
+
+  useEffect(() => {
+    if (!policy) return;
+    end.reset();
+    form.reset({ valid_to: minEndDate(policy.valid_from, today()), reason: '' });
+  }, [policy]);
+
+  const submit = form.handleSubmit(async (values) => {
+    if (!policy) return;
+    const v = endSchema.parse(values);
+    if (v.valid_to < min) {
+      form.setError('valid_to', { message: `La fecha mínima es ${formatDate(min)}` });
+      return;
+    }
+    try {
+      await end.mutateAsync({ p_policy_id: policy.id, p_valid_to: v.valid_to, p_reason: v.reason });
+      toast.success('Política cerrada', `${sourceLabel} · rige hasta ${formatDate(v.valid_to)}`);
+      onClose();
+    } catch {
+      /* visible en el diálogo */
+    }
+  });
+
+  return (
+    <FormDialog
+      open={Boolean(policy)}
+      title={`Cerrar política · ${sourceLabel}`}
+      description="La política deja de regir desde la fecha indicada (ese día ya no aplica). Solo se cierra una vez y nunca en el pasado: los créditos ya concedidos no cambian."
+      submitLabel="Cerrar política"
+      busy={end.isPending}
+      error={end.error}
+      onSubmit={() => void submit()}
+      onCancel={onClose}
+    >
+      <TextField label="Rige hasta (exclusivo)" type="date" required hint={`Desde ${formatDate(min)}.`}
+        error={form.formState.errors.valid_to} {...form.register('valid_to')} />
+      <TextAreaField label="Motivo" required error={form.formState.errors.reason} {...form.register('reason')} />
+    </FormDialog>
   );
 }
 

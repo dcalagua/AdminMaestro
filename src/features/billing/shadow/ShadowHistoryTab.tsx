@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useBillingShadowComparisons, useProductIntegrations } from '@/services/queries';
+import { useBillingShadowComparisons, useCommercialCutoverAxes } from '@/services/queries';
 import { useRecordBillingShadowComparison } from '@/services/mutations';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useSearchFilter } from '@/hooks/useSearchFilter';
@@ -33,7 +33,7 @@ type Tab = 'ALL' | 'GREEN' | 'RED';
 
 export function ShadowHistoryTab() {
   const comparisons = useBillingShadowComparisons();
-  const integrations = useProductIntegrations();
+  const integrations = useCommercialCutoverAxes();
   const lookups = useLookups();
   const perms = usePermissions();
   const [tab, setTab] = useState<Tab>('ALL');
@@ -44,8 +44,7 @@ export function ShadowHistoryTab() {
     const map = new Map<string, string>();
     for (const i of integrations.data ?? []) {
       if (i.cutover_state_billing !== 'BILLING_SHADOW') continue;
-      const p = i.saas_products as { code: string; short_name: string } | null;
-      if (p) map.set(p.code, p.short_name);
+      if (i.product_code) map.set(i.product_code, i.product_short_name ?? i.product_code);
     }
     return Array.from(map, ([value, label]) => ({ value, label }));
   }, [integrations.data]);

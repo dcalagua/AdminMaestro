@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useProductIntegrations, useUsageIngestCredentials } from '@/services/queries';
+import { useCommercialCutoverAxes, useUsageIngestCredentials } from '@/services/queries';
 import { useConfigureUsageIngestCredential, useSetUsageIngestEnabled } from '@/services/mutations';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Card, DataTable, LoadingState, ErrorState, EmptyState, Badge } from '@/components/ui/primitives';
@@ -33,7 +33,8 @@ interface ProductSwitch {
 }
 
 export function IngestTab() {
-  const integrations = useProductIntegrations();
+  // Read model comercial: finanzas ve el interruptor sin platform.integration.read.
+  const integrations = useCommercialCutoverAxes();
   const credentials = useUsageIngestCredentials();
   const lookups = useLookups();
   const perms = usePermissions();
@@ -44,16 +45,16 @@ export function IngestTab() {
   const switches = useMemo<ProductSwitch[]>(() => {
     const byProduct = new Map<string, ProductSwitch>();
     for (const i of integrations.data ?? []) {
-      const product = i.saas_products as { code: string; short_name: string } | null;
+      if (!i.saas_product_id) continue;
       const current = byProduct.get(i.saas_product_id) ?? {
         productId: i.saas_product_id,
-        productCode: product?.code ?? lookups.productCode(i.saas_product_id) ?? '',
-        productName: product?.short_name ?? lookups.productName(i.saas_product_id),
+        productCode: i.product_code ?? lookups.productCode(i.saas_product_id) ?? '',
+        productName: i.product_short_name ?? lookups.productName(i.saas_product_id),
         integrations: [],
         enabled: false,
       };
-      current.integrations.push(i.code);
-      current.enabled = current.enabled || i.usage_ingest_enabled;
+      if (i.integration_code) current.integrations.push(i.integration_code);
+      current.enabled = current.enabled || i.usage_ingest_enabled === true;
       byProduct.set(i.saas_product_id, current);
     }
     return Array.from(byProduct.values()).sort((a, b) => a.productName.localeCompare(b.productName));
@@ -79,7 +80,7 @@ export function IngestTab() {
         ) : switches.length === 0 ? (
           <EmptyState
             title="Sin integraciones visibles"
-            description="El interruptor vive en la integración del producto. Si no ves ninguna, tu rol no tiene platform.integration.read."
+            description="El interruptor vive en la integración del producto. Si no ves ninguna, tu rol no lee finanzas, lo comercial ni la integración."
           />
         ) : (
           <DataTable columns={['Producto', 'Integraciones', 'Ingest', '']}>

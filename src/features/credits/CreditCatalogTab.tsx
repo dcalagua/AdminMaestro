@@ -3,7 +3,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useCatalogItemsWithLifecycle, useUsageMeters } from '@/services/queries';
-import { useSetCatalogItemCreditPack, useSetCatalogItemUsageBinding } from '@/services/mutations';
+import {
+  useClearCatalogItemUsageBinding,
+  useSetCatalogItemCreditPack,
+  useSetCatalogItemUsageBinding,
+} from '@/services/mutations';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { StatusTabs } from '@/components/ui/SectionTabs';
@@ -37,6 +41,7 @@ export function CreditCatalogTab() {
   const [tab, setTab] = useState<Tab>('ALL');
   const [packFor, setPackFor] = useState<Item | null>(null);
   const [bindingFor, setBindingFor] = useState<Item | null>(null);
+  const [unbinding, setUnbinding] = useState<Item | null>(null);
 
   const meterById = useMemo(() => new Map((meters.data ?? []).map((m) => [m.id, m])), [meters.data]);
 
@@ -113,9 +118,16 @@ export function CreditCatalogTab() {
                 <td className="ebim-td text-right">
                   {perms.canReadFinance ? (
                     isPerUnit(i) ? (
-                      <button type="button" className="ebim-link text-[13px]" onClick={() => setBindingFor(i)}>
-                        Vincular uso
-                      </button>
+                      <div className="flex items-center justify-end gap-3 whitespace-nowrap">
+                        <button type="button" className="ebim-link text-[13px]" onClick={() => setBindingFor(i)}>
+                          {i.per_unit_source ? 'Cambiar vínculo' : 'Vincular uso'}
+                        </button>
+                        {i.per_unit_source ? (
+                          <button type="button" className="ebim-link text-[13px]" onClick={() => setUnbinding(i)}>
+                            Quitar vínculo
+                          </button>
+                        ) : null}
+                      </div>
                     ) : (
                       <button type="button" className="ebim-link text-[13px]" onClick={() => setPackFor(i)}>
                         Créditos por paquete
@@ -136,6 +148,11 @@ export function CreditCatalogTab() {
           .filter((m) => bindingFor && m.saas_product_id === bindingFor.saas_product_id)
           .map((m) => ({ value: m.code, label: `${m.name} (${m.code})` }))}
         onClose={() => setBindingFor(null)}
+      />
+      <ClearBindingDialog
+        item={unbinding}
+        meterCode={unbinding?.usage_meter_id ? meterById.get(unbinding.usage_meter_id)?.code ?? null : null}
+        onClose={() => setUnbinding(null)}
       />
     </Card>
   );
@@ -257,6 +274,61 @@ function UsageBindingDialog({
           options={meterOptions} error={form.formState.errors.meter_code} {...form.register('meter_code')} />
       ) : null}
       <TextAreaField label="Motivo" required error={form.formState.errors.reason} {...form.register('reason')} />
+    </FormDialog>
+  );
+}
+
+const clearSchema = z.object({ reason: z.string().trim().min(3, 'El motivo es obligatorio') });
+type ClearValues = z.input<typeof clearSchema>;
+
+/** Quita el vínculo: el uso deja de tarifarse en las facturas que se emitan después. */
+function ClearBindingDialog({
+  item,
+  meterCode,
+  onClose,
+}: {
+  item: Item | null;
+  meterCode: string | null;
+  onClose: () => void;
+}) {
+  const toast = useToast();
+  const clear = useClearCatalogItemUsageBinding();
+  const form = useForm<ClearValues>({ resolver: zodResolver(clearSchema), defaultValues: { reason: '' } });
+
+  useEffect(() => {
+    if (!item) return;
+    clear.reset();
+    form.reset({ reason: '' });
+  }, [item]);
+
+  const what =
+    item?.per_unit_source === 'AI_CREDIT' ? 'el exceso de créditos IA del pool' : `el medidor ${meterCode ?? ''}`.trim();
+
+  const submit = form.handleSubmit(async (values) => {
+    if (!item) return;
+    const v = clearSchema.parse(values);
+    try {
+      await clear.mutateAsync({ p_catalog_item_code: item.code, p_reason: v.reason });
+      toast.success('Vínculo de uso quitado', item.code);
+      onClose();
+    } catch {
+      /* visible en el diálogo */
+    }
+  });
+
+  return (
+    <FormDialog
+      open={Boolean(item)}
+      title={`Quitar vínculo · ${item?.name ?? ''}`}
+      description={`Este ítem deja de tarifar ${what}. Las facturas ya emitidas no cambian; en las siguientes ese uso no se cobrará hasta volver a vincularlo.`}
+      submitLabel="Quitar vínculo"
+      busy={clear.isPending}
+      error={clear.error}
+      onSubmit={() => void submit()}
+      onCancel={onClose}
+    >
+      <TextAreaField label="Motivo" required hint="Queda en la auditoría."
+        error={form.formState.errors.reason} {...form.register('reason')} />
     </FormDialog>
   );
 }

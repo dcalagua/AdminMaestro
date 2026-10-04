@@ -10,6 +10,7 @@ import { MemoryRouter } from 'react-router-dom';
  */
 
 const integrationsHook = vi.fn();
+const historyHook = vi.fn();
 const comparisonsHook = vi.fn();
 const expectedHook = vi.fn();
 const permissions = vi.fn();
@@ -21,7 +22,9 @@ const toastError = vi.fn();
 const mutation = (fn = vi.fn()) => ({ mutateAsync: fn, isPending: false, error: null, reset: vi.fn() });
 
 vi.mock('@/services/queries', () => ({
-  useProductIntegrations: () => integrationsHook(),
+  // Read model comercial: finanzas lee el eje sin platform.integration.read.
+  useCommercialCutoverAxes: () => integrationsHook(),
+  useCommercialCutoverHistory: () => historyHook(),
   useBillingShadowComparisons: () => comparisonsHook(),
   useBillingShadowExpected: (p: unknown) => expectedHook(p),
   useProducts: () => ({
@@ -63,8 +66,9 @@ const wrap = (ui: React.ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter
 
 function integration(overrides: Record<string, unknown> = {}) {
   return {
-    id: 'int-eexp', code: 'eexpense-m2m-dev', saas_product_id: 'p-eexp', cutover_state_billing: 'BILLING_LEGACY',
-    usage_ingest_enabled: false, saas_products: { code: 'eexpense', short_name: 'eExpense' },
+    integration_id: 'int-eexp', integration_code: 'eexpense-m2m-dev', saas_product_id: 'p-eexp',
+    cutover_state_billing: 'BILLING_LEGACY', cutover_state_entitlements: 'LEGACY_ONLY', usage_ingest_enabled: false,
+    product_code: 'eexpense', product_short_name: 'eExpense', updated_at: '2026-10-01T00:00:00Z',
     ...overrides,
   };
 }
@@ -86,6 +90,7 @@ beforeEach(() => {
   for (const fn of [setCutover, recordComparison, toastSuccess, toastError]) fn.mockReset();
   permissions.mockReturnValue(READER);
   integrationsHook.mockReturnValue(ok([]));
+  historyHook.mockReturnValue(ok([]));
   comparisonsHook.mockReturnValue(ok([]));
   expectedHook.mockReturnValue({ data: undefined, isLoading: false, error: null, refetch: vi.fn() });
   window.location.hash = '';
@@ -142,6 +147,23 @@ describe('ShadowAxisTab', () => {
     expect(setCutover).toHaveBeenCalledWith({
       p_integration_id: 'int-eexp', p_axis: 'BILLING', p_to_state: 'BILLING_SHADOW', p_reason: 'D-14 DEV: inicia shadow',
     });
+  });
+
+  it('historial del eje: cambio, motivo y quién (de v_commercial_cutover_history)', () => {
+    integrationsHook.mockReturnValue(ok([integration({ cutover_state_billing: 'BILLING_SHADOW' })]));
+    historyHook.mockReturnValue(
+      ok([
+        {
+          id: 7, integration_id: 'int-eexp', integration_code: 'eexpense-m2m-dev', saas_product_id: 'p-eexp', product_code: 'eexpense',
+          axis: 'BILLING', from_state: 'BILLING_LEGACY', to_state: 'BILLING_SHADOW', reason: 'D-14 DEV: inicia shadow',
+          actor_user_id: 'u-fin', actor_name: 'Finanzas QA', occurred_at: '2026-10-02T15:00:00Z',
+        },
+      ]),
+    );
+    wrap(<ShadowAxisTab />);
+    const row = screen.getByRole('row', { name: /D-14 DEV: inicia shadow/ });
+    expect(row).toHaveTextContent('Finanzas QA');
+    expect(row).toHaveTextContent('eexpense-m2m-dev');
   });
 
   it('error de lectura', () => {

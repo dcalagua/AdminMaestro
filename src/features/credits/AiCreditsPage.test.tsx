@@ -26,6 +26,8 @@ const recordEntry = vi.fn();
 const purchase = vi.fn();
 const setPack = vi.fn();
 const setBinding = vi.fn();
+const endPolicy = vi.fn();
+const clearBinding = vi.fn();
 
 const mutation = (fn = vi.fn()) => ({ mutateAsync: fn, isPending: false, error: null, reset: vi.fn() });
 
@@ -54,6 +56,8 @@ vi.mock('@/services/mutations', () => ({
   usePurchaseAiCredits: () => mutation(purchase),
   useSetCatalogItemCreditPack: () => mutation(setPack),
   useSetCatalogItemUsageBinding: () => mutation(setBinding),
+  useEndAiCreditPolicy: () => mutation(endPolicy),
+  useClearCatalogItemUsageBinding: () => mutation(clearBinding),
 }));
 vi.mock('@/hooks/usePermissions', () => ({ usePermissions: () => permissions() }));
 vi.mock('@/components/ui/toast-context', () => ({
@@ -88,7 +92,9 @@ function entry(overrides: Record<string, unknown> = {}) {
 }
 
 beforeEach(() => {
-  for (const fn of [reverse, setWeight, createPolicy, openPeriod, recordEntry, purchase, setPack, setBinding]) fn.mockReset();
+  for (const fn of [reverse, setWeight, createPolicy, openPeriod, recordEntry, purchase, setPack, setBinding, endPolicy, clearBinding]) {
+    fn.mockReset();
+  }
   permissions.mockReturnValue(PRODUCT_ADMIN);
   balancesHook.mockReturnValue(ok([]));
   ledgerHook.mockReturnValue(ok([]));
@@ -257,6 +263,46 @@ describe('PoliciesTab', () => {
     });
   });
 
+  const openPolicy = {
+    id: 'pol-9', saas_product_id: 'p-ewm', source_type: 'PLAN', plan_id: 'plan-pro', catalog_item_id: null, pool_scope: 'TENANT',
+    included_credits: 100, overage_mode: 'BLOCK', rollover_policy: null, expiry_policy: null, valid_from: '2020-01-01',
+    valid_to: null, reason: 'Vigente', created_by: null, created_at: '2020-01-01T00:00:00Z',
+  };
+
+  it('«Cerrar» solo para finanzas y solo sin fecha de fin; envía fecha y motivo a end_ai_credit_policy', async () => {
+    const user = userEvent.setup();
+    policiesHook.mockReturnValue(ok([openPolicy, { ...openPolicy, id: 'pol-10', valid_to: '2021-01-01', reason: 'Cerrada' }]));
+    const { unmount } = wrap(<PoliciesTab />);
+    expect(screen.queryByRole('button', { name: 'Cerrar' })).toBeNull();
+    unmount();
+
+    permissions.mockReturnValue(FINANCE);
+    endPolicy.mockResolvedValue({ valid_to: '2999-12-01' });
+    wrap(<PoliciesTab />);
+    await user.click(screen.getByRole('tab', { name: /Todas/ }));
+    expect(within(screen.getByRole('row', { name: /Cerrada/ })).queryByRole('button', { name: 'Cerrar' })).toBeNull();
+    await user.click(within(screen.getByRole('row', { name: /Vigente/ })).getByRole('button', { name: 'Cerrar' }));
+    const dialog = screen.getByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText(/Rige hasta/), { target: { value: '2999-12-01' } });
+    await user.type(within(dialog).getByLabelText(/Motivo/), 'Fin de la promoción');
+    await user.click(within(dialog).getByRole('button', { name: 'Cerrar política' }));
+    expect(endPolicy).toHaveBeenCalledWith({ p_policy_id: 'pol-9', p_valid_to: '2999-12-01', p_reason: 'Fin de la promoción' });
+  });
+
+  it('«Cerrar» no deja una fecha en el pasado (la base tampoco)', async () => {
+    const user = userEvent.setup();
+    permissions.mockReturnValue(FINANCE);
+    policiesHook.mockReturnValue(ok([openPolicy]));
+    wrap(<PoliciesTab />);
+    await user.click(screen.getByRole('button', { name: 'Cerrar' }));
+    const dialog = screen.getByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText(/Rige hasta/), { target: { value: '2020-06-01' } });
+    await user.type(within(dialog).getByLabelText(/Motivo/), 'Retroactivo');
+    await user.click(within(dialog).getByRole('button', { name: 'Cerrar política' }));
+    expect(endPolicy).not.toHaveBeenCalled();
+    expect(within(dialog).getByText(/La fecha mínima es/)).toBeInTheDocument();
+  });
+
   it('vacío y error', () => {
     const { unmount } = wrap(<PoliciesTab />);
     expect(screen.getByText('Sin políticas de créditos')).toBeInTheDocument();
@@ -381,6 +427,28 @@ describe('CreditCatalogTab', () => {
     expect(setBinding).toHaveBeenCalledWith({
       p_catalog_item_code: 'ewm-pages', p_source: 'AI_CREDIT', p_meter_code: null, p_reason: 'Exceso por pool',
     });
+  });
+
+  it('«Quitar vínculo» solo en ítems vinculados; exige motivo y llama a clear_catalog_item_usage_binding', async () => {
+    const user = userEvent.setup();
+    permissions.mockReturnValue(FINANCE);
+    metersHook.mockReturnValue(ok([{ id: 'm-pages', code: 'ewm.pages', name: 'Páginas', saas_product_id: 'p-ewm' }]));
+    itemsHook.mockReturnValue(
+      ok([...items, { ...items[1]!, id: 'ci-3', code: 'ewm-pages-bound', name: 'Páginas vinculadas', per_unit_source: 'METER', usage_meter_id: 'm-pages' }]),
+    );
+    clearBinding.mockResolvedValue({ duplicate: false });
+    wrap(<CreditCatalogTab />);
+    expect(within(screen.getByRole('row', { name: /Páginas extra/ })).queryByRole('button', { name: 'Quitar vínculo' })).toBeNull();
+    const bound = screen.getByRole('row', { name: /Páginas vinculadas/ });
+    expect(within(bound).getByRole('button', { name: 'Cambiar vínculo' })).toBeInTheDocument();
+    await user.click(within(bound).getByRole('button', { name: 'Quitar vínculo' }));
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveTextContent('ewm.pages');
+    await user.click(within(dialog).getByRole('button', { name: 'Quitar vínculo' }));
+    expect(clearBinding).not.toHaveBeenCalled();
+    await user.type(within(dialog).getByLabelText(/Motivo/), 'El medidor deja de cobrarse');
+    await user.click(within(dialog).getByRole('button', { name: 'Quitar vínculo' }));
+    expect(clearBinding).toHaveBeenCalledWith({ p_catalog_item_code: 'ewm-pages-bound', p_reason: 'El medidor deja de cobrarse' });
   });
 
   it('error', () => {

@@ -223,3 +223,11 @@ export function newIdempotencyKey(prefix: string): string {
       : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
   return `${prefix}:${uuid}`;
 }
+
+/** ¿Terminó el mes UTC del período? (primer instante del mes siguiente ≤ ahora). */
+export function periodEnded(periodStart: string | null | undefined, now: Date = new Date()): boolean {
+  if (!periodStart) return false;
+  const [y, m] = periodStart.split('-').map(Number);
+  if (!y || !m) return false;
+  return Date.UTC(y, m, 1) <= now.getTime();
+}

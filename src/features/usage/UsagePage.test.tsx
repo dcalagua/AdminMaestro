@@ -24,6 +24,8 @@ const setBillable = vi.fn();
 const configureCredential = vi.fn();
 const setIngest = vi.fn();
 const finalize = vi.fn();
+const closeAggregate = vi.fn();
+const ackAlert = vi.fn();
 const toastError = vi.fn();
 
 const mutation = (fn = vi.fn()) => ({ mutateAsync: fn, isPending: false, error: null, reset: vi.fn() });
@@ -43,7 +45,7 @@ vi.mock('@/services/queries', () => ({
       { tenant_id: 't-alpha', name: 'Alpha Retail', slug: 'alpha', saas_product_id: 'p-ewm', product_code: 'ewm', product_short_name: 'EWM', tenant_type: 'PRODUCTION' },
     ],
   }),
-  useProductIntegrations: () => integrationsHook(),
+  useCommercialCutoverAxes: () => integrationsHook(),
   useUsageIngestCredentials: () => credentialsHook(),
   useUsageAggregates: () => aggregatesHook(),
   useUsageEvents: (p: unknown) => eventsHook(p),
@@ -58,6 +60,8 @@ vi.mock('@/services/mutations', () => ({
   useConfigureUsageIngestCredential: () => mutation(configureCredential),
   useSetUsageIngestEnabled: () => mutation(setIngest),
   useFinalizeUsageAggregate: () => mutation(finalize),
+  useCloseUsageAggregate: () => mutation(closeAggregate),
+  useAcknowledgeUsageAlert: () => mutation(ackAlert),
 }));
 vi.mock('@/hooks/usePermissions', () => ({ usePermissions: () => permissions() }));
 vi.mock('@/components/ui/toast-context', () => ({
@@ -103,7 +107,9 @@ function aggregate(overrides: Record<string, unknown> = {}) {
 const wrap = (ui: React.ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter>);
 
 beforeEach(() => {
-  for (const fn of [upsertMeter, setBillable, configureCredential, setIngest, finalize, toastError]) fn.mockReset();
+  for (const fn of [upsertMeter, setBillable, configureCredential, setIngest, finalize, closeAggregate, ackAlert, toastError]) {
+    fn.mockReset();
+  }
   permissions.mockReturnValue(READER);
   metersHook.mockReturnValue(ok([]));
   capabilitiesHook.mockReturnValue(ok([{ id: 'c-ai', code: 'ewm.ai_docs', name: 'Lectura IA', kind: 'AI_FEATURE', saas_product_id: 'p-ewm' }]));
@@ -253,9 +259,10 @@ describe('MetersTab', () => {
 });
 
 describe('IngestTab', () => {
+  // Fila de v_commercial_cutover_axes (read model comercial, sin contrato M2M).
   const integration = {
-    id: 'i1', code: 'ewm-m2m-dev', saas_product_id: 'p-ewm', usage_ingest_enabled: false,
-    saas_products: { code: 'ewm', short_name: 'EWM' },
+    integration_id: 'i1', integration_code: 'ewm-m2m-dev', saas_product_id: 'p-ewm', usage_ingest_enabled: false,
+    product_code: 'ewm', product_short_name: 'EWM', cutover_state_billing: 'BILLING_LEGACY',
   };
 
   it('avisa que el flag global vive en el entorno y está apagado hasta D-12', () => {
@@ -373,6 +380,29 @@ describe('AggregatesTab', () => {
     expect(finalize).toHaveBeenCalledWith({ p_aggregate_id: 'agg-1' });
   });
 
+  it('«Cerrar período» solo para finanzas, en OPEN con el mes terminado; exige motivo y llama a close_usage_aggregate', async () => {
+    const rows = [
+      aggregate({ id: 'agg-old', meter_code: 'old.open', status: 'OPEN', period_start: '2020-01-01', period_end: '2020-01-31' }),
+      aggregate({ id: 'agg-now', meter_code: 'future.open', status: 'OPEN', period_start: '2999-01-01', period_end: '2999-01-31' }),
+    ];
+    aggregatesHook.mockReturnValue(ok(rows));
+    const { unmount } = wrap(<AggregatesTab />);
+    expect(screen.queryByRole('button', { name: 'Cerrar período' })).toBeNull();
+    unmount();
+
+    permissions.mockReturnValue(FINANCE);
+    closeAggregate.mockResolvedValue({ status: 'CLOSING' });
+    wrap(<AggregatesTab />);
+    expect(within(screen.getByRole('row', { name: /future\.open/ })).queryByRole('button', { name: 'Cerrar período' })).toBeNull();
+    await userEvent.click(within(screen.getByRole('row', { name: /old\.open/ })).getByRole('button', { name: 'Cerrar período' }));
+    const dialog = screen.getByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cerrar período' }));
+    expect(closeAggregate).not.toHaveBeenCalled();
+    await userEvent.type(within(dialog).getByLabelText(/Motivo/), 'Job de cierre no programado (D-07)');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cerrar período' }));
+    expect(closeAggregate).toHaveBeenCalledWith({ p_aggregate_id: 'agg-old', p_reason: 'Job de cierre no programado (D-07)' });
+  });
+
   it('vacío, carga y error', () => {
     const { unmount } = wrap(<AggregatesTab />);
     expect(screen.getByText('Sin agregados de uso')).toBeInTheDocument();
@@ -472,6 +502,43 @@ describe('AlertsTab', () => {
     expect(screen.getByText('Política de créditos no decidida (D-03)')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('tab', { name: /Créditos IA/ }));
     expect(screen.queryByText('Exceso bajo política BLOCK')).toBeNull();
+  });
+
+  const pendingAlert = {
+    id: 'a3', tenant_id: 't-alpha', saas_product_id: 'p-ewm', aggregate_id: 'agg-3', code: 'OVERAGE_UNDER_BLOCK_POLICY',
+    detail: { overage: 10 }, created_at: '2026-10-03T00:00:00Z', acknowledged: false, ack_id: null, ack_note: null,
+    acknowledged_by: null, acknowledged_at: null, acknowledged_by_name: null,
+  };
+  const ackedAlert = {
+    ...pendingAlert, id: 'a4', code: 'POLITICA_CREDITOS_NO_DEFINIDA', acknowledged: true, ack_id: 'k1',
+    ack_note: 'Esperando D-03', acknowledged_by: 'u-fin', acknowledged_at: '2026-10-04T09:00:00Z', acknowledged_by_name: 'Finanzas QA',
+  };
+
+  it('pestañas Pendientes / Atendidas: la atendida muestra quién, cuándo y la nota', async () => {
+    alertsHook.mockReturnValue(ok([pendingAlert, ackedAlert]));
+    wrap(<AlertsTab />);
+    expect(screen.getByRole('tab', { name: /Pendientes/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.queryByText('Esperando D-03')).toBeNull();
+    await userEvent.click(screen.getByRole('tab', { name: /Atendidas/ }));
+    expect(screen.getByText('Esperando D-03')).toBeInTheDocument();
+    expect(screen.getByText(/Finanzas QA/)).toBeInTheDocument();
+    expect(screen.queryByRole('row', { name: /Exceso bajo política BLOCK/ })).toBeNull();
+  });
+
+  it('«Dar acuse» solo para finanzas o producto; nota opcional y llama a acknowledge_usage_alert', async () => {
+    alertsHook.mockReturnValue(ok([pendingAlert]));
+    const { unmount } = wrap(<AlertsTab />);
+    expect(screen.queryByRole('button', { name: 'Dar acuse' })).toBeNull();
+    unmount();
+
+    permissions.mockReturnValue(PRODUCT_ADMIN);
+    ackAlert.mockResolvedValue({ duplicate: false });
+    wrap(<AlertsTab />);
+    await userEvent.click(screen.getByRole('button', { name: 'Dar acuse' }));
+    const dialog = screen.getByRole('dialog');
+    await userEvent.type(within(dialog).getByLabelText(/Nota/), 'Revisado con el cliente');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Dar acuse' }));
+    expect(ackAlert).toHaveBeenCalledWith({ p_alert_id: 'a3', p_note: 'Revisado con el cliente' });
   });
 
   it('vacío y error', () => {

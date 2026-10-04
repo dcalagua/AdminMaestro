@@ -744,7 +744,7 @@ export function useConfigureUsageIngestCredential() {
 
 /** Kill-switch por producto (`product_integrations.usage_ingest_enabled`). */
 export function useSetUsageIngestEnabled() {
-  return useRpc('set_usage_ingest_enabled', ['product-integrations', 'product-integration']);
+  return useRpc('set_usage_ingest_enabled', ['product-integrations', 'product-integration', 'commercial-cutover-axes']);
 }
 
 /** CLOSING → FINALIZED. Recalcula desde los eventos y, si es IA, consume créditos. */
@@ -819,7 +819,9 @@ export function useSetCatalogItemUsageBinding() {
 
 /** Mueve un eje de cutover un paso (adelante o atrás), con motivo. */
 export function useSetCommercialCutoverState() {
-  return useRpc('set_commercial_cutover_state', ['product-integrations', 'product-integration']);
+  return useRpc('set_commercial_cutover_state', [
+    'product-integrations', 'product-integration', 'commercial-cutover-axes', 'commercial-cutover-history',
+  ]);
 }
 
 /** Compara el biller local con lo que MasterAdmin facturaría y guarda el reporte. */
@@ -827,22 +829,26 @@ export function useRecordBillingShadowComparison() {
   return useRpc('record_billing_shadow_comparison', ['billing-shadow-comparisons']);
 }
 
-/*
- * TODO(M4-DB) · RPCs que añade el stream de base de datos (spec §5). No existen
- * aún en `database.types.ts`, así que NO se declaran hooks que no compilarían ni
- * botones muertos. Cuando la migración `20261012000100_usage_credits_console.sql`
- * llegue y se regeneren los tipos:
- *
- *   export function useCloseUsageAggregate() {
- *     return useRpc('close_usage_aggregate', USAGE_AGGREGATE_KEYS);       // (p_aggregate_id, p_reason)
- *   }
- *   export function useAcknowledgeUsageAlert() {
- *     return useRpc('acknowledge_usage_alert', ['usage-alerts', 'usage-alert-acks']); // (p_alert_id, p_note)
- *   }
- *   export function useEndAiCreditPolicy() {
- *     return useRpc('end_ai_credit_policy', ['ai-credit-policies']);       // (p_policy_id, p_valid_to, p_reason)
- *   }
- *
- * Puntos de enganche en la UI: `AggregatesTab` (fila OPEN con período vencido),
- * `AlertsTab` (columna de acuse) y `PoliciesTab` (fila vigente).
- */
+/* ==========================================================================
+   M4 · Complementos de consola (migración 20261012000100, spec §5)
+   ========================================================================== */
+
+/** OPEN → CLOSING de un período terminado (finanzas, con motivo). */
+export function useCloseUsageAggregate() {
+  return useRpc('close_usage_aggregate', USAGE_AGGREGATE_KEYS);
+}
+
+/** Acuse de una alerta (finanzas o admin de producto). La alerta no cambia. */
+export function useAcknowledgeUsageAlert() {
+  return useRpc('acknowledge_usage_alert', ['usage-alerts']);
+}
+
+/** Cierra la vigencia de una política de créditos (una sola vez, sin retroactivo). */
+export function useEndAiCreditPolicy() {
+  return useRpc('end_ai_credit_policy', ['ai-credit-policies']);
+}
+
+/** Quita el vínculo METER/AI_CREDIT de un ítem PER_UNIT. */
+export function useClearCatalogItemUsageBinding() {
+  return useRpc('clear_catalog_item_usage_binding', ['catalog-items']);
+}

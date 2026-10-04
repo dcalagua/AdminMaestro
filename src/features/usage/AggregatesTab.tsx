@@ -1,23 +1,29 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { useUsageAggregates } from '@/services/queries';
-import { useFinalizeUsageAggregate } from '@/services/mutations';
+import { useCloseUsageAggregate, useFinalizeUsageAggregate } from '@/services/mutations';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { StatusTabs } from '@/components/ui/SectionTabs';
 import { Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge } from '@/components/ui/primitives';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { FormDialog } from '@/components/ui/FormDialog';
+import { TextAreaField } from '@/components/ui/fields';
 import { useToast } from '@/components/ui/toast-context';
 import { businessErrorMessage } from '@/lib/pgError';
 import { formatDateTime } from '@/lib/format';
-import { AGGREGATE_STATUS, ALLOWANCE_STATUS, formatPeriod, formatQuantity, labelOf } from './usageLabels';
+import { AGGREGATE_STATUS, ALLOWANCE_STATUS, formatPeriod, formatQuantity, labelOf, periodEnded } from './usageLabels';
 
 /**
  * Agregados de uso por tenant × medidor × período (spec §11.4). La única fuente
  * de facturación de uso: nunca se factura desde eventos crudos.
  *
- * OPEN → CLOSING (job de servidor, tras la gracia del medidor) → FINALIZED
- * (finanzas o job). Mientras no está FINALIZED la cantidad no es definitiva: se
- * recalcula desde los eventos al finalizar.
+ * OPEN → CLOSING (job de servidor tras la gracia del medidor, o finanzas con
+ * «Cerrar período» si el mes ya terminó) → FINALIZED (finanzas o job). Mientras
+ * no está FINALIZED la cantidad no es definitiva: se recalcula desde los
+ * eventos al finalizar.
  */
 
 type Aggregate = NonNullable<ReturnType<typeof useUsageAggregates>['data']>[number];
@@ -30,6 +36,7 @@ export function AggregatesTab() {
   const toast = useToast();
   const [tab, setTab] = useState<StatusTab>('ALL');
   const [pending, setPending] = useState<Aggregate | null>(null);
+  const [closing, setClosing] = useState<Aggregate | null>(null);
 
   const { term, setTerm, filtered } = useSearchFilter(aggregates.data, (a) => [
     a.product_code, a.tenant_slug, a.meter_code, a.period_start, a.status,
@@ -141,19 +148,17 @@ export function AggregatesTab() {
                     <span className="text-xs text-muted">—</span>
                   )}
                 </td>
-                <td className="ebim-td text-right">
+                <td className="ebim-td whitespace-nowrap text-right">
                   {perms.canReadFinance && a.status === 'CLOSING' && a.id ? (
                     <button type="button" className="ebim-link text-[13px]" onClick={() => setPending(a)}>
                       Finalizar
                     </button>
                   ) : null}
-                  {/*
-                    TODO(M4-DB): «Cerrar período» para finanzas en filas OPEN con
-                    period_end < hoy → close_usage_aggregate(p_aggregate_id, p_reason)
-                    (FormDialog con motivo). Pendiente de la migración
-                    20261012000100_usage_credits_console.sql; no se ofrece un botón
-                    que la base aún no admite.
-                  */}
+                  {perms.canReadFinance && a.status === 'OPEN' && a.id && periodEnded(a.period_start) ? (
+                    <button type="button" className="ebim-link text-[13px]" onClick={() => setClosing(a)}>
+                      Cerrar período
+                    </button>
+                  ) : null}
                 </td>
               </tr>
             );
@@ -175,6 +180,55 @@ export function AggregatesTab() {
         onConfirm={confirmFinalize}
         onCancel={() => setPending(null)}
       />
+      <CloseAggregateDialog aggregate={closing} onClose={() => setClosing(null)} />
     </Card>
+  );
+}
+
+const closeSchema = z.object({ reason: z.string().trim().min(3, 'El motivo es obligatorio') });
+type CloseValues = z.input<typeof closeSchema>;
+
+/** OPEN → CLOSING sin esperar al job (D-07): el mes terminó y finanzas lo decide. */
+function CloseAggregateDialog({ aggregate, onClose }: { aggregate: Aggregate | null; onClose: () => void }) {
+  const toast = useToast();
+  const close = useCloseUsageAggregate();
+  const form = useForm<CloseValues>({ resolver: zodResolver(closeSchema), defaultValues: { reason: '' } });
+
+  useEffect(() => {
+    if (!aggregate) return;
+    close.reset();
+    form.reset({ reason: '' });
+  }, [aggregate]);
+
+  const submit = form.handleSubmit(async (values) => {
+    if (!aggregate?.id) return;
+    const v = closeSchema.parse(values);
+    try {
+      await close.mutateAsync({ p_aggregate_id: aggregate.id, p_reason: v.reason });
+      toast.success('Período cerrado', `${aggregate.tenant_slug} · ${aggregate.meter_code} · ${formatPeriod(aggregate.period_start)}`);
+      onClose();
+    } catch {
+      /* visible en el diálogo */
+    }
+  });
+
+  return (
+    <FormDialog
+      open={Boolean(aggregate)}
+      title={`Cerrar período · ${aggregate ? formatPeriod(aggregate.period_start) : ''}`}
+      description={
+        aggregate
+          ? `${aggregate.tenant_slug} · ${aggregate.meter_code}. Pasa a «En cierre» sin esperar la ventana de gracia del medidor; después se puede finalizar. Un evento que llegue luego sigue entrando hasta finalizar.`
+          : ''
+      }
+      submitLabel="Cerrar período"
+      busy={close.isPending}
+      error={close.error}
+      onSubmit={() => void submit()}
+      onCancel={onClose}
+    >
+      <TextAreaField label="Motivo" required hint="Queda en la auditoría."
+        error={form.formState.errors.reason} {...form.register('reason')} />
+    </FormDialog>
   );
 }
