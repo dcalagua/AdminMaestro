@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/lib/env', () => ({ env: { supabaseUrl: 'http://127.0.0.1:54421', supabaseAnonKey: 'anon-public' } }));
 
-import { callPortal, readLinkToken } from './portalApi';
+import { callPortal, readLinkToken, STATEMENT_TIMEOUT_MS } from './portalApi';
 
 const TOKEN = 'a'.repeat(41) + '-_';
 
@@ -50,5 +50,24 @@ describe('portalApi', () => {
     const offline = await callPortal('statement', { token: TOKEN });
     expect(offline.ok).toBe(false);
     if (!offline.ok) expect(offline.message).toMatch(/No pudimos conectar/);
+  });
+
+  it('solo la lectura del estado de cuenta tiene plazo: cobrar y guardar tarjeta no se cortan en el cliente', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('{}', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    await callPortal('statement', { token: TOKEN });
+    await callPortal('charge', { token: TOKEN });
+    await callPortal('enroll', { token: TOKEN });
+    const signals = fetchMock.mock.calls.map(([, init]) => (init as RequestInit).signal);
+    expect(signals[0]).toBeInstanceOf(AbortSignal);
+    expect(signals[1]).toBeUndefined();
+    expect(signals[2]).toBeUndefined();
+    expect(STATEMENT_TIMEOUT_MS).toBeLessThanOrEqual(30_000);
+  });
+
+  it('un estado de cuenta que no responde a tiempo se informa como falta de conexión', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new DOMException('The operation timed out.', 'TimeoutError')));
+    const res = await callPortal('statement', { token: TOKEN });
+    expect(res).toMatchObject({ ok: false, error: 'RED' });
   });
 });

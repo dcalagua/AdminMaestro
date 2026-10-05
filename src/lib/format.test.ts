@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  formatMoney, formatMoneyCompact, formatNumber, formatPercent,
+  formatMoney, formatMoneyCompact, formatAmount, formatNumber, formatPercent,
   formatDate, formatDateTime, formatCurrencyMap, sumByCurrency, subtractByCurrency, formatDelta,
 } from './format';
 
@@ -9,6 +9,9 @@ describe('formateo de dinero', () => {
     expect(formatMoney(1234.5, 'USD')).toMatch(/^USD\s1,234\.50$/);
     expect(formatMoney(1250, 'PEN')).toMatch(/^PEN\s1,250\.00$/);
     expect(formatMoney(890, 'BOB')).toMatch(/^BOB\s890\.00$/);
+    // Sin moneda, para cifras con el código como prefijo aparte.
+    expect(formatAmount(1234.5)).toBe('1,234.50');
+    expect(formatAmount(null)).toBe('—');
   });
 
   it('no usa símbolos ambiguos: PEN no se pinta como «S/» ni USD como «$»', () => {

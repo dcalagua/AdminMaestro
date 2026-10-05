@@ -36,6 +36,15 @@ export function formatMoney(amount: number | null | undefined, currency: string 
 }
 
 /** Compacta montos grandes para las tarjetas del dashboard (`USD 27.6 K`). */
+/**
+ * Importe sin la moneda (2 decimales), para cifras grandes donde el código ISO
+ * va aparte como prefijo pequeño (KPI, total del portal de pago).
+ */
+export function formatAmount(amount: number | null | undefined): string {
+  if (amount === null || amount === undefined || Number.isNaN(amount)) return '—';
+  return new Intl.NumberFormat(LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
+}
+
 export function formatMoneyCompact(amount: number | null | undefined, currency: string | null | undefined): string {
   if (amount === null || amount === undefined || Number.isNaN(amount)) return '—';
   if (!currency || Math.abs(amount) < 10_000) return formatMoney(amount, currency);
