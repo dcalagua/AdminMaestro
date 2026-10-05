@@ -17,7 +17,7 @@
  */
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import {
-  json, resolvePaymentProvider, toAccountConfig, ProviderError,
+  json, resolvePaymentProvider, toAccountConfig, vaultSecretLoader, ProviderError,
   type ChargeSummary,
 } from '../_shared/payments/index.ts';
 
@@ -134,7 +134,13 @@ Deno.serve(async (req: Request) => {
 
   let provider;
   try {
-    provider = resolvePaymentProvider(account);
+    provider = await resolvePaymentProvider(account, {
+      // Llave cifrada (Vault) con la RPC de servicio; si no hay, `secret_key_ref` del entorno.
+      loadVaultSecret: vaultSecretLoader(async (fn, args) => {
+        const { data, error } = await admin.rpc(fn, args);
+        return { data, error };
+      }),
+    });
   } catch (error) {
     if (error instanceof ProviderError) {
       return json({ error: error.code, message: error.message }, error.httpStatus);

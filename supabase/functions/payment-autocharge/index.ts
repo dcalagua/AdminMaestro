@@ -10,10 +10,10 @@
  *
  * Cuerpo: `{invoice_id}` («Cobrar ahora») o `{run: true, limit?}` («Ejecutar
  * cobros pendientes»). La lógica vive en `_shared/payments/autocharge.ts`.
- * LIVE sigue bloqueado por `CULQI_ALLOW_LIVE` (resolvePaymentProvider).
+ * LIVE sigue bloqueado por `CULQI_ALLOW_LIVE` (resolvePaymentProvider, variable de entorno).
  */
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { resolvePaymentProvider, toAccountConfig } from '../_shared/payments/index.ts';
+import { PROVIDER_ACCOUNT_COLUMNS, providerResolver } from '../_shared/payments/index.ts';
 import { handleAutocharge, type AutochargeCaller } from '../_shared/payments/autocharge.ts';
 import { parseAllowedOrigins, withCors } from '../_shared/provisioning/cors.ts';
 
@@ -70,20 +70,22 @@ Deno.serve(
     const bodyText = await req.text();
     if (bodyText.length > 16 * 1024) return json({ error: 'CUERPO_DEMASIADO_GRANDE' }, 413);
 
+    const rpc = async (fn: string, args: Record<string, unknown>) => {
+      const { data, error } = await admin.rpc(fn, args);
+      return { data, error };
+    };
     const res = await handleAutocharge({ method: req.method, bodyText }, caller, {
-      rpc: async (fn, args) => {
-        const { data, error } = await admin.rpc(fn, args);
-        return { data, error };
-      },
+      rpc,
       loadAccount: async (id) => {
         const { data } = await admin
           .from('payment_provider_accounts')
-          .select('id, code, provider_kind, environment, currency, public_key, secret_key_ref, status')
+          .select(PROVIDER_ACCOUNT_COLUMNS)
           .eq('id', id)
           .maybeSingle();
         return data && data.status === 'ACTIVE' ? (data as Record<string, unknown>) : null;
       },
-      resolveProvider: (row) => resolvePaymentProvider(toAccountConfig(row)),
+      // Llave cifrada (Vault) → variable de `secret_key_ref` → MOCK.
+      resolveProvider: providerResolver(rpc),
     });
     return json(res.body, res.status);
   }, allowedOrigins),
