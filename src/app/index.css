@@ -115,14 +115,6 @@
            disabled:cursor-not-allowed disabled:opacity-55 aria-busy:cursor-progress;
   }
 
-  .ebim-btn-sm {
-    @apply h-8 px-3 text-compact;
-  }
-
-  .ebim-btn-lg {
-    @apply h-11 px-5;
-  }
-
   /* Acción principal: teal de marca sólido (blanco encima 6.67:1). */
   .ebim-btn-primary {
     @apply ebim-btn bg-[color:var(--accent-action)] text-[color:var(--accent-action-fg)]
@@ -146,6 +138,16 @@
            [&:not(:disabled):hover]:bg-[color:var(--danger-fill-hover)];
   }
 
+  /* Tamaños (§5.3): van DESPUÉS de las variantes para ganarles el alto y el
+     padding a igual especificidad (`ebim-btn-ghost ebim-btn-sm`). */
+  .ebim-btn-sm {
+    @apply h-8 px-3 text-compact;
+  }
+
+  .ebim-btn-lg {
+    @apply h-11 px-5;
+  }
+
   /* Tabla (§5.7): cabecera micro sobre --sunken, celdas text-body con padding de densidad. */
   .ebim-th {
     @apply h-10 whitespace-nowrap bg-sunken px-pad-x text-left align-middle text-micro text-muted;
@@ -162,6 +164,135 @@
 
   .ebim-link {
     @apply font-semibold text-accent-deep underline-offset-2 hover:underline;
+  }
+
+  /* Campo con icono, prefijo o sufijo (§5.1): el adorno vive dentro del borde
+     del control. El input interno no lleva borde propio; el foco lo pinta el
+     contenedor con :focus-within para que prefijo y cifra lean como un solo control. */
+  .ebim-input-group {
+    @apply flex h-control w-full items-stretch overflow-hidden rounded-field border border-border-strong bg-card
+           transition-[border-color,box-shadow] duration-fast ease-out hover:border-fg-2
+           focus-within:border-focus focus-within:ring-[3px] focus-within:ring-[color:var(--accent-ring)]
+           has-[:disabled]:cursor-not-allowed has-[:disabled]:border-border has-[:disabled]:bg-sunken
+           has-[[readonly]]:border-border has-[[readonly]]:bg-sunken
+           has-[[aria-invalid=true]]:border-danger has-[[aria-invalid=true]]:focus-within:ring-[color:var(--danger-ring)];
+  }
+
+  .ebim-input-group > input {
+    @apply h-full min-w-0 flex-1 border-0 bg-transparent px-3 text-body text-fg outline-none
+           placeholder:text-muted focus-visible:outline-none disabled:cursor-not-allowed disabled:text-disabled;
+  }
+
+  .ebim-input-addon {
+    @apply flex shrink-0 items-center gap-1.5 px-3 text-compact font-semibold text-muted;
+  }
+
+  /* Select (§5.1): chevron propio (CaretDown) en lugar del nativo. */
+  select.ebim-input-select {
+    @apply appearance-none pr-9;
+  }
+
+  /* Checkbox (§5.2): el control nativo con el color de acción de marca. */
+  .ebim-checkbox {
+    @apply mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded-sm border-border-strong accent-[color:var(--accent-action)]
+           disabled:cursor-not-allowed disabled:opacity-55;
+  }
+
+  /* Switch (§5.2): pista 36×20, perilla 16 px. */
+  .ebim-switch {
+    @apply relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border border-border-strong
+           bg-sunken transition-colors duration-fast ease-out
+           aria-checked:border-transparent aria-checked:bg-[color:var(--accent-action)]
+           disabled:cursor-not-allowed disabled:opacity-55;
+  }
+
+  .ebim-switch-knob {
+    @apply pointer-events-none absolute left-0.5 h-3.5 w-3.5 rounded-full bg-card shadow-card ring-1 ring-border
+           transition-transform duration-fast ease-out;
+  }
+
+  .ebim-switch[aria-checked='true'] .ebim-switch-knob {
+    @apply translate-x-4 ring-0;
+  }
+
+  /* Spinner de botón ocupado (§5.3): 16 px, borde 2 px, currentColor 30 % + tramo sólido. */
+  .ebim-spinner {
+    @apply inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current border-r-transparent opacity-80;
+  }
+
+  /* Skeleton (§5.12): bloques --sunken con brillo lineal de 1.6 s; estático
+     con prefers-reduced-motion. En oscuro la pista sube a --elevated. */
+  .ebim-skeleton {
+    @apply block rounded-md;
+    background: linear-gradient(90deg, var(--sunken) 0%, var(--hover) 50%, var(--sunken) 100%);
+    background-size: 200% 100%;
+    animation: ebim-shimmer 1.6s linear infinite;
+  }
+
+  :root[data-theme='dark'] .ebim-skeleton {
+    background-image: linear-gradient(90deg, var(--elevated) 0%, var(--hover) 50%, var(--elevated) 100%);
+  }
+
+  /* Entrada de overlays (§5.9–5.11, §7): 200 ms ease-out, sin rebote. */
+  .ebim-scrim {
+    @apply bg-scrim;
+    animation: ebim-fade-in var(--dur-overlay) var(--ease-out);
+  }
+
+  .ebim-dialog {
+    @apply rounded-dialog border border-border bg-elevated text-fg shadow-modal;
+    animation: ebim-rise-in var(--dur-overlay) var(--ease-out);
+  }
+
+  .ebim-drawer {
+    @apply border-l border-border bg-elevated text-fg shadow-modal;
+    animation: ebim-slide-in var(--dur-overlay) var(--ease-out);
+  }
+
+  .ebim-toast {
+    animation: ebim-rise-in var(--dur-overlay) var(--ease-out);
+  }
+
+  /* Botón solo-icono (§5.3): cuadrado del alto del tamaño, fantasma sin borde. */
+  .ebim-icon-btn {
+    @apply inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted
+           transition-colors duration-fast ease-out hover:bg-hover hover:text-fg
+           disabled:cursor-not-allowed disabled:opacity-55;
+  }
+}
+
+@keyframes ebim-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@keyframes ebim-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes ebim-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes ebim-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ebim-skeleton {
+    animation: none;
   }
 }
 
