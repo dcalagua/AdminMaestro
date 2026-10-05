@@ -14,7 +14,7 @@
 -- literal completo con forma de llave dispararía `npm run secrets:scan`.
 -- ============================================================================
 begin;
-select plan(52);
+select plan(55);
 
 create or replace function pg_temp.act_as(p_user uuid)
 returns void language plpgsql as $$
@@ -320,7 +320,30 @@ select pg_temp.act_as(pg_temp.finance());
 select throws_like(
   format('select platform.clear_payment_provider_secret(%L, %L)', pg_temp.live(), 'rotación'),
   'LIVE_SIN_LLAVE%',
-  '49 una cuenta LIVE sin variable de entorno no se queda sin llave');
+  '49 una cuenta LIVE activa sin variable de entorno no se queda sin llave');
+
+-- Circuito LIVE desde la consola: crear INACTIVA sin llave → configurar llave → activar.
+insert into qa values ('live2', to_jsonb(platform.upsert_payment_provider_account(
+  p_code => 'culqi-pe-live-nueva', p_name => 'Culqi Perú LIVE (nueva)', p_provider_kind => 'CULQI',
+  p_environment => 'LIVE', p_market_code => 'PE', p_currencies => array['PEN']::char(3)[],
+  p_status => 'INACTIVE')));
+select ok(pg_temp.v('live2') is not null,
+  '49b una cuenta LIVE nueva se crea INACTIVA sin llave (ni cifrada ni de entorno)');
+select throws_ok(
+  format($q$select platform.upsert_payment_provider_account(
+      p_code => 'culqi-pe-live-nueva', p_name => 'Culqi Perú LIVE (nueva)', p_provider_kind => 'CULQI',
+      p_environment => 'LIVE', p_market_code => 'PE', p_currencies => array['PEN']::char(3)[],
+      p_status => 'ACTIVE', p_id => %L)$q$, pg_temp.v('live2') #>> '{}'),
+  '23514', null,
+  '49c pero no se activa sin llave');
+select lives_ok(
+  format($q$select platform.set_payment_provider_secret(%L, %L, null);
+            select platform.upsert_payment_provider_account(
+              p_code => 'culqi-pe-live-nueva', p_name => 'Culqi Perú LIVE (nueva)', p_provider_kind => 'CULQI',
+              p_environment => 'LIVE', p_market_code => 'PE', p_currencies => array['PEN']::char(3)[],
+              p_status => 'ACTIVE', p_id => %L)$q$,
+         pg_temp.v('live2') #>> '{}', pg_temp.k('live', 'Nueva000000DDDD'), pg_temp.v('live2') #>> '{}'),
+  '49d con la llave cifrada configurada, se activa');
 
 -- ---------------------------------------------------------------------------
 -- Quitar

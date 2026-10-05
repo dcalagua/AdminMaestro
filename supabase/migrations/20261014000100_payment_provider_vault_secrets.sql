@@ -73,11 +73,17 @@ alter table platform.payment_provider_accounts
     )
   );
 
--- La cuenta LIVE de Culqi exige una llave: cifrada (Vault) o por variable de entorno.
+-- Una cuenta Culqi LIVE ACTIVA exige una llave: cifrada (Vault) o por variable
+-- de entorno. Antes la exigencia no miraba el estado, y con la llave cifrada eso
+-- era un callejón sin salida: la llave se configura sobre una cuenta que ya
+-- existe, así que una cuenta LIVE nueva no podía crearse. El circuito ahora es
+-- «crear INACTIVA → configurar llave → activar». Una cuenta inactiva no cobra:
+-- el routing (provider_account_candidates), resolve_*_card_account y las Edge
+-- Functions exigen status = ACTIVE, y una LIVE sin llave falla ruidosamente.
 alter table platform.payment_provider_accounts drop constraint ppa_live_needs_secret_ref_ck;
 alter table platform.payment_provider_accounts
   add constraint ppa_live_needs_secret_ref_ck check (
-    environment = 'TEST' or provider_kind <> 'CULQI'
+    environment = 'TEST' or provider_kind <> 'CULQI' or status <> 'ACTIVE'
     or secret_key_ref is not null or secret_vault_id is not null
   );
 
@@ -265,10 +271,10 @@ comment on function platform.set_payment_provider_secret(uuid, text, text) is
 -- ---------------------------------------------------------------------------
 -- 5. clear_payment_provider_secret — quita la llave cifrada.
 --
--- Decisión: una cuenta Culqi LIVE no se queda sin llave. Si no declara la
--- alternativa por variable de entorno (`secret_key_ref`) se rechaza con
--- LIVE_SIN_LLAVE: para dejar de cobrar se desactiva la cuenta o se reemplaza la
--- llave. Una cuenta TEST sin llave vuelve al modo de prueba (MOCK).
+-- Decisión: una cuenta Culqi LIVE ACTIVA no se queda sin llave. Si no declara
+-- la alternativa por variable de entorno (`secret_key_ref`) se rechaza con
+-- LIVE_SIN_LLAVE: se reemplaza la llave, o se desactiva la cuenta y luego se
+-- quita. Una cuenta TEST sin llave vuelve al modo de prueba (MOCK).
 -- ---------------------------------------------------------------------------
 create or replace function platform.clear_payment_provider_secret(
   p_account_id uuid,
@@ -295,7 +301,7 @@ begin
     raise exception 'MOTIVO_CON_LLAVE: el motivo no puede contener una llave' using errcode = '22023';
   end if;
 
-  select a.id, a.code, a.provider_kind, a.environment, a.owner_organization_id,
+  select a.id, a.code, a.provider_kind, a.environment, a.status, a.owner_organization_id,
          a.secret_vault_id, a.secret_hint, a.secret_key_ref
     into v_acc
     from platform.payment_provider_accounts a
@@ -310,8 +316,9 @@ begin
     return jsonb_build_object('account_id', v_acc.id, 'cleared', false);
   end if;
 
-  if v_acc.environment = 'LIVE' and v_acc.provider_kind = 'CULQI' and v_acc.secret_key_ref is null then
-    raise exception 'LIVE_SIN_LLAVE: la cuenta "%" es LIVE y quedaría sin llave. Reemplaza la llave o desactiva la cuenta',
+  if v_acc.environment = 'LIVE' and v_acc.provider_kind = 'CULQI' and v_acc.status = 'ACTIVE'
+     and v_acc.secret_key_ref is null then
+    raise exception 'LIVE_SIN_LLAVE: la cuenta "%" es LIVE y está activa: quedaría sin llave. Reemplaza la llave, o desactiva la cuenta antes de quitarla',
       v_acc.code
       using errcode = '23514';
   end if;
@@ -337,7 +344,7 @@ $$;
 
 comment on function platform.clear_payment_provider_secret(uuid, text) is
   'Borra de Vault la llave cifrada de la cuenta (motivo obligatorio, auditado). Una cuenta Culqi '
-  'LIVE sin variable de entorno alternativa no puede quedarse sin llave (LIVE_SIN_LLAVE).';
+  'LIVE ACTIVA sin variable de entorno alternativa no puede quedarse sin llave (LIVE_SIN_LLAVE).';
 
 -- ---------------------------------------------------------------------------
 -- 6. set_payment_provider_api_base — URL base de la API (no secreta).
