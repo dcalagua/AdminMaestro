@@ -11,6 +11,7 @@ import { createAppQueryClient } from './queryClient';
 import { AppearanceProvider } from './AppearanceProvider';
 
 import { LoginPage } from '@/features/auth/LoginPage';
+import { PaymentPortalPage } from '@/features/paymentPortal/PaymentPortalPage';
 import { ProductsPage } from '@/features/catalog/ProductsPage';
 import { ProductDetailPage } from '@/features/catalog/ProductDetailPage';
 import { PlansPage } from '@/features/catalog/PlansPage';
@@ -43,7 +44,16 @@ import { IntegrationDetailPage } from '@/features/platform/IntegrationDetailPage
 import { AuditPage } from '@/features/settings/AuditPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { RegionalPage } from '@/features/regional/RegionalPage';
+import { UsagePage } from '@/features/usage/UsagePage';
+import { AiCreditsPage } from '@/features/credits/AiCreditsPage';
+import { BillingShadowPage } from '@/features/billing/shadow/BillingShadowPage';
+import { PartnerFeesPage } from '@/features/partnerFees/PartnerFeesPage';
 import { NotFoundPage } from '@/features/settings/NotFoundPage';
+// ---- M5 · Usuarios y perfiles -----------------------------------------------
+import { WelcomePage } from '@/features/auth/WelcomePage';
+import { UsersPage } from '@/features/users/UsersPage';
+import { UserDetailPage } from '@/features/users/UserDetailPage';
+// ---- fin M5 -------------------------------------------------------------------
 
 /**
  * El inicio ejecutivo es la única pantalla con gráficos (Recharts ≈ 170 kB gzip):
@@ -66,6 +76,17 @@ export function App() {
               <AppearanceProvider>
                 <Routes>
                   <Route path="/login" element={<LoginPage />} />
+                  {/*
+                    M1 · Portal de pago PÚBLICO (/pagar#<token>). Fuera de
+                    RequireAuth/AppShell: quien paga no tiene sesión. No usa
+                    PostgREST: habla solo con la Edge Function pay-portal.
+                  */}
+                  <Route path="/pagar" element={<PaymentPortalPage />} />
+                  {/*
+                    M5 · /bienvenida PÚBLICA: recibe la sesión del enlace de
+                    invitación o de restablecimiento y pide fijar la contraseña.
+                  */}
+                  <Route path="/bienvenida" element={<WelcomePage />} />
 
                   <Route
                     element={
@@ -111,6 +132,44 @@ export function App() {
                       element={
                         <RequirePersona personas={['EBIM']}>
                           <EntitlementSyncPage />
+                        </RequirePersona>
+                      }
+                    />
+                    {/*
+                    CCP M4. «Uso» es operación SaaS de EBIM (medidores e ingest
+                    los administra producto; facturable y finalizar, finanzas).
+                    «Créditos IA» y «Billing shadow» son pantallas financieras.
+                    Todo es UX: RLS y las RPC son la autoridad.
+                  */}
+                    <Route
+                      path="usage"
+                      element={
+                        <RequirePersona personas={['EBIM']}>
+                          <UsagePage />
+                        </RequirePersona>
+                      }
+                    />
+                    <Route
+                      path="ai-credits"
+                      element={
+                        <RequirePersona personas={['EBIM']}>
+                          <RequireFinanceView><AiCreditsPage /></RequireFinanceView>
+                        </RequirePersona>
+                      }
+                    />
+                    <Route
+                      path="billing-shadow"
+                      element={
+                        <RequirePersona personas={['EBIM']}>
+                          <RequireFinanceView><BillingShadowPage /></RequireFinanceView>
+                        </RequirePersona>
+                      }
+                    />
+                    <Route
+                      path="partner-fees"
+                      element={
+                        <RequirePersona personas={['EBIM']}>
+                          <RequireFinanceView><PartnerFeesPage /></RequireFinanceView>
                         </RequirePersona>
                       }
                     />
@@ -302,6 +361,28 @@ export function App() {
                       }
                     />
                     <Route path="settings" element={<SettingsPage />} />
+
+                    {/*
+                    M5 · «Usuarios y accesos». EBIM ve a todos; un admin de
+                    partner o de cliente, a los miembros de su organización.
+                    `admin_list_users` y cada RPC deciden; esto es UX.
+                  */}
+                    <Route
+                      path="users"
+                      element={
+                        <RequirePersona personas={['EBIM', 'PARTNER']}>
+                          <UsersPage />
+                        </RequirePersona>
+                      }
+                    />
+                    <Route
+                      path="users/:userId"
+                      element={
+                        <RequirePersona personas={['EBIM', 'PARTNER']}>
+                          <UserDetailPage />
+                        </RequirePersona>
+                      }
+                    />
 
                     <Route path="404" element={<NotFoundPage />} />
                     <Route path="*" element={<Navigate to="/404" replace />} />

@@ -7,6 +7,7 @@ import { useTenantAudit, useTenantInfraRequests, useTenantMarginRows, useTenantS
 import { tenantDimensions } from './tenantDimensions';
 import { TenantDimensionsView } from './TenantDimensionsView';
 import { TenantAddonsPanel } from './TenantAddonsPanel';
+import { TenantUsagePanel } from './TenantUsagePanel';
 import { useRequestTenantSuspension, useRequestTenantResume } from '@/services/mutations';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -464,6 +465,11 @@ export function TenantDetailPage() {
                 saasProductId={(t.saas_product_id as string | null) ?? null}
               />
             ),
+          },
+          {
+            id: 'usage',
+            label: 'Uso y créditos',
+            content: <TenantUsagePanel tenantId={t.tenant_id as string} />,
           },
           {
             id: 'costs',

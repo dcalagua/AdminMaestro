@@ -1,6 +1,8 @@
-import type {
-  ChargeSummary, NormalizedWebhookEvent, PaymentProvider, ProviderAccountConfig,
-  SetupInput, SetupResult,
+import { invoiceIdFrom } from './culqi.ts';
+import {
+  ProviderError,
+  type ChargeInput, type ChargeSummary, type NormalizedWebhookEvent, type PaymentProvider,
+  type ProviderAccountConfig, type SaveCardInput, type SaveCardResult, type SetupInput, type SetupResult,
 } from './types.ts';
 
 /**
@@ -77,6 +79,73 @@ export class MockPaymentProvider implements PaymentProvider {
     });
   }
 
+  /**
+   * M1/M2 · Cargo simulado y determinista: el mismo cargo (cuenta, origen,
+   * factura, intento, importe) produce siempre el mismo `chr_mock_…`, así que
+   * un reintento del navegador o del job se registra como duplicado.
+   *
+   * Para ejercitar los rechazos sin red: un origen que contiene `decline` se
+   * rechaza (TARJETA_RECHAZADA) y uno que contiene `3ds` pide autenticación.
+   */
+  createCharge(input: ChargeInput): Promise<ChargeSummary> {
+    const source = input.sourceId.toLowerCase();
+    if (!/^(tkn|crd)_/.test(source)) {
+      return Promise.reject(
+        new ProviderError('ORIGEN_INVALIDO', 'El origen del cargo debe ser un token o una tarjeta guardada', 400),
+      );
+    }
+    if (source.includes('decline')) {
+      return Promise.reject(
+        new ProviderError('TARJETA_RECHAZADA', 'La tarjeta fue rechazada por el emisor (simulado).', 402),
+      );
+    }
+    if (source.includes('3ds')) {
+      return Promise.reject(
+        new ProviderError(
+          'TARJETA_REQUIERE_AUTENTICACION',
+          'Tu banco pide una verificación adicional (3-D Secure) (simulado).',
+          409,
+        ),
+      );
+    }
+    if (!Number.isSafeInteger(input.amountMinor) || input.amountMinor <= 0) {
+      return Promise.reject(new ProviderError('IMPORTE_INVALIDO', 'Importe no válido para el cargo', 409));
+    }
+
+    const seed = [
+      this.account.code,
+      input.sourceId,
+      input.metadata.invoice_id ?? '',
+      input.metadata.attempt_id ?? input.metadata.link_id ?? '',
+      input.amountMinor,
+      input.currency,
+    ].join(':');
+
+    return Promise.resolve({
+      externalChargeId: mockId('chr', seed),
+      externalSubscriptionId: null,
+      amount: input.amountMinor / 100,
+      currency: input.currency,
+      paidAt: new Date().toISOString(),
+      status: 'CONFIRMED',
+    });
+  }
+
+  /** M2 · Customer + Card simulados. Un token con `decline` se rechaza. */
+  saveCard(input: SaveCardInput): Promise<SaveCardResult> {
+    if (input.token.toLowerCase().includes('decline')) {
+      return Promise.reject(
+        new ProviderError('TARJETA_RECHAZADA', 'La tarjeta fue rechazada por el emisor (simulado).', 402),
+      );
+    }
+    const seed = `${this.account.code}:${input.customer.organizationId}`;
+    return Promise.resolve({
+      externalCustomerId: input.customer.externalCustomerId ?? mockId('cus', seed),
+      externalPaymentMethodId: mockId('crd', `${seed}:${input.token}`),
+      card: { brand: 'VISA', last4: '4242', expMonth: 12, expYear: 2030 },
+    });
+  }
+
   cancelSubscription(_externalSubscriptionId: string): Promise<{ providerStatus: string }> {
     return Promise.resolve({ providerStatus: 'canceled' });
   }
@@ -129,6 +198,7 @@ export class MockPaymentProvider implements PaymentProvider {
       kind,
       externalSubscriptionId: typeof data.subscription_id === 'string' ? data.subscription_id : null,
       externalChargeId: typeof data.id === 'string' ? data.id : null,
+      externalInvoiceId: invoiceIdFrom(data.metadata as Record<string, unknown> | undefined),
       amount: typeof data.amount === 'number' ? data.amount / 100 : null,
       currency: typeof data.currency_code === 'string' ? data.currency_code : null,
       occurredAt: typeof body.creation_date === 'string' ? body.creation_date : new Date().toISOString(),
@@ -138,6 +208,7 @@ export class MockPaymentProvider implements PaymentProvider {
         type,
         subscription_id: data.subscription_id ?? null,
         charge_id: data.id ?? null,
+        invoice_id: invoiceIdFrom(data.metadata as Record<string, unknown> | undefined),
         amount: data.amount ?? null,
         currency_code: data.currency_code ?? null,
         simulated: true,

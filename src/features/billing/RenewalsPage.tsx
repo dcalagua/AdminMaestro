@@ -3,7 +3,8 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useBillingAlerts } from '@/services/queries';
 import { useRenewalPipeline } from '@/services/financeRead';
 import {
-  useRefreshBillingAlerts, useApplyDueSuspensions, useSetAlertStatus,
+  useRefreshBillingAlerts, useApplyDueSuspensions, useSetAlertStatus, useAutocharge,
+  type AutochargeSummary,
 } from '@/services/mutations';
 import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -18,6 +19,7 @@ import { formatDate, formatMoney, formatNumber, sumByCurrency } from '@/lib/form
 import { KpiCard, CurrencyLines } from '@/features/executive/components/StateView';
 import { fromQuery } from '@/features/executive/dataState';
 import { RENEWAL_WINDOWS, type RenewalWindow } from '@/features/executive/kpis';
+import { ATTEMPT_STATUS_LABEL, ATTEMPT_STATUS_TONE } from './autochargeSummary';
 
 /**
  * Renovaciones y alertas de cobranza (P05).
@@ -93,6 +95,9 @@ export function RenewalsPage() {
 
   const [filter, setFilter] = useState<Filter>('ALL');
   const [confirmSuspend, setConfirmSuspend] = useState(false);
+  const autocharge = useAutocharge();
+  const [confirmCharges, setConfirmCharges] = useState(false);
+  const [chargeSummary, setChargeSummary] = useState<AutochargeSummary | null>(null);
 
   const { term, setTerm, filtered } = useSearchFilter(alerts.data, (a) => [
     a.title,
@@ -169,6 +174,21 @@ export function RenewalsPage() {
     }
   }
 
+  async function doRunCharges() {
+    try {
+      const summary = await autocharge.mutateAsync({ run: true });
+      setChargeSummary(summary);
+      toast.success(
+        'Cobros pendientes ejecutados',
+        `${summary.processed} procesada(s): ${summary.succeeded} cobrada(s), ${summary.failed} fallida(s), ${summary.skipped} omitida(s)${summary.review ? `, ${summary.review} en revisión` : ''}.`,
+      );
+    } catch (error) {
+      toast.error('No se pudieron ejecutar los cobros', businessErrorMessage(error));
+    } finally {
+      setConfirmCharges(false);
+    }
+  }
+
   async function acknowledge(id: string) {
     try {
       await setStatus.mutateAsync({ p_alert_id: id, p_status: 'ACKNOWLEDGED' });
@@ -198,6 +218,17 @@ export function RenewalsPage() {
       actions={
         perms.canManageCommercial ? (
           <div className="flex flex-wrap items-center gap-2">
+            {perms.canReadFinance ? (
+              <button
+                type="button"
+                className="ebim-btn-secondary"
+                onClick={() => setConfirmCharges(true)}
+                disabled={autocharge.isPending}
+                title="Cobra con la tarjeta guardada las facturas que tocan según la política de reintentos."
+              >
+                {autocharge.isPending ? 'Cobrando…' : 'Ejecutar cobros pendientes'}
+              </button>
+            ) : null}
             <button
               type="button"
               className="ebim-btn-secondary"
@@ -232,6 +263,52 @@ export function RenewalsPage() {
             </>
           ) : null}
         </p>
+      ) : null}
+
+      {chargeSummary ? (
+        <Card
+          className="mb-4"
+          title="Resultado de los cobros con tarjeta guardada"
+          description="Facturas vencidas de suscripciones con pago automático autorizado, según la política de reintentos."
+          actions={
+            <button type="button" className="ebim-btn-ghost h-8 px-3 text-xs" onClick={() => setChargeSummary(null)}>
+              Cerrar
+            </button>
+          }
+        >
+          <div className="grid grid-cols-2 gap-3 border-b border-border p-4 sm:grid-cols-4" data-testid="autocharge-summary">
+            {[
+              ['Procesadas', chargeSummary.processed],
+              ['Cobradas', chargeSummary.succeeded],
+              ['Fallidas', chargeSummary.failed],
+              ['Omitidas', chargeSummary.skipped],
+              ...(chargeSummary.review ? [['En revisión', chargeSummary.review]] : []),
+            ].map(([label, value]) => (
+              <div key={label as string}>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-muted">{label}</div>
+                <div className="mt-0.5 text-lg font-bold tabular-nums">{formatNumber(Number(value))}</div>
+              </div>
+            ))}
+          </div>
+          {chargeSummary.results.length === 0 ? (
+            <EmptyState title="Nada que cobrar" description="Ninguna factura con tarjeta guardada vence hoy ni tiene un reintento pendiente." />
+          ) : (
+            <DataTable columns={['Factura', 'Resultado', 'Importe', 'Código']}>
+              {chargeSummary.results.map((r, i) => (
+                <tr key={`${r.invoice_number ?? 'x'}-${i}`}>
+                  <td className="ebim-td font-mono text-xs">{r.invoice_number ?? '—'}</td>
+                  <td className="ebim-td">
+                    <Badge tone={ATTEMPT_STATUS_TONE[r.status] ?? 'neutral'}>{ATTEMPT_STATUS_LABEL[r.status] ?? r.status}</Badge>
+                  </td>
+                  <td className="ebim-td tabular-nums">
+                    {r.amount !== null && r.amount !== undefined ? formatMoney(Number(r.amount), r.currency ?? null) : '—'}
+                  </td>
+                  <td className="ebim-td font-mono text-xs">{r.error_code ?? '—'}</td>
+                </tr>
+              ))}
+            </DataTable>
+          )}
+        </Card>
       ) : null}
 
       <Card className="mb-4" title="Ventana de renovación" description="Contratos activos o con pago atrasado cuya próxima renovación cae dentro de los días elegidos, contados desde hoy.">
@@ -444,6 +521,17 @@ export function RenewalsPage() {
           </DataTable>
         )}
       </Card>
+
+      <ConfirmDialog
+        open={confirmCharges}
+        tone="primary"
+        title="¿Ejecutar los cobros pendientes?"
+        message="Se cobrarán con la tarjeta guardada las facturas vencidas de suscripciones con pago automático autorizado. Política de reintentos: intento 1 al vencer, intento 2 a los 3 días e intento 3 a los 7 días; máximo 3 intentos, y tras el tercer fallo se crea una alerta de cobranza. Cada cobro confirmado genera su pago y su comisión."
+        confirmLabel="Ejecutar cobros"
+        busy={autocharge.isPending}
+        onConfirm={doRunCharges}
+        onCancel={() => setConfirmCharges(false)}
+      />
 
       <ConfirmDialog
         open={confirmSuspend}

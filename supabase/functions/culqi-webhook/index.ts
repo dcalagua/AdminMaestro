@@ -16,7 +16,9 @@
  *      cargo al proveedor con la clave secreta. Un tercero puede inventar un
  *      evento; no puede hacer que Culqi confirme un `chr_` inexistente.
  *   4. CORRELACIÓN OBLIGATORIA. El evento debe referirse a una suscripción que YA
- *      exista en nuestra base. Lo comprueba `register_provider_payment()`.
+ *      exista en nuestra base (`register_provider_payment()`) o, para los cargos
+ *      del portal de pago / tarjeta guardada (M1/M2), a una factura emitida
+ *      (`register_provider_invoice_payment()`, metadata.invoice_id).
  *
  * Este archivo NO escribe en `payments`. Llama a la RPC, que es quien decide.
  */
@@ -147,6 +149,14 @@ Deno.serve(async (req: Request) => {
    * imputar el pago ni comisión que devengar.
    */
   let subscriptionId = event.externalSubscriptionId;
+  /*
+   * M1/M2 · Cargos del portal de pago y del cobro con tarjeta guardada: no
+   * tienen suscripción del proveedor; declaran la factura en
+   * `metadata.invoice_id`. Se imputan a esa factura con
+   * `register_provider_invoice_payment` (idempotente por reference: si el
+   * portal ya lo registró, es DUPLICATE).
+   */
+  let invoiceId = event.externalInvoiceId;
 
   if (provider.mode !== 'MOCK') {
     const verified = await provider.verifyCharge(event.externalChargeId);
@@ -169,10 +179,49 @@ Deno.serve(async (req: Request) => {
     currency = verified.currency;
     paidAt = verified.paidAt;
     subscriptionId = subscriptionId ?? verified.externalSubscriptionId;
+    // La factura que cuenta es la que el PROVEEDOR guarda en el cargo.
+    invoiceId = verified.invoiceId ?? invoiceId;
   }
 
   if (!amount || !currency) {
     return json({ accepted: false, error: 'IMPORTE_O_MONEDA_AUSENTE' }, 200);
+  }
+
+  if (invoiceId) {
+    const { data, error } = await admin.rpc('register_provider_invoice_payment', {
+      p_provider_account_id: account.id,
+      p_external_event_key: event.eventKey,
+      p_external_charge_id: event.externalChargeId,
+      p_invoice_id: invoiceId,
+      p_amount: amount,
+      p_currency: currency,
+      p_paid_at: paidAt,
+      p_payload: event.safePayload,
+    });
+    if (error) {
+      // Rechazo de negocio (moneda, saldo, factura no pagable, cuenta ajena):
+      // queda en el ledger para la reconciliación, sin efecto contable.
+      const code = /^([A-Z][A-Z0-9_]{2,}):/.exec(error.message ?? '')?.[1] ?? 'REGISTRO_RECHAZADO';
+      await admin.from('provider_webhook_events').insert({
+        provider_account_id: account.id,
+        external_event_key: event.eventKey,
+        event_type: event.eventType,
+        payload: event.safePayload,
+        status: 'REJECTED',
+        error_code: code,
+        error_message: 'El cargo de factura no se pudo registrar',
+        processed_at: new Date().toISOString(),
+      });
+      return json({ accepted: false, error: code }, 200);
+    }
+    const result = (data ?? {}) as { duplicate?: boolean };
+    return json({
+      accepted: true,
+      kind: event.kind,
+      mode: provider.mode,
+      status: result.duplicate ? 'DUPLICATE' : 'REGISTERED',
+      result: data,
+    });
   }
 
   if (!subscriptionId) {
