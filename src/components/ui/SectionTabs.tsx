@@ -47,6 +47,20 @@ export function SectionTabs({ tabs }: { tabs: TabDefinition[] }) {
 
   const current = visible.find((t) => t.id === active) ?? visible[0];
   const buttons = useRef<Array<HTMLButtonElement | null>>([]);
+  const scroller = useRef<HTMLDivElement>(null);
+
+  // Con más pestañas de las que caben, la activa (p. ej. al entrar por #hash) se
+  // desplaza a la vista dentro de la fila, sin mover la página.
+  const activeIndex = visible.findIndex((t) => t.id === current?.id);
+  useEffect(() => {
+    const box = scroller.current;
+    const button = buttons.current[activeIndex];
+    if (!box || !button || box.scrollWidth <= box.clientWidth) return;
+    const left = button.offsetLeft; // el contenedor es `relative`: offset respecto de la fila
+    if (left < box.scrollLeft || left + button.offsetWidth > box.scrollLeft + box.clientWidth) {
+      box.scrollLeft = Math.max(0, left - 24);
+    }
+  }, [activeIndex]);
 
   const select = (id: string) => {
     setActive(id);
@@ -65,7 +79,7 @@ export function SectionTabs({ tabs }: { tabs: TabDefinition[] }) {
     <div>
       {/* Centradas (U-07). Si no caben, scroll horizontal en UNA fila (nunca
           dos renglones, A08/A09): `w-max mx-auto` centra mientras sobra sitio. */}
-      <div className="mb-5 overflow-x-auto border-b border-border [scrollbar-width:thin]">
+      <div ref={scroller} className="relative mb-5 overflow-x-auto border-b border-border [scrollbar-width:thin]">
         <div role="tablist" aria-label="Secciones" className="mx-auto flex w-max flex-nowrap gap-1">
           {visible.map((tab, index) => {
             const isActive = tab.id === current?.id;

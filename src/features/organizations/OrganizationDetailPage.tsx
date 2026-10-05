@@ -209,7 +209,7 @@ export function OrganizationDetailPage() {
           },
           {
             id: 'overview',
-            label: 'Resumen y sociedades',
+            label: 'Identidad y sociedades',
             content: (
               <div className="grid gap-4 lg:grid-cols-2">
                 <Card title="Identidad y marca" description="Contrato §4.3: interfaz de branding homologada.">

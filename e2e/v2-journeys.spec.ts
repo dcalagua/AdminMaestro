@@ -120,7 +120,8 @@ test.describe('J2 · Alta transaccional de cliente con fee de implementación', 
 
     await expect(page.getByText('Alta completada')).toBeVisible({ timeout: 20_000 });
     // Aterriza en el detalle del tenant recién creado.
-    await expect(page.getByRole('heading', { name: `Alpha E2E ${RUN}` })).toBeVisible({
+    // h1 de la ficha (los gráficos del resumen también nombran al tenant en su título).
+    await expect(page.getByRole('heading', { level: 1, name: `Alpha E2E ${RUN}` })).toBeVisible({
       timeout: 15_000,
     });
   });
@@ -321,6 +322,8 @@ test.describe('J12 · Una mutación no autorizada se rechaza de verdad', () => {
     // La UI no ofrece la acción...
     await expect(page.getByRole('button', { name: 'Nuevo producto' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Editar' })).toHaveCount(0);
+    // Editar / Archivar viven en el menú de cada tarjeta: sin permiso no hay menú.
+    await expect(page.getByRole('button', { name: /^Acciones de / })).toHaveCount(0);
   });
 
   test('forzar la URL del alta de cliente no da acceso', async ({ page }) => {
@@ -362,7 +365,7 @@ test.describe('J14 · Datos de facturación del titular (V2.1)', () => {
     // Cliente EWM Norte llega sin contacto de facturación: es el estado en que
     // entra cualquier organización nueva.
     await page.getByRole('row', { name: /Cliente EWM Norte/ }).getByRole('link', { name: 'Cliente EWM Norte' }).click();
-    await page.getByRole('tab', { name: 'Resumen' }).click();
+    await page.getByRole('tab', { name: 'Identidad y sociedades' }).click();
 
     await expect(page.getByText('Datos de facturación del titular')).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText('Faltan 5')).toBeVisible();
@@ -378,7 +381,7 @@ test.describe('J14 · Datos de facturación del titular (V2.1)', () => {
     await login(page, USERS.superAdmin);
     await goToSection(page, 'Clientes');
     await page.getByRole('row', { name: /GRUPASA/ }).getByRole('link', { name: 'GRUPASA', exact: true }).click();
-    await page.getByRole('tab', { name: 'Resumen' }).click();
+    await page.getByRole('tab', { name: 'Identidad y sociedades' }).click();
 
     await expect(page.getByText('Datos de facturación del titular')).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText('Completos')).toBeVisible();

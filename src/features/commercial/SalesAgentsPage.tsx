@@ -103,7 +103,7 @@ export function SalesAgentsPage() {
               'Comercial',
               'Tipo',
               'Contacto',
-              { label: 'Atribuciones vigentes', align: 'right' },
+              { label: 'Atribuciones', align: 'right' },
               'Cartera',
               'Vigencia',
               'Estado',
@@ -139,7 +139,11 @@ export function SalesAgentsPage() {
                         <span className="font-semibold text-fg">
                           {own.customers.size} {own.customers.size === 1 ? 'cliente' : 'clientes'}
                         </span>
-                        <span className="block">{[...own.products].sort().join(', ')}</span>
+                        <span className="block max-w-[260px] truncate" title={[...own.products].sort().join(', ')}>
+                          {own.products.size === 1
+                            ? [...own.products][0]
+                            : `${own.products.size} productos · ${[...own.products].sort().join(', ')}`}
+                        </span>
                       </>
                     ) : (
                       'Sin cartera atribuida'

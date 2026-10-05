@@ -95,7 +95,7 @@ export function HealthTile({
   return (
     <KpiTile
       label={label}
-      value={<span className="text-h2">{h.label}</span>}
+      value={<span className="block text-h2 leading-tight">{h.label}</span>}
       tone={h.tone}
       footer={footer ?? h.detail}
       to={to}

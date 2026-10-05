@@ -108,7 +108,9 @@ test.describe('R1b · Tarifa regional en el catálogo (fase 04)', () => {
     await page.goto('/plans');
     await expect(page.getByRole('heading', { name: 'Planes y licencias' })).toBeVisible();
 
-    await page.getByRole('button', { name: 'Fijar precio' }).first().click();
+    // Las acciones del plan viven en el menú de la fila (A12).
+    await page.getByRole('button', { name: /^Acciones del plan/ }).first().click();
+    await page.getByRole('menuitem', { name: 'Fijar precio…' }).click();
     const dialog = page.getByRole('dialog');
     await expect(field(dialog, 'Moneda')).toBeDisabled();
 
