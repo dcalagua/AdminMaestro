@@ -228,7 +228,11 @@ test.describe('Fase 17 · Journeys regionales', () => {
     await page.goto('/regional#prices');
     await page.getByRole('tab', { name: 'Tarifas por mercado' }).click();
     await page.getByRole('searchbox').fill('esupplier-shared-standard');
-    const licenses = page.getByRole('row').filter({ hasText: 'LICENSE' }).filter({ hasText: 'MONTHLY' });
+    // Las celdas muestran «Licencia» / «mes» y guardan el código en `title` (fase 10).
+    const licenses = page
+      .getByRole('row')
+      .filter({ has: page.locator('td[title="LICENSE"]') })
+      .filter({ has: page.locator('td[title="MONTHLY"]') });
     const market = (code: string) => page.getByRole('cell', { name: code, exact: true });
     await expect(licenses.filter({ has: market('PE') }).filter({ hasText: /USD\s850\.00/ })).toHaveCount(1);
     await expect(licenses.filter({ has: market('EC') }).filter({ hasText: /USD\s700\.00/ })).toHaveCount(1);

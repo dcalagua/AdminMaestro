@@ -60,9 +60,10 @@ export function TenantDimensionsInline({ dims }: { dims: TenantDimensions }) {
       {rows.map(([k, d]) => {
         const Icon = ICON[d.tone];
         return (
-          <li key={k} className={`flex items-center gap-1 whitespace-nowrap ${TONE[d.tone]}`}>
-            <Icon size={12} aria-hidden />
-            <span className="text-muted">{k}:</span> <span className="font-semibold">{d.label}</span>
+          // Ancho acotado: un estado largo no debe empujar la tabla fuera de 1280 (texto completo en `title`).
+          <li key={k} className={`flex max-w-[250px] items-center gap-1 whitespace-nowrap ${TONE[d.tone]}`} title={`${k}: ${d.label}`}>
+            <Icon size={12} aria-hidden className="shrink-0" />
+            <span className="text-muted">{k}:</span> <span className="min-w-0 truncate font-semibold">{d.label}</span>
           </li>
         );
       })}

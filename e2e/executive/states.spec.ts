@@ -104,7 +104,8 @@ test('error, no disponible, carga y vacío son distintos de cero', async ({ brow
   // Carga: la serie de MRR tarda (skeletons del resumen).
   await page.route('**/rest/v1/rpc/executive_mrr_series', async (route) => {
     await new Promise((r) => setTimeout(r, 4000));
-    await route.continue();
+    // Si la página ya navegó, la petición se canceló: no hay nada que continuar.
+    await route.continue().catch(() => undefined);
   });
   await page.goto('/');
   await page.waitForTimeout(600);

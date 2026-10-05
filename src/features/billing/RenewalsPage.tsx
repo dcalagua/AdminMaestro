@@ -413,7 +413,7 @@ export function RenewalsPage() {
                   </span>
                 </td>
                 <td className="ebim-td">
-                  <span className="block max-w-[180px] truncate text-fg-2" title={r.billed_organization_name ?? undefined}>
+                  <span className="block max-w-[160px] truncate text-fg-2" title={r.billed_organization_name ?? undefined}>
                     {r.billed_organization_name}
                   </span>
                 </td>
@@ -423,7 +423,7 @@ export function RenewalsPage() {
                 </td>
                 <td className="ebim-td ebim-num whitespace-nowrap">
                   {r.current_mrr === null ? (
-                    <span className="text-compact text-muted">Sin recurrente vigente</span>
+                    <span className="inline-block max-w-[96px] whitespace-normal text-compact text-muted">Sin recurrente vigente</span>
                   ) : (
                     formatMoney(Number(r.current_mrr), r.currency)
                   )}
@@ -488,7 +488,7 @@ export function RenewalsPage() {
                 <tr key={a.id}>
                   <td className="ebim-td">
                     <div className="font-semibold">{ALERT_LABEL[a.alert_type as string] ?? a.title}</div>
-                    <div className="max-w-[260px] truncate text-compact text-fg-2" title={[a.title, a.message].filter(Boolean).join(' · ')}>
+                    <div className="max-w-[230px] truncate text-compact text-fg-2" title={[a.title, a.message].filter(Boolean).join(' · ')}>
                       {[a.title, a.message].filter(Boolean).join(' · ')}
                     </div>
                   </td>
