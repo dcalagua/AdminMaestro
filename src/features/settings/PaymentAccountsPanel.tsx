@@ -6,9 +6,11 @@ import {
 import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { usePermissions } from '@/hooks/usePermissions';
 import { formatDate } from '@/lib/format';
+import { LockKeyIcon, LockKeyOpenIcon } from '@phosphor-icons/react';
 import {
-  Badge, Card, DataTable, EmptyState, ErrorState, LoadingState, SearchBar,
+  Badge, Card, EmptyState, ErrorState, LoadingState, SearchBar,
 } from '@/components/ui/primitives';
+import { Avatar } from '@/components/ui/Avatar';
 import { FormDialog } from '@/components/ui/FormDialog';
 import { RevokeWithReasonDialog } from '@/components/ui/RevokeWithReasonDialog';
 import { CheckboxField, FieldRow, NumberField, SelectField, TextField } from '@/components/ui/fields';
@@ -177,41 +179,75 @@ export function PaymentAccountsPanel() {
     setClearTarget(null);
   }
 
-  function keyCell(r: NonNullable<typeof routes.data>[number], a: FullAccount | undefined) {
-    if (r.provider_kind !== 'CULQI') return <span className="text-xs text-muted">No aplica</span>;
+  /**
+   * Estado de la llave secreta, protagonista de la tarjeta: cifrada en el
+   * servidor (pista + fecha), por variable de entorno, o sin configurar (en
+   * TEST se cobra en MOCK; en LIVE no se cobra). El valor nunca llega aquí.
+   */
+  function keyBlock(r: NonNullable<typeof routes.data>[number], a: FullAccount | undefined) {
+    if (r.provider_kind !== 'CULQI') {
+      return (
+        <div className="flex items-center gap-3 rounded-field border border-border bg-sunken px-3 py-2.5">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-card text-muted">
+            <LockKeyOpenIcon size={16} aria-hidden />
+          </span>
+          <p className="text-compact text-fg-2">
+            <span className="font-semibold text-fg">Llave secreta:</span> <span className="text-muted">No aplica</span>
+            <span className="block text-caption text-muted">Este medio no usa llave de API.</span>
+          </p>
+        </div>
+      );
+    }
     const target: SecretTarget = {
       id: r.provider_account_id as string,
       code: r.code ?? '',
       environment: (r.environment ?? 'TEST') as SecretTarget['environment'],
       hint: a?.secret_hint ?? null,
     };
+    const state = a?.secret_hint ? 'vault' : a?.secret_key_ref ? 'env' : 'missing';
+    const tone =
+      state === 'vault'
+        ? 'border-transparent bg-ok-soft text-ok'
+        : state === 'env'
+          ? 'border-transparent bg-info-soft text-info'
+          : 'border-transparent bg-warn-soft text-warn';
+    const Icon = state === 'missing' ? LockKeyOpenIcon : LockKeyIcon;
     return (
-      <div className="space-y-1">
-        {a?.secret_hint ? (
-          <div className="flex flex-wrap items-center gap-1 text-xs">
-            <Badge tone="ok">Configurada</Badge>
-            <span className="font-mono">({a.secret_hint})</span>
-            <span className="text-muted">· {formatDate(a.secret_set_at)}</span>
+      <div className={`rounded-field border px-3 py-2.5 ${tone}`} data-secret-state={state}>
+        <div className="flex items-start gap-3">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-card">
+            <Icon size={16} weight="bold" aria-hidden />
+          </span>
+          <div className="min-w-0 flex-1 text-compact text-fg">
+            <p className="text-micro">Llave secreta</p>
+            {state === 'vault' ? (
+              <p className="flex flex-wrap items-baseline gap-x-1.5">
+                <Badge tone="ok">Configurada</Badge>
+                <span className="font-semibold">Cifrada en el servidor</span>
+                <span className="font-mono text-caption">({a!.secret_hint})</span>
+                <span className="text-caption text-fg-2">· desde {formatDate(a!.secret_set_at)}</span>
+              </p>
+            ) : state === 'env' ? (
+              <p className="flex flex-wrap items-baseline gap-x-1.5">
+                <Badge tone="info">Variable de entorno</Badge>
+                <span className="font-mono text-caption">{a!.secret_key_ref}</span>
+              </p>
+            ) : (
+              <p className="font-semibold">
+                {r.environment === 'LIVE' ? 'No configurada · no cobra' : 'No configurada · modo de prueba (MOCK)'}
+              </p>
+            )}
           </div>
-        ) : a?.secret_key_ref ? (
-          <div className="flex flex-wrap items-center gap-1 text-xs">
-            <Badge tone="info">Variable de entorno</Badge>
-            <span className="font-mono">{a.secret_key_ref}</span>
-          </div>
-        ) : (
-          <Badge tone="warn">
-            {r.environment === 'LIVE' ? 'No configurada · no cobra' : 'No configurada · modo de prueba (MOCK)'}
-          </Badge>
-        )}
+        </div>
         {canConfigure ? (
-          <div className="flex gap-3">
-            <button type="button" className="ebim-link text-[13px]" onClick={() => setSecretTarget(target)}>
+          <div className="mt-2 flex gap-2 pl-11">
+            <button type="button" className="ebim-btn-secondary ebim-btn-sm" onClick={() => setSecretTarget(target)}>
               {a?.secret_hint ? 'Reemplazar' : 'Configurar llave'}
             </button>
             {a?.secret_hint ? (
               <button
                 type="button"
-                className="ebim-link text-[13px]"
+                className="ebim-btn-ghost ebim-btn-sm text-danger"
                 onClick={() => setClearTarget({ id: target.id, code: target.code, environment: target.environment })}
               >
                 Quitar
@@ -229,7 +265,7 @@ export function PaymentAccountsPanel() {
       description="Cuentas de cobro por mercado y moneda. La llave secreta de Culqi se configura aquí y se guarda cifrada en el servidor: nunca vuelve a mostrarse, solo su pista."
       actions={
         canConfigure ? (
-          <button type="button" className="ebim-btn-primary h-8 px-3 text-xs" onClick={openNew}>
+          <button type="button" className="ebim-btn-primary ebim-btn-sm" onClick={openNew}>
             Nueva cuenta
           </button>
         ) : undefined
@@ -237,48 +273,71 @@ export function PaymentAccountsPanel() {
     >
       <SearchBar value={term} onChange={setTerm} placeholder="Buscar por código, nombre, mercado o tipo…" />
       {routes.isLoading || accounts.isLoading ? (
-        <LoadingState />
+        <LoadingState variant="card" />
       ) : routes.error ? (
         <ErrorState error={routes.error} onRetry={() => void routes.refetch()} />
       ) : rows.length === 0 ? (
         <EmptyState title="Sin cuentas de pago" description="Crea la cuenta del proveedor para el mercado que vas a cobrar." />
       ) : (
-        <DataTable columns={['Cuenta', 'Tipo', 'Entorno', 'Mercado', 'Monedas', 'Prioridad', 'Llave pública', 'Llave secreta', 'Estado', '']}>
+        <ul className="grid gap-4 p-5 xl:grid-cols-2" aria-label="Cuentas de pago">
           {rows.map((r) => {
             const a = full.get(r.provider_account_id as string);
             return (
-              <tr key={r.provider_account_id as string}>
-                <td className="ebim-td">
-                  <div className="font-semibold">{r.name}</div>
-                  <div className="font-mono text-xs text-muted">{r.code}</div>
-                </td>
-                <td className="ebim-td text-xs">{KIND_LABEL[r.provider_kind as string] ?? r.provider_kind}</td>
-                <td className="ebim-td">
-                  <Badge tone={r.environment === 'LIVE' ? 'warn' : 'info'}>
-                    {r.environment === 'LIVE' ? 'LIVE · cobra dinero real' : 'TEST'}
-                  </Badge>
-                </td>
-                <td className="ebim-td text-xs">{r.market_code ?? '—'}</td>
-                <td className="ebim-td text-xs">{(r.currencies ?? []).join(', ') || '—'}</td>
-                <td className="ebim-td tabular-nums">{r.routing_priority}</td>
-                <td className="ebim-td">
-                  {a?.public_key ? <Badge tone="ok">Configurada</Badge> : <Badge tone="warn">Pendiente</Badge>}
-                </td>
-                <td className="ebim-td">{keyCell(r, a)}</td>
-                <td className="ebim-td">
-                  <Badge tone={r.status === 'ACTIVE' ? 'ok' : 'neutral'}>{STATUS_LABEL[r.status as string] ?? r.status}</Badge>
-                </td>
-                <td className="ebim-td text-right">
-                  {canConfigure ? (
-                    <button type="button" className="ebim-link text-[13px]" onClick={() => openEdit(r)}>
+              <li
+                key={r.provider_account_id as string}
+                className="flex min-w-0 flex-col gap-3 rounded-card border border-border bg-card p-4"
+                data-account={r.code}
+              >
+                <div className="flex items-start gap-3">
+                  <Avatar name={r.name ?? r.code ?? '—'} size="md" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-h3 text-fg">{r.name}</p>
+                    <p className="font-mono text-caption text-muted">{r.code}</p>
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <Badge tone={r.status === 'ACTIVE' ? 'ok' : 'neutral'} dot>
+                      {STATUS_LABEL[r.status as string] ?? r.status}
+                    </Badge>
+                    <Badge tone={r.environment === 'LIVE' ? 'warn' : 'info'}>
+                      {r.environment === 'LIVE' ? 'LIVE · cobra dinero real' : 'TEST'}
+                    </Badge>
+                  </div>
+                </div>
+
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-compact sm:grid-cols-4">
+                  <div className="min-w-0">
+                    <dt className="text-caption text-muted">Tipo</dt>
+                    <dd className="truncate text-fg">{KIND_LABEL[r.provider_kind as string] ?? r.provider_kind}</dd>
+                  </div>
+                  <div className="min-w-0">
+                    <dt className="text-caption text-muted">Mercado · monedas</dt>
+                    <dd className="truncate text-fg">
+                      {r.market_code ?? '—'} · {(r.currencies ?? []).join(', ') || '—'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-caption text-muted">Prioridad</dt>
+                    <dd className="tabular-nums text-fg">{r.routing_priority}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-caption text-muted">Llave pública</dt>
+                    <dd>{a?.public_key ? <Badge tone="ok">Configurada</Badge> : <Badge tone="warn">Pendiente</Badge>}</dd>
+                  </div>
+                </dl>
+
+                {keyBlock(r, a)}
+
+                {canConfigure ? (
+                  <div className="flex justify-end">
+                    <button type="button" className="ebim-btn-ghost ebim-btn-sm" onClick={() => openEdit(r)}>
                       Editar
                     </button>
-                  ) : null}
-                </td>
-              </tr>
+                  </div>
+                ) : null}
+              </li>
             );
           })}
-        </DataTable>
+        </ul>
       )}
 
       <FormDialog
@@ -294,7 +353,7 @@ export function PaymentAccountsPanel() {
         {draft ? (
           <>
             {draft.environment === 'LIVE' ? (
-              <p className="rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn" role="note">
+              <p className="rounded-lg bg-warn-soft px-3 py-2 text-body text-warn" role="note">
                 Cuenta <strong>LIVE</strong>: cobra dinero real. Además exige <span className="font-mono">CULQI_ALLOW_LIVE=true</span>{' '}
                 en el servidor y autorización explícita del operador. Una cuenta nueva se crea <strong>Inactiva</strong>, se le
                 configura la llave y después se activa.
@@ -344,7 +403,7 @@ export function PaymentAccountsPanel() {
             <fieldset>
               <legend className="ebim-label">Monedas que cobra</legend>
               {currencyOptions.length === 0 ? (
-                <p className="text-xs text-muted">Elige primero el mercado.</p>
+                <p className="text-caption text-muted">Elige primero el mercado.</p>
               ) : (
                 <div className="flex flex-wrap gap-4">
                   {currencyOptions.map((c) => (
@@ -359,7 +418,7 @@ export function PaymentAccountsPanel() {
                   ))}
                 </div>
               )}
-              {errors.currencies ? <p className="mt-1 text-xs text-danger" role="alert">{errors.currencies}</p> : null}
+              {errors.currencies ? <p className="mt-1 text-caption text-danger" role="alert">{errors.currencies}</p> : null}
             </fieldset>
             <TextField
               label="Llave pública"

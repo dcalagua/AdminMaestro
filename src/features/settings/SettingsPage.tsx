@@ -8,6 +8,8 @@ import { PageContainer, Card, Badge, DataTable, EmptyState } from '@/components/
 import { PLATFORM_ROLE_LABEL, ORG_ROLE_LABEL } from '@/types/domain';
 import { env } from '@/lib/env';
 import { EbimLockup } from '@/components/ui/EbimMark';
+import { MoonIcon, SunIcon } from '@phosphor-icons/react';
+import { Avatar } from '@/components/ui/Avatar';
 
 const APP_ENV_LABEL: Record<string, string> = {
   LOCAL: 'Local (desarrollo en este equipo)',
@@ -43,17 +45,22 @@ export function SettingsPage() {
                 <div className="space-y-5 p-4">
                   <div>
                     <span className="ebim-label">Modo</span>
-                    <div className="flex gap-2">
-                      {(['light', 'dark'] as const).map((m) => (
-                        <button
-                          key={m}
-                          type="button"
-                          onClick={() => setMode(m)}
-                          className={mode === m ? 'ebim-btn-primary' : 'ebim-btn-ghost'}
-                        >
-                          {m === 'light' ? 'Claro' : 'Oscuro'}
-                        </button>
-                      ))}
+                    <div className="flex flex-wrap gap-2">
+                      {(['light', 'dark'] as const).map((m) => {
+                        const Icon = m === 'light' ? SunIcon : MoonIcon;
+                        return (
+                          <button
+                            key={m}
+                            type="button"
+                            aria-pressed={mode === m}
+                            onClick={() => setMode(m)}
+                            className={mode === m ? 'ebim-btn-primary' : 'ebim-btn-secondary'}
+                          >
+                            <Icon size={16} aria-hidden />
+                            {m === 'light' ? 'Claro' : 'Oscuro'}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -64,28 +71,27 @@ export function SettingsPage() {
                         <button
                           key={d}
                           type="button"
+                          aria-pressed={density === d}
                           onClick={() => setDensity(d)}
-                          className={density === d ? 'ebim-btn-primary' : 'ebim-btn-ghost'}
+                          className={density === d ? 'ebim-btn-primary' : 'ebim-btn-secondary'}
                         >
                           {d === 'comoda' ? 'Cómoda' : d === 'equilibrada' ? 'Equilibrada' : 'Compacta'}
                         </button>
                       ))}
                     </div>
-                    <p className="mt-2 text-xs text-muted">
+                    <p className="mt-2 text-caption text-muted">
                       Altura de control / fila: cómoda 40/52 · equilibrada 36/44 · compacta 32/38.
                     </p>
                   </div>
 
-                  <p className="text-xs text-muted" data-testid="appearance-persistence">
+                  <p className="text-caption text-muted" data-testid="appearance-persistence">
                     {persistence === 'BROWSER_AND_PROFILE'
                       ? 'Se guarda en este navegador y en tu perfil: se aplica al iniciar sesión en otro equipo.'
                       : 'Se guarda sólo en este navegador: no se pudo sincronizar con tu perfil.'}
                   </p>
 
-                  <div className="rounded-field border border-border p-4">
-                    <p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted">
-                      Vista previa
-                    </p>
+                  <div className="rounded-card border border-border bg-sunken p-4">
+                    <p className="mb-2 text-micro text-muted">Vista previa</p>
                     <div className="flex flex-wrap items-center gap-2">
                       <button type="button" className="ebim-btn-primary">Acción primaria</button>
                       <button type="button" className="ebim-btn-ghost">Secundaria</button>
@@ -113,6 +119,13 @@ export function SettingsPage() {
                   title="Identidad"
                   description="Tus roles los asigna el equipo de plataforma EBIM; esta pantalla sólo los muestra."
                 >
+                  <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+                    <Avatar name={roles?.fullName ?? roles?.email ?? '—'} mode="person" size="md" />
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-fg">{roles?.fullName ?? '—'}</p>
+                      <p className="truncate text-caption text-muted">{roles?.email ?? '—'}</p>
+                    </div>
+                  </div>
                   <dl className="divide-y divide-border">
                     {[
                       ['Correo', roles?.email ?? '—'],
@@ -121,7 +134,7 @@ export function SettingsPage() {
                       ['Rol de plataforma', roles?.platformRole ? PLATFORM_ROLE_LABEL[roles.platformRole] : 'Ninguno'],
                       ['Comercial asociado', roles?.salesAgentId ? 'Sí' : 'No'],
                     ].map(([k, v]) => (
-                      <div key={k} className="flex justify-between gap-4 px-4 py-2.5 text-sm">
+                      <div key={k} className="flex justify-between gap-4 px-4 py-2.5 text-body">
                         <dt className="text-muted">{k}</dt>
                         <dd className="text-right font-medium">{v}</dd>
                       </div>
@@ -144,7 +157,7 @@ export function SettingsPage() {
                       {(roles?.tenantRoles ?? []).map((t) => (
                         <tr key={t.tenantId}>
                           <td className="ebim-td">Tenant</td>
-                          <td className="ebim-td font-mono text-xs">{t.tenantId.slice(0, 8)}…</td>
+                          <td className="ebim-td font-mono text-caption">{t.tenantId.slice(0, 8)}…</td>
                           <td className="ebim-td"><Badge tone="accent">{t.role}</Badge></td>
                         </tr>
                       ))}
@@ -183,9 +196,9 @@ export function SettingsPage() {
                       ['Clave de servicio en el navegador', 'Nunca. Sólo existe del lado servidor.'],
                       ['Solicitudes de infraestructura', 'DRY_RUN por defecto (simulación)'],
                     ].map(([k, v]) => (
-                      <div key={k} className="flex justify-between gap-4 px-1 py-2.5 text-sm">
+                      <div key={k} className="flex justify-between gap-4 px-1 py-2.5 text-body">
                         <dt className="text-muted">{k}</dt>
-                        <dd className="break-all text-right font-mono text-xs">{v}</dd>
+                        <dd className="break-all text-right font-mono text-caption">{v}</dd>
                       </div>
                     ))}
                   </dl>
