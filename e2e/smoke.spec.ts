@@ -43,11 +43,13 @@ test.describe('Consola EBIM (super admin)', () => {
   });
 
   test('el dashboard muestra indicadores calculados del seed', async ({ page }) => {
-    // Spec 2026-09-25 §7: el inicio es el «Resumen ejecutivo» con seis KPI.
+    // V4 fase 09 (D-V05): el inicio es el «Resumen ejecutivo» con una franja de seis KPI.
     await expect(page.getByRole('heading', { name: 'Resumen ejecutivo', level: 1 })).toBeVisible();
-    await expect(page.locator('[data-kpi]')).toHaveCount(6);
-    await expect(page.locator('[data-kpi="K01"]')).toContainText('MRR vigente');
-    await expect(page.locator('[data-kpi="K02"]')).toContainText('Cobrado del período');
+    const hero = page.getByRole('region', { name: 'Indicadores clave' });
+    await expect(hero.locator(':scope > *')).toHaveCount(6);
+    await expect(hero).toContainText('MRR');
+    await expect(hero).toContainText('Cobrado del mes');
+    await expect(page.getByRole('heading', { name: '¿Cómo crece el ingreso recurrente?' })).toBeVisible();
     // Margen por producto con datos reales, ahora en la perspectiva Finanzas.
     await page.getByRole('tab', { name: 'Finanzas' }).click();
     await expect(page.getByText('¿Cómo se compone el margen de cada SaaS?')).toBeVisible();

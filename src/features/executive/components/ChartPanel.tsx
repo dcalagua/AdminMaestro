@@ -106,7 +106,7 @@ export function ChartPanel({
         ) : state.status === 'loading' ? (
           <div aria-busy="true">
             <span role="status" className="sr-only">
-              Cargando {title}…
+              Cargando gráfico…
             </span>
             <ChartSkeleton />
           </div>

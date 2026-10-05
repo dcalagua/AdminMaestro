@@ -129,8 +129,8 @@ export function MrrEvolutionChart({
             tick={AXIS}
             tickLine={false}
             axisLine={{ stroke: 'var(--chart-baseline)' }}
-            interval="preserveStartEnd"
-            minTickGap={12}
+            // Con más de 12 meses, un mes sí y uno no: ritmo regular (el último lleva etiqueta directa).
+            interval={data.length > 12 ? 1 : 0}
             tickFormatter={(label: string) => axisMonth(data, data.find((d) => d.label === label)?.month)}
           />
           <YAxis
