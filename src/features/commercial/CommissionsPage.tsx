@@ -28,6 +28,7 @@ import { useDebouncedSearch } from '@/features/billing/listingState';
 import { FilterTotals, KpiStrip, NativeAmountTile } from '@/features/billing/financeUi';
 import { analyzedMonth, closedWindow, longMonthName, relChange, shortMonthName } from '@/features/billing/financeModel';
 import { PeriodBars } from '@/features/billing/lazyFinanceCharts';
+import { COMMISSION_STATUS_LABEL, COMMISSION_STATUS_TONE } from './commissionLabels';
 
 /**
  * Comisiones y liquidaciones (P14; liquidación y pago en la fase 13).
@@ -56,20 +57,8 @@ const LIST = {
 };
 
 /** Etiquetas de esta pantalla: «Pendiente» aquí es ELEGIBLE + DEVENGADA, no PENDING. */
-const STATUS_LABEL: Record<string, string> = {
-  PENDING: 'En espera',
-  ELIGIBLE: 'Elegible',
-  ACCRUED: 'Devengada',
-  PAID: 'Pagada',
-  VOID: 'Anulada',
-};
-const STATUS_TONE: Record<string, 'ok' | 'warn' | 'danger' | 'neutral' | 'info'> = {
-  PENDING: 'neutral',
-  ELIGIBLE: 'warn',
-  ACCRUED: 'warn',
-  PAID: 'ok',
-  VOID: 'danger',
-};
+const STATUS_LABEL = COMMISSION_STATUS_LABEL;
+const STATUS_TONE = COMMISSION_STATUS_TONE;
 
 function num(value: number | string | null | undefined): number | null {
   return value === null || value === undefined ? null : Number(value);

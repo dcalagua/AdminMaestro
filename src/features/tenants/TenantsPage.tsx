@@ -162,7 +162,7 @@ export function TenantsPage() {
                 </td>
                 <td className="ebim-td">
                   <span
-                    className="block max-w-[150px] truncate whitespace-nowrap font-mono text-compact"
+                    className="block max-w-[120px] truncate whitespace-nowrap font-mono text-compact"
                     title={(t.deployment_target_code as string) ?? undefined}
                   >
                     {t.deployment_target_code ?? <span className="font-sans text-muted">Sin asignar</span>}

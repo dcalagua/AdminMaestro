@@ -402,18 +402,18 @@ export function RenewalsPage() {
               <tr key={r.subscription_id as string}>
                 <td className="ebim-td">
                   <Link
-                    className="ebim-link block max-w-[220px] truncate whitespace-nowrap font-mono text-compact"
+                    className="ebim-link block max-w-[190px] truncate whitespace-nowrap font-mono text-compact"
                     title={r.subscription_code ?? undefined}
                     to={`/subscriptions/${r.subscription_id}`}
                   >
                     {r.subscription_code}
                   </Link>
-                  <span className="block max-w-[220px] truncate text-caption text-muted" title={r.tenant_name ?? undefined}>
+                  <span className="block max-w-[190px] truncate text-caption text-muted" title={r.tenant_name ?? undefined}>
                     {r.product_short_name}
                   </span>
                 </td>
                 <td className="ebim-td">
-                  <span className="block max-w-[220px] truncate text-fg-2" title={r.billed_organization_name ?? undefined}>
+                  <span className="block max-w-[180px] truncate text-fg-2" title={r.billed_organization_name ?? undefined}>
                     {r.billed_organization_name}
                   </span>
                 </td>
@@ -488,13 +488,13 @@ export function RenewalsPage() {
                 <tr key={a.id}>
                   <td className="ebim-td">
                     <div className="font-semibold">{ALERT_LABEL[a.alert_type as string] ?? a.title}</div>
-                    <div className="max-w-[280px] truncate text-compact text-fg-2" title={[a.title, a.message].filter(Boolean).join(' · ')}>
+                    <div className="max-w-[260px] truncate text-compact text-fg-2" title={[a.title, a.message].filter(Boolean).join(' · ')}>
                       {[a.title, a.message].filter(Boolean).join(' · ')}
                     </div>
                   </td>
                   <td className="ebim-td">
                     <Link
-                      className="ebim-link block max-w-[200px] truncate whitespace-nowrap font-mono text-compact"
+                      className="ebim-link block max-w-[180px] truncate whitespace-nowrap font-mono text-compact"
                       title={sub?.code}
                       to={`/subscriptions/${a.subscription_id}`}
                     >
@@ -503,7 +503,7 @@ export function RenewalsPage() {
                     <span className="block text-caption text-muted">{sub?.saas_products?.short_name}</span>
                   </td>
                   <td className="ebim-td">
-                    <span className="block max-w-[200px] truncate text-fg-2" title={sub?.organizations?.display_name}>
+                    <span className="block max-w-[180px] truncate text-fg-2" title={sub?.organizations?.display_name}>
                       {sub?.organizations?.display_name}
                     </span>
                   </td>

@@ -18,6 +18,8 @@ import { tenantDimensions } from '@/features/tenants/tenantDimensions';
 import { TenantDimensionsInline } from '@/features/tenants/TenantDimensionsView';
 import { formatMoney, formatNumber, formatDate, formatDateTime } from '@/lib/format';
 import { DEPLOYMENT_MODE_LABEL, INVOICE_STATUS_LABEL } from '@/types/domain';
+import { PROVISIONING_ACTION_LABEL, provisioningRequestTone, provisioningStatusLabel } from '@/features/deployments/provisioningLabels';
+import { COMMISSION_STATUS_LABEL, COMMISSION_STATUS_TONE } from '@/features/commercial/commissionLabels';
 import {
   useOrgAudit,
   useOrgCommissions,
@@ -530,14 +532,19 @@ export function Org360Activity({ organizationId }: { organizationId: string }) {
       </Section>
       <Section title="Solicitudes de infraestructura" description="Cola de infraestructura (distinta de las altas SaaS). DRY_RUN registra la intención." state={fromQuery(infra)} onRetry={() => void infra.refetch()} empty="Sin solicitudes de infraestructura.">
         {() => (
-          <DataTable columns={['Acción', 'Tenant', 'Modo', 'Estado', 'Creada']}>
+          // Media columna: acción con su tenant y estado con su modo, en español (U-13).
+          <DataTable columns={['Acción · tenant', 'Estado · modo', 'Creada']}>
             {(infra.data ?? []).map((p) => (
               <tr key={p.id as string}>
-                <td className="ebim-td font-medium">{p.action as string}</td>
-                <td className="ebim-td text-muted">{(p.tenants as { name: string } | null)?.name ?? '—'}</td>
-                <td className="ebim-td"><Badge tone={p.mode === 'DRY_RUN' ? 'info' : 'warn'}>{p.mode === 'DRY_RUN' ? 'Simulación (DRY_RUN)' : (p.mode as string)}</Badge></td>
-                <td className="ebim-td"><Badge tone={p.status === 'SUCCEEDED' ? 'ok' : p.status === 'FAILED' ? 'danger' : 'warn'}>{p.status as string}</Badge></td>
-                <td className="ebim-td text-xs text-muted">{formatDate(p.created_at as string)}</td>
+                <td className="ebim-td">
+                  <span className="block font-medium">{PROVISIONING_ACTION_LABEL[p.action as string] ?? (p.action as string)}</span>
+                  <span className="block max-w-[200px] truncate text-caption text-muted">{(p.tenants as { name: string } | null)?.name ?? '—'}</span>
+                </td>
+                <td className="ebim-td">
+                  <Badge tone={provisioningRequestTone(p.status as string)} dot>{provisioningStatusLabel(p.status as string)}</Badge>
+                  <span className="mt-0.5 block whitespace-nowrap text-caption text-muted">{p.mode === 'DRY_RUN' ? 'Simulación (DRY_RUN)' : (p.mode as string)}</span>
+                </td>
+                <td className="ebim-td whitespace-nowrap text-caption text-muted">{formatDate(p.created_at as string)}</td>
               </tr>
             ))}
           </DataTable>
@@ -551,7 +558,9 @@ export function Org360Activity({ organizationId }: { organizationId: string }) {
                 <td className="ebim-td">{c.agent_name}</td>
                 <td className="ebim-td"><Badge tone={c.is_reversal ? 'danger' : 'info'}>{c.source_label}</Badge></td>
                 <td className={`ebim-td text-right tabular-nums ${Number(c.amount) < 0 ? 'text-danger' : ''}`}>{formatMoney(Number(c.amount), c.currency)}</td>
-                <td className="ebim-td text-muted">{c.status}</td>
+                <td className="ebim-td">
+                  <Badge tone={COMMISSION_STATUS_TONE[c.status as string] ?? 'neutral'}>{COMMISSION_STATUS_LABEL[c.status as string] ?? c.status}</Badge>
+                </td>
               </tr>
             ))}
           </DataTable>

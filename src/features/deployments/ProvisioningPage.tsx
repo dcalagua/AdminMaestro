@@ -13,32 +13,12 @@ import {
 } from '@/components/ui/primitives';
 import { formatDateTime, formatNumber } from '@/lib/format';
 import { KpiStrip } from '@/features/billing/financeUi';
-import { PROVISIONING_STATUS_LABEL } from '@/types/domain';
 import { EnqueueProvisioningDialog } from './DeploymentDialogs';
+import { PROVISIONING_ACTION_LABEL, provisioningRequestTone, provisioningStatusLabel } from './provisioningLabels';
 
 type QueueFilter = 'ALL' | 'OPEN' | 'FAILED' | 'DONE';
 
-const ACTION_LABEL: Record<string, string> = {
-  CREATE_TENANT_SPACE: 'Crear espacio de tenant',
-  CREATE_DEDICATED_TARGET: 'Crear infraestructura dedicada',
-  ATTACH_TENANT_TO_TARGET: 'Adjuntar tenant a destino',
-  SUSPEND_TENANT: 'Suspender tenant',
-  RESUME_TENANT: 'Reanudar tenant',
-  DECOMMISSION_TENANT: 'Dar de baja tenant',
-};
-
 const OPEN_STATUSES = ['PENDING', 'VALIDATING', 'RUNNING'];
-
-function statusLabel(status: string): string {
-  return PROVISIONING_STATUS_LABEL[status as keyof typeof PROVISIONING_STATUS_LABEL] ?? status;
-}
-
-function statusTone(status: string): 'ok' | 'danger' | 'warn' | 'neutral' {
-  if (status === 'SUCCEEDED') return 'ok';
-  if (status === 'FAILED') return 'danger';
-  if (status === 'CANCELLED') return 'neutral';
-  return 'warn';
-}
 
 /** DRY_RUN y LIVE se dicen con palabras: una simulación no es un resultado real. */
 function ModeBadge({ mode }: { mode: string }) {
@@ -83,7 +63,7 @@ export function ProvisioningPage() {
     }
   }
   const { term, setTerm, filtered } = useSearchFilter(requests.data, (r) => [
-    r.action, ACTION_LABEL[r.action as string], r.status, r.idempotency_key,
+    r.action, PROVISIONING_ACTION_LABEL[r.action as string], r.status, r.idempotency_key,
     (r.tenants as { name: string } | null)?.name,
     (r.deployment_targets as { code: string } | null)?.code,
   ]);
@@ -178,7 +158,7 @@ export function ProvisioningPage() {
                 <Fragment key={id}>
                   <tr>
                     <td className="ebim-td">
-                      <span className="font-medium">{ACTION_LABEL[r.action as string] ?? (r.action as string)}</span>
+                      <span className="font-medium">{PROVISIONING_ACTION_LABEL[r.action as string] ?? (r.action as string)}</span>
                       <p className="font-mono text-caption text-muted">{r.action as string}</p>
                     </td>
                     {/* Tenant y destino comparten celda, y los intentos van bajo la fecha:
@@ -192,8 +172,8 @@ export function ProvisioningPage() {
                       </span>
                     </td>
                     <td className="ebim-td">
-                      <Badge tone={statusTone(r.status as string)} dot>
-                        {statusLabel(r.status as string)}
+                      <Badge tone={provisioningRequestTone(r.status as string)} dot>
+                        {provisioningStatusLabel(r.status as string)}
                       </Badge>
                       {r.error_message ? (
                         <p className="mt-1 max-w-[200px] truncate text-caption text-danger" title={r.error_message as string}>
@@ -269,7 +249,7 @@ export function ProvisioningPage() {
                                     className="absolute -left-[5px] top-1.5 h-2 w-2 rounded-full bg-border-strong ring-2 ring-sunken"
                                   />
                                   <div className="flex flex-wrap items-center gap-2">
-                                    <Badge tone={statusTone(e.status as string)}>{statusLabel(e.status as string)}</Badge>
+                                    <Badge tone={provisioningRequestTone(e.status as string)}>{provisioningStatusLabel(e.status as string)}</Badge>
                                     <time className="text-muted" dateTime={e.occurred_at as string}>
                                       {formatDateTime(e.occurred_at as string)}
                                     </time>

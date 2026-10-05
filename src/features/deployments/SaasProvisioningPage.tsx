@@ -244,11 +244,9 @@ export function SaasProvisioningPage() {
             label="Solicitudes de alta SaaS"
             columns={[
               'Tenant',
-              'Producto · ambiente',
-              'Destino',
+              'Producto y destino',
               'Estado',
-              { label: 'Intentos', align: 'right' },
-              'Solicitado',
+              'Solicitado · intentos',
               { label: 'Acciones', srOnly: true },
             ]}
           >
@@ -268,9 +266,11 @@ export function SaasProvisioningPage() {
                     <td className="ebim-td">
                       <div className="flex min-w-0 items-center gap-3">
                         <Avatar name={(r.tenant_name as string) ?? '—'} />
-                        <div className="min-w-0">
+                        {/* Ancho máximo: un nombre largo empujaba las acciones fuera de la vista. */}
+                        <div className="min-w-0 max-w-[170px]">
                           <Link
                             to={`/tenants/${r.tenant_id}`}
+                            title={r.tenant_name as string}
                             className="block truncate font-semibold text-fg hover:text-accent-deep hover:underline"
                           >
                             {r.tenant_name}
@@ -283,17 +283,17 @@ export function SaasProvisioningPage() {
                       <div className="font-semibold">{r.product_short_name}</div>
                       <div className="text-caption text-muted">
                         {PROVISIONING_ENVIRONMENT_LABEL[r.provisioning_environment as ProvisioningEnvironment]}
-                      </div>
-                    </td>
-                    <td className="ebim-td">
-                      {r.deployment_code ? (
-                        <span className="font-mono text-caption">{r.deployment_code}</span>
-                      ) : (
-                        <span className="text-caption text-muted">Sin asignar</span>
-                      )}
-                      <div className="text-caption text-muted">
+                        {' · '}
                         {DEPLOYMENT_MODE_LABEL[r.deployment_mode as DeploymentMode]}
                       </div>
+                      {/* El destino va con el producto: como columna propia la tabla no cabía a 1280. */}
+                      {r.deployment_code ? (
+                        <div className="max-w-[180px] truncate font-mono text-caption" title={r.deployment_code as string}>
+                          {r.deployment_code}
+                        </div>
+                      ) : (
+                        <div className="text-caption text-muted">Sin destino asignado</div>
+                      )}
                     </td>
                     <td className="ebim-td">
                       <Badge tone={provisioningStatusTone(status)} dot>
@@ -305,12 +305,12 @@ export function SaasProvisioningPage() {
                         </p>
                       ) : null}
                     </td>
-                    <td className="ebim-td ebim-num text-compact">
-                      {r.attempt_count}/{r.max_attempts}
-                    </td>
                     <td className="ebim-td">
                       <div className="text-compact">{r.requested_by_name ?? '—'}</div>
                       <div className="whitespace-nowrap text-caption text-muted">{formatDateTime(r.requested_at)}</div>
+                      <div className="whitespace-nowrap text-caption tabular-nums text-muted">
+                        Intento {r.attempt_count as number} de {r.max_attempts as number}
+                      </div>
                     </td>
                     <td className="ebim-td text-right">
                       <div className="flex items-center justify-end gap-1 whitespace-nowrap">
@@ -369,7 +369,7 @@ export function SaasProvisioningPage() {
                   </tr>
                   {isExpanded ? (
                     <tr>
-                      <td className="ebim-td bg-sunken" colSpan={7}>
+                      <td className="ebim-td bg-sunken" colSpan={5}>
                         <RequestDetail request={r as Record<string, unknown>} />
                       </td>
                     </tr>
