@@ -723,7 +723,9 @@ begin
       elsif not v_approved then
         v_stl := platform.settle_commissions(v_q.sales_agent_id, v_q.qs, v_q.qe, v_q.currency);
         perform platform.approve_commission_settlement(v_stl, 'Revisada contra cobros del trimestre.');
-        update platform.commission_settlements set approved_at = pg_temp.at15(v_q.qe + 8) where id = v_stl;
+        -- Nunca en el futuro: el trimestre puede haber cerrado hace menos de 8 días.
+        update platform.commission_settlements
+           set approved_at = least(pg_temp.at15(v_q.qe + 8), now() - interval '1 hour') where id = v_stl;
         v_approved := true;
       end if;
       continue;
@@ -737,6 +739,12 @@ begin
       'LIQ-' || to_char(v_q.qs, 'YYYY') || 'Q' || extract(quarter from v_q.qs) || '-' || upper(left(v_q.code, 6)),
       'BANK_TRANSFER', 'Liquidación trimestral pagada por transferencia.');
   end loop;
+
+  -- Generadas en su día real (2 h antes de aprobarse), nunca en el futuro.
+  update platform.commission_settlements s
+     set created_at = least(pg_temp.at15(s.period_end + 8) - interval '2 hours', now() - interval '2 hours')
+    from platform.sales_agents a
+   where a.id = s.sales_agent_id and a.metadata ->> 'demo' = 'gerencia-v4';
 end;
 $$;
 
@@ -992,7 +1000,7 @@ update platform.audit_logs l
    set occurred_at = case l.action
                        when 'COMMISSION_SETTLEMENT_PAID' then s.paid_at
                        when 'COMMISSION_SETTLEMENT_APPROVED' then s.approved_at
-                       else pg_temp.at15(s.period_end + 8) - interval '2 hours' end
+                       else least(pg_temp.at15(s.period_end + 8) - interval '2 hours', s.created_at) end
   from platform.commission_settlements s
  where l.id > (select id from demo_audit_floor)
    and l.action in ('COMMISSIONS_SETTLED', 'COMMISSION_SETTLEMENT_APPROVED', 'COMMISSION_SETTLEMENT_PAID')
@@ -1058,7 +1066,7 @@ begin
   if v_links < 2 then raise exception 'DEMO_INCOMPLETO: enlaces de pago=%', v_links; end if;
   if v_stmts < 2 then raise exception 'DEMO_INCOMPLETO: estados de cuenta de partner=%', v_stmts; end if;
 
-  raise notice 'DEMO gerencia-v4 OK · clientes=% contratos=% bajas=% facturas=% cobros=% comisiones=% liquidaciones(pagadas/abiertas)=%/% creditos=% enlaces=% estados_partner=%',
-    v_customers, v_subs, v_churned, v_invoices, v_payments, v_events, v_paid_stl, v_open_stl, v_ledger, v_links, v_stmts;
+  raise notice 'DEMO gerencia-v4 OK · clientes=% contratos=% bajas=% facturas=% cobros=% comisiones=% liquidaciones(pagadas/aprobadas/abiertas)=%/%/% creditos=% enlaces=% estados_partner=%',
+    v_customers, v_subs, v_churned, v_invoices, v_payments, v_events, v_paid_stl, v_appr_stl, v_open_stl, v_ledger, v_links, v_stmts;
 end;
 $$;

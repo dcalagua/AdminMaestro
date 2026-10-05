@@ -783,6 +783,7 @@ begin
 
     update platform.commission_settlements
        set status = 'PAID',
+           created_at = now() - interval '22 days',
            approved_at = now() - interval '20 days',
            approved_by = '10000000-0000-4000-a000-000000000003',
            paid_at = now() - interval '15 days',

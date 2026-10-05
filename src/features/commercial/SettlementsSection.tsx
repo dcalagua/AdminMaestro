@@ -356,7 +356,7 @@ function SettlementDetailDrawer({
               ) : (
                 <DataTable
                   label={`Comisiones de ${s.code}`}
-                  columns={['Fecha', 'Cliente y origen', { label: 'Base', align: 'right' }, { label: 'Monto', align: 'right' }]}
+                  columns={['Fecha', 'Cliente y origen', { label: 'Monto', align: 'right' }]}
                 >
                   {rows.map((e) => {
                     const amount = Number(e.amount ?? 0);
@@ -364,7 +364,7 @@ function SettlementDetailDrawer({
                       <tr key={e.commission_event_id}>
                         <td className="ebim-td whitespace-nowrap text-compact text-fg-2">{formatDate(e.earned_on)}</td>
                         <td className="ebim-td text-compact">
-                          <span className="block max-w-[240px] truncate font-medium" title={e.tenant_name ?? undefined}>
+                          <span className="block max-w-[300px] truncate font-medium" title={e.tenant_name ?? undefined}>
                             {e.tenant_name ?? 'Sin tenant'}
                           </span>
                           <span className="flex items-center gap-1.5 text-caption text-muted">
@@ -374,11 +374,10 @@ function SettlementDetailDrawer({
                             </span>
                           </span>
                         </td>
-                        <td className="ebim-td ebim-num whitespace-nowrap text-compact text-fg-2">
-                          {formatMoney(Number(e.base_amount ?? 0), e.currency)}
-                        </td>
-                        <td className={`ebim-td ebim-num whitespace-nowrap font-semibold ${amount < 0 ? 'text-danger' : ''}`}>
-                          {formatMoney(amount, e.currency)}
+                        {/* Monto con su base debajo: a 640 px no caben cuatro columnas. */}
+                        <td className="ebim-td ebim-num whitespace-nowrap">
+                          <span className={`block font-semibold ${amount < 0 ? 'text-danger' : ''}`}>{formatMoney(amount, e.currency)}</span>
+                          <span className="block text-caption text-muted">sobre {formatMoney(Number(e.base_amount ?? 0), e.currency)}</span>
                         </td>
                       </tr>
                     );
