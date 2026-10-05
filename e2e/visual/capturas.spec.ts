@@ -60,6 +60,8 @@ interface Shot {
   errorText: string | null;
   httpErrors: number;
   horizontalOverflow: boolean;
+  /** Contenedores con scroll horizontal propio dentro de `main` (tablas que no caben). */
+  innerOverflow: string[];
 }
 
 const ALLOWED_HOSTS = new Set([
@@ -128,9 +130,9 @@ async function settle(page: Page) {
     .waitFor({ state: 'visible', timeout: 15_000 })
     .catch(() => undefined);
   await page
-    .locator('[aria-busy="true"], .animate-pulse, .animate-spin')
+    .locator('[aria-busy="true"], .animate-pulse, .animate-spin, .ebim-skeleton')
     .first()
-    .waitFor({ state: 'detached', timeout: 10_000 })
+    .waitFor({ state: 'detached', timeout: 20_000 })
     .catch(() => undefined);
   await page.evaluate(() => document.fonts?.ready);
   // Las animaciones de entrada de Recharts duran ~1.5 s.
@@ -180,9 +182,32 @@ async function capture(
         title: h1,
         alerts,
         overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+        // Tablas que no caben: el scroll propio esconde columnas (p. ej. acciones).
+        // Las filas de pestañas desbordan a propósito (SectionTabs lleva la activa a la vista).
+        inner: [...document.querySelectorAll('main *')]
+          .filter((el) => {
+            const ox = getComputedStyle(el).overflowX;
+            return (
+              (ox === 'auto' || ox === 'scroll') &&
+              el.scrollWidth > el.clientWidth + 1 &&
+              el.getAttribute('role') !== 'tablist' &&
+              !el.querySelector(':scope > [role="tablist"]')
+            );
+          })
+          .map((el) => {
+            const card = el.closest('section, article, [data-panel], .ebim-card');
+            const head = card?.querySelector('h2, h3')?.textContent?.trim();
+            return `${head ?? el.tagName.toLowerCase()} (+${el.scrollWidth - el.clientWidth}px)`;
+          }),
       };
     })
-    .catch(() => ({ dataTheme: null, title: null, alerts: [] as string[], overflow: false }));
+    .catch(() => ({
+      dataTheme: null,
+      title: null,
+      alerts: [] as string[],
+      overflow: false,
+      inner: [] as string[],
+    }));
   const finalUrl = new URL(page.url()).pathname;
   if (!errorText && info.alerts.length) errorText = info.alerts.join(' | ').slice(0, 300);
   const expectedTheme = theme === 'oscuro' ? 'dark' : 'light';
@@ -201,6 +226,7 @@ async function capture(
     errorText,
     httpErrors: counter.http,
     horizontalOverflow: info.overflow,
+    innerOverflow: info.inner,
   };
 }
 
@@ -293,6 +319,7 @@ test.describe('inventario visual de la consola', () => {
           errorText: 'no se encontró un registro para abrir la ficha',
           httpErrors: 0,
           horizontalOverflow: false,
+          innerOverflow: [],
         });
         continue;
       }
@@ -323,6 +350,7 @@ test.describe('inventario visual de la consola', () => {
           generatedAt: new Date().toISOString(),
           total: shots.length,
           withErrors: shots.filter((s) => s.error && !s.expectedError).length,
+          withInnerOverflow: shots.filter((s) => s.innerOverflow.length).length,
           blockedHosts: unexpected,
           shots,
         },
