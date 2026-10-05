@@ -29,14 +29,14 @@ export function RegionalPriceList({
 
   if (all.length === 0) {
     return kind === 'one-time' ? (
-      <span className="text-xs text-muted">—</span>
+      <span className="text-compact text-muted">—</span>
     ) : (
-      <span className="text-xs font-semibold text-warn">Sin precio definido</span>
+      <span className="text-compact font-semibold text-warn">Sin precio definido</span>
     );
   }
   if (rows.length === 0) {
     return (
-      <span className="text-xs text-muted">
+      <span className="text-compact text-muted">
         {kind === 'one-time' ? 'Sin cargos únicos' : 'Sin precio recurrente definido'}
       </span>
     );
@@ -58,9 +58,9 @@ export function RegionalPriceList({
         const market = marketOf(pr);
         const scheduled = String(pr.valid_from) > today;
         return (
-          <li key={pr.id as string} className="flex flex-wrap items-baseline gap-x-1 text-xs">
+          <li key={pr.id as string} className="flex flex-wrap items-baseline gap-x-1 text-compact">
             <span
-              className={`rounded px-1 text-[11px] font-semibold ${
+              className={`rounded px-1 text-caption font-semibold ${
                 market === 'LEGACY' ? 'bg-warn-soft text-warn' : 'bg-accent-soft text-accent-deep'
               }`}
               title={market === 'LEGACY' ? 'Tarifa anterior a V3 sin mercado: no se usa para vender' : `Mercado ${market}`}

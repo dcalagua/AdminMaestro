@@ -22,7 +22,7 @@ export function AddonPriceList({ prices }: { prices: CatalogItemPriceRow[] | nul
   );
 
   if (open.length === 0) {
-    return <span className="text-xs font-semibold text-warn">Sin precio definido</span>;
+    return <span className="text-compact font-semibold text-warn">Sin precio definido</span>;
   }
 
   const sorted = [...open].sort(
@@ -38,10 +38,10 @@ export function AddonPriceList({ prices }: { prices: CatalogItemPriceRow[] | nul
       {sorted.map((pr) => (
         <li
           key={pr.price_id ?? `${pr.market_code}-${pr.charge_kind}-${pr.valid_from}`}
-          className="flex flex-wrap items-baseline gap-x-1 text-xs"
+          className="flex flex-wrap items-baseline gap-x-1 text-compact"
         >
           <span
-            className="rounded bg-accent-soft px-1 text-[11px] font-semibold text-accent-deep"
+            className="rounded bg-accent-soft px-1 text-caption font-semibold text-accent-deep"
             title={pr.market_name ? `Mercado ${pr.market_name}` : undefined}
           >
             {pr.market_code ?? 'Sin mercado'}

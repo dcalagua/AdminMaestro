@@ -16,16 +16,11 @@ import { countryName, formatMoney, formatPercent, formatDate, formatNumber } fro
 import { DEPLOYMENT_MODE_LABEL, TENANT_TYPE_LABEL } from '@/types/domain';
 import { AGENT_TYPE_LABEL } from '@/features/commercial/commercialLabels';
 
-const BILLING_RESPONSIBILITY_TEXT: Record<string, string> = {
-  EBIM: 'Factura EBIM',
-  PARTNER: 'Factura el partner',
-  MIXED: 'Mixto',
-};
 import { AgreementFormDialog } from './AgreementFormDialog';
 import { ActionMenu } from '@/components/ui/ActionMenu';
 import { Avatar } from '@/components/ui/Avatar';
 import { entityStatusLabel, entityStatusTone } from '@/features/catalog/catalogLabels';
-import { capabilityText } from './organizationLabels';
+import { BILLING_RESPONSIBILITY_TEXT, capabilityText } from './organizationLabels';
 import {
   Org360KpiStrip,
   Org360Activity,

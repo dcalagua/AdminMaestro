@@ -38,7 +38,8 @@ export function ActionMenu({
   /** Nombre accesible del botón: «Acciones de INV-0001». */
   label: string;
   items: Array<ActionMenuItem | null | false | undefined>;
-  variant?: 'row' | 'page';
+  /** `icon`: botón solo-icono siempre visible (tarjetas de catálogo). */
+  variant?: 'row' | 'page' | 'icon';
   /** Texto visible del botón en la variante `page`. */
   buttonLabel?: string;
 }) {
@@ -153,9 +154,9 @@ export function ActionMenu({
       <button
         ref={buttonRef}
         type="button"
-        className={variant === 'row' ? 'ebim-icon-btn' : 'ebim-btn-ghost'}
+        className={variant === 'page' ? 'ebim-btn-ghost' : 'ebim-icon-btn'}
         aria-label={label}
-        title={variant === 'row' ? label : undefined}
+        title={variant === 'page' ? undefined : label}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
@@ -167,7 +168,7 @@ export function ActionMenu({
           }
         }}
       >
-        <DotsThreeIcon size={variant === 'row' ? 20 : 18} weight="bold" aria-hidden />
+        <DotsThreeIcon size={variant === 'page' ? 18 : 20} weight="bold" aria-hidden />
         {variant === 'page' ? buttonLabel : null}
       </button>
       {open

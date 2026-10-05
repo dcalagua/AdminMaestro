@@ -199,7 +199,9 @@ export function useAllFeatureFlags() {
       unwrap(
         await supabase
           .from('tenant_features')
-          .select('*, tenants(name, slug, saas_products(short_name))')
+          // FK explícita (A01): hay más de una relación tenants↔saas_products y
+          // PostgREST no puede elegir sola («more than one relationship»).
+          .select('*, tenants(name, slug, saas_products!tenants_saas_product_id_fkey(short_name))')
           .order('feature_key'),
       ),
   });

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 /*
@@ -114,25 +114,26 @@ describe('AddonsPage', () => {
     expect(row.textContent).not.toMatch(/\b0[.,]00\b/);
   });
 
-  it('finanzas ve «Nueva tarifa»; producto ve «Cambiar ciclo de vida»', () => {
+  it('finanzas ve «Nueva tarifa»; producto ve «Cambiar ciclo de vida» (en el menú de la fila)', async () => {
     itemsHook.mockReturnValue({ data: [item({})], isLoading: false, error: null });
     permissions.mockReturnValue({ canManagePlatform: false, canReadFinance: true });
     const { unmount } = renderPage();
-    expect(screen.getByRole('button', { name: 'Nueva tarifa' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Cambiar ciclo de vida' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Acciones de Almacén adicional' }));
+    expect(await screen.findByRole('menuitem', { name: 'Nueva tarifa' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Cambiar ciclo de vida' })).toBeNull();
     unmount();
 
     permissions.mockReturnValue({ canManagePlatform: true, canReadFinance: false });
     renderPage();
-    expect(screen.queryByRole('button', { name: 'Nueva tarifa' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Cambiar ciclo de vida' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Acciones de Almacén adicional' }));
+    expect(screen.queryByRole('menuitem', { name: 'Nueva tarifa' })).toBeNull();
+    expect(await screen.findByRole('menuitem', { name: 'Cambiar ciclo de vida' })).toBeInTheDocument();
   });
 
   it('sin permisos no ofrece acciones', () => {
     itemsHook.mockReturnValue({ data: [item({})], isLoading: false, error: null });
     renderPage();
-    expect(screen.queryByRole('button', { name: 'Nueva tarifa' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Cambiar ciclo de vida' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Acciones de/ })).toBeNull();
   });
 
   it('estado vacío', () => {
