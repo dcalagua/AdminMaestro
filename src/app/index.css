@@ -162,6 +162,21 @@
     @apply text-right tabular-nums;
   }
 
+  /* Acciones de fila (§5.7): en escritorio el botón DotsThree aparece al pasar
+     por la fila o al enfocarla; con puntero táctil se ve siempre. */
+  @media (hover: hover) and (pointer: fine) {
+    .ebim-row-actions {
+      @apply opacity-0 transition-opacity duration-fast ease-out;
+    }
+
+    tr:hover .ebim-row-actions,
+    .ebim-hover-row:hover .ebim-row-actions,
+    .ebim-row-actions:focus-within,
+    .ebim-row-actions[data-open] {
+      @apply opacity-100;
+    }
+  }
+
   .ebim-link {
     @apply font-semibold text-accent-deep underline-offset-2 hover:underline;
   }

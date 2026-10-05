@@ -13,7 +13,7 @@ import { formatNumber } from '@/lib/format';
 /** Contexto heredado (tarjeta, gráfico, enlace) visible y removible. */
 export function ScopeChip({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
-    <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-accent-soft py-1 pl-3 pr-1 text-xs font-semibold text-accent-deep">
+    <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-accent-soft py-1 pl-3 pr-1 text-caption font-semibold text-accent-deep">
       <span className="truncate">{label}</span>
       <button
         type="button"
@@ -29,7 +29,7 @@ export function ScopeChip({ label, onRemove }: { label: string; onRemove: () => 
 
 /** Fila de chips bajo el buscador; no ocupa espacio si no hay contexto. */
 export function ScopeChips({ children }: { children: ReactNode }) {
-  return <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2">{children}</div>;
+  return <div className="flex flex-wrap items-center gap-2 border-b border-border px-5 py-2">{children}</div>;
 }
 
 /**
@@ -51,7 +51,7 @@ export function ConsistencyNote({
   const count = Number(summaryCount);
   if (count === tableTotal) {
     return (
-      <p className="flex items-center gap-1.5 text-xs text-muted" data-testid="consistency-note">
+      <p className="flex items-center gap-1.5 text-caption text-muted" data-testid="consistency-note">
         <CheckCircleIcon size={14} aria-hidden className="shrink-0 text-ok" />
         Resumen y tabla cubren las mismas {formatNumber(count)} {noun}.
       </p>
@@ -59,7 +59,7 @@ export function ConsistencyNote({
   }
   return (
     <p
-      className="flex items-start gap-1.5 rounded-md bg-warn-soft px-3 py-2 text-xs font-semibold text-warn"
+      className="flex items-start gap-1.5 rounded-md bg-warn-soft px-3 py-2 text-caption font-semibold text-warn"
       role="status"
       data-testid="consistency-note"
     >
@@ -72,5 +72,5 @@ export function ConsistencyNote({
 
 /** Nota breve de negocio bajo el encabezado de una sección. */
 export function InfoNote({ children }: { children: ReactNode }) {
-  return <p className="rounded-lg bg-info-soft px-3 py-2 text-xs text-info">{children}</p>;
+  return <p className="rounded-card bg-info-soft px-4 py-2.5 text-compact text-info">{children}</p>;
 }
