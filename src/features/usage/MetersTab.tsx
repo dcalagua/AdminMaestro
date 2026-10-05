@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useProductCapabilities, useUsageMeters } from '@/services/queries';
+import { useProductCapabilities, useUsageAggregates, useUsageMeters } from '@/services/queries';
 import { useSetUsageMeterBillable, useUpsertUsageMeter } from '@/services/mutations';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useSearchFilter } from '@/hooks/useSearchFilter';
@@ -14,6 +14,9 @@ import { useToast } from '@/components/ui/toast-context';
 import { AGGREGATION_LABEL, MEASUREMENT_LABEL, METER_STATUS, labelOf } from './usageLabels';
 import { Undecided } from './Undecided';
 import { useLookups } from './useLookups';
+import { Sparkline } from '@/components/ui/Sparkline';
+import { formatPeriod, formatQuantity } from './usageLabels';
+import { meterKey, meterSeries, type MeterSeries } from './usageSeries';
 
 /**
  * Medidores de uso por producto (CCP fase 17, spec §11.1).
@@ -29,6 +32,8 @@ type StatusTab = 'ALL' | 'ACTIVE' | 'DRAFT' | 'DEPRECATED';
 
 export function MetersTab() {
   const meters = useUsageMeters();
+  const aggregates = useUsageAggregates();
+  const series = useMemo(() => meterSeries(aggregates.data ?? []), [aggregates.data]);
   const capabilities = useProductCapabilities();
   const lookups = useLookups();
   const perms = usePermissions();
@@ -64,7 +69,7 @@ export function MetersTab() {
         description="Qué mide cada producto y cómo se agrega por período. Un medidor nace no facturable: lo decide finanzas (D-06)."
         actions={
           perms.canManagePlatform ? (
-            <button type="button" className="ebim-btn-primary h-8 px-3 text-xs" onClick={() => setEditing('new')}>
+            <button type="button" className="ebim-btn-primary ebim-btn-sm" onClick={() => setEditing('new')}>
               Nuevo medidor
             </button>
           ) : null
@@ -103,10 +108,13 @@ export function MetersTab() {
         ) : (
           groups.map((g) => (
             <section key={g.id} aria-label={g.label}>
-              <h3 className="border-b border-border bg-[color:var(--bg)] px-4 py-2 text-sm font-bold text-fg">
+              <h3 className="border-b border-border bg-sunken px-5 py-2 text-compact font-semibold text-fg">
                 {g.label} <span className="ml-1 font-normal tabular-nums text-muted">{g.rows.length}</span>
               </h3>
-              <DataTable columns={['Medidor', 'Unidad', 'Agregación', 'Capacidad', 'Gracia', 'Estado', 'Facturable', '']}>
+              <DataTable
+                label={`Medidores de ${g.label}`}
+                columns={['Medidor', 'Consumo mensual', 'Agregación', 'Capacidad', 'Gracia', 'Estado', 'Facturable', { label: 'Acciones', srOnly: true }]}
+              >
                 {g.rows.map((m) => {
                   const st = labelOf(METER_STATUS, m.status);
                   const cap = m.capability_id ? capabilityById.get(m.capability_id) : null;
@@ -114,18 +122,26 @@ export function MetersTab() {
                     <tr key={m.id}>
                       <td className="ebim-td">
                         <div className="font-semibold">{m.name}</div>
-                        <div className="font-mono text-[11px] text-muted">{m.code}</div>
+                        <div className="font-mono text-caption text-muted">
+                          {m.code} · {m.unit}
+                        </div>
                       </td>
-                      <td className="ebim-td font-mono text-xs">{m.unit}</td>
-                      <td className="ebim-td text-xs">
+                      <td className="ebim-td">
+                        <MeterTrend
+                          series={series.get(meterKey(lookups.productCode(m.saas_product_id), m.code))}
+                          unit={m.unit}
+                          loading={aggregates.isLoading}
+                        />
+                      </td>
+                      <td className="ebim-td text-compact">
                         {AGGREGATION_LABEL[m.aggregation] ?? m.aggregation}
-                        <div className="text-[11px] text-muted">{MEASUREMENT_LABEL[m.measurement] ?? m.measurement}</div>
-                        {m.allows_negative ? <div className="text-[11px] text-muted">Admite negativos</div> : null}
+                        <div className="text-caption text-muted">{MEASUREMENT_LABEL[m.measurement] ?? m.measurement}</div>
+                        {m.allows_negative ? <div className="text-caption text-muted">Admite negativos</div> : null}
                       </td>
-                      <td className="ebim-td text-xs">
-                        {cap ? <span className="font-mono">{cap.code}</span> : <span className="text-muted">—</span>}
+                      <td className="ebim-td text-compact">
+                        {cap ? <span className="font-mono text-caption">{cap.code}</span> : <span className="text-muted">—</span>}
                       </td>
-                      <td className="ebim-td text-xs tabular-nums">{m.grace_hours} h</td>
+                      <td className="ebim-td ebim-num text-compact">{m.grace_hours} h</td>
                       <td className="ebim-td">
                         <Badge tone={st.tone}>{st.label}</Badge>
                       </td>
@@ -138,7 +154,7 @@ export function MetersTab() {
                           <Undecided code="D-06" />
                         )}
                         {m.billable_reason ? (
-                          <div className="mt-0.5 max-w-[200px] text-[11px] text-muted" title={m.billable_reason}>
+                          <div className="mt-0.5 max-w-[200px] truncate text-caption text-muted" title={m.billable_reason}>
                             {m.billable_reason}
                           </div>
                         ) : null}
@@ -146,12 +162,12 @@ export function MetersTab() {
                       <td className="ebim-td">
                         <div className="flex items-center justify-end gap-3 whitespace-nowrap">
                           {perms.canManagePlatform ? (
-                            <button type="button" className="ebim-link text-[13px]" onClick={() => setEditing(m)}>
+                            <button type="button" className="ebim-link text-compact" onClick={() => setEditing(m)}>
                               Editar
                             </button>
                           ) : null}
                           {perms.canReadFinance ? (
-                            <button type="button" className="ebim-link text-[13px]" onClick={() => setBillable(m)}>
+                            <button type="button" className="ebim-link text-compact" onClick={() => setBillable(m)}>
                               Facturable…
                             </button>
                           ) : null}
@@ -182,6 +198,31 @@ export function MetersTab() {
         onClose={() => setBillable(null)}
       />
     </>
+  );
+}
+
+/**
+ * Consumo mensual del medidor (suma de tenants, solo agregados FINALIZADOS):
+ * sparkline de los últimos meses + la cifra del último mes cerrado. Es
+ * tendencia, no magnitud: no compara medidores de unidades distintas.
+ */
+function MeterTrend({ series, unit, loading }: { series: MeterSeries | undefined; unit: string; loading: boolean }) {
+  if (loading) return <span className="ebim-skeleton inline-block h-7 w-28" aria-hidden />;
+  if (!series?.last) return <span className="text-caption text-muted">Sin períodos finalizados</span>;
+  const first = series.values.find((v) => v !== null);
+  const description = `Consumo de ${formatPeriod(series.periods[series.values.indexOf(first ?? null)])} a ${formatPeriod(series.last.period)}: de ${formatQuantity(first)} a ${formatQuantity(series.last.value)} ${unit}`;
+  return (
+    <div className="flex min-w-[180px] items-center gap-3" title={description} data-meter-trend>
+      <div className="w-24 shrink-0">
+        <Sparkline data={series.values} description={description} height={28} />
+      </div>
+      <div className="min-w-0 leading-tight">
+        <div className="text-compact font-semibold tabular-nums text-fg">
+          {formatQuantity(series.last.value)} <span className="font-mono text-caption font-normal text-muted">{unit}</span>
+        </div>
+        <div className="text-caption text-muted">{formatPeriod(series.last.period)}</div>
+      </div>
+    </div>
   );
 }
 
