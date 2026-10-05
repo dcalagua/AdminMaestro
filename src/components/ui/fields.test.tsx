@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRef, useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -169,7 +169,9 @@ describe('validación nativa en español (U-13)', () => {
     const mail = screen.getByRole('textbox', { name: 'Correo' });
     const prevented = [name, country, mail].map((el) => {
       const ev = new Event('invalid', { cancelable: true });
-      el.dispatchEvent(ev);
+      act(() => {
+        el.dispatchEvent(ev);
+      });
       return ev.defaultPrevented;
     });
     // Cancelar el evento suprime la burbuja nativa.
@@ -197,8 +199,10 @@ describe('validación nativa en español (U-13)', () => {
     );
     const first = screen.getByRole('textbox', { name: 'Primero' });
     const second = screen.getByRole('textbox', { name: 'Segundo' });
-    second.dispatchEvent(new Event('invalid', { cancelable: true }));
-    first.dispatchEvent(new Event('invalid', { cancelable: true }));
+    act(() => {
+      second.dispatchEvent(new Event('invalid', { cancelable: true }));
+      first.dispatchEvent(new Event('invalid', { cancelable: true }));
+    });
     expect(first).toHaveFocus();
     await user.type(first, 'x');
     expect(onChange).toHaveBeenCalled();
@@ -207,7 +211,9 @@ describe('validación nativa en español (U-13)', () => {
   it('un error explícito (React Hook Form) manda sobre el nativo', () => {
     render(<TextField label="Código" required error={{ message: 'Código duplicado' }} />);
     const input = screen.getByRole('textbox', { name: 'Código' });
-    input.dispatchEvent(new Event('invalid', { cancelable: true }));
+    act(() => {
+      input.dispatchEvent(new Event('invalid', { cancelable: true }));
+    });
     expect(screen.getByRole('alert')).toHaveTextContent('Código duplicado');
   });
 });
