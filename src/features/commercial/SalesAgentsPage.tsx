@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useSalesAgents, useAttributions } from '@/services/queries';
 import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -13,6 +12,8 @@ import {
 } from '@/features/catalog/catalogLabels';
 import type { EntityStatusTab } from '@/features/catalog/catalogLabels';
 import { SalesAgentFormDialog } from './CommercialDialogs';
+import { ActionMenu } from '@/components/ui/ActionMenu';
+import { Avatar } from '@/components/ui/Avatar';
 import { AGENT_TYPE_LABEL } from './commercialLabels';
 import type { SalesAgentDraft } from './CommercialDialogs';
 
@@ -98,77 +99,86 @@ export function SalesAgentsPage() {
           />
         ) : (
           <DataTable
-            columns={['Comercial', 'Tipo', 'Organización', 'Contacto', 'Atribuciones vigentes', 'Cartera', 'Vigencia', 'Estado', '']}
+            columns={[
+              'Comercial',
+              'Tipo',
+              'Contacto',
+              { label: 'Atribuciones vigentes', align: 'right' },
+              'Cartera',
+              'Vigencia',
+              'Estado',
+              { label: 'Acciones', srOnly: true },
+            ]}
           >
             {visible.map((a) => {
               const own = portfolio.get(a.id);
               return (
                 <tr key={a.id}>
                   <td className="ebim-td">
-                    <div className="font-semibold">{a.full_name}</div>
-                    <div className="font-mono text-[11px] text-muted">{a.code}</div>
+                    <div className="flex items-center gap-3">
+                      <Avatar name={a.full_name} mode="person" />
+                      <div className="min-w-0">
+                        <div className="font-semibold">{a.full_name}</div>
+                        <div className="whitespace-nowrap font-mono text-caption text-muted">{a.code}</div>
+                      </div>
+                    </div>
                   </td>
                   <td className="ebim-td">
-                    <Badge tone={a.agent_type === 'INDEPENDENT' ? 'accent' : 'info'}>
-                      {AGENT_TYPE_LABEL[a.agent_type] ?? a.agent_type}
-                    </Badge>
+                    <Badge tone="neutral">{AGENT_TYPE_LABEL[a.agent_type] ?? a.agent_type}</Badge>
+                    <div className="mt-1 truncate text-compact text-fg-2">
+                      {(a.organizations as { display_name: string } | null)?.display_name ?? 'Sin organización'}
+                    </div>
                   </td>
-                  <td className="ebim-td text-muted">
-                    {(a.organizations as { display_name: string } | null)?.display_name ?? 'Independiente'}
-                  </td>
-                  <td className="ebim-td text-muted">{a.contact_email ?? '—'}</td>
-                  <td className="ebim-td tabular-nums">{countText(attributions, own?.active ?? 0)}</td>
-                  <td className="ebim-td text-xs text-muted">
+                  <td className="ebim-td text-fg-2">{a.contact_email ?? '—'}</td>
+                  <td className="ebim-td ebim-num">{countText(attributions, own?.active ?? 0)}</td>
+                  <td className="ebim-td text-compact text-fg-2">
                     {attributions.error || attributions.isLoading ? (
                       countText(attributions, 0)
                     ) : own ? (
                       <>
-                        {own.customers.size} {own.customers.size === 1 ? 'cliente' : 'clientes'} ·{' '}
-                        {[...own.products].sort().join(', ')}
+                        <span className="font-semibold text-fg">
+                          {own.customers.size} {own.customers.size === 1 ? 'cliente' : 'clientes'}
+                        </span>
+                        <span className="block">{[...own.products].sort().join(', ')}</span>
                       </>
                     ) : (
                       'Sin cartera atribuida'
                     )}
                   </td>
-                  <td className="ebim-td whitespace-nowrap text-xs text-muted">
+                  <td className="ebim-td whitespace-nowrap text-compact text-fg-2">
                     {formatDate(a.valid_from)} → {a.valid_to ? formatDate(a.valid_to) : 'sin fin'}
                   </td>
                   <td className="ebim-td">
-                    <Badge tone={entityStatusTone(a.status)}>{entityStatusLabel(a.status)}</Badge>
+                    <Badge tone={entityStatusTone(a.status)} dot>{entityStatusLabel(a.status)}</Badge>
                   </td>
-                  <td className="ebim-td text-right">
-                    <div className="flex items-center justify-end gap-3 whitespace-nowrap">
-                      {own ? (
-                        <Link className="ebim-link text-[13px]" to="/attributions">
-                          Ver atribuciones
-                        </Link>
-                      ) : null}
-                      {perms.canManageCommercial || perms.isOrgAdmin(a.organization_id) ? (
-                        <button
-                          type="button"
-                          className="ebim-link text-[13px]"
-                          onClick={() =>
-                            setDialog({
-                              open: true,
-                              agent: {
-                                id: a.id,
-                                code: a.code,
-                                full_name: a.full_name,
-                                agent_type: a.agent_type,
-                                organization_id: a.organization_id,
-                                contact_email: a.contact_email,
-                                user_id: a.user_id,
-                                status: a.status,
-                                valid_from: a.valid_from,
-                                valid_to: a.valid_to,
-                              },
-                            })
-                          }
-                        >
-                          Editar
-                        </button>
-                      ) : null}
-                    </div>
+                  <td className="ebim-td w-12 text-right">
+                    <ActionMenu
+                      label={`Acciones de ${a.full_name}`}
+                      items={[
+                        own ? { label: 'Ver atribuciones', to: '/attributions' } : null,
+                        perms.canManageCommercial || perms.isOrgAdmin(a.organization_id)
+                          ? {
+                              label: 'Editar comercial',
+                              onSelect: () =>
+                                setDialog({
+                                  open: true,
+                                  agent: {
+                                    id: a.id,
+                                    code: a.code,
+                                    full_name: a.full_name,
+                                    agent_type: a.agent_type,
+                                    organization_id: a.organization_id,
+                                    contact_email: a.contact_email,
+                                    user_id: a.user_id,
+                                    status: a.status,
+                                    valid_from: a.valid_from,
+                                    valid_to: a.valid_to,
+                                  },
+                                }),
+                            }
+                          : null,
+                      ]}
+                    />
                   </td>
                 </tr>
               );

@@ -66,7 +66,8 @@ test.describe('J1 · Canal: alta de partner y acuerdo por SaaS', () => {
 
     // Se busca el partner recién creado y se abre SU detalle, no el de otra fila.
     await page.getByRole('searchbox').fill(`partner-e2e-${RUN}`);
-    await page.getByRole('link', { name: 'Ver detalle' }).first().click();
+    // La acción primaria de la fila es su nombre (las secundarias van al menú, A12).
+    await page.locator('main tbody a[href^="/organizations/"]').first().click();
 
     await page.getByRole('tab', { name: 'Productos autorizados' }).click();
     await page.getByRole('button', { name: /Nuevo acuerdo|Crear el primer acuerdo/ }).first().click();
@@ -188,13 +189,13 @@ test.describe('J7 · Un cliente, dos SaaS, dos métodos de cobro', () => {
   test('GRUPASA paga eSupplier con tarjeta y EWM con Orden de Servicio', async ({ page }) => {
     await login(page, USERS.finance);
     await goToSection(page, 'Directorio corporativo');
-    // En el listado el enlace es «Ver detalle»; se filtra primero para abrir el correcto.
+    // En el listado el enlace es el nombre de la organización; se filtra primero para abrir el correcto.
     await page.getByRole('searchbox').fill('grupasa');
-    await page.getByRole('link', { name: 'Ver detalle' }).first().click();
+    await page.getByRole('link', { name: 'GRUPASA', exact: true }).first().click();
 
     // La vista 360 es la demostración principal del Control Plane.
     await expect(page.getByRole('tab', { name: 'Vista 360' })).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText('Métodos de cobro distintos')).toBeVisible();
+    await expect(page.getByText('Métodos de cobro', { exact: true })).toBeVisible();
     // Spec 2026-09-25 §11.1: la 360 se organiza por secciones (pestañas).
     await page.getByRole('tab', { name: 'Productos y contratos' }).click();
     await expect(page.getByText('Cobranza por SaaS')).toBeVisible();
@@ -337,7 +338,7 @@ test.describe('J13 · Vista 360 de organización', () => {
   test('reúne productos, tenants, cobranza, renovación, comisión y margen', async ({ page }) => {
     await login(page, USERS.superAdmin);
     await goToSection(page, 'Clientes');
-    await page.getByRole('link', { name: 'Ver detalle' }).first().click();
+    await page.locator('main tbody a[href^="/organizations/"]').first().click();
 
     await expect(page.getByRole('tab', { name: 'Vista 360' })).toBeVisible({ timeout: 15_000 });
     // Spec 2026-09-25 §11.1: mismas preguntas, repartidas en secciones con su
@@ -360,7 +361,7 @@ test.describe('J14 · Datos de facturación del titular (V2.1)', () => {
     await goToSection(page, 'Clientes');
     // Cliente EWM Norte llega sin contacto de facturación: es el estado en que
     // entra cualquier organización nueva.
-    await page.getByRole('row', { name: /Cliente EWM Norte/ }).getByRole('link', { name: 'Ver detalle' }).click();
+    await page.getByRole('row', { name: /Cliente EWM Norte/ }).getByRole('link', { name: 'Cliente EWM Norte' }).click();
     await page.getByRole('tab', { name: 'Resumen' }).click();
 
     await expect(page.getByText('Datos de facturación del titular')).toBeVisible({ timeout: 15_000 });
@@ -376,7 +377,7 @@ test.describe('J14 · Datos de facturación del titular (V2.1)', () => {
   test('el formulario llega con lo ya cargado y valida antes que la pasarela', async ({ page }) => {
     await login(page, USERS.superAdmin);
     await goToSection(page, 'Clientes');
-    await page.getByRole('row', { name: /GRUPASA/ }).getByRole('link', { name: 'Ver detalle' }).click();
+    await page.getByRole('row', { name: /GRUPASA/ }).getByRole('link', { name: 'GRUPASA', exact: true }).click();
     await page.getByRole('tab', { name: 'Resumen' }).click();
 
     await expect(page.getByText('Datos de facturación del titular')).toBeVisible({ timeout: 15_000 });
