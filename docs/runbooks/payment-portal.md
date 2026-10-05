@@ -38,14 +38,36 @@ select platform.revoke_payment_link('<link_id>', 'motivo');
 
 | Situación de la cuenta Culqi de la factura | Modo | Qué ve el cliente |
 | --- | --- | --- |
-| Sin `secret_key_ref`, sin el secreto en el entorno o sin `CULQI_API_BASE` | MOCK | Con `PAYMENT_PORTAL_ALLOW_MOCK=true`: formulario **«Modo de prueba»** (token `tkn_mock_*`). Sin la variable: «No pagable con tarjeta» |
-| `secret_key_ref` + secreto `sk_test_…` + `CULQI_API_BASE` + `public_key = pk_test_…` | TEST | Culqi Checkout v4 (`https://checkout.culqi.com/js/v4`) con la llave pública de la cuenta |
+| Sin llave secreta (ni cifrada ni por variable de entorno) o sin URL de la API (ni en la cuenta ni `CULQI_API_BASE`) | MOCK | Con `PAYMENT_PORTAL_ALLOW_MOCK=true`: formulario **«Modo de prueba»** (token `tkn_mock_*`). Sin la variable: «No pagable con tarjeta» |
+| Llave `sk_test_…` configurada (cifrada en la cuenta, o por `secret_key_ref`) + URL de la API + `public_key = pk_test_…` | TEST | Culqi Checkout v4 (`https://checkout.culqi.com/js/v4`) con la llave pública de la cuenta |
 | LIVE | LIVE | Solo con `CULQI_ALLOW_LIVE=true` (si falta, error ruidoso; nunca degrada a MOCK) |
 
 En MOCK, un origen que contiene `decline` se rechaza (`TARJETA_RECHAZADA`) y uno con `3ds` pide autenticación
 (`TARJETA_REQUIERE_AUTENTICACION`); el formulario de prueba ofrece ambos resultados.
 
-## 4. Variables de entorno (Edge Functions)
+## 4. Configurar las credenciales de Culqi (desde la consola)
+
+Desde 2026-10-05 (spec §11) la llave secreta **se configura en la plataforma** y se guarda **cifrada** (Supabase
+Vault). Ya no hace falta `supabase secrets set` para la llave.
+
+1. Consola → Configuración → **Cuentas de pago** (rol EBIM_FINANCE o super admin).
+2. **Editar** la cuenta (p. ej. `culqi-pe-test`):
+   - **Llave pública**: `pk_test_…`.
+   - **URL de la API (opcional)**: `https://api.culqi.com/v2`. Vacía = `CULQI_API_BASE` del servidor; si tampoco
+     existe, la cuenta opera en MOCK.
+   - **Variable de entorno (avanzado, opcional)**: déjala vacía salvo que la llave viva como secret del servidor.
+3. En la columna **Llave secreta** → **Configurar llave**: pegar `sk_test_…` (campo de contraseña, «Mostrar» para
+   revisarla) y, si se quiere, un motivo. Al guardar, el campo se vacía y la columna muestra
+   «Configurada (`sk_test_…abcd`) · fecha». La llave no vuelve a mostrarse nunca.
+4. **Reemplazar** sustituye la llave (misma entrada en Vault). **Quitar** (motivo obligatorio) la borra: una cuenta
+   TEST vuelve a MOCK; una cuenta LIVE activa sin variable de entorno no puede quedarse sin llave.
+5. Cuenta **LIVE** (solo con autorización escrita del operador): crearla **Inactiva**, configurar la `sk_live_…`,
+   activarla y definir `CULQI_ALLOW_LIVE=true` en el entorno de funciones. Ese interruptor no se edita desde la UI.
+
+La base valida la forma (`sk_(test|live)_` + ≥10 letras/dígitos) y el entorno (`sk_test_` ↔ TEST, `sk_live_` ↔
+LIVE). Cada alta, reemplazo o baja queda en Auditoría (`PROVIDER_ACCOUNT_KEY_*`) con la pista, nunca la llave.
+
+## 4b. Variables de entorno (Edge Functions)
 
 Solo NOMBRES; los valores los carga el operador con `supabase secrets set` (nunca en el repo ni en la base).
 
@@ -54,9 +76,9 @@ Solo NOMBRES; los valores los carga el operador con `supabase secrets set` (nunc
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY` | Inyectadas por Supabase |
 | `MASTERADMIN_ALLOWED_ORIGINS` | Orígenes CORS de la consola (además de `http://127.0.0.1:5199` y `http://localhost:5199`) |
 | `PAYMENT_PORTAL_ALLOW_MOCK` | `true` solo en LOCAL/DEV para cobrar con cuentas sin credenciales |
-| `CULQI_API_BASE` | URL base de la API de Culqi (sin ella → MOCK) |
-| `<secret_key_ref>` (p. ej. `CULQI_SECRET_KEY`) | Clave `sk_test_…` de la cuenta; el NOMBRE se registra en Configuración → **Cuentas de pago** |
-| `CULQI_ALLOW_LIVE` | Interruptor deliberado para LIVE. No se usa en este programa |
+| `CULQI_API_BASE` | Opcional. URL base de la API si la cuenta no define «URL de la API» (sin ninguna → MOCK) |
+| `<secret_key_ref>` (p. ej. `CULQI_SECRET_KEY`) | Opcional/avanzado. Llave `sk_…` como secret del servidor, solo si la cuenta NO tiene llave cifrada (la cifrada gana) |
+| `CULQI_ALLOW_LIVE` | Interruptor deliberado para LIVE. Solo de entorno, no editable desde la UI. No se usa en este programa |
 
 Local:
 
@@ -121,8 +143,8 @@ el saldo leído con el candado tomado (no por el que vio la página).
 
 ## 7. Pendiente para activar Culqi TEST (humano)
 
-- [ ] Cargar `pk_test_…` en la cuenta (Configuración → Cuentas de pago) y el NOMBRE del secreto.
-- [ ] `supabase secrets set CULQI_SECRET_KEY=sk_test_…` y `CULQI_API_BASE` en el entorno de funciones.
+- [ ] Cargar `pk_test_…` y la URL de la API en la cuenta (Configuración → Cuentas de pago).
+- [ ] «Configurar llave» con la `sk_test_…` (queda cifrada; §4).
 - [ ] Pagar una factura desde `/pagar` con una tarjeta de prueba de Culqi; verificar `payments` y comisión únicos.
 - [ ] Reenviar el webhook del mismo cargo: debe responder `DUPLICATE`.
 - [ ] Guardar tarjeta y ejecutar «Cobrar ahora»; probar una tarjeta de rechazo y la alerta tras 3 fallos.

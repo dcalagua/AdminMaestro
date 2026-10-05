@@ -84,19 +84,19 @@ cambiara de significado.
 
 ## 6. Cuentas de proveedor: dónde vive cada secreto
 
-`payment_provider_accounts` guarda **referencias, no credenciales**.
+`payment_provider_accounts` no guarda credenciales en claro: guarda metadatos y referencias.
 
 | Dato | Dónde | Por qué |
 |---|---|---|
 | Llave pública `pk_test_…` | Columna `public_key` | Es pública por diseño: el navegador la necesita para tokenizar |
-| Llave secreta `sk_…` | **Secret de Edge Function** | Un `CHECK` rechaza cualquier valor con forma `sk_`/`pk_` en la tabla |
-| Nombre de esa variable | `secret_key_ref` (ej. `CULQI_SECRET_KEY`) | La base sabe *dónde buscar*, nunca *qué es* |
+| Llave secreta `sk_…` | **Cifrada en Supabase Vault** (desde 2026-10-05), configurada desde la consola; la cuenta guarda `secret_vault_id` (oculto) y la pista `secret_hint` | Requisito del dueño: se introduce desde la plataforma y se guarda cifrada. Ver `CULQI_ARCHITECTURE.md` §12 |
+| Alternativa: nombre de una variable de entorno | `secret_key_ref` (ej. `CULQI_SECRET_KEY`) | Compatibilidad; un `CHECK` rechaza cualquier valor con forma `sk_`/`pk_` en la tabla |
 | PAN, CVV, token | **En ningún sitio** | El PAN no toca nuestro servidor |
 
 Cuatro defensas, y las cuatro con test:
 
 1. `ppa_no_real_keys_ck` — rechaza `sk_test_`/`sk_live_` en la referencia y `sk_` en la llave pública.
-2. `ppa_live_needs_secret_ref_ck` — una cuenta LIVE sin referencia es inválida.
+2. `ppa_live_needs_secret_ref_ck` — una cuenta Culqi LIVE **activa** sin llave (cifrada o de entorno) es inválida.
 3. `reject_secret_like_json('metadata')` — rechaza claves tipo `api_key` en metadata.
 4. La RPC `upsert_payment_provider_account` lanza `SECRETO_EN_BASE` con un
    mensaje explícito antes de que salte el CHECK, porque es el error más fácil

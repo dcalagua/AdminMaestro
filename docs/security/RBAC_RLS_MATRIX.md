@@ -207,6 +207,8 @@ directa de `authenticated` sobre las tablas de cobranza.
 | `create_subscription`, `set_subscription_status` | ✅ | ✅ | ✅ | — |
 | `upsert_commission_plan`, `upsert_commission_rule` | ✅ | — | ✅ | — |
 | `upsert_payment_provider_account` | ✅ | — | ✅ | ❌ |
+| `set_payment_provider_secret`, `clear_payment_provider_secret`, `set_payment_provider_api_base` | ✅ | ❌ | ✅ | ❌ |
+| `payment_provider_account_secret` (llave en claro) | servidor (`service_role`) | ❌ | ❌ | ❌ |
 | `set_subscription_collection_profile` | ✅ | ✅ | ✅ | ✅ (org facturada) |
 | `request/receive/approve/reject/cancel_commercial_document` | ✅ | ✅ | ✅ | ✅ (org facturada) |
 | `refresh_billing_alerts` | ✅ | ✅ | ✅ | ❌ |
@@ -288,4 +290,33 @@ internos (`assert_user_grant`, `assert_org_role_assignable`, …) no se exponen.
 | La desactivación apaga en cascada consola, membresías, provisioning, propiedad técnica e invitaciones pendientes; el vínculo comercial se conserva | `deactivate_user`; §57-58 |
 | La Edge Function autoriza con el JWT del operador ANTES de usar `service_role` (solo API de Auth) | `supabase/functions/_shared/users/admin.ts` + tests |
 | El enlace de invitación no se guarda ni se registra | `user_invitations` (sin columna para él), `admin.ts` |
+
+---
+
+# Credenciales de pasarela cifradas (2026-10-05)
+
+Migración `20261014000100_payment_provider_vault_secrets.sql`, pgTAP 50. Spec §11.
+
+## Dónde viven los secretos de cobro
+
+| Secreto | Dónde | Quién lo lee en claro |
+|---|---|---|
+| Llave secreta Culqi `sk_(test\|live)_…` (vía normal) | `vault.secrets` (Supabase Vault, cifrada), nombre `payment_provider:<cuenta>` | Solo `service_role`, con `payment_provider_account_secret()` |
+| Llave secreta Culqi (alternativa avanzada) | Secret de Edge Function cuyo NOMBRE guarda `secret_key_ref` | Solo las Edge Functions |
+| `CULQI_ALLOW_LIVE` | Entorno de Edge Functions (no editable desde la UI) | — |
+| `SUPABASE_SERVICE_ROLE_KEY` | Inyectada por Supabase en las Edge Functions | — |
+
+## Invariantes
+
+| Invariante | Dónde |
+|---|---|
+| `secret_vault_id` no es seleccionable por `authenticated`/`anon` (GRANT por columna; un `select *` falla con 42501) | migración §2; pgTAP 50 §02, §24-25 |
+| `authenticated` no accede a `vault.*` ni ejecuta `payment_provider_account_secret` | pgTAP 50 §04, §26-27 |
+| Solo EBIM_FINANCE / super admin configuran, reemplazan o quitan la llave | pgTAP 50 §08-11 |
+| Forma y entorno validados (`sk_test_` ↔ TEST, `sk_live_` ↔ LIVE); el error no repite el valor | pgTAP 50 §12-16 |
+| La auditoría guarda la pista (`key_hint`), nunca la llave; un motivo con una llave se rechaza | pgTAP 50 §17, §34-36 |
+| `secret_hint` no admite una llave completa; puntero/pista/fecha van juntos | pgTAP 50 §37, §39 |
+| Reemplazar no crea otra fila en Vault; quitar la borra | pgTAP 50 §29, §51 |
+| Una cuenta Culqi LIVE activa siempre tiene llave (cifrada o de entorno) | `ppa_live_needs_secret_ref_ck`, `clear_payment_provider_secret`; pgTAP 50 §47-49d |
+| La consola nunca guarda la llave: campo de contraseña que se vacía al enviar, fuera de la caché de React Query | `ProviderSecretDialog.tsx`, `useSetPaymentProviderSecret`; vitest |
 
