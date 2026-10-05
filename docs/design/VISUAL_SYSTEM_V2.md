@@ -477,6 +477,25 @@ Signo negativo: `−` (U+2212) en etiquetas de gráfico y deltas. Ninguna cifra 
   gráficos con `role="img"` + `aria-label` que resume la conclusión, y tabla alternativa navegable.
 - **Idioma:** todo en español (U-13), incluidos `aria-label`, tooltips y errores.
 
+### 7.1 Modo presentación (fase 14)
+
+- **Activación:** `/?presentacion=1` o botón «Presentar» del Resumen Ejecutivo, solo personal EBIM con vista financiera (para otros
+  perfiles el parámetro no hace nada). Conserva los filtros de la URL (`moneda`, `cierre`, `horizonte`); `diapositiva=N` (1–6) y
+  `anonimo=1` también viven en la URL. «Atrás» o `Esc` salen; el foco vuelve a «Presentar».
+- **Diapositivas:** (1) KPIs hero 3×2, (2) evolución MRR, (3) puente del mes, (4) facturado vs cobrado + antigüedad (7·5), (5) mix
+  producto y mercado (6·6), (6) top clientes y partners (6·6). Son los MISMOS paneles del tablero (mismas lecturas y estados).
+- **Teclado:** → ↓ Av Pág y espacio avanzan; ← ↑ Re Pág y Mayús+espacio retroceden; Inicio/Fin; 1–6 saltan; `Esc` sale; Ctrl/⌘+P
+  imprime las seis. Campos y el espacio sobre botones/enlaces conservan su comportamiento.
+- **Pantalla completa:** Fullscreen API pedida en el clic de «Presentar» o con su botón; si el navegador la niega, el overlay ya cubre
+  la ventana (alternativa). Salir de pantalla completa sin el botón (Esc del navegador) cierra la presentación.
+- **Legibilidad a distancia:** texto +1 escalón (display→hero 56, compacto→14…), ejes y etiquetas de gráficos a 14 px, alto de gráficos
+  ajustado a la ventana (`clamp(… calc(100vh − N) …)`); caben enteras a 1440×900 y 1280×800. Tema claro forzado por defecto (no toca la
+  preferencia U-08); conmutable. Autoplay apagado por defecto (cada 20 s, vuelve a la primera); con reduced motion no hay fundidos.
+- **Ocultar nombres:** clientes → «Cliente A, B…» y partners → «Partner A…» por MRR al cierre (el mayor es «A»), iguales en todas las
+  diapositivas; las filas pierden el enlace a la ficha (revelaría el nombre). Productos y mercados no se ocultan.
+- **Impresión / PDF:** A4 apaisado, margen 10 mm, una diapositiva por hoja con su cabecera; los gráficos se redibujan al ancho de la hoja
+  antes de abrir el diálogo. El tablero normal impreso (Ctrl/⌘+P) oculta menús y controles, sale en claro y pone una sección por hoja.
+
 ---
 
 ## 8. Inventario de pantallas → patrón
@@ -496,6 +515,7 @@ Signo negativo: `−` (U+2212) en etiquetas de gráfico y deltas. Ninguna cifra 
 | **PT-TIMELINE** | Línea de tiempo | PT-LIST cuya tabla es una lista temporal agrupada por día: icono por tipo, quién/qué/cuándo, detalle expandible. |
 | **PT-AUTH** | Login | U-04 al pie de la letra; panel de marca con `--hero-grad`. |
 | **PT-PUBLIC** | Página pública | Tarjeta centrada 480–560 con marca, estados §5.14 (portal de pago, bienvenida, 404). |
+| **PT-PRESENT** | Modo presentación | Overlay a pantalla completa sobre la app inerte: cabecera discreta (isotipo, «Datos al», mes analizado, moneda de reporte, notas) → diapositiva (`h2` `text-h1` + subtítulo «N de 6» + paneles del tablero con la escala tipográfica +1 escalón, `.ebim-present-scale`) → barra inferior (anterior/siguiente, puntos con `aria-current`, «N / 6», progreso, Automático, Ocultar nombres, Tema claro, Pantalla completa, Imprimir, Salir `Esc`). |
 
 ### Pantallas
 
@@ -505,6 +525,7 @@ Signo negativo: `−` (U+2212) en etiquetas de gráfico y deltas. Ninguna cifra 
 | `/pagar` | Portal de pago | PT-PUBLIC | 07 | A14 |
 | `/bienvenida` | Bienvenida | PT-PUBLIC | 07 | A14 |
 | `/` | Resumen ejecutivo | PT-DASH | 08–09, 14 | A02, A03, A04 |
+| `/?presentacion=1` | Modo presentación del resumen (fase 14) | PT-PRESENT | 14 | — |
 | `/billing` | Facturación y cobros | PT-LIST-CHART (cobros por semana) | 10 | A07 |
 | `/costs` | Costos y margen | PT-LIST-CHART (cobrado/costo/comisión, slots 1–3) | 10 | A07 |
 | `/commissions` | Comisiones | PT-LIST-CHART (comisiones por mes) | 10, 13 | A07 |
