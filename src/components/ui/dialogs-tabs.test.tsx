@@ -209,6 +209,25 @@ describe('SectionTabs', () => {
     render(<SectionTabs tabs={tabs} />);
     expect(screen.getByRole('tabpanel')).toHaveTextContent('Panel auditoría');
   });
+
+  it('un deep-link a una pestaña que aparece después (permisos) la abre al aparecer', () => {
+    window.location.hash = '#auditoria';
+    const gated = (hidden: boolean) => tabs.map((t) => (t.id === 'auditoria' ? { ...t, hidden } : t));
+    const { rerender } = render(<SectionTabs tabs={gated(true)} />);
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('Panel general');
+    rerender(<SectionTabs tabs={gated(false)} />);
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('Panel auditoría');
+  });
+
+  it('si la persona elige otra pestaña antes, el deep-link pendiente ya no la mueve', async () => {
+    const user = userEvent.setup();
+    window.location.hash = '#auditoria';
+    const gated = (hidden: boolean) => tabs.map((t) => (t.id === 'auditoria' ? { ...t, hidden } : t));
+    const { rerender } = render(<SectionTabs tabs={gated(true)} />);
+    await user.click(screen.getByRole('tab', { name: 'Seguridad' }));
+    rerender(<SectionTabs tabs={gated(false)} />);
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('Panel seguridad');
+  });
 });
 
 describe('Contadores de pestañas', () => {

@@ -150,6 +150,8 @@ test.describe('operación y gobierno · capturas', () => {
       ['users', wanted('users') ? '/users' : null],
     ] as const) {
       if (!url) continue;
+      // Cambiar solo el #hash en la misma ruta no remonta la pestaña: se pasa por otra ruta.
+      if (url.includes('#')) await page.goto('/404');
       await page.goto(url);
       const info = await shoot(page, name(slug, '1440-oscuro'), shots);
       expect.soft(info.theme).toBe('dark');

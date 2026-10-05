@@ -38,6 +38,17 @@ export function SectionTabs({ tabs }: { tabs: TabDefinition[] }) {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, [visible]);
 
+  // Deep-link a una pestaña que aún no es visible (depende de permisos que se
+  // cargan después): se recuerda el #hash pedido y se abre cuando aparece,
+  // salvo que la persona ya haya elegido otra pestaña.
+  const requested = useRef<string | null>(window.location.hash.replace('#', '') || null);
+  useEffect(() => {
+    const want = requested.current;
+    if (!want || !visible.some((t) => t.id === want)) return;
+    requested.current = null;
+    if (want !== active) setActive(want);
+  }, [visible, active]);
+
   // Si la pestaña activa desaparece (por permisos), se cae a la primera visible.
   useEffect(() => {
     if (visible.length > 0 && !visible.some((t) => t.id === active)) {
@@ -63,6 +74,7 @@ export function SectionTabs({ tabs }: { tabs: TabDefinition[] }) {
   }, [activeIndex]);
 
   const select = (id: string) => {
+    requested.current = null;
     setActive(id);
     window.location.hash = id;
   };
