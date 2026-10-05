@@ -76,4 +76,23 @@ describe('LoginPage', () => {
     expect(screen.getByLabelText('Correo corporativo')).toBeInTheDocument();
     expect(screen.getByLabelText('Contraseña')).toBeInTheDocument();
   });
+
+  it('anatomía U-04: título, wordmark «Admin Maestro», EXACTAMENTE 3 bullets y un solo enlace secundario', () => {
+    const { container } = renderPage();
+    expect(screen.getByRole('heading', { level: 1, name: 'Ingresa a tu consola' })).toBeInTheDocument();
+    expect(container.textContent).toContain('Consola central de la suite EBIM');
+    expect(container.querySelectorAll('ul > li')).toHaveLength(3);
+    expect(screen.getAllByRole('link')).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Ingresar' })).toHaveClass('w-full');
+    expect(container.textContent).not.toContain('Control Plane');
+  });
+
+  it('el ojo muestra y oculta la contraseña', () => {
+    renderPage();
+    const input = screen.getByLabelText('Contraseña');
+    expect(input).toHaveAttribute('type', 'password');
+    fireEvent.click(screen.getByRole('button', { name: 'Mostrar contraseña' }));
+    expect(input).toHaveAttribute('type', 'text');
+    expect(screen.getByRole('button', { name: 'Ocultar contraseña' })).toHaveAttribute('aria-pressed', 'true');
+  });
 });

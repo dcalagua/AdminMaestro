@@ -10,9 +10,10 @@ test.describe('Login', () => {
     const bullets = page.locator('ul li');
     await expect(bullets).toHaveCount(3);
 
-    // Pie de confianza y lockup "by EBIM".
-    await expect(page.getByText(/Cifrado en tránsito/)).toBeVisible();
-    await expect(page.getByText('BY EBIM')).toBeVisible();
+    // Pie de confianza y lockup "by EBIM" al pie (en escritorio el lockup móvil
+    // de la cabecera del formulario está oculto: solo se ve el del pie).
+    await expect(page.getByText(/cifrado en tránsito/i)).toBeVisible();
+    await expect(page.getByText('BY EBIM').filter({ visible: true })).toHaveCount(1);
 
     // Subtítulo que dice de dónde sale la credencial (evita el ticket del día 1).
     await expect(page.getByText(/Tu acceso lo crea el equipo de plataforma/)).toBeVisible();

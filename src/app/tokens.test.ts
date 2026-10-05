@@ -103,6 +103,31 @@ describe('Paleta de datos', () => {
   });
 });
 
+describe('Panel de marca de las pantallas de acceso (U-04)', () => {
+  const STOPS = ['auth-panel-from', 'auth-panel-mid', 'auth-panel-to'];
+
+  it.each([
+    ['claro', light],
+    ['oscuro', dark],
+  ])('%s: blanco ≥ 7:1 y la inicial del wordmark ≥ 4.5:1 en todo el degradado', (_mode, t) => {
+    for (const stop of STOPS) {
+      expect(contrast(t['on-brand']!, t[stop]!)).toBeGreaterThanOrEqual(7);
+      expect(contrast(t['brand-highlight']!, t[stop]!)).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it('el texto secundario del panel (blanco al 80 %) se declara y la sombra de marca va por modo', () => {
+    expect(css).toMatch(/--on-brand-2: rgba\(255, 255, 255, 0\.8\);/);
+    expect(block(":root[data-theme='dark']")['auth-panel-to']).toBeDefined();
+    expect(css.match(/--shadow-brand:/g)).toHaveLength(2);
+  });
+
+  it('el isotipo sobre superficie se distingue en ambos modos (≥ 3:1, gráfico)', () => {
+    expect(contrast(light['brand-mark']!, light.card!)).toBeGreaterThanOrEqual(3);
+    expect(contrast(dark['brand-mark']!, dark.card!)).toBeGreaterThanOrEqual(3);
+  });
+});
+
 describe('Identidad EBIM conservada', () => {
   it('verde, teal e isotipo de marca siguen declarados', () => {
     expect(light.accent?.toLowerCase()).toBe('#5aa97f');

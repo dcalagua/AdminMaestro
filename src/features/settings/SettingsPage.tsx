@@ -168,7 +168,7 @@ export function SettingsPage() {
               <Card title="Entorno de la consola">
                 <div className="p-4">
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                    <EbimLockup appName="Control Plane" />
+                    <EbimLockup />
                     <Badge tone={env.isProduction ? 'warn' : 'info'}>
                       Entorno: {APP_ENV_LABEL[env.appEnv] ?? env.appEnv}
                     </Badge>

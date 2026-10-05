@@ -289,6 +289,31 @@
   .ebim-route-enter {
     animation: ebim-fade-in 120ms var(--ease-out);
   }
+
+  /* Éxito con check dibujado (comprobante del portal, bienvenida): el círculo
+     y el trazo se dibujan una vez; con prefers-reduced-motion aparecen ya
+     dibujados (abajo). La tarjeta que lo contiene entra con ebim-rise-in. */
+  .ebim-success-enter {
+    animation: ebim-rise-in var(--dur-overlay) var(--ease-out);
+  }
+
+  .ebim-check-draw circle {
+    stroke-dasharray: 160;
+    stroke-dashoffset: 160;
+    animation: ebim-draw 480ms var(--ease-out) forwards;
+  }
+
+  .ebim-check-draw path {
+    stroke-dasharray: 48;
+    stroke-dashoffset: 48;
+    animation: ebim-draw 320ms var(--ease-out) 380ms forwards;
+  }
+}
+
+@keyframes ebim-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
 @keyframes ebim-shimmer {
@@ -323,6 +348,12 @@
 @media (prefers-reduced-motion: reduce) {
   .ebim-skeleton {
     animation: none;
+  }
+
+  .ebim-check-draw circle,
+  .ebim-check-draw path {
+    animation: none;
+    stroke-dashoffset: 0;
   }
 }
 

@@ -104,7 +104,8 @@ export default {
         control: 'var(--control-h)',
       },
       boxShadow: {
-        brand: '0 30px 80px -40px rgba(24, 93, 74, 0.5)',
+        // Sombra teñida de marca: solo tarjetas de acceso y públicas (U-04).
+        brand: 'var(--shadow-brand)',
         // §4.1: tres niveles; por modo en tokens.css (en oscuro la tarjeta no tiene sombra).
         card: 'var(--shadow-card)',
         pop: 'var(--shadow-pop)',
@@ -119,6 +120,8 @@ export default {
       },
       backgroundImage: {
         'brand-grad': 'var(--hero-grad)',
+        'auth-panel': 'var(--auth-panel)',
+        auth: 'var(--auth-bg)',
         sidebar: 'var(--sidebar)',
       },
       keyframes: {

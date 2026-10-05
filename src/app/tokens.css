@@ -36,6 +36,28 @@
   --hero-grad: linear-gradient(155deg, #0a3d3a 0%, #0a5a52 55%, #1f7a68 100%);
   --on-brand: #ffffff; /* texto y foco sobre sidebar/hero */
 
+  /* --- Acceso y páginas públicas (login, bienvenida, portal de pago) -----
+     Panel de marca: el tramo final es más oscuro que --hero-grad para que el
+     texto blanco al 80 % siga ≥ 5.15:1 en la esquina más clara (pie de
+     confianza). Blanco puro ≥ 7.04:1; --brand-highlight ≥ 4.95:1. */
+  --auth-panel-from: #0a3d3a;
+  --auth-panel-mid: #0a5a52;
+  --auth-panel-to: #0f6458;
+  --auth-panel: linear-gradient(
+    155deg,
+    var(--auth-panel-from) 0%,
+    var(--auth-panel-mid) 55%,
+    var(--auth-panel-to) 100%
+  );
+  --brand-highlight: #a8e6c4; /* inicial del wordmark sobre el panel de marca */
+  --on-brand-2: rgba(255, 255, 255, 0.8); /* texto secundario sobre el panel */
+  --on-brand-soft: rgba(255, 255, 255, 0.14); /* pastillas de icono sobre el panel */
+  /* Fondo de las pantallas públicas: plano --bg con dos halos de marca muy tenues. */
+  --auth-bg:
+    radial-gradient(1100px 620px at 0% 0%, rgba(90, 169, 127, 0.13), transparent 62%),
+    radial-gradient(900px 560px at 100% 100%, rgba(5, 103, 105, 0.11), transparent 60%), var(--bg);
+  --shadow-brand: 0 30px 80px -40px rgba(24, 93, 74, 0.5), 0 2px 8px rgba(16, 24, 40, 0.05);
+
   /* --- Neutros y superficies (slate frío, light) ------------------------ */
   --bg: #f4f6f8; /* plano de la app, ligeramente tintado */
   --card: #ffffff; /* tarjetas, tablas, topbar, inputs, gráficos */
@@ -150,6 +172,14 @@
   --accent-action-fg: #062420;
   --sidebar: linear-gradient(180deg, #08201f 0%, #0c3532 100%);
   --sidebar-base: #0c3532;
+  --brand-mark: #5ec4b0; /* isotipo sobre superficie oscura: 8.38:1 sobre card */
+  --auth-panel-from: #08201f;
+  --auth-panel-mid: #0c3532;
+  --auth-panel-to: #0f4a44;
+  --auth-bg:
+    radial-gradient(1100px 620px at 0% 0%, rgba(90, 169, 127, 0.09), transparent 62%),
+    radial-gradient(900px 560px at 100% 100%, rgba(94, 196, 176, 0.07), transparent 60%), var(--bg);
+  --shadow-brand: 0 30px 80px -30px rgba(0, 0, 0, 0.7);
 
   /* En oscuro el texto semántico se aclara; el relleno del botón peligroso se
      queda oscuro para que el blanco siga siendo legible. */
