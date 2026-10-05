@@ -58,6 +58,31 @@ export function formatMoneyCompact(amount: number | null | undefined, currency: 
 }
 
 /**
+ * Cifra compacta SIN moneda para KPIs, ejes y etiquetas (§6.5): `50.1 K`,
+ * `1.2 M`; por debajo de 1 000 se muestra entera (`980`), nunca «0.0 K».
+ * El código ISO va aparte (prefijo del KpiTile o subtítulo del gráfico).
+ */
+export function formatCompactAmount(amount: number | null | undefined): string {
+  if (amount === null || amount === undefined || Number.isNaN(amount)) return '—';
+  if (Math.abs(amount) < 1000) {
+    return new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 0 }).format(amount).replace('-', '−');
+  }
+  // `currencyDisplay: 'code'` da los sufijos en mayúscula (K, M) en es-PE; se quita el código.
+  return new Intl.NumberFormat(LOCALE, {
+    style: 'currency',
+    currency: 'USD',
+    currencyDisplay: 'code',
+    notation: 'compact',
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })
+    .format(amount)
+    .replace(/USD\s?/, '')
+    .replace('-', '−')
+    .trim();
+}
+
+/**
  * Suma importes AGRUPANDO por moneda. Es la única forma legítima de totalizar
  * filas multimoneda en pantalla: `PEN 100 + USD 100` no es «200» (R-7).
  * Las filas sin moneda se ignoran en vez de adivinarles una.

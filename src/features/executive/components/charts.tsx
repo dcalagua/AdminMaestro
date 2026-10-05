@@ -29,7 +29,7 @@ export interface BarDatum {
   note?: string;
 }
 
-const AXIS = { fill: 'var(--chart-axis)', fontSize: 11 };
+const AXIS = { fill: 'var(--chart-axis)', fontSize: 12 };
 
 function MoneyTooltip({
   active,
@@ -45,7 +45,7 @@ function MoneyTooltip({
   if (!active || !payload?.length) return null;
   const note = payload[0]?.payload?.note;
   return (
-    <div className="rounded-field border border-border bg-card px-3 py-2 text-xs shadow-pop">
+    <div className="rounded-md border border-border bg-elevated px-3 py-2 text-caption shadow-pop">
       <p className="font-semibold text-fg">
         {label}
         {note ? <span className="ml-1 font-normal text-muted">({note})</span> : null}
@@ -101,7 +101,7 @@ export function SingleBars({
                 dataKey="label"
                 tick={AXIS}
                 tickLine={false}
-                axisLine={{ stroke: 'var(--chart-grid)' }}
+                axisLine={{ stroke: 'var(--chart-baseline)' }}
                 // En pantallas estrechas Recharts omite etiquetas que chocarían.
                 interval="preserveStartEnd"
                 minTickGap={6}
@@ -115,13 +115,13 @@ export function SingleBars({
               />
             </>
           )}
-          <Tooltip cursor={{ fill: 'var(--accent-soft)' }} content={<MoneyTooltip currency={currency} />} />
+          <Tooltip cursor={{ fill: 'var(--hover)' }} content={<MoneyTooltip currency={currency} />} />
           <Bar
             dataKey="value"
             name={currency}
             fill="var(--chart-single)"
             radius={horizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]}
-            maxBarSize={horizontal ? 22 : 36}
+            maxBarSize={horizontal ? 22 : 24}
             isAnimationActive={false}
             cursor={onSelect ? 'pointer' : undefined}
             onClick={(entry) => onSelect?.(entry as unknown as BarDatum)}
@@ -131,7 +131,7 @@ export function SingleBars({
                 dataKey="value"
                 position={horizontal ? 'right' : 'top'}
                 formatter={(v: unknown) => formatMoneyCompact(Number(v), currency)}
-                style={{ fill: 'var(--text)', fontSize: 11 }}
+                style={{ fill: 'var(--text)', fontSize: 12 }}
               />
             ) : null}
           </Bar>
@@ -167,10 +167,10 @@ export function ComponentBars({
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 8, bottom: 4, left: 0 }} barGap={2} accessibilityLayer>
           <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
-          <XAxis dataKey="label" tick={AXIS} tickLine={false} axisLine={{ stroke: 'var(--chart-grid)' }} interval="preserveStartEnd" minTickGap={6} />
+          <XAxis dataKey="label" tick={AXIS} tickLine={false} axisLine={{ stroke: 'var(--chart-baseline)' }} interval="preserveStartEnd" minTickGap={6} />
           <YAxis tick={AXIS} tickFormatter={(v: number) => formatMoneyCompact(v, currency)} width={84} tickLine={false} axisLine={false} />
-          <Tooltip cursor={{ fill: 'var(--accent-soft)' }} content={<MoneyTooltip currency={currency} />} />
-          <Legend wrapperStyle={{ fontSize: 12, color: 'var(--text)' }} iconType="square" />
+          <Tooltip cursor={{ fill: 'var(--hover)' }} content={<MoneyTooltip currency={currency} />} />
+          <Legend verticalAlign="top" align="left" wrapperStyle={{ fontSize: 13, color: 'var(--text-2)', paddingBottom: 8 }} iconType="square" iconSize={10} />
           <Bar dataKey="collected" name="Cobrado" fill="var(--chart-collected)" radius={[4, 4, 0, 0]} maxBarSize={24} isAnimationActive={false} onClick={click} cursor={onSelect ? 'pointer' : undefined} />
           <Bar dataKey="cost" name="Costo directo" fill="var(--chart-cost)" radius={[4, 4, 0, 0]} maxBarSize={24} isAnimationActive={false} onClick={click} cursor={onSelect ? 'pointer' : undefined} />
           <Bar dataKey="commission" name="Comisión" fill="var(--chart-commission)" radius={[4, 4, 0, 0]} maxBarSize={24} isAnimationActive={false} onClick={click} cursor={onSelect ? 'pointer' : undefined} />

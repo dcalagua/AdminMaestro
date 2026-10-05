@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  formatMoney, formatMoneyCompact, formatAmount, formatNumber, formatPercent,
+  formatMoney, formatMoneyCompact, formatCompactAmount, formatAmount, formatNumber, formatPercent,
   formatDate, formatDateTime, formatCurrencyMap, sumByCurrency, subtractByCurrency, formatDelta,
 } from './format';
 
@@ -127,5 +127,20 @@ describe('formatDelta (VISUAL_SYSTEM_V2 §6.5)', () => {
   it('sin dato devuelve el marcador, nunca un 0 que parezca dato', () => {
     expect(formatDelta(null)).toBe('—');
     expect(formatDelta(Number.NaN)).toBe('—');
+  });
+});
+
+describe('formatCompactAmount (§6.5: cifra sin moneda para KPI y ejes)', () => {
+  it('compacta desde 1 000 con un decimal y mayúsculas; por debajo, entero', () => {
+    expect(formatCompactAmount(50082)).toMatch(/^50\.1\sK$/);
+    expect(formatCompactAmount(1_240_000)).toMatch(/^1\.2\sM$/);
+    expect(formatCompactAmount(980)).toBe('980');
+    expect(formatCompactAmount(0)).toBe('0');
+  });
+  it('negativos con signo tipográfico y sin dato → «—»', () => {
+    expect(formatCompactAmount(-1310)).toMatch(/^−1\.3\sK$/);
+    expect(formatCompactAmount(-560)).toBe('−560');
+    expect(formatCompactAmount(null)).toBe('—');
+    expect(formatCompactAmount(Number.NaN)).toBe('—');
   });
 });

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import type { DashboardSummary, Enums, FinanceConsolidated } from '@/types/domain';
 import type { Database } from '@/types/database.types';
@@ -374,6 +374,7 @@ export interface ExecutiveMrrSeriesParams {
 export function useExecutiveMrrSeries(params: ExecutiveMrrSeriesParams = {}) {
   return useQuery({
     queryKey: ['executive', 'mrr-series', params.from ?? null, params.to ?? null, params.reportingCurrency ?? null],
+    placeholderData: keepPreviousData,
     queryFn: async (): Promise<ExecutiveMrrPoint[]> => {
       const { data, error } = await supabase.rpc('executive_mrr_series', {
         p_from: params.from || undefined,
@@ -478,6 +479,7 @@ function toBridge(r: BridgeRow): ExecutiveMrrBridge {
 export function useExecutiveMrrMovementsSeries(params: ExecutiveMrrSeriesParams = {}) {
   return useQuery({
     queryKey: ['executive', 'mrr-movements-series', params.from ?? null, params.to ?? null, params.reportingCurrency ?? null],
+    placeholderData: keepPreviousData,
     queryFn: async (): Promise<ExecutiveMrrBridge[]> => {
       const { data, error } = await supabase.rpc('executive_mrr_movements_series', {
         p_from: params.from || undefined,
@@ -498,6 +500,7 @@ export function useExecutiveMrrMovementCustomers(
 ) {
   return useQuery({
     queryKey: ['executive', 'mrr-movement-customers', month ?? null, reportingCurrency ?? null],
+    placeholderData: keepPreviousData,
     enabled,
     queryFn: async (): Promise<ExecutiveMrrMovementCustomer[]> => {
       const { data, error } = await supabase.rpc('executive_mrr_movement_customers', {
@@ -537,6 +540,7 @@ export interface ExecutiveMrrMixRow {
 export function useExecutiveMrrMix(dimension: MrrMixDimension, month?: string, reportingCurrency?: string) {
   return useQuery({
     queryKey: ['executive', 'mrr-mix', dimension, month ?? null, reportingCurrency ?? null],
+    placeholderData: keepPreviousData,
     queryFn: async (): Promise<ExecutiveMrrMixRow[]> => {
       const { data, error } = await supabase.rpc('executive_mrr_mix', {
         p_dimension: dimension,
@@ -583,6 +587,7 @@ export interface ExecutiveAging {
 export function useExecutiveAging(asOf?: string, reportingCurrency?: string) {
   return useQuery({
     queryKey: ['executive', 'aging', asOf ?? null, reportingCurrency ?? null],
+    placeholderData: keepPreviousData,
     queryFn: async (): Promise<ExecutiveAging | null> => {
       const { data, error } = await supabase.rpc('executive_receivables_aging', {
         p_as_of: asOf || undefined,
@@ -634,6 +639,7 @@ export interface ExecutiveBillingPoint {
 export function useExecutiveBillingSeries(params: ExecutiveMrrSeriesParams = {}) {
   return useQuery({
     queryKey: ['executive', 'billing-series', params.from ?? null, params.to ?? null, params.reportingCurrency ?? null],
+    placeholderData: keepPreviousData,
     queryFn: async (): Promise<ExecutiveBillingPoint[]> => {
       const { data, error } = await supabase.rpc('executive_billing_series', {
         p_from: params.from || undefined,
