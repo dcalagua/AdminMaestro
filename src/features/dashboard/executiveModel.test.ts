@@ -32,7 +32,7 @@ describe('mes analizado', () => {
     const opts = analyzedMonthOptions(today, 12);
     expect(opts).toHaveLength(12);
     expect(opts[0]).toEqual({ value: '2026-10', label: 'oct 2026 (en curso, parcial)', partial: true });
-    expect(opts[1]!.label).toBe('sep 2026');
+    expect(opts[1]!.label).toBe('set 2026');
     expect(lastClosedMonth(new Date(2026, 0, 15))).toBe('2025-12');
   });
 

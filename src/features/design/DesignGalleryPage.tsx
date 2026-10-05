@@ -316,9 +316,9 @@ export function DesignGalleryPage() {
               columns={['Número', 'Cliente', 'Estado', { label: 'Importe', align: 'right' }, { label: 'Vence', align: 'right' }]}
             >
               {[
-                ['F001-000812', 'Andina Logística SAC', <Badge key="b" tone="ok" dot>Pagada</Badge>, 'USD 1,250.00', '15 sep 2026'],
+                ['F001-000812', 'Andina Logística SAC', <Badge key="b" tone="ok" dot>Pagada</Badge>, 'USD 1,250.00', '15 set 2026'],
                 ['F001-000813', 'Minera Pacífico SA', <Badge key="b" tone="warn" dot>Por vencer</Badge>, 'PEN 8,420.50', '20 oct 2026'],
-                ['F001-000814', 'Altiplano Servicios SRL', <Badge key="b" tone="danger" dot>Vencida</Badge>, 'BOB 3,980.00', '01 sep 2026'],
+                ['F001-000814', 'Altiplano Servicios SRL', <Badge key="b" tone="danger" dot>Vencida</Badge>, 'BOB 3,980.00', '01 set 2026'],
                 ['F001-000815', 'Cordillera Agro SAC', <Badge key="b" dot>Borrador</Badge>, 'USD 640.00', '—'],
               ].map(([num, client, badge, amount, due]) => (
                 <tr key={String(num)}>
@@ -450,7 +450,7 @@ export function DesignGalleryPage() {
             ['Cliente', 'Andina Logística SAC'],
             ['Estado', <Badge key="s" tone="ok" dot>Confirmado</Badge>],
             ['Importe', 'USD 1,250.00'],
-            ['Fecha', '15 sep 2026'],
+            ['Fecha', '15 set 2026'],
             ['Referencia', 'OP-000812'],
             ['Observación', null],
           ]}

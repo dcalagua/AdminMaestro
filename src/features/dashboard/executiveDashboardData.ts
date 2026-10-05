@@ -71,7 +71,7 @@ export function useExecutiveDashboard(today: Date) {
     horizon,
     isCurrent,
     prev,
-    /** «sep 2026» (paneles). */
+    /** «set 2026» (paneles). */
     monthLabel: monthLongLabel(month),
     /** «septiembre 2026» (cabecera y subtítulos de la presentación). */
     monthFullLabel: `${longMonthName(month)} ${month.slice(0, 4)}`,

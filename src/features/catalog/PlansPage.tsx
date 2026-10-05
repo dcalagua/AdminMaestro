@@ -98,12 +98,12 @@ export function PlansPage() {
               return (
                 <tr key={p.id}>
                   <td className="ebim-td">
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex max-w-[160px] flex-wrap items-center gap-x-2 gap-y-1">
                       <span className="font-semibold">{p.name}</span>
                       {p.is_partner_base ? <Badge tone="accent">Licencia base partner</Badge> : null}
                       {p.multi_country ? <Badge tone="info">Multi-país</Badge> : null}
                     </div>
-                    <div className="whitespace-nowrap font-mono text-caption text-muted">{p.code}</div>
+                    <div className="max-w-[150px] truncate whitespace-nowrap font-mono text-caption text-muted" title={p.code}>{p.code}</div>
                   </td>
                   <td className="ebim-td">
                     {(p.saas_products as { short_name: string } | null)?.short_name ?? '—'}
@@ -118,10 +118,10 @@ export function PlansPage() {
                     )}
                   </td>
                   <td className="ebim-td ebim-num">{p.included_companies}</td>
-                  <td className="ebim-td">
+                  <td className="ebim-td py-2.5">
                     <RegionalPriceList prices={prices} kind="recurring" />
                   </td>
-                  <td className="ebim-td">
+                  <td className="ebim-td py-2.5">
                     <RegionalPriceList prices={prices} kind="one-time" />
                   </td>
                   <td className="ebim-td">

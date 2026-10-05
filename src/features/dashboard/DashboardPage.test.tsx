@@ -34,7 +34,7 @@ const idx = (m: string) => MONTHS.indexOf(m);
 
 function seriesPoint(m: string) {
   const i = idx(m);
-  const mrr = 30000 + i * 1000; // sep 26 = 52 000; ago 26 = 51 000
+  const mrr = 30000 + i * 1000; // set 26 = 52 000; ago 26 = 51 000
   const missing = state.seriesMissing && m === '2026-09';
   return {
     month: `${m}-01`, asOf: `${m}-28`, isPartial: m === '2026-10', reportingCurrency: 'USD',
@@ -193,7 +193,7 @@ describe('Resumen ejecutivo · franja hero', () => {
       expect(tile(container, label)).toBeDefined();
     }
     expect(screen.getByLabelText('Mes analizado')).toHaveValue('2026-09');
-    // sep 26: MRR 52 000 → «USD 52.0 K», una sola cifra protagonista (no tres monedas apiladas, A02).
+    // set 26: MRR 52 000 → «USD 52.0 K», una sola cifra protagonista (no tres monedas apiladas, A02).
     const mrr = tile(container, 'MRR');
     expect(mrr).toHaveTextContent('USD52.0 K');
     expect(mrr).toHaveTextContent('+2.0%');
@@ -216,7 +216,7 @@ describe('Resumen ejecutivo · franja hero', () => {
     expect(screen.getByText('Mes en curso: cifras parciales')).toBeInTheDocument();
     const collected = tile(container, 'Cobrado en el mes');
     expect(collected).toHaveTextContent('parcial');
-    expect(collected).not.toHaveTextContent('vs sep');
+    expect(collected).not.toHaveTextContent(/vs (sep|set)/);
   });
 
   it('si falta una tasa, el MRR se rotula sin tasa y nunca se pinta como cero', () => {

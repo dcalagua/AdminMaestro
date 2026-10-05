@@ -37,7 +37,7 @@ export function axisMonth(data: ReadonlyArray<{ month: string }>, month: string 
   return month === data[0]?.month || m === '01' ? `${short} ${y.slice(2)}` : short;
 }
 
-/** `2026-09` → `sep 2026`. */
+/** `2026-09` → `set 2026` (abreviatura es-PE, igual que las fechas de las tablas). */
 export function monthLongLabel(month: string): string {
   const [y, m] = month.split('-').map(Number) as [number, number];
   return `${MONTH_SHORT[m - 1]} ${y}`;

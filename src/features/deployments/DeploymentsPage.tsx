@@ -509,13 +509,14 @@ function EnvironmentMatrix({
               const summaries = summarizeByEnvironment(targets);
               return (
                 <tr key={product}>
-                  <th scope="row" className="ebim-td text-left font-semibold">
+                  {/* Producto y celdas alineados arriba: las celdas con salud ocupan tres líneas. */}
+                  <th scope="row" className="ebim-td py-3 text-left align-top font-semibold">
                     {product}
                   </th>
                   {environments.map((e) => {
                     const s = summaries.find((x) => x.environment === e);
                     return (
-                      <td key={e} className="ebim-td align-top">
+                      <td key={e} className="ebim-td py-3 align-top">
                         {s ? (
                           <div className="flex flex-col items-start gap-0.5 text-caption" data-health-cell={s.health}>
                             <span className="inline-flex items-center gap-1.5 text-compact">
