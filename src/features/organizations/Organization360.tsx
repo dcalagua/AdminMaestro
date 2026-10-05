@@ -1,14 +1,19 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useFinanceConsolidated, useProvisioningTargets } from '@/services/queries';
+import { useAccountSeries, useProvisioningTargets } from '@/services/queries';
 import { fetchInvoicePage, useInvoicePage, useInvoiceSummary, useRenewalPipeline, type InvoiceRow } from '@/services/financeRead';
 import { Card, DataTable, Badge } from '@/components/ui/primitives';
 import { PagedTable, type TableColumn } from '@/components/ui/PagedTable';
 import { ExportMenu } from '@/components/ui/ExportMenu';
 import type { ExportColumn } from '@/lib/export';
 import { fromQuery, type DataState } from '@/features/executive/dataState';
-import { isoDate, toCurrencyAmounts } from '@/features/executive/reportContext';
-import { KpiCard, CurrencyLines, StateMessage } from '@/features/executive/components/StateView';
+import { toCurrencyAmounts } from '@/features/executive/reportContext';
+import { StateMessage } from '@/features/executive/components/StateView';
+import { FilterTotals, KpiStrip, NativeAmountTile } from '@/features/billing/financeUi';
+import { nativeInline } from '@/features/billing/financeModel';
+import { AccountMrrTile, AccountTrendCharts, HealthTile } from './AccountPanels';
+import { accountHealth } from './accountSeriesModel';
+import { capabilityText } from './organizationLabels';
 import { tenantDimensions } from '@/features/tenants/tenantDimensions';
 import { TenantDimensionsInline } from '@/features/tenants/TenantDimensionsView';
 import { formatMoney, formatNumber, formatDate, formatDateTime } from '@/lib/format';
@@ -72,126 +77,155 @@ function Section({ title, description, state, onRetry, children, empty }: {
 
 /* ---------------------------------------------------------------- Resumen */
 
-export function Org360Summary({ organizationId, capabilities }: { organizationId: string; capabilities: string[] }) {
-  const today = isoDate(new Date());
-  const finance = useFinanceConsolidated({ asOf: today, groupBy: 'TOTAL', organizationId });
+/**
+ * Franja de la cabecera de perfil (PT-360): MRR con tendencia, saldo, cobrado y
+ * salud de cobranza. Va sobre las pestañas: se ve en cualquier sección.
+ */
+export function Org360KpiStrip({ organizationId }: { organizationId: string }) {
+  const series = useAccountSeries({ organizationId });
   const invoices = useInvoiceSummary({ search: '', filter: 'ALL', organizationId });
+  const renewals = useRenewalPipeline(organizationId);
+  const invoiceState = fromQuery(invoices, { isEmpty: () => false });
+  const overdue = toCurrencyAmounts(invoices.data?.overdue);
+  const soon = (renewals.data ?? []).filter(
+    (r) => r.days_to_renewal !== null && Number(r.days_to_renewal) >= 0 && Number(r.days_to_renewal) <= 60,
+  ).length;
+  return (
+    <KpiStrip label="Indicadores de la cuenta">
+      <AccountMrrTile
+        query={series}
+        info="MRR contratado de los contratos facturados a esta organización, a hoy (misma definición que el Resumen Ejecutivo)"
+      />
+      <NativeAmountTile
+        label="Saldo por cobrar"
+        info="Facturas emitidas con saldo pendiente, a hoy"
+        amounts={toCurrencyAmounts(invoices.data?.receivable)}
+        state={invoiceState}
+        onRetry={() => void invoices.refetch()}
+        emptyLabel="Sin saldo pendiente"
+        footer={Object.keys(overdue).length ? `Vencido: ${nativeInline(overdue)}` : 'Nada vencido'}
+      />
+      <NativeAmountTile
+        label="Cobrado confirmado"
+        info="Pagos confirmados acumulados de la organización"
+        amounts={toCurrencyAmounts(invoices.data?.collected)}
+        state={invoiceState}
+        onRetry={() => void invoices.refetch()}
+        emptyLabel="Sin cobros confirmados"
+        footer="Acumulado histórico"
+      />
+      <HealthTile
+        health={accountHealth(renewals.data ?? [])}
+        loading={renewals.isLoading}
+        error={Boolean(renewals.error)}
+        onRetry={() => void renewals.refetch()}
+        footer={
+          renewals.data && renewals.data.length > 0
+            ? `${formatNumber(soon)} ${soon === 1 ? 'contrato renueva' : 'contratos renuevan'} en 60 días`
+            : undefined
+        }
+      />
+    </KpiStrip>
+  );
+}
+
+/** Dato compacto de la tarjeta «La cuenta» (no es un KPI: no compite con la franja). */
+function Fact({ label, state, onRetry, children, hint }: {
+  label: string;
+  state: DataState<unknown>;
+  onRetry?: () => void;
+  children: () => React.ReactNode;
+  hint?: string;
+}) {
+  return (
+    <div className="min-w-0 px-5 py-4">
+      <dt className="text-micro text-muted" title={hint}>{label}</dt>
+      <dd className="mt-1.5 text-body text-fg">
+        {state.status === 'ready' || state.status === 'partial' || state.status === 'empty' ? (
+          children()
+        ) : (
+          <StateMessage state={state} onRetry={onRetry} />
+        )}
+      </dd>
+    </div>
+  );
+}
+
+export function Org360Summary({ organizationId, organizationName, capabilities }: { organizationId: string; organizationName?: string; capabilities: string[] }) {
+  const series = useAccountSeries({ organizationId });
   const subs = useOrgSubscriptions(organizationId);
   const tenants = useOrgTenants(organizationId);
   const renewals = useRenewalPipeline(organizationId);
 
-  const mrr: DataState<unknown> = fromQuery(finance, { isEmpty: (d) => d.groups.length === 0 });
-  const invoiceState = fromQuery(invoices, { isEmpty: () => false });
   const own = (tenants.data ?? []).filter((t) => t.customer_organization_id === organizationId).length;
   const managed = (tenants.data ?? []).filter((t) => t.managing_organization_id === organizationId).length;
   const soon = (renewals.data ?? []).filter((r) => r.days_to_renewal !== null && Number(r.days_to_renewal) >= 0 && Number(r.days_to_renewal) <= 60);
+  const products = [...new Set((subs.data ?? []).map((s) => s.product_short_name).filter(Boolean))] as string[];
+  const methods = [...new Set((subs.data ?? []).map((x) => x.collection_method ?? 'MANUAL'))];
+  const ready = (q: { data?: unknown; error?: unknown }) => fromQuery(q as never, { isEmpty: () => false });
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-xs text-muted">Capacidades:</span>
-        {capabilities.length === 0 ? (
-          <span className="text-xs text-muted">sin capacidades asignadas</span>
-        ) : (
-          capabilities.map((c) => (
-            <Badge key={c} tone={c === 'CUSTOMER' ? 'info' : 'ok'}>{c === 'CUSTOMER' ? 'Cliente' : c === 'PARTNER' ? 'Partner' : c === 'RESELLER' ? 'Reseller' : c}</Badge>
-          ))
-        )}
-      </div>
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        <KpiCard
-          id="org-mrr"
-          label="MRR vigente"
-          temporality="Foto actual"
-          state={mrr}
-          onRetry={() => void finance.refetch()}
-          render={() => <CurrencyLines amounts={toCurrencyAmounts(finance.data?.groups[0]?.metrics.MRR?.native)} emptyLabel="Sin recurrente vigente" />}
-          hint="Contratos facturados a la organización o administrados como canal"
-          detailHref="#contracts"
-          detailLabel="Ver contratos"
-        />
-        <KpiCard
-          id="org-balance"
-          label="Saldo por cobrar"
-          temporality="Foto actual"
-          state={invoiceState}
-          onRetry={() => void invoices.refetch()}
-          render={() => (
-            <div>
-              <CurrencyLines amounts={toCurrencyAmounts(invoices.data?.receivable)} emptyLabel="Sin saldo pendiente" />
-              {Object.keys(toCurrencyAmounts(invoices.data?.overdue)).length ? (
-                <p className="mt-1 text-xs font-semibold text-danger">
-                  Vencido: {Object.entries(toCurrencyAmounts(invoices.data?.overdue)).map(([c, v]) => formatMoney(v, c)).join(' · ')}
+      <AccountTrendCharts query={series} subject={organizationName ?? 'la organización'} />
+      <Card title="La cuenta" description="Lo que tiene contratado y cómo se le cobra; el detalle está en cada pestaña.">
+        <dl className="grid divide-y divide-border sm:grid-cols-2 sm:divide-y-0 xl:grid-cols-4 xl:divide-x">
+          <Fact label="Productos contratados" state={ready(subs)} onRetry={() => void subs.refetch()}>
+            {() => (
+              <>
+                <p className="text-h2 tabular-nums">{formatNumber(products.length)}</p>
+                <p className="mt-1 truncate text-compact text-fg-2" title={products.join(' · ')}>
+                  {products.join(' · ') || 'Sin contratos'}
                 </p>
-              ) : null}
-            </div>
-          )}
-          detailHref="#billing"
-          detailLabel="Ver cobros y saldo"
-        />
-        <KpiCard
-          id="org-collected"
-          label="Cobrado confirmado"
-          temporality="Acumulado"
-          state={invoiceState}
-          onRetry={() => void invoices.refetch()}
-          render={() => <CurrencyLines amounts={toCurrencyAmounts(invoices.data?.collected)} emptyLabel="Sin cobros confirmados" />}
-          detailHref="#billing"
-          detailLabel="Ver cobros"
-        />
-        <KpiCard
-          id="org-products"
-          label="Productos contratados"
-          temporality="Contratos visibles"
-          state={fromQuery(subs, { isEmpty: () => false })}
-          onRetry={() => void subs.refetch()}
-          render={() => <p className="tabular-nums">{formatNumber(new Set((subs.data ?? []).map((s) => s.product_code)).size)}</p>}
-          detailHref="#contracts"
-        />
-        <KpiCard
-          id="org-methods"
-          label="Métodos de cobro distintos"
-          temporality="Por suscripción"
-          state={fromQuery(subs, { isEmpty: () => false })}
-          onRetry={() => void subs.refetch()}
-          render={() => {
-            const methods = new Set((subs.data ?? []).map((x) => x.collection_method ?? 'MANUAL'));
-            return (
-              <div>
-                <p className="tabular-nums">{formatNumber(methods.size)}</p>
-                <p className="mt-1 text-xs font-medium text-muted">
-                  {[...methods].map((m) => METHOD_LABEL[m as string] ?? m).join(' · ') || 'Sin contratos'}
+              </>
+            )}
+          </Fact>
+          <Fact
+            label="Métodos de cobro"
+            hint="El método se define por contrato: cada SaaS puede pagarse de otra forma"
+            state={ready(subs)}
+            onRetry={() => void subs.refetch()}
+          >
+            {() => (
+              <>
+                <p className="text-h2 tabular-nums">{formatNumber(methods.length)}</p>
+                <p className="mt-1 truncate text-compact text-fg-2">
+                  {methods.map((m) => METHOD_LABEL[m as string] ?? m).join(' · ') || 'Sin contratos'}
                 </p>
-              </div>
-            );
-          }}
-          hint="El método se define por contrato: cada SaaS puede pagarse de otra forma"
-          detailHref="#contracts"
-        />
-        <KpiCard
-          id="org-tenants"
-          label="Tenants"
-          temporality="Registro actual"
-          state={fromQuery(tenants, { isEmpty: () => false })}
-          onRetry={() => void tenants.refetch()}
-          render={() => (
-            <p className="text-base">
-              <span className="tabular-nums">{formatNumber(own)}</span> propios ·{' '}
-              <span className="tabular-nums">{formatNumber(managed)}</span> administrados
-            </p>
+              </>
+            )}
+          </Fact>
+          <Fact label="Tenants" state={ready(tenants)} onRetry={() => void tenants.refetch()}>
+            {() => (
+              <>
+                <p className="text-h2 tabular-nums">{formatNumber(own + managed)}</p>
+                <p className="mt-1 text-compact text-fg-2">
+                  {formatNumber(own)} propios · {formatNumber(managed)} administrados
+                </p>
+              </>
+            )}
+          </Fact>
+          <Fact label="Renovaciones en 60 días" state={ready(renewals)} onRetry={() => void renewals.refetch()}>
+            {() => (
+              <>
+                <p className="text-h2 tabular-nums">{formatNumber(soon.length)}</p>
+                <p className="mt-1 text-compact text-fg-2">
+                  {soon[0]?.renewal_on ? `La próxima el ${formatDate(soon[0].renewal_on)}` : 'Ninguna en la ventana'}
+                </p>
+              </>
+            )}
+          </Fact>
+        </dl>
+        <div className="flex flex-wrap items-center gap-1.5 border-t border-border px-5 py-3">
+          <span className="text-caption text-muted">Capacidades:</span>
+          {capabilities.length === 0 ? (
+            <span className="text-caption text-muted">sin capacidades asignadas</span>
+          ) : (
+            capabilities.map((c) => (
+              <Badge key={c} tone={c === 'CUSTOMER' ? 'info' : 'neutral'}>{capabilityText(c)}</Badge>
+            ))
           )}
-          detailHref="#tenants"
-        />
-        <KpiCard
-          id="org-renewals"
-          label="Renovaciones en 60 días"
-          temporality="Desde hoy"
-          state={fromQuery(renewals, { isEmpty: () => false })}
-          onRetry={() => void renewals.refetch()}
-          render={() => <p className="tabular-nums">{formatNumber(soon.length)} contratos</p>}
-          detailHref="/renewals"
-        />
-      </div>
+        </div>
+      </Card>
     </div>
   );
 }
@@ -296,7 +330,7 @@ export function Org360Billing({ organizationId }: { organizationId: string }) {
   const summary = useInvoiceSummary({ search: '', filter: 'ALL', organizationId });
 
   const columns: TableColumn<InvoiceRow>[] = [
-    { id: 'number', header: 'Factura', sortKey: 'number', cell: (r) => <span className="font-mono text-xs font-semibold">{r.number}</span> },
+    { id: 'number', header: 'Factura', sortKey: 'number', cell: (r) => <span className="whitespace-nowrap font-mono text-compact font-semibold">{r.number}</span> },
     { id: 'issue', header: 'Emisión', sortKey: 'issue_date', cell: (r) => formatDate(r.issue_date) },
     { id: 'due', header: 'Vence', sortKey: 'due_date', cell: (r) => (r.due_date ? formatDate(r.due_date) : <span className="text-muted">Sin fecha</span>) },
     { id: 'total', header: 'Total', align: 'right', sortKey: 'total', cell: (r) => formatMoney(Number(r.total), r.currency) },
@@ -313,14 +347,9 @@ export function Org360Billing({ organizationId }: { organizationId: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 md:grid-cols-3">
-        <KpiCard id="org-invoiced" label="Facturado (emitido)" temporality="Acumulado" state={fromQuery(summary, { isEmpty: () => false })} onRetry={() => void summary.refetch()} render={() => <CurrencyLines amounts={toCurrencyAmounts(summary.data?.invoiced)} emptyLabel="Sin facturas emitidas" />} />
-        <KpiCard id="org-collected-2" label="Cobrado confirmado" temporality="Acumulado" state={fromQuery(summary, { isEmpty: () => false })} onRetry={() => void summary.refetch()} render={() => <CurrencyLines amounts={toCurrencyAmounts(summary.data?.collected)} emptyLabel="Sin cobros" />} />
-        <KpiCard id="org-receivable" label="Saldo por cobrar" temporality="Foto actual" state={fromQuery(summary, { isEmpty: () => false })} onRetry={() => void summary.refetch()} render={() => <CurrencyLines amounts={toCurrencyAmounts(summary.data?.receivable)} emptyLabel="Sin saldo" />} />
-      </div>
       <Card
         title="Facturas de la organización"
-        description={summary.data ? `${formatNumber(summary.data.row_count)} facturas visibles; el total coincide con la tabla.` : undefined}
+        description={summary.data ? `${formatNumber(summary.data.row_count)} facturas visibles; los totales coinciden con la tabla.` : undefined}
         actions={
           <ExportMenu
             filenameBase="organizacion-facturas"
@@ -332,6 +361,16 @@ export function Org360Billing({ organizationId }: { organizationId: string }) {
           />
         }
       >
+        <FilterTotals
+          state={fromQuery(summary, { isEmpty: () => false })}
+          onRetry={() => void summary.refetch()}
+          items={[
+            { label: 'Facturado (emitido)', amounts: toCurrencyAmounts(summary.data?.invoiced), emptyLabel: 'Sin facturas emitidas' },
+            { label: 'Cobrado confirmado', amounts: toCurrencyAmounts(summary.data?.collected), emptyLabel: 'Sin cobros' },
+            { label: 'Saldo por cobrar', amounts: toCurrencyAmounts(summary.data?.receivable), emptyLabel: 'Sin saldo' },
+            { label: 'Vencido', amounts: toCurrencyAmounts(summary.data?.overdue), emptyLabel: 'Nada vencido' },
+          ]}
+        />
         <PagedTable
           label="Facturas de la organización"
           columns={columns}

@@ -68,11 +68,17 @@ export function PageContainer({
   actions,
   breadcrumbs,
   meta,
+  leading,
+  titleAside,
   children,
 }: {
   title: string;
   description?: string;
   actions?: ReactNode;
+  /** Avatar o logo delante del título (cabecera de perfil de las fichas 360). */
+  leading?: ReactNode;
+  /** Insignias de estado junto al título. */
+  titleAside?: ReactNode;
   /**
    * Migas: lista declarativa o un nodo propio (compatibilidad). Sin migas, se
    * usan las del shell (grupo del menú → listado de origen) + el título.
@@ -92,13 +98,19 @@ export function PageContainer({
         </div>
       ) : null}
       <header className="mb-6 flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
-        <div className="min-w-0">
-          {/* tabIndex -1: el shell lleva el foco aquí al cambiar de ruta (§5.13). */}
-          <h1 tabIndex={-1} className="text-h1 text-fg focus:outline-none">
-            {title}
-          </h1>
-          {description ? <p className="mt-1 max-w-[72ch] text-body text-fg-2">{description}</p> : null}
-          {meta ? <div className="mt-2 text-caption text-muted">{meta}</div> : null}
+        <div className="flex min-w-0 items-start gap-4">
+          {leading}
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              {/* tabIndex -1: el shell lleva el foco aquí al cambiar de ruta (§5.13). */}
+              <h1 tabIndex={-1} className="text-h1 text-fg focus:outline-none">
+                {title}
+              </h1>
+              {titleAside ? <div className="flex flex-wrap items-center gap-1.5">{titleAside}</div> : null}
+            </div>
+            {description ? <p className="mt-1 max-w-[72ch] text-body text-fg-2">{description}</p> : null}
+            {meta ? <div className="mt-2 text-caption text-muted">{meta}</div> : null}
+          </div>
         </div>
         {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
       </header>

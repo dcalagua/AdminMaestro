@@ -8,13 +8,24 @@ import { ChartSkeleton } from '@/features/executive/components/ChartPanel';
  */
 const PeriodBarsImpl = lazy(() => import('./financeCharts').then((m) => ({ default: m.PeriodBars })));
 
+const PeriodAreaImpl = lazy(() => import('./financeCharts').then((m) => ({ default: m.PeriodArea })));
+
 export type PeriodBarsProps = ComponentProps<typeof PeriodBarsImpl>;
+export type PeriodAreaProps = ComponentProps<typeof PeriodAreaImpl>;
 export type { PeriodDatum, PeriodSeries } from './financeCharts';
 
 export function PeriodBars(props: PeriodBarsProps) {
   return (
     <Suspense fallback={<ChartSkeleton height={props.height ?? 240} />}>
       <PeriodBarsImpl {...props} />
+    </Suspense>
+  );
+}
+
+export function PeriodArea(props: PeriodAreaProps) {
+  return (
+    <Suspense fallback={<ChartSkeleton height={props.height ?? 240} />}>
+      <PeriodAreaImpl {...props} />
     </Suspense>
   );
 }

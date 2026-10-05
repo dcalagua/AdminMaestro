@@ -188,3 +188,15 @@ export function formatCurrencyMap(map: Record<string, number | string> | null | 
     .map(([currency, amount]) => formatMoneyCompact(Number(amount), currency))
     .join(' · ');
 }
+
+const REGION_NAMES = typeof Intl.DisplayNames === 'function' ? new Intl.DisplayNames(['es'], { type: 'region' }) : null;
+
+/** «PE» → «Perú». Si el código no es una región conocida, se devuelve tal cual. */
+export function countryName(code: string | null | undefined): string {
+  if (!code) return '—';
+  try {
+    return REGION_NAMES?.of(code.toUpperCase()) ?? code;
+  } catch {
+    return code;
+  }
+}

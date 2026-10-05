@@ -9,9 +9,11 @@ import type { ReactNode } from 'react';
  */
 
 const orgsHook = vi.fn();
+const tenantsHook = vi.fn();
 
 vi.mock('@/services/queries', () => ({
   useOrganizations: () => orgsHook(),
+  useTenantOverview: () => tenantsHook(),
 }));
 vi.mock('@/hooks/usePermissions', () => ({
   usePermissions: () => ({ canManagePlatform: false, canManageOrganization: () => false }),
@@ -50,6 +52,12 @@ function renderWith(node: ReactNode) {
 
 beforeEach(() => {
   orgsHook.mockReturnValue({ data: ORGS, isLoading: false, error: null });
+  tenantsHook.mockReturnValue({
+    data: [
+      { tenant_id: 't1', customer_organization_id: 'grupasa', managing_organization_id: 'andina' },
+      { tenant_id: 't2', customer_organization_id: 'grupasa', managing_organization_id: null },
+    ],
+  });
 });
 
 describe('Directorio corporativo', () => {
@@ -69,7 +77,19 @@ describe('Directorio corporativo', () => {
     expect(screen.queryByText('Canal Sur')).toBeNull();
     const row = screen.getByRole('row', { name: /GRUPASA/ });
     expect(within(row).getByRole('link', { name: 'GRUPASA' })).toHaveAttribute('href', '/organizations/grupasa');
-    expect(within(row).getByRole('link', { name: 'Ver detalle' })).toHaveAttribute('href', '/organizations/grupasa');
+    // Acciones secundarias en el menú de la fila (A12), no como enlaces sueltos.
+    expect(within(row).getByRole('button', { name: 'Acciones de GRUPASA' })).toBeInTheDocument();
+    expect(within(row).queryByRole('link', { name: 'Ver detalle' })).toBeNull();
+    // Conteo de tenants propios, alineado a la derecha.
+    expect(within(row).getByRole('cell', { name: '2' })).toHaveClass('ebim-num');
+  });
+
+  it('Clientes: si no se pueden leer los tenants, la columna dice «—» y la tabla sigue', () => {
+    tenantsHook.mockReturnValue({ data: undefined, error: new Error('x') });
+    renderWith(<CustomersPage />);
+    const row = screen.getByRole('row', { name: /GRUPASA/ });
+    const dashes = within(row).getAllByRole('cell', { name: '—' });
+    expect(dashes.some((c) => c.classList.contains('ebim-num'))).toBe(true);
   });
 
   it('Partners: misma vista del directorio, con pestañas de estado y sin agregados globales', () => {
@@ -79,6 +99,9 @@ describe('Directorio corporativo', () => {
     expect(screen.queryByText('GRUPASA')).toBeNull();
     expect(screen.getByRole('tab', { name: /Activos\s*1/ })).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/MRR|Cobrado|EBIM total/i);
+    // Partners: cuántos tenants administra cada canal.
+    const row = screen.getByRole('row', { name: /Consultora Andina/ });
+    expect(within(row).getByRole('cell', { name: '1' })).toHaveClass('ebim-num');
   });
 
   it('Directorio: pestañas de capacidad con conteos del alcance visible', () => {

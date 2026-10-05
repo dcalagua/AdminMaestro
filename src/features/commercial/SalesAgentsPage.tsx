@@ -13,13 +13,8 @@ import {
 } from '@/features/catalog/catalogLabels';
 import type { EntityStatusTab } from '@/features/catalog/catalogLabels';
 import { SalesAgentFormDialog } from './CommercialDialogs';
+import { AGENT_TYPE_LABEL } from './commercialLabels';
 import type { SalesAgentDraft } from './CommercialDialogs';
-
-const AGENT_TYPE_LABEL: Record<string, string> = {
-  EBIM_INTERNAL: 'Interno EBIM',
-  INDEPENDENT: 'Independiente',
-  PARTNER_AGENT: 'De partner',
-};
 
 interface Portfolio {
   active: number;

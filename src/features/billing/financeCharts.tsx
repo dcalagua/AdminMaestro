@@ -1,4 +1,5 @@
-import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { useId } from 'react';
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { formatCompactAmount, formatMoney, formatNumber } from '@/lib/format';
 
 /**
@@ -142,6 +143,85 @@ export function PeriodBars({
             );
           })}
         </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+/**
+ * Área de una sola serie por período (fichas 360: «MRR del cliente, 12 meses»).
+ * Línea 2 px + relleno tenue del mismo token, eje Y desde 0, sin animación,
+ * crosshair con tooltip; el período en curso (parcial) se marca con un punto
+ * hueco. Un solo color: el título de la tarjeta nombra la serie (sin leyenda).
+ */
+export function PeriodArea({
+  data,
+  series,
+  unit,
+  height = 240,
+  ariaLabel,
+}: {
+  data: PeriodDatum[];
+  series: PeriodSeries;
+  unit: Unit;
+  height?: number;
+  ariaLabel: string;
+}) {
+  const gradientId = `period-area-${useId().replace(/:/g, '')}`;
+  const rows = data.map((d) => ({ label: d.label, __datum: d, ...d.values }));
+  const last = data[data.length - 1];
+  return (
+    <div role="img" aria-label={ariaLabel} style={{ height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={rows} margin={{ top: 12, right: 12, bottom: 4, left: 0 }} accessibilityLayer>
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" style={{ stopColor: series.color, stopOpacity: 'calc(var(--chart-area-opacity) * 2.2)' }} />
+              <stop offset="100%" style={{ stopColor: series.color, stopOpacity: 0 }} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
+          <XAxis
+            dataKey="label"
+            tick={AXIS}
+            tickLine={false}
+            axisLine={{ stroke: 'var(--chart-baseline)' }}
+            interval="preserveStartEnd"
+            minTickGap={4}
+          />
+          <YAxis
+            tick={AXIS}
+            tickFormatter={(v: number) => formatCompactAmount(v)}
+            width={52}
+            tickLine={false}
+            axisLine={false}
+            domain={[0, 'auto']}
+          />
+          <Tooltip
+            cursor={{ stroke: 'var(--border-strong)', strokeWidth: 1 }}
+            content={<PeriodTooltip series={[series]} unit={unit} stacked={false} />}
+          />
+          <Area
+            type="monotone"
+            dataKey={series.key}
+            name={series.label}
+            stroke={series.color}
+            strokeWidth={2}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            fill={`url(#${gradientId})`}
+            isAnimationActive={false}
+            connectNulls={false}
+            dot={(props: { cx?: number; cy?: number; index?: number }) =>
+              props.index === data.length - 1 && last?.partial && props.cx != null && props.cy != null ? (
+                <circle key="partial" cx={props.cx} cy={props.cy} r={4} fill="var(--card)" stroke={series.color} strokeWidth={2} />
+              ) : (
+                <g key={`d${props.index}`} />
+              )
+            }
+            activeDot={{ r: 5, fill: series.color, stroke: 'var(--card)', strokeWidth: 2 }}
+          />
+        </AreaChart>
       </ResponsiveContainer>
     </div>
   );

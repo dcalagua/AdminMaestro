@@ -32,9 +32,9 @@ vi.mock('./org360Queries', () => ({
   useOrgAudit: () => q([]),
 }));
 vi.mock('@/services/queries', () => ({
-  useFinanceConsolidated: (p: { organizationId?: string }) => {
-    calls.scoped.push(['finance', p.organizationId]);
-    return q({ groups: [{ key: 'TOTAL', metrics: { MRR: { native: { USD: 100 } } } }] });
+  useAccountSeries: (p: { organizationId?: string }) => {
+    calls.scoped.push(['series', p.organizationId]);
+    return q([]);
   },
   useProvisioningTargets: () => q([]),
   useCurrencies: () => q([]),
@@ -55,7 +55,7 @@ vi.mock('@/services/financeRead', () => ({
   PAGE_SIZES: [10, 25, 50],
 }));
 
-import { Org360Contracts, Org360Documents, Org360Summary, Org360Tenants } from './Organization360';
+import { Org360Contracts, Org360Documents, Org360KpiStrip, Org360Summary, Org360Tenants } from './Organization360';
 
 beforeEach(() => {
   calls.scoped.length = 0;
@@ -66,9 +66,31 @@ const wrap = (node: React.ReactNode) => render(<MemoryRouter>{node}</MemoryRoute
 
 describe('Organización 360', () => {
   it('todas las lecturas del resumen van acotadas a la organización', () => {
-    wrap(<Org360Summary organizationId={ORG} capabilities={['CUSTOMER']} />);
-    expect(calls.scoped.length).toBeGreaterThan(0);
+    wrap(
+      <>
+        <Org360KpiStrip organizationId={ORG} />
+        <Org360Summary organizationId={ORG} organizationName="Alpha" capabilities={['CUSTOMER']} />
+      </>,
+    );
+    expect(calls.scoped.map(([k]) => k)).toEqual(expect.arrayContaining(['series', 'invoices', 'renewals', 'subs', 'tenants']));
     for (const [, id] of calls.scoped) expect(id).toBe(ORG);
+  });
+
+  it('cabecera 360: sin contratos ni saldo muestra estados explicados, nunca un 0 que parezca dato', () => {
+    wrap(<Org360KpiStrip organizationId={ORG} />);
+    const strip = screen.getByRole('region', { name: 'Indicadores de la cuenta' });
+    expect(within(strip).getByText('Sin contratos recurrentes vigentes')).toBeInTheDocument();
+    expect(within(strip).getByText('Sin saldo pendiente')).toBeInTheDocument();
+    expect(within(strip).getByText('Sin contratos')).toBeInTheDocument();
+    expect(within(strip).queryByText(/^0$/)).toBeNull();
+  });
+
+  it('resumen: los datos de la cuenta van en español (capacidades, métodos)', () => {
+    wrap(<Org360Summary organizationId={ORG} organizationName="Alpha" capabilities={['CUSTOMER', 'PARTNER']} />);
+    expect(screen.getByText('Cliente')).toBeInTheDocument();
+    expect(screen.getByText('Partner')).toBeInTheDocument();
+    expect(screen.getByText('Manual')).toBeInTheDocument();
+    expect(screen.queryByText('CUSTOMER')).toBeNull();
   });
 
   it('un error en documentos se ve como error de esa sección; contratos siguen visibles', () => {
