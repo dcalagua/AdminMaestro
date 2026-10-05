@@ -84,24 +84,30 @@ function ReportContextBar({ ctx, months, setMonth, setFxDate }: ReturnType<typeo
 }
 
 function ExecutiveHome() {
-  const report = useReportContextParams();
-  const openOperations = () => {
-    window.location.hash = 'operacion';
-  };
   return (
     <PageContainer
       title="Resumen ejecutivo"
-      description="Cartera, cobros, riesgos y operación de la suite. Cada cifra abre el detalle que la compone."
+      description="Cuánto factura el negocio, si crece, de dónde viene el crecimiento, si se cobra y qué requiere atención. Cada cifra abre el detalle que la compone."
     >
-      <ReportContextBar {...report} />
       <SectionTabs
         tabs={[
-          { id: 'ejecutivo', label: 'Ejecutivo', content: <ExecutivePerspective ctx={report.ctx} onOpenOperations={openOperations} /> },
-          { id: 'finanzas', label: 'Finanzas', content: <FinancePerspective ctx={report.ctx} /> },
+          { id: 'ejecutivo', label: 'Ejecutivo', content: <ExecutivePerspective /> },
+          { id: 'finanzas', label: 'Finanzas', content: <FinanceTab /> },
           { id: 'operacion', label: 'Operación SaaS', content: <OperationsPerspective /> },
         ]}
       />
     </PageContainer>
+  );
+}
+
+/** Finanzas conserva su contexto de período y fecha FX (movimientos en moneda nativa). */
+function FinanceTab() {
+  const report = useReportContextParams();
+  return (
+    <>
+      <ReportContextBar {...report} />
+      <FinancePerspective ctx={report.ctx} />
+    </>
   );
 }
 

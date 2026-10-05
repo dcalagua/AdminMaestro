@@ -1,11 +1,14 @@
-import { render, screen, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SessionRoles } from '@/types/domain';
+import { lastMonths } from '@/features/executive/reportContext';
 
 /*
- * P16 · Inicio ejecutivo (spec §7, K01–K06, AC11, AC13).
- * Las consultas se simulan: aquí se prueba la PRESENTACIÓN y el permiso de vista.
+ * Resumen ejecutivo V4 (fase 09, D-V05) y perspectivas.
+ * Las consultas se simulan: aquí se prueba la PRESENTACIÓN (qué cifra, qué
+ * estado, a dónde lleva cada clic) y el permiso de vista. Las cifras vienen ya
+ * en moneda de reporte desde la base (S01–S08).
  */
 type Q = { data?: unknown; error?: unknown; isLoading?: boolean; refetch: () => void; dataUpdatedAt?: number };
 const q = (data?: unknown, error?: unknown): Q => ({ data, error, isLoading: data === undefined && !error, refetch: vi.fn(), dataUpdatedAt: 1 });
@@ -16,27 +19,103 @@ const state = vi.hoisted(() => ({
   consolidated: null as unknown,
   consolidatedError: null as unknown,
   healthCalls: 0,
+  seriesMissing: false,
+  billingError: null as unknown,
+  customers: undefined as unknown,
+  movementsEmpty: false,
+  alertsError: null as unknown,
 }));
+
+// Meses de la demo: may 25 → oct 26 (mes en curso, parcial). Hoy = 5 oct 2026.
+const TODAY = new Date(2026, 9, 5);
+const MONTHS = lastMonths('2026-10', 24);
+const idx = (m: string) => MONTHS.indexOf(m);
+
+function seriesPoint(m: string) {
+  const i = idx(m);
+  const mrr = 30000 + i * 1000; // sep 26 = 52 000; ago 26 = 51 000
+  const missing = state.seriesMissing && m === '2026-09';
+  return {
+    month: `${m}-01`, asOf: `${m}-28`, isPartial: m === '2026-10', reportingCurrency: 'USD',
+    mrr: missing ? null : mrr, arr: missing ? null : mrr * 12,
+    activeCustomers: 20 + i, activeSubscriptions: 30 + i,
+    native: { USD: mrr - 5000, PEN: 20000 }, complete: !missing, missingCurrencies: missing ? ['BOB'] : [], fxIsDemo: true,
+  };
+}
+
+function billingPoint(m: string) {
+  const i = idx(m);
+  return {
+    month: `${m}-01`, asOf: `${m}-28`, isPartial: m === '2026-10', reportingCurrency: 'USD',
+    invoiced: 40000 + i * 500, collected: m === '2026-10' ? 9000 : 38000 + i * 500, collectionRate: 0.95,
+    overdue: 20000 + i * 1000, // la vencida SUBE mes a mes
+    invoiceCount: 40, paymentCount: 38, overdueInvoiceCount: 12,
+    invoicedNative: { USD: 40000 }, collectedNative: { USD: 38000 }, complete: true, missingCurrencies: [], fxIsDemo: true,
+  };
+}
+
+function bridge(m: string) {
+  return {
+    month: `${m}-01`, asOf: `${m}-28`, reportingCurrency: 'USD',
+    opening: 50000, newMrr: 800, expansion: 1700, contraction: 200, churn: 300, closing: 52000,
+    priorClosing: 50000, fxRevaluation: 0, newCustomers: 1, expansionCustomers: 1, contractionCustomers: 1, churnedCustomers: 1, complete: true,
+  };
+}
+
+const CUSTOMERS = [
+  { organizationId: 'o1', organizationName: 'Minera Cordillera', movement: 'EXPANSION', opening: 4000, closing: 5700, delta: 1700, complete: true },
+  { organizationId: 'o2', organizationName: 'Transportes Sajama', movement: 'FLAT', opening: 4600, closing: 4600, delta: 0, complete: true },
+  { organizationId: 'o3', organizationName: 'Nueva Andina SA', movement: 'NEW', opening: 0, closing: 800, delta: 800, complete: true },
+  { organizationId: 'o4', organizationName: 'Baja SRL', movement: 'CHURN', opening: 300, closing: 0, delta: -300, complete: true },
+  { organizationId: 'o5', organizationName: 'Recorte SAC', movement: 'CONTRACTION', opening: 1200, closing: 1000, delta: -200, complete: true },
+];
+
+const mixRow = (key: string, label: string, mrr: number, share: number) => ({
+  key, label, mrr, share, activeCustomers: 3, activeSubscriptions: 4, native: { USD: mrr }, complete: true, missingCurrencies: [],
+});
+const MIX = {
+  PRODUCT: [mixRow('p1', 'eSupplier', 12000, 0.6), mixRow('p2', 'EWM', 8000, 0.4)],
+  MARKET: [mixRow('PE', 'Perú', 15000, 0.75), mixRow('BO', 'Bolivia', 5000, 0.25)],
+  PARTNER: [mixRow('DIRECTO', 'Venta directa', 14000, 0.7), mixRow('org-andes', 'Andes Digital Partners', 6000, 0.3)],
+};
+
+const AGING = {
+  asOf: '2026-09-30', reportingCurrency: 'USD', complete: true, fxIsDemo: true,
+  buckets: [
+    ['VIGENTE', 10, 9000], ['D1_30', 5, 4000], ['D31_60', 2, 1500], ['D61_90', 1, 500], ['D90_MAS', 3, 2000], ['SIN_FECHA', 0, 0],
+  ].map(([bucket, invoiceCount, balance]) => ({ bucket, invoiceCount, balance, native: { USD: balance }, complete: true, missingCurrencies: [] })),
+};
 
 const group = {
   key: 'TOTAL', label: 'Total',
   metrics: {
     MRR: { native: { PEN: 3150, USD: 28800 }, reporting_amount: null, complete: false, missing_currencies: ['BOB'] },
-    ARR: { native: { PEN: 37800, USD: 345600 }, reporting_amount: null, complete: false, missing_currencies: ['BOB'] },
     COLLECTED: { native: { USD: 1000 }, reporting_amount: 1000, complete: true, missing_currencies: [] },
     COST: { native: { USD: 300 }, reporting_amount: 300, complete: true, missing_currencies: [] },
     COMMISSION: { native: { USD: 50 }, reporting_amount: 50, complete: true, missing_currencies: [] },
   },
-  native_margin: { USD: 650 },
-  margin: { reporting_amount: 650, complete: true },
+  native_margin: { USD: -650 },
+  margin: { reporting_amount: -650, complete: true },
 };
 
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ persona: state.persona, roles: state.roles }) }));
 vi.mock('@/services/queries', () => ({
   useFinanceConsolidated: () =>
-    state.consolidatedError ? q(undefined, state.consolidatedError) : q(state.consolidated ?? { reporting_currency: 'USD', groups: [group], completeness: { complete: false, missing_fx_count: 1, missing_currencies: ['BOB'] }, rates_used: [] }),
+    state.consolidatedError ? q(undefined, state.consolidatedError) : q(state.consolidated ?? { reporting_currency: 'USD', groups: [group], completeness: { complete: true, missing_fx_count: 0, missing_currencies: [] }, rates_used: [] }),
+  useExecutiveMrrSeries: () => q(MONTHS.map(seriesPoint)),
+  useExecutiveBillingSeries: () => (state.billingError ? q(undefined, state.billingError) : q(MONTHS.slice(-12).map(billingPoint))),
+  useExecutiveMrrMovementsSeries: () => q(state.movementsEmpty ? [] : MONTHS.slice(-13).map(bridge)),
+  useExecutiveMrrMovementCustomers: () => q(state.customers === undefined ? CUSTOMERS : state.customers),
+  useExecutiveMrrMix: (dim: 'PRODUCT' | 'MARKET' | 'PARTNER') => q(MIX[dim]),
+  useExecutiveAging: () => q(AGING),
+  useCurrencies: () => q([{ code: 'USD', status: 'ACTIVE' }, { code: 'PEN', status: 'ACTIVE' }, { code: 'BOB', status: 'ACTIVE' }]),
   useProducts: () => q([{ id: 'p1', short_name: 'eSupplier', status: 'ACTIVE' }, { id: 'p2', short_name: 'EWM', status: 'ACTIVE' }]),
-  useBillingAlerts: () => q([]),
+  useBillingAlerts: () =>
+    state.alertsError
+      ? q(undefined, state.alertsError)
+      : q([{ alert_type: 'RENEWAL_NOTICE' }, { alert_type: 'RENEWAL_NOTICE' }, { alert_type: 'PAYMENT_FAILURE' }, { alert_type: 'SUSPENSION_DUE' }]),
+  useSettlements: () => q([{ status: 'OPEN' }, { status: 'PAID' }]),
+  usePartnerFeeStatements: () => q([{ status: 'DRAFT' }]),
   useSubscriptionDocumentStatus: () => q([]),
   useSaasProvisioningRequests: () => q([]),
   useDashboardSummary: () => q({ provisioning_failures: 0 }),
@@ -46,90 +125,217 @@ vi.mock('@/services/queries', () => ({
   ]),
   useAttributions: () => q([]),
   usePartnerMargin: () => q([]),
-  useTenantOverview: () => q([]),
+  useTenantOverview: () => q([{ tenant_id: 't1', status: 'ACTIVE' }]),
   useMarkets: () => q([]),
-  useCurrencies: () => q([]),
   useOrganizations: () => q([]),
   // Si alguna vista llamara a una verificación de salud, lo registraríamos aquí.
   useCheckDeploymentHealth: () => { state.healthCalls += 1; return { mutate: vi.fn() }; },
 }));
+vi.mock('@/features/dashboard/RegionalFinancePanel', () => ({ RegionalFinancePanel: () => null }));
 vi.mock('@/services/financeRead', () => ({
-  useCollectionsByMonth: () => q([{ month: '2026-09-01', currency: 'USD', amount: 1000, payment_count: 2 }, { month: '2026-08-01', currency: 'USD', amount: 0, payment_count: 0 }]),
+  useCollectionsByMonth: () => q([{ month: '2026-09-01', currency: 'USD', amount: 1000, payment_count: 2 }]),
   useInvoiceSummary: () => q({ row_count: 3, status_counts: {}, invoiced: { USD: 5000 }, collected: { USD: 1000 }, receivable: { USD: '-15.00', PEN: '200.00' }, overdue: { PEN: '200.00' }, observed_at: '' }),
   useReceivablesAging: () => q([{ currency: 'PEN', aging_bucket: 'D31_60', invoice_count: 1, balance: 200 }]),
-  useRenewalPipeline: () => q([{ subscription_id: 's1', days_to_renewal: 5, current_mrr: 100, currency: 'USD' }]),
+  useRenewalPipeline: () => q([]),
   useCommissionSummary: () => q({ row_count: 0, by_status: {}, pending: {}, paid: {} }),
 }));
-// Recharts no se dibuja en jsdom (sin layout); el gráfico se prueba por su tabla.
+// Recharts no se dibuja en jsdom (sin layout): los gráficos se prueban por su tabla y sus controles.
 vi.mock('@/features/executive/components/charts', () => ({ SingleBars: () => <div data-testid="chart" />, ComponentBars: () => <div data-testid="chart" /> }));
+vi.mock('@/features/executive/components/executiveCharts', () => ({
+  MrrEvolutionChart: () => <div data-testid="chart-mrr" />,
+  BridgeWaterfall: () => <div data-testid="chart-bridge" />,
+  BilledCollectedChart: () => <div data-testid="chart-billed" />,
+}));
 
 import { DashboardPage } from './DashboardPage';
 
 const superAdmin: SessionRoles = { userId: 'u', email: 'a@ebim.pe', fullName: 'A', platformRole: 'EBIM_SUPER_ADMIN', organizations: [], tenantRoles: [], salesAgentId: null, provisioningRoles: [], ownedProductIds: [] };
 
-function renderHome() {
-  return render(<MemoryRouter initialEntries={['/?mes=2026-09&fx=2026-09-25']}><DashboardPage /></MemoryRouter>);
+function Where() {
+  const loc = useLocation();
+  return <p data-testid="where">{`${loc.pathname}${loc.search}${loc.hash}`}</p>;
 }
 
+function renderHome(entry = '/') {
+  return render(
+    <MemoryRouter initialEntries={[entry]}>
+      <Routes>
+        <Route path="/" element={<DashboardPage />} />
+        <Route path="*" element={<Where />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
+
+const tile = (container: HTMLElement, label: string) => {
+  const hero = container.querySelector('[data-hero]') as HTMLElement;
+  return [...hero.children].find((c) => c.textContent?.includes(label)) as HTMLElement;
+};
+const panel = (container: HTMLElement, id: string) => container.querySelector(`[data-panel="${id}"]`) as HTMLElement;
+
 beforeEach(() => {
-  state.persona = 'EBIM';
-  state.roles = superAdmin;
-  state.consolidated = null;
-  state.consolidatedError = null;
-  state.healthCalls = 0;
+  vi.useFakeTimers({ now: TODAY, toFake: ['Date'] });
+  Object.assign(state, {
+    persona: 'EBIM', roles: superAdmin, consolidated: null, consolidatedError: null, healthCalls: 0,
+    seriesMissing: false, billingError: null, customers: undefined, movementsEmpty: false, alertsError: null,
+  });
   window.location.hash = '';
 });
+afterEach(() => vi.useRealTimers());
 
-describe('Resumen ejecutivo', () => {
-  it('muestra exactamente seis KPI principales, no diecinueve tarjetas', () => {
+describe('Resumen ejecutivo · franja hero', () => {
+  it('seis KPI en moneda de reporte, del último mes CERRADO, con tendencia de 12 meses', () => {
     const { container } = renderHome();
-    expect(container.querySelectorAll('[data-kpi]')).toHaveLength(6);
-    for (const k of ['K01', 'K02', 'K03', 'K04', 'K05', 'K06']) expect(container.querySelector(`[data-kpi="${k}"]`)).not.toBeNull();
+    const hero = container.querySelector('[data-hero]') as HTMLElement;
+    expect(hero.children).toHaveLength(6);
+    for (const label of ['MRR', 'ARR', 'Cobrado del mes', 'Cartera vencida', 'Clientes activos', 'Retención neta (NRR)']) {
+      expect(tile(container, label)).toBeDefined();
+    }
+    expect(screen.getByLabelText('Mes analizado')).toHaveValue('2026-09');
+    // sep 26: MRR 52 000 → «USD 52.0 K», una sola cifra protagonista (no tres monedas apiladas, A02).
+    const mrr = tile(container, 'MRR');
+    expect(mrr).toHaveTextContent('USD52.0 K');
+    expect(mrr).toHaveTextContent('+2.0%');
+    expect(within(mrr).getByTestId('sparkline')).toBeInTheDocument();
+    expect(tile(container, 'ARR')).toHaveTextContent('624.0 K');
+    // NRR = (50 000 + 1 700 − 200 − 300) / 50 000 = 102.4 %
+    expect(tile(container, 'Retención neta')).toHaveTextContent('102.4%');
   });
 
-  it('MRR es foto actual y no suma monedas', () => {
+  it('la cartera vencida que sube se pinta como mala noticia y abre su detalle', () => {
     const { container } = renderHome();
-    const k01 = container.querySelector('[data-kpi="K01"]') as HTMLElement;
-    expect(within(k01).getByText('Foto actual')).toBeInTheDocument();
-    expect(k01).toHaveTextContent('PEN');
-    expect(k01).toHaveTextContent('USD');
+    const overdue = tile(container, 'Cartera vencida');
+    const delta = within(overdue).getByText('+2.4%'); // 42 000 vs 41 000
+    expect(delta.closest('span')).toHaveClass('text-danger');
+    expect(overdue.closest('a') ?? overdue).toHaveAttribute('href', '/billing?estado=OPEN&antiguedad=VENCIDA');
   });
 
-  it('saldo negativo por sobrepago se conserva', () => {
-    const { container } = renderHome();
-    expect(container.querySelector('[data-kpi="K03"]')).toHaveTextContent('-USD');
+  it('mes en curso: rotulado parcial y el cobrado no se compara con un mes completo', () => {
+    const { container } = renderHome('/?cierre=2026-10');
+    expect(screen.getByText('Mes en curso: cifras parciales')).toBeInTheDocument();
+    const collected = tile(container, 'Cobrado en el mes');
+    expect(collected).toHaveTextContent('parcial');
+    expect(collected).not.toHaveTextContent('vs sep');
   });
 
-  it('mes en curso rotulado parcial y sin comparación engañosa', () => {
-    vi.useFakeTimers({ now: new Date(2026, 8, 25), toFake: ['Date'] });
+  it('si falta una tasa, el MRR se rotula sin tasa y nunca se pinta como cero', () => {
+    state.seriesMissing = true;
     const { container } = renderHome();
-    const k02 = container.querySelector('[data-kpi="K02"]') as HTMLElement;
-    expect(k02).toHaveTextContent('parcial');
-    expect(k02).not.toHaveTextContent('%');
-    vi.useRealTimers();
+    const mrr = tile(container, 'MRR');
+    expect(mrr).toHaveTextContent('—');
+    expect(mrr).toHaveTextContent('Sin tasa para BOB');
+    expect(mrr).not.toHaveTextContent('USD0');
+    expect(within(screen.getByRole('list', { name: 'Notas del reporte' })).getByText(/Parcial: falta tasa BOB/)).toBeInTheDocument();
+  });
+});
+
+describe('Resumen ejecutivo · paneles', () => {
+  it('un panel que falla no tumba el tablero: error propio y el resto sigue', () => {
+    state.billingError = new Error('timeout de lectura');
+    const { container } = renderHome();
+    expect(within(tile(container, 'Cobrado del mes')).getByRole('alert')).toHaveTextContent('No disponible');
+    expect(within(panel(container, 'facturado-cobrado')).getByRole('alert')).toHaveTextContent('No se pudo leer');
+    expect(panel(container, 'facturado-cobrado')).not.toHaveTextContent('USD 0');
+    // Otras fuentes siguen visibles.
+    expect(tile(container, 'MRR')).toHaveTextContent('52.0 K');
+    expect(within(panel(container, 'top-clientes')).getByText('Minera Cordillera')).toBeInTheDocument();
   });
 
-  it('si el consolidado falla, el margen es error explícito, no un cero', () => {
-    state.consolidatedError = new Error('timeout de lectura');
+  it('puente: clic en un movimiento lista los clientes que lo componen, con enlace a su ficha', () => {
     const { container } = renderHome();
-    const k05 = container.querySelector('[data-kpi="K05"]') as HTMLElement;
-    expect(within(k05).getByRole('alert')).toHaveTextContent('No se pudo leer');
-    expect(k05).not.toHaveTextContent('USD 0');
+    const bridgePanel = panel(container, 'puente');
+    expect(bridgePanel).toHaveTextContent('USD 50.0 K');
+    expect(bridgePanel).toHaveTextContent('+4.0%');
+    fireEvent.click(within(bridgePanel).getByRole('button', { name: /Churn/ }));
+    const list = within(bridgePanel).getByTestId('bridge-customers');
+    expect(list).toHaveTextContent('Churn: 1 cliente');
+    expect(within(list).getByRole('link', { name: 'Baja SRL' })).toHaveAttribute('href', '/organizations/o4');
+    expect(list).toHaveTextContent('−USD 300.00');
   });
 
-  it('la cartera vencida abre exactamente su detalle', () => {
+  it('elegir un mes en la evolución lo vuelve el mes analizado de todo el tablero', () => {
     const { container } = renderHome();
-    const link = within(container.querySelector('[data-kpi="K04"]') as HTMLElement).getByRole('link');
-    expect(link).toHaveAttribute('href', '/billing?estado=OPEN&antiguedad=VENCIDA');
+    const evo = panel(container, 'evolucion-mrr');
+    fireEvent.click(within(evo).getByRole('button', { name: /Tabla/ }));
+    fireEvent.click(within(evo).getByRole('button', { name: 'ago 26' }));
+    expect(screen.getByLabelText('Mes analizado')).toHaveValue('2026-08');
+    expect(tile(container, 'MRR')).toHaveTextContent('51.0 K');
+  });
+
+  it('facturado vs cobrado: un mes lleva a Facturación con ese rango', () => {
+    const { container } = renderHome();
+    const billed = panel(container, 'facturado-cobrado');
+    fireEvent.click(within(billed).getByRole('button', { name: /Tabla/ }));
+    fireEvent.click(within(billed).getByRole('button', { name: 'jul 26' }));
+    expect(screen.getByTestId('where')).toHaveTextContent('/billing?desde=2026-07-01&hasta=2026-07-31#cobros');
+  });
+
+  it('cartera por antigüedad: cada tramo abre Facturación filtrada', () => {
+    const { container } = renderHome();
+    const aging = panel(container, 'antiguedad');
+    expect(aging).toHaveTextContent('8.0 K'); // 4 000 + 1 500 + 500 + 2 000
+    expect(within(aging).getByRole('link', { name: /Más de 90 días/ })).toHaveAttribute('href', '/billing?estado=OPEN&antiguedad=D90_MAS');
+  });
+
+  it('mix, tops y partners enlazan al detalle existente; venta directa no compite como partner', () => {
+    const { container } = renderHome();
+    expect(within(panel(container, 'mix-producto')).getByRole('link', { name: /eSupplier/ })).toHaveAttribute('href', '/products/p1');
+    const top = panel(container, 'top-clientes');
+    const first = within(top).getAllByRole('link')[0]!;
+    expect(first).toHaveTextContent('Minera Cordillera');
+    expect(first).toHaveAttribute('href', '/organizations/o1');
+    const partners = panel(container, 'top-partners');
+    expect(within(partners).getByRole('link', { name: /Andes Digital Partners/ })).toHaveAttribute('href', '/organizations/org-andes');
+    expect(partners).toHaveTextContent('Venta directa: USD 14.0 K (70% del MRR)');
+  });
+
+  it('vacío: sin clientes con MRR se dice, no se dibuja una lista vacía', () => {
+    state.customers = [];
+    const { container } = renderHome();
+    expect(panel(container, 'top-clientes')).toHaveTextContent('Sin clientes con MRR al cierre del mes');
+  });
+
+  it('requiere atención: cada frente con conteo y acción; cero = resuelto; fuente caída = sin conteo', () => {
+    const { container } = renderHome();
+    const att = panel(container, 'atencion');
+    expect(att.querySelector('[data-attention="collections"]')).toHaveTextContent('2');
+    expect(att.querySelector('[data-attention="settlements"]')).toHaveAttribute('href', '/commissions#settlements');
+    expect(att.querySelector('[data-attention="suspended"]')).toHaveTextContent('Sin pendientes');
+  });
+
+  it('una fuente de atención caída no se muestra como cero', () => {
+    state.alertsError = new Error('caída');
+    const { container } = renderHome();
+    const renewals = panel(container, 'atencion').querySelector('[data-attention="renewals"]') as HTMLElement;
+    expect(renewals).toHaveTextContent('No se pudo leer');
+    expect(renewals).toHaveTextContent('—');
   });
 });
 
 describe('Perspectivas y permisos', () => {
+  it('Finanzas: KPI con skeleton/estado propio; margen de mes en curso explicado, no gritado (A04)', () => {
+    vi.setSystemTime(new Date(2026, 8, 25));
+    window.location.hash = '#finanzas';
+    renderHome('/?mes=2026-09&fx=2026-09-25');
+    const kpis = screen.getByRole('region', { name: 'Indicadores de finanzas' });
+    expect(kpis).toHaveTextContent('Mes en curso: cobros y costos aún incompletos');
+    expect(kpis).toHaveTextContent('−650');
+  });
+
+  it('Finanzas: si el consolidado falla, el margen es error explícito, no un cero', () => {
+    state.consolidatedError = new Error('timeout de lectura');
+    window.location.hash = '#finanzas';
+    renderHome('/?mes=2026-09&fx=2026-09-25');
+    const kpis = screen.getByRole('region', { name: 'Indicadores de finanzas' });
+    expect(within(kpis).getAllByRole('alert').length).toBeGreaterThanOrEqual(2);
+    expect(kpis).not.toHaveTextContent('USD0');
+  });
+
   it('un usuario técnico EBIM sólo ve Operación SaaS, sin KPI financieros', () => {
     state.roles = { ...superAdmin, platformRole: null, ownedProductIds: ['p2'] };
     const { container } = renderHome();
     expect(screen.getByRole('heading', { name: 'Resumen de operación SaaS' })).toBeInTheDocument();
-    expect(container.querySelectorAll('[data-kpi]')).toHaveLength(0);
+    expect(container.querySelector('[data-hero]')).toBeNull();
   });
 
   it('operación: destino deshabilitado «No evaluado», salud fechada y sin llamadas de salud', () => {

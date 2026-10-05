@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useFinanceConsolidated } from '@/services/queries';
+import { useExecutiveAging, useFinanceConsolidated } from '@/services/queries';
+import { KpiTile } from '@/components/ui/primitives';
+import { agingSummary } from './executiveModel';
 import { useReceivablesAging } from '@/services/financeRead';
 import { fromQuery } from '@/features/executive/dataState';
 import type { ReportContext } from '@/features/executive/reportContext';
@@ -8,7 +10,7 @@ import { AGING_BUCKETS } from '@/features/executive/kpis';
 import { ChartPanel, CurrencyPicker } from '@/features/executive/components/ChartPanel';
 import { SingleBars, ComponentBars, type BarDatum, type ComponentDatum } from '@/features/executive/components/charts';
 import { StateMessage } from '@/features/executive/components/StateView';
-import { formatMoney, formatNumber } from '@/lib/format';
+import { formatCompactAmount, formatMoney, formatNumber } from '@/lib/format';
 import { formatRateLabel } from '@/lib/consolidated';
 import { RegionalFinancePanel } from './RegionalFinancePanel';
 import { periodLabel } from './executiveData';
@@ -26,7 +28,8 @@ export function FinancePerspective({ ctx }: { ctx: ReportContext }) {
   const total = useFinanceConsolidated({ ...params, groupBy: 'TOTAL' });
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
+      <FinanceKpis query={total} ctx={ctx} />
       <div className="grid gap-4 xl:grid-cols-2">
         <AgingChart onSelect={(bucket) => navigate(`/billing?estado=OPEN&antiguedad=${bucket}`)} />
         <FxCoverage query={total} ctx={ctx} />
@@ -305,6 +308,85 @@ function FxCoverage({ query, ctx }: { query: ReturnType<typeof useFinanceConsoli
       <footer className="border-t border-border px-4 py-2 text-xs">
         <Link className="ebim-link" to="/regional">Ver monedas y tipos de cambio →</Link>
       </footer>
+    </section>
+  );
+}
+
+/**
+ * Franja de KPI de Finanzas: movimientos del período consolidados a la moneda
+ * de reporte (cobrado, margen gerencial) y foto a hoy de la cartera. Un mes en
+ * curso se rotula parcial y el margen negativo de un período incompleto se
+ * explica en vez de gritar (A04). Si falta una tasa, la cifra queda «—».
+ */
+function FinanceKpis({ query, ctx }: { query: ReturnType<typeof useFinanceConsolidated>; ctx: ReportContext }) {
+  const rc = query.data?.reporting_currency ?? undefined;
+  const aging = useExecutiveAging(undefined, rc);
+  const group = query.data?.groups[0];
+  const collected = group?.metrics.COLLECTED;
+  const margin = group?.margin;
+  const summary = agingSummary(aging.data);
+  const receivable =
+    aging.data && aging.data.complete ? aging.data.buckets.reduce((t, b) => t + (b.balance ?? 0), 0) : null;
+  const receivableCount = aging.data?.buckets.reduce((t, b) => t + b.invoiceCount, 0) ?? 0;
+  const period = periodLabel(ctx);
+  const nativeLine = (m?: Record<string, number>) =>
+    m ? Object.entries(m).map(([c, v]) => `${c} ${formatCompactAmount(Number(v))}`).join(' · ') : '';
+  const missing = (m?: { complete: boolean; missing_currencies: string[] }) =>
+    m && !m.complete ? `Sin tasa para ${m.missing_currencies.join(', ')}: no se consolida` : null;
+  return (
+    <section aria-label="Indicadores de finanzas" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <KpiTile
+        label="Cobrado del período"
+        info="Pagos confirmados en el período (K02), consolidados con tasa explícita."
+        currency={collected?.reporting_amount != null ? rc : undefined}
+        value={collected?.reporting_amount == null ? null : formatCompactAmount(Number(collected.reporting_amount))}
+        footer={missing(collected) ?? `${period} · ${nativeLine(collected?.native) || 'sin cobros'}`}
+        loading={query.isLoading}
+        error={query.error}
+        onRetry={() => void query.refetch()}
+        to={`/billing?desde=${ctx.period.start}&hasta=${ctx.period.end}#cobros`}
+      />
+      <KpiTile
+        label="Margen gerencial"
+        info="Cobrado − costo directo − comisión del período (K05). Gestión, no utilidad contable."
+        currency={margin?.reporting_amount != null ? rc : undefined}
+        value={margin?.reporting_amount == null ? null : formatCompactAmount(Number(margin.reporting_amount))}
+        tone={ctx.period.partial ? 'warn' : 'neutral'}
+        footer={
+          margin && !margin.complete
+            ? 'Falta una tasa: el margen consolidado no se calcula'
+            : ctx.period.partial
+              ? 'Mes en curso: cobros y costos aún incompletos, no es el resultado del mes'
+              : period
+        }
+        loading={query.isLoading}
+        error={query.error}
+        onRetry={() => void query.refetch()}
+        to="/costs"
+      />
+      <KpiTile
+        label="Saldo por cobrar"
+        info="Facturas emitidas menos pagos confirmados, a hoy (S05)."
+        currency={receivable != null ? aging.data?.reportingCurrency : undefined}
+        value={receivable == null ? null : formatCompactAmount(receivable)}
+        footer={aging.data && !aging.data.complete ? 'Falta una tasa: no se consolida' : `Foto a hoy · ${formatNumber(receivableCount)} facturas`}
+        loading={aging.isLoading}
+        error={aging.error}
+        onRetry={() => void aging.refetch()}
+        to="/billing?estado=OPEN"
+      />
+      <KpiTile
+        label="Cartera vencida"
+        info="Saldo con 1 día o más de atraso, a hoy (bandas 1–30 a más de 90 días)."
+        currency={summary?.overdue != null ? aging.data?.reportingCurrency : undefined}
+        value={summary?.overdue == null ? null : formatCompactAmount(summary.overdue)}
+        tone={summary?.segments.some((s) => s.bucket === 'D90_MAS' && s.invoiceCount > 0) ? 'warn' : 'neutral'}
+        footer={summary ? `Foto a hoy · ${formatNumber(summary.overdueInvoices)} facturas vencidas` : null}
+        loading={aging.isLoading}
+        error={aging.error}
+        onRetry={() => void aging.refetch()}
+        to="/billing?estado=OPEN&antiguedad=VENCIDA"
+      />
     </section>
   );
 }
