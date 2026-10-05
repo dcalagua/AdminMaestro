@@ -1,10 +1,11 @@
 # Sistema visual V2 — EBIM Admin Maestro («ejecutivo sobrio premium»)
 
-Versión 2.0 · 2026-10-05 · Fase 03 de la corrida V4 «visual para Gerencia».
+Versión 2.1 · 2026-10-05 · Escrita en la fase 03 de la corrida V4 «visual para Gerencia»; **actualizada en la fase 16 con lo que
+realmente quedó implementado** (los desvíos respecto de la 2.0 están marcados *(real)* en cada sección y resumidos en el §9).
 Fuentes: `DECISIONS.md` D-V01…D-V08, `BASELINE.md` (auditoría A01–A16), `EBIM_CONVENTIONS.md` (U-01…U-15),
 skill `dataviz` (paleta validada con `validate_palette.js`, resultados en el Anexo A).
 
-Este documento **manda** sobre el gusto en las fases 04–15. Si un valor no está aquí, se usa el más cercano de la
+Este documento **manda** sobre el gusto en las fases 04–15 y en el trabajo que siga. Si un valor no está aquí, se usa el más cercano de la
 escala; no se inventan valores nuevos en pantallas. Los hex de este documento viven **solo** en `src/app/tokens.css`;
 los componentes usan las variables o clases Tailwind (U-10, quality gate).
 
@@ -121,7 +122,7 @@ Regla: los controles de formulario viven **sobre `--card` o `--elevated`**, nunc
 | `--brand-mark` | `#0a5a52` | `#0a5a52` | Isotipo sobre claro (§4.6). Sobre sidebar/hero: blanco. |
 | `--sidebar` | `linear-gradient(180deg, #0a3d3a 0%, #0a5a52 100%)` | `linear-gradient(180deg, #08201f 0%, #0c3532 100%)` | Sidebar (D-V03, corrige A05). Blanco: ≥ 8.09 / ≥ 13.37. Texto de grupo `rgba(255,255,255,.72)`: ≥ 4.95. |
 | `--sidebar-indicator` *(nuevo)* | `#7fd3a6` | `#7fd3a6` | Barra de 3 px del ítem activo: 4.53:1 sobre el tramo más claro. |
-| `--hero-grad` | `linear-gradient(155deg, #0a3d3a 0%, #0a5a52 55%, #1f7a68 100%)` | igual | Panel de marca del login, bienvenida, portal. Blanco ≥ 5.20. |
+| `--hero-grad` | `linear-gradient(155deg, #0a3d3a 0%, #0a5a52 55%, #1f7a68 100%)` | igual | Panel de marca del portal y la cabecera del hero. Blanco ≥ 5.20. *(real)* Login y bienvenida usan `--auth-panel` (tramo final más oscuro `#0f6458`, blanco 80 % ≥ 5.15). |
 
 La fase 04 reemplaza los valores actuales `--accent-deep/--accent-action #2f7355` por el teal `#056769` (D-V03, U-01):
 el verde funcional anterior queda retirado.
@@ -275,7 +276,7 @@ Orden vertical, `p-5`, alto mínimo 148 (dashboard) / 120 (interno):
 2. **Valor** `text-display` (dashboard) o `text-kpi` (interno), `--text`, cifras proporcionales. La moneda va como prefijo
    `text-h3` 600 `--muted` alineado a la base: `USD` **50.1 K**. Nunca el valor en color semántico (A09); el color va en la variación.
 3. **Variación** `text-compact` 600 `tabular-nums`: flecha Phosphor `ArrowUpRight`/`ArrowDownRight`/`Minus` 14 px + `+4.1 %` +
-   «vs ago» en `--muted`. Color = dirección × si subir es bueno: bueno `--ok`, malo `--danger`, neutro `--muted`
+   «vs agosto» en `--muted` *(real: mes completo con `longMonthName`; «vs ago» se leía como inglés)*. Color = dirección × si subir es bueno: bueno `--ok`, malo `--danger`, neutro `--muted`
    (p. ej. cartera vencida que sube = `--danger`).
 4. **Sparkline** 12 meses, alto 36, ancho completo (§6.6).
 5. **Pie** opcional `text-caption --muted` (desglose nativo «BOB 50.5 K · PEN 51.2 K», fecha de corte, «mes en curso parcial»).
@@ -306,7 +307,8 @@ Si el tile navega al detalle, todo el tile es el enlace (U: continuidad resumen 
 
 - **`SectionTabs`** (fichas, U-07): subrayado. Alto 44, `text-compact` 600, inactiva `--muted`, hover `--text`, activa `--accent-deep`
   con barra inferior 2 px `--accent-deep`; borde inferior del grupo `--border`. Deep-link `#hash`. Más de 7 pestañas → scroll horizontal
-  con degradados de borde y flechas (nunca dos renglones, A08/A09).
+  en una sola fila (nunca dos renglones, A08/A09). *(real)* Barra de scroll fina y la pestaña activa se lleva a la vista; los
+  degradados de borde y las flechas no se implementaron (deuda, §9). Un `#hash` a una pestaña oculta por permisos se abre cuando aparece.
 - **`StatusTabs`** (listados, U-06): segmentado. Contenedor `--sunken` radio 11 padding 4; pestaña `rounded-md` alto 32,
   activa `--card` + `shadow-card` + `--text`; inactiva `--muted`. Contador `tabular-nums` en `text-caption` en pastilla `--border`.
 - Teclado: flechas izquierda/derecha, `Home/End`; `role="tablist"`/`tab`/`tabpanel`.
@@ -333,7 +335,7 @@ barra izquierda de 3 px del color del rol, icono del rol 20 px, título `text-co
 
 ### 5.12 Skeleton
 
-Bloques `--sunken` (oscuro: `--elevated`) `rounded-md`, con brillo lineal de 1.6 s (gradiente `--sunken → --hover → --sunken`);
+Bloques `--sunken` (oscuro: `--elevated`) `rounded-md` *(real: pista `--hover` en claro; `--sunken` sobre blanco no se veía)*, con brillo lineal de 1.6 s (gradiente `--sunken → --hover → --sunken`);
 con `prefers-reduced-motion` es estático. Formas: tabla (cabecera + 6 filas con anchos 40/24/16/12 %), KpiTile (§5.6), gráfico
 (rectángulo del alto del plot + 5 ticks). `aria-busy="true"` en el contenedor y texto oculto «Cargando…» (`role="status"`).
 En recargas (refetch) **no** se vuelve a mostrar el skeleton: se mantiene el contenido con opacidad 0.6.
@@ -433,13 +435,13 @@ en la suite multi-país; el símbolo puede acompañar al código, nunca reemplaz
 | Caso | Formato | Ejemplo |
 |---|---|---|
 | Importe completo (tabla, tooltip) | `formatMoney` | `PEN 1,234,567.50` |
-| Importe compacto (KPI, eje, etiqueta) | `formatMoneyCompact`, 1 decimal desde 1 000 | `PEN 1.2 M` · `USD 50.1 K` · `USD 980` |
+| Importe compacto (KPI, eje, etiqueta) | *(real)* `formatCompactAmount` (cifra sin moneda, 1 decimal desde 1 000) en KPIs y ejes; `formatMoneyCompact` (desde 10 000) queda para el resto | `PEN 1.2 M` · `USD 50.1 K` · `USD 980` |
 | En KpiTile | código separado + cifra compacta | `USD` **50.1 K** |
 | Porcentaje | `formatPercent`, 1 decimal | `94.4%` |
 | Variación relativa | signo siempre (`signDisplay: 'exceptZero'`), 1 decimal | `+4.1%` · `−2.3%` |
 | Variación de tasa | puntos porcentuales | `+1.2 pp` |
 | Conteos | `formatNumber`, sin decimales | `1,441` |
-| Fechas | `formatDate`; mes de eje `ene 26`; período `oct 2026` | — |
+| Fechas | `formatDate`; mes de eje `ene 26` (setiembre = `set`, forma es-PE); período `oct 2026` | — |
 
 Signo negativo: `−` (U+2212) en etiquetas de gráfico y deltas. Ninguna cifra se redondea a «0.0 K»: por debajo de 1 000 se muestra entera.
 
@@ -450,15 +452,17 @@ Signo negativo: `−` (U+2212) en etiquetas de gráfico y deltas. Ninguna cifra 
   Escala Y desde el mínimo de la serie (es tendencia, no magnitud). Mes parcial: punto hueco.
 - **Área de evolución de MRR:** una serie, línea 2 px `--chart-1` + área 10 %, eje Y desde 0, etiqueta directa del último valor,
   marca vertical «hoy» si el último mes es parcial. Selector de moneda de reporte en la fila de filtros de la página, no dentro de la tarjeta.
-- **Waterfall (puente de MRR):** barras flotantes en orden fijo inicio → nuevo → expansión → contracción → churn → fin; inicio y fin
-  `--chart-total` desde la base; aumentos `--chart-pos`, disminuciones `--chart-neg`; conectores 1 px `--chart-baseline` entre topes;
-  etiqueta de valor sobre cada barra con signo (`+USD 3.2 K`, `−USD 0.8 K`); total final en `text-compact` 600.
-- **Barras apiladas horizontales (cartera por antigüedad):** una barra por moneda/total, segmentos `--chart-age-1…4` en orden 0–30 → 90+,
+- **Waterfall (puente de MRR):** *(real, fase 09)* cascada de la **variación** en filas horizontales: nuevo → expansión → contracción →
+  churn → variación neta (desde 0), aumentos `--chart-pos`, disminuciones `--chart-neg`, neto `--chart-total`, etiqueta con signo al
+  final de cada barra (`+USD 3.2 K`, `−USD 0.8 K`); «Inicio X → cierre Y (+%)» va como cifra de cabecera del panel. Sin conectores.
+  Clic en una fila abre el detalle por cliente (`executive_mrr_movement_customers`). Motivo: con inicio/cierre como barras desde 0
+  (~55 K) los movimientos (~1 K) eran invisibles y truncar el eje mentiría.
+- **Barras apiladas horizontales (cartera por antigüedad):** *(real: barras HTML/CSS, no Recharts; cada fila es un enlace)* una barra por moneda/total, segmentos `--chart-age-1…4` en orden 0–30 → 90+,
   separación de 2 px, leyenda con los 4 rangos, etiqueta dentro del segmento solo si cabe; total al final de la barra.
 - **Facturado vs cobrado:** barras agrupadas (facturado `--chart-billed`, cobrado `--chart-collected-2`) en **un solo eje** de importe;
-  el % de cobro **no** va en un segundo eje: se muestra como fila de etiquetas `text-caption tabular-nums` bajo cada mes (o una
-  mini-línea alineada en su propio gráfico de 64 px debajo, eje 0–100 %).
-- **Mix por producto / país:** barras horizontales ordenadas desc., una serie → todas `--chart-1`, valor al final de la barra,
+  el % de cobro **no** va en un segundo eje: *(real)* es la segunda línea de la etiqueta de cada mes en el eje X (`text-caption
+  tabular-nums`), razón de caja cobrado/facturado del mismo mes (puede pasar de 100 %).
+- **Mix por producto / país:** *(real: barras HTML/CSS con enlace por fila; la base también ofrece la dimensión PARTNER)* barras horizontales ordenadas desc., una serie → todas `--chart-1`, valor al final de la barra,
   máximo 8 + «Otros». Prohibido el pie/dona de más de 2 porciones.
 - **Modo oscuro:** pasos propios de cada rampa (§6.1–6.2), validados contra `#121a1f`; grid/baseline oscuros; área 16 %.
   No se invierte automáticamente nada.
@@ -520,7 +524,7 @@ Signo negativo: `−` (U+2212) en etiquetas de gráfico y deltas. Ninguna cifra 
 | **PT-WIZARD** | Asistente | Stepper horizontal (pasos numerados, actual en `--accent-deep`) + formulario 8 col + resumen lateral sticky 4 col con total. |
 | **PT-SETTINGS** | Configuración | SectionTabs `#hash` + secciones en tarjetas + barra Guardar persistente. |
 | **PT-TIMELINE** | Línea de tiempo | PT-LIST cuya tabla es una lista temporal agrupada por día: icono por tipo, quién/qué/cuándo, detalle expandible. |
-| **PT-AUTH** | Login | U-04 al pie de la letra; panel de marca con `--hero-grad`. |
+| **PT-AUTH** | Login y bienvenida | U-04 al pie de la letra; `AuthLayout` compartido con panel de marca `--auth-panel`. |
 | **PT-PUBLIC** | Página pública | Tarjeta centrada 480–560 con marca, estados §5.14 (portal de pago, bienvenida, 404). |
 | **PT-PRESENT** | Modo presentación | Overlay a pantalla completa sobre la app inerte: cabecera discreta (isotipo, «Datos al», mes analizado, moneda de reporte, notas) → diapositiva (`h2` `text-h1` + subtítulo «N de 6» + paneles del tablero con la escala tipográfica +1 escalón, `.ebim-present-scale`) → barra inferior (anterior/siguiente, puntos con `aria-current`, «N / 6», progreso, Automático, Ocultar nombres, Tema claro, Pantalla completa, Imprimir, Salir `Esc`). |
 
@@ -552,7 +556,7 @@ Signo negativo: `−` (U+2212) en etiquetas de gráfico y deltas. Ninguna cifra 
 | `/products` | Suite SaaS | PT-CARDS | 11 | A12, A13 |
 | `/products/:id` | Ficha de producto | PT-DETAIL | 11 | — |
 | `/plans` | Planes y licencias | PT-LIST | 11 | — |
-| `/feature-flags` | Capacidades | PT-LIST (corregir carga primero) | 11 | **A01 (P0)** |
+| `/feature-flags` | Capacidades | PT-LIST | 11 | A01 (P0) — corregido en la fase 11 (embed con FK nombrada) |
 | `/commercial/capabilities` | Registro de capacidades | PT-LIST | 11 | — |
 | `/catalog/addons` | Add-ons y tarifas | PT-LIST | 11 | — |
 | `/onboarding` | Nueva venta | PT-WIZARD | 11 | A10 |
@@ -572,8 +576,56 @@ Signo negativo: `−` (U+2212) en etiquetas de gráfico y deltas. Ninguna cifra 
 | `/audit` | Auditoría | PT-TIMELINE | 12 | — |
 | `/settings` | Configuración (Cuentas de pago, Mi perfil) | PT-SETTINGS | 12 | A10, A16 |
 | `/404` | No encontrado | PT-PUBLIC | 12 | — |
-| *(nueva)* | Liquidación y pago de comisiones | PT-LIST + PT-WIZARD (liquidar) | 13 | — |
+| `/commissions#liquidaciones` | Liquidación y pago de comisiones *(real: pestaña de Comisiones, detalle en `DetailDrawer`, diálogos Generar/Aprobar/Registrar pago/Anular)* | PT-LIST + drawer | 13 | — |
 | Shell | Sidebar, topbar, ⌘K | §3.2 sidebar, U-11 A topbar | 06 | A05, A06, A16 |
+
+---
+
+## 9. Estado real al cierre de la noche (fase 16)
+
+### 9.1 Qué quedó implementado
+- **Tokens y tema** (`src/app/tokens.css`): slate frío, teal de marca `#056769` como `--accent-deep/--accent-action`, superficies en capas,
+  sombras e1–e3 por variable (sin sombra de tarjeta en oscuro), paleta de datos `--chart-*` validada, `--auth-panel`, `--sidebar-base`.
+  Contraste comprobable: `node scripts/a11y/contrast-tokens.mjs` (116 pares, mínimo 4.73:1).
+- **Tipografía:** DM Sans única; escala Tailwind `text-hero/display/kpi/h1/h2/h3/body/compact/caption/micro`; cifras display
+  proporcionales y `tabular-nums` en tablas, ejes, inputs y deltas (decisión fase 03).
+- **Primitivos** (`src/components/ui/`): campos V2 (`TextField icon|prefix|suffix`, `MoneyField`, `SearchField`, `SwitchField`,
+  validación nativa en español), `KpiTile` + `Sparkline` SVG (StatCard delega), `LoadingState` como skeleton por forma, `EmptyState`,
+  `ErrorState` (pgError), `Badge dot`, `DataTable/PagedTable` (cabecera sticky, `align:'right'`), `ActionMenu` (`row|page|icon`),
+  `Avatar` de iniciales, `SectionTabs/StatusTabs` con contador, `FormDialog/DetailDrawer` con cerrar, `SuccessCheck`, galería `/design`.
+- **Shell:** sidebar de marca con modo iconos, topbar neutro con ⌘K, entorno, tema y menú de cuenta (Mi perfil, densidad, Salir);
+  migas en `PageContainer`; foco al `h1` al navegar.
+- **Patrones de pantalla** del §8 aplicados a las 45 rutas del inventario; PT-PRESENT nuevo (§7.1).
+- **Verificación automática:** `e2e/visual/desbordes.spec.ts` (ninguna tabla esconde columnas a 1280/1440), `e2e/a11y-teclado.spec.ts`,
+  `e2e/visual/*.spec.ts` (capturas por área con `VISUAL_LABEL`).
+- **Hex fuera de `tokens.css`:** solo 4, en el placeholder y la validación de los campos «color de marca» de organización y producto
+  (dato que escribe el usuario, no un estilo).
+
+### 9.2 Desvíos respecto de la versión 2.0 (todos registrados en DECISIONS)
+| Tema | 2.0 decía | Quedó |
+|---|---|---|
+| Puente de MRR | Barras flotantes inicio→fin con conectores | Cascada de la variación en filas, sin conectores (§6.6) |
+| % de cobro | Fila de etiquetas o mini-línea | Segunda línea de la etiqueta del eje X (§6.6) |
+| Mix, antigüedad, tops | Recharts | Barras HTML/CSS con enlace por fila |
+| Comparación de KPI | «vs ago» | «vs agosto» |
+| Mes corto | `sep` | `set` (es-PE) |
+| Skeleton claro | `--sunken` | `--hover` |
+| Pestañas largas | Degradados y flechas | Scroll en una fila + activa a la vista |
+| Login | `--hero-grad` | `--auth-panel` (contraste) |
+| Tablas a 1280 | Scroll con primera columna sticky | Prohibido esconder columnas: celdas de 2 líneas (§5.7) |
+| Acciones de fila | Todo en `DotsThree` | Lo que mueve dinero o avanza un trámite queda visible pequeño; lo secundario/destructivo al menú |
+
+### 9.3 Deudas visuales conocidas
+- `SectionTabs` sin degradados ni flechas; la ficha 360 de organización mantiene 12 pestañas con scroll.
+- Listados sin paginación: Tenants (~100), Contratos (~104), Atribuciones, Liquidaciones (~53).
+- Registro de capacidades: columnas desalineadas entre grupos (una tabla por producto) y nombres derivados del código sin tildes.
+- Detalle de Conciliación con fechas ISO; `PeriodInvoiceAction` con `input type=month` nativo (sale en inglés en Chromium).
+- Diálogos no re-maquetados: cobranza (`CollectionDialogs`, `ManualPaymentDialog`), integraciones, provisioning, despliegues,
+  invitación de usuario, secreto de proveedor (siguen con `text-xs/sm`).
+- Paneles no re-maquetados de la ficha 360: `PaymentPortalPanel`, `PartnerFeeStatementsPanel`, `BillingContactPanel`; pestañas internas
+  de Tenant 360 (provisioning, features, add-ons).
+- Sidebar largo (35 ítems) sin indicación de scroll a 900 px de alto.
+- La pestaña de sección (Ejecutivo/Finanzas/Operación) sigue visible al imprimir el tablero normal.
 
 ---
 
