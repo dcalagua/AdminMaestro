@@ -14,6 +14,7 @@ export type AuditKind = 'create' | 'update' | 'remove' | 'money' | 'access' | 'p
 const EXACT: Record<string, string> = {
   CUSTOMER_ONBOARDED: 'Alta de cliente (Nueva venta)',
   COMMISSIONS_SETTLED: 'Liquidación de comisiones',
+  COMMISSION_SETTLEMENT_CANCELLED: 'Anulación de liquidación de comisiones',
   AI_CREDIT_ENTRY: 'Movimiento de créditos IA',
   AI_CREDIT_REVERSAL: 'Reverso de créditos IA',
   USAGE_INGEST_SWITCH: 'Cambio del ingest de uso',
@@ -94,6 +95,7 @@ const SUBJECT: Record<string, string> = {
   COMMISSIONS: 'comisiones',
   COMMISSION_PLAN: 'plan de comisión',
   COMMISSION_RULE: 'regla de comisión',
+  COMMISSION_SETTLEMENT: 'liquidación de comisiones',
   SUBSCRIPTION: 'contrato',
   SUBSCRIPTION_ITEM: 'ítem de contrato',
   SUBSCRIPTION_BILLING_CHANNEL: 'canal de cobro del contrato',

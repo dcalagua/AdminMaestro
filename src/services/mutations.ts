@@ -258,8 +258,26 @@ export function useDeactivateCommissionRule() {
   return useRpc('deactivate_commission_rule', ['commission-plans']);
 }
 
+const SETTLEMENT_KEYS = ['commission-events', 'commission-detail', 'settlements', 'settlement-events', 'finance'];
+
+/** Agrupa las comisiones ELEGIBLES de un comercial, período y moneda en una liquidación OPEN. */
 export function useSettleCommissions() {
-  return useRpc('settle_commissions', ['commission-events', 'settlements']);
+  return useRpc('settle_commissions', SETTLEMENT_KEYS);
+}
+
+/** OPEN → APPROVED (finanzas). Desde aquí la liquidación no gana ni pierde comisiones. */
+export function useApproveCommissionSettlement() {
+  return useRpc('approve_commission_settlement', SETTLEMENT_KEYS);
+}
+
+/** APPROVED → PAID con fecha, referencia y medio. Repetir con la misma referencia no hace nada. */
+export function usePayCommissionSettlement() {
+  return useRpc('pay_commission_settlement', SETTLEMENT_KEYS);
+}
+
+/** OPEN/APPROVED → CANCELLED con motivo: sus comisiones vuelven a elegibles. */
+export function useCancelCommissionSettlement() {
+  return useRpc('cancel_commission_settlement', SETTLEMENT_KEYS);
 }
 
 /* ==========================================================================

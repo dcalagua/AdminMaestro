@@ -1269,6 +1269,11 @@ export function useCommissionEvents() {
   });
 }
 
+/**
+ * Liquidaciones de comisiones visibles para el rol (RLS: finanzas ve todas; un
+ * comercial, solo las suyas), con el número de eventos que contienen. Una
+ * anulada ya no tiene eventos: los liberó para la próxima.
+ */
 export function useSettlements() {
   return useQuery({
     queryKey: ['settlements'],
@@ -1276,9 +1281,60 @@ export function useSettlements() {
       unwrap(
         await supabase
           .from('commission_settlements')
-          .select('*, sales_agents(full_name, code)')
-          .order('period_start', { ascending: false }),
+          .select('*, sales_agents(full_name, code), commission_events(count)')
+          .order('period_start', { ascending: false })
+          .order('created_at', { ascending: false }),
+      ).map(({ commission_events: events, ...s }) => ({
+        ...s,
+        event_count: (events as unknown as Array<{ count: number }> | null)?.[0]?.count ?? 0,
+      })),
+  });
+}
+
+/** Comisiones de una liquidación, con su cálculo (`v_commission_detail`). */
+export function useSettlementEvents(settlementId: string | null) {
+  return useQuery({
+    queryKey: ['settlement-events', settlementId],
+    enabled: Boolean(settlementId),
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('v_commission_detail')
+          .select('*')
+          .eq('settlement_id', settlementId as string)
+          .order('earned_on', { ascending: true })
+          .order('commission_event_id', { ascending: true }),
       ),
+  });
+}
+
+/**
+ * Vista previa de «Generar liquidación»: las comisiones ELEGIBLES y libres del
+ * comercial, moneda y período que `settle_commissions` tomaría.
+ */
+export function useEligibleCommissions(params: {
+  agentId: string;
+  currency: string;
+  from: string;
+  to: string;
+}) {
+  const ready = Boolean(params.agentId && params.currency && params.from && params.to && params.from <= params.to);
+  return useQuery({
+    queryKey: ['commission-events', 'eligible-preview', params],
+    enabled: ready,
+    queryFn: async () => {
+      const { data, error, count } = await supabase
+        .from('v_commission_detail')
+        .select('commission_event_id, amount', { count: 'exact' })
+        .eq('sales_agent_id', params.agentId)
+        .eq('currency', params.currency)
+        .eq('status', 'ELIGIBLE')
+        .is('settlement_id', null)
+        .gte('earned_on', params.from)
+        .lte('earned_on', params.to);
+      if (error) throw error;
+      return { rows: data ?? [], count: count ?? 0 };
+    },
   });
 }
 

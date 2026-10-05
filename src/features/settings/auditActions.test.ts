@@ -11,6 +11,13 @@ describe('auditActions', () => {
     expect(auditActionLabel('CUSTOMER_ONBOARDED')).toBe('Alta de cliente (Nueva venta)');
   });
 
+  it('nombra el ciclo de una liquidación de comisiones (fase 13)', () => {
+    expect(auditActionLabel('COMMISSION_SETTLEMENT_APPROVED')).toBe('Aprobación de liquidación de comisiones');
+    expect(auditActionLabel('COMMISSION_SETTLEMENT_PAID')).toBe('Pago de liquidación de comisiones');
+    expect(auditActionLabel('COMMISSION_SETTLEMENT_CANCELLED')).toBe('Anulación de liquidación de comisiones');
+    expect(auditActionKind('COMMISSION_SETTLEMENT_PAID')).toBe('money');
+  });
+
   it('un código desconocido no se inventa: devuelve null y se muestra el código', () => {
     expect(auditActionLabel('SOMETHING_ODD')).toBeNull();
     expect(auditActionLabel('product_integration.update')).toBeNull();

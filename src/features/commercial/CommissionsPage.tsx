@@ -1,4 +1,7 @@
+import { useState } from 'react';
+import { PlusIcon } from '@phosphor-icons/react';
 import { useFinanceMonthlySeries, useSettlements } from '@/services/queries';
+import { usePermissions } from '@/hooks/usePermissions';
 import {
   fetchCommissionPage,
   useCommissionPage,
@@ -9,26 +12,25 @@ import {
 } from '@/services/financeRead';
 import { useListState } from '@/hooks/useListState';
 import { SectionTabs, StatusTabs } from '@/components/ui/SectionTabs';
-import {
-  PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge, KpiTile,
-} from '@/components/ui/primitives';
+import { PageContainer, Card, SearchBar, Badge, KpiTile } from '@/components/ui/primitives';
 import { PagedTable, type TableColumn } from '@/components/ui/PagedTable';
 import { ExportMenu } from '@/components/ui/ExportMenu';
 import type { ExportColumn } from '@/lib/export';
 import { formatCompactAmount, formatMoney, formatPercent, formatDate, formatNumber, sumByCurrency } from '@/lib/format';
+import { SettlementsSection } from './SettlementsSection';
 import { ChartLegend, ChartPanel } from '@/features/executive/components/ChartPanel';
 import { fromQuery } from '@/features/executive/dataState';
 import { currentMonth, lastMonths, toCurrencyAmounts } from '@/features/executive/reportContext';
 import { monthLongLabel } from '@/features/dashboard/executiveModel';
 import { monthShortLabel } from '@/features/dashboard/executiveData';
-import { ConsistencyNote, InfoNote } from '@/features/billing/listing';
+import { ConsistencyNote } from '@/features/billing/listing';
 import { useDebouncedSearch } from '@/features/billing/listingState';
 import { FilterTotals, KpiStrip, NativeAmountTile } from '@/features/billing/financeUi';
 import { analyzedMonth, closedWindow, longMonthName, relChange, shortMonthName } from '@/features/billing/financeModel';
 import { PeriodBars } from '@/features/billing/lazyFinanceCharts';
 
 /**
- * Comisiones y liquidaciones (P14).
+ * Comisiones y liquidaciones (P14; liquidación y pago en la fase 13).
  *
  * El resumen lo agrega la base (`commission_summary`) con los MISMOS filtros
  * que la tabla (`v_commission_detail`). «Pendiente» es lo que ya se debe
@@ -37,6 +39,10 @@ import { PeriodBars } from '@/features/billing/lazyFinanceCharts';
  *
  * Cada evento muestra CÓMO se calculó (base × tasa × participación): una
  * comisión que no se puede explicar es una comisión que se discute.
+ *
+ * Pestañas: «Devengado» (lo que generan los cobros) y «Liquidaciones» (el
+ * ciclo Generar → Aprobar → Registrar pago, o Anular con motivo). Un comercial
+ * ve lo suyo por RLS y sin acciones.
  */
 
 const FILTERS = ['ALL', 'PENDING', 'PAID', 'WAITING', 'VOID'] as const satisfies readonly CommissionFilter[];
@@ -65,13 +71,6 @@ const STATUS_TONE: Record<string, 'ok' | 'warn' | 'danger' | 'neutral' | 'info'>
   VOID: 'danger',
 };
 
-const SETTLEMENT_LABEL: Record<string, string> = {
-  OPEN: 'Abierta',
-  APPROVED: 'Aprobada',
-  PAID: 'Pagada',
-  CANCELLED: 'Anulada',
-};
-
 function num(value: number | string | null | undefined): number | null {
   return value === null || value === undefined ? null : Number(value);
 }
@@ -87,23 +86,51 @@ function calculation(r: CommissionRow): string {
 
 export function CommissionsPage() {
   const settlements = useSettlements();
+  const { canReadFinance } = usePermissions();
+  const [generating, setGenerating] = useState(false);
+  const awaiting = (settlements.data ?? []).filter((x) => x.status === 'OPEN' || x.status === 'APPROVED').length;
   return (
     <PageContainer
       title="Comisiones y liquidaciones"
-      description="Cada comisión nace de un cobro confirmado: una factura emitida pero impaga no devenga nada. Las tablas van por moneda; no se suman monedas distintas."
+      description={
+        canReadFinance
+          ? 'Cada comisión nace de un cobro confirmado: una factura emitida pero impaga no devenga nada. Finanzas agrupa lo elegible en liquidaciones por comercial, período y moneda, las aprueba y registra su pago. No se suman monedas distintas.'
+          : 'Tus comisiones nacen de cobros confirmados. Finanzas las agrupa en liquidaciones, las aprueba y registra el pago; aquí ves en qué estado está cada una.'
+      }
+      actions={
+        canReadFinance ? (
+          <button type="button" className="ebim-btn-primary" onClick={() => setGenerating(true)}>
+            <PlusIcon size={16} weight="bold" aria-hidden />
+            Generar liquidación
+          </button>
+        ) : undefined
+      }
     >
       <CommissionKpis settlements={settlements} />
-      <div className="mb-6">
-        <CommissionsByMonthPanel />
-      </div>
       <SectionTabs
         tabs={[
-          { id: 'events', label: 'Eventos de comisión', content: <CommissionEventsSection /> },
           {
-            id: 'settlements',
+            id: 'devengado',
+            label: 'Devengado',
+            content: (
+              <div className="space-y-6">
+                <CommissionsByMonthPanel />
+                <CommissionEventsSection />
+              </div>
+            ),
+          },
+          {
+            id: 'liquidaciones',
             label: 'Liquidaciones',
-            count: settlements.data ? settlements.data.length : undefined,
-            content: <SettlementsSection query={settlements} />,
+            count: settlements.data ? awaiting : undefined,
+            content: (
+              <SettlementsSection
+                query={settlements}
+                canManage={canReadFinance}
+                generateOpen={generating}
+                onGenerateClose={() => setGenerating(false)}
+              />
+            ),
           },
         ]}
       />
@@ -117,6 +144,10 @@ export function CommissionsPage() {
 
 const OPEN_SETTLEMENT = ['OPEN', 'APPROVED'];
 
+function plural(n: number, one: string, many: string): string {
+  return `${formatNumber(n)} ${n === 1 ? one : many}`;
+}
+
 function CommissionKpis({ settlements }: { settlements: ReturnType<typeof useSettlements> }) {
   const month = analyzedMonth();
   const series = useFinanceMonthlySeries({ from: `${lastMonths(currentMonth(), 14)[0]}-01` });
@@ -127,6 +158,7 @@ function CommissionKpis({ settlements }: { settlements: ReturnType<typeof useSet
   const settlementState = fromQuery(settlements, { isEmpty: () => false });
   const all = settlements.data ?? [];
   const inProgress = all.filter((x) => OPEN_SETTLEMENT.includes(x.status));
+  const approvedCount = inProgress.filter((x) => x.status === 'APPROVED').length;
   const paidCount = all.filter((x) => x.status === 'PAID').length;
   const rate = current?.commission != null && current.collected ? current.commission / current.collected : null;
 
@@ -157,21 +189,21 @@ function CommissionKpis({ settlements }: { settlements: ReturnType<typeof useSet
       />
       <NativeAmountTile
         label="Por liquidar"
-        info="Elegible + devengada: lo que ya se debe y todavía no está pagado. Por moneda."
-        amounts={toCurrencyAmounts(summary.data?.pending)}
+        info="Comisiones elegibles que todavía no están en ninguna liquidación. Por moneda."
+        amounts={toCurrencyAmounts(summary.data?.by_status?.ELIGIBLE)}
         state={summaryState}
         onRetry={() => void summary.refetch()}
-        emptyLabel="Nada pendiente"
-        footer="Elegible + devengada, por moneda"
+        emptyLabel="Nada por liquidar"
+        footer="Elegibles, fuera de una liquidación"
       />
       <NativeAmountTile
         label="En liquidación"
-        info="Liquidaciones abiertas o aprobadas que aún no se pagan. Cada liquidación es de una sola moneda."
+        info="Liquidaciones abiertas (en revisión) o aprobadas (por pagar). Cada liquidación es de una sola moneda."
         amounts={sumByCurrency(inProgress, (x) => x.total_amount, (x) => x.currency)}
         state={settlementState}
         onRetry={() => void settlements.refetch()}
         emptyLabel="Ninguna liquidación abierta"
-        footer={`${formatNumber(inProgress.length)} liquidaci${inProgress.length === 1 ? 'ón abierta o aprobada' : 'ones abiertas o aprobadas'}`}
+        footer={`${plural(inProgress.length - approvedCount, 'abierta', 'abiertas')} · ${plural(approvedCount, 'aprobada por pagar', 'aprobadas por pagar')}`}
       />
       <NativeAmountTile
         label="Pagado"
@@ -180,7 +212,7 @@ function CommissionKpis({ settlements }: { settlements: ReturnType<typeof useSet
         state={summaryState}
         onRetry={() => void summary.refetch()}
         emptyLabel="Nada pagado todavía"
-        footer={`Histórico · ${formatNumber(paidCount)} liquidaci${paidCount === 1 ? 'ón pagada' : 'ones pagadas'}`}
+        footer={`Histórico · ${plural(paidCount, 'liquidación pagada', 'liquidaciones pagadas')}`}
       />
     </KpiStrip>
   );
@@ -455,43 +487,3 @@ function CommissionEventsSection() {
     </div>
   );
 }
-
-function SettlementsSection({ query }: { query: ReturnType<typeof useSettlements> }) {
-  return (
-    <Card
-      title="Liquidaciones"
-      description="Una liquidación agrupa eventos de un período y de una sola moneda. Marcarla pagada exige fecha y referencia de pago."
-    >
-      <div className="border-b border-border px-5 py-3">
-        <InfoNote>Consulta de liquidaciones existentes. Esta pantalla no crea, paga ni revierte liquidaciones.</InfoNote>
-      </div>
-      {query.isLoading ? (
-        <LoadingState />
-      ) : query.error ? (
-        <ErrorState error={query.error} onRetry={() => void query.refetch()} />
-      ) : (query.data ?? []).length === 0 ? (
-        <EmptyState title="Sin liquidaciones" description="Todavía no se ha liquidado ninguna comisión visible para tu rol." />
-      ) : (
-        <DataTable label="Liquidaciones" columns={['Código', 'Comercial', 'Período', { label: 'Total', align: 'right' }, 'Estado', 'Referencia de pago']}>
-          {(query.data ?? []).map((s) => (
-            <tr key={s.id}>
-              <td className="ebim-td whitespace-nowrap font-mono text-compact font-semibold">{s.code}</td>
-              <td className="ebim-td">{(s.sales_agents as { full_name: string } | null)?.full_name ?? '—'}</td>
-              <td className="ebim-td whitespace-nowrap text-compact text-fg-2">
-                {formatDate(s.period_start)} → {formatDate(s.period_end)}
-              </td>
-              <td className="ebim-td ebim-num whitespace-nowrap font-semibold">{formatMoney(Number(s.total_amount), s.currency)}</td>
-              <td className="ebim-td">
-                <Badge tone={s.status === 'PAID' ? 'ok' : s.status === 'CANCELLED' ? 'danger' : 'warn'}>
-                  {SETTLEMENT_LABEL[s.status] ?? s.status}
-                </Badge>
-              </td>
-              <td className="ebim-td font-mono text-compact text-muted">{s.payment_reference ?? '—'}</td>
-            </tr>
-          ))}
-        </DataTable>
-      )}
-    </Card>
-  );
-}
-
