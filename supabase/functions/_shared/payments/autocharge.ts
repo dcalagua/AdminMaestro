@@ -35,7 +35,8 @@ export type AutochargeCaller = { kind: 'service' } | { kind: 'user'; userId: str
 export interface AutochargeDeps {
   rpc: (fn: string, args: Record<string, unknown>) => Promise<RpcResult>;
   loadAccount: (id: string) => Promise<Record<string, unknown> | null>;
-  resolveProvider: (account: Record<string, unknown>) => PaymentProvider;
+  /** Asíncrono: la llave puede venir cifrada de Vault (ver `providerResolver`). */
+  resolveProvider: (account: Record<string, unknown>) => PaymentProvider | Promise<PaymentProvider>;
 }
 
 export interface AutochargeItem {
@@ -109,7 +110,7 @@ export async function chargeInvoice(
   if (!row) return fail('CUENTA_NO_CONFIGURADA');
   let provider: PaymentProvider;
   try {
-    provider = deps.resolveProvider(row);
+    provider = await deps.resolveProvider(row);
   } catch (error) {
     return fail(error instanceof ProviderError ? error.code : 'CUENTA_NO_CONFIGURADA');
   }

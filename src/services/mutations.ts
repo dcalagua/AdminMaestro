@@ -1,3 +1,4 @@
+import { useCallback, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { QueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -291,6 +292,46 @@ const COLLECTION_KEYS = [
 
 export function useUpsertProviderAccount() {
   return useRpc('upsert_payment_provider_account', ['provider-accounts', ...COLLECTION_KEYS]);
+}
+
+const PROVIDER_SECRET_KEYS = ['provider-accounts', ...COLLECTION_KEYS];
+
+/**
+ * Configura o reemplaza la llave secreta de una cuenta Culqi (se guarda CIFRADA
+ * en Vault; la RPC solo devuelve la pista).
+ *
+ * Deliberadamente NO usa `useMutation`: React Query conserva las `variables` de
+ * cada mutación en su MutationCache (y en las devtools) hasta el GC, y la llave
+ * quedaría en memoria del cliente de queries. Aquí el valor solo existe durante
+ * la llamada; no se guarda, no se registra y el error no lo contiene.
+ */
+export function useSetPaymentProviderSecret() {
+  const qc = useQueryClient();
+  const [isPending, setIsPending] = useState(false);
+  const mutateAsync = useCallback(
+    async (args: Args<'set_payment_provider_secret'>) => {
+      setIsPending(true);
+      try {
+        const data = await callRpc('set_payment_provider_secret', args);
+        invalidate(qc, [...PROVIDER_SECRET_KEYS, ...AGGREGATE_KEYS]);
+        return data;
+      } finally {
+        setIsPending(false);
+      }
+    },
+    [qc],
+  );
+  return { mutateAsync, isPending };
+}
+
+/** Quita la llave cifrada (motivo obligatorio). La cuenta TEST vuelve a MOCK. */
+export function useClearPaymentProviderSecret() {
+  return useRpc('clear_payment_provider_secret', PROVIDER_SECRET_KEYS);
+}
+
+/** URL base de la API del proveedor en la cuenta (no es secreta). */
+export function useSetPaymentProviderApiBase() {
+  return useRpc('set_payment_provider_api_base', PROVIDER_SECRET_KEYS);
 }
 
 /** Versiona el perfil de cobro. Configurar cómo se cobra NO registra ningún cobro. */

@@ -333,3 +333,29 @@ Rama `feature/masteradmin-users-profiles`. Migración `20261013000100_user_admin
 15. **Baneo:** `ban_duration = 876000h` (Auth no admite infinito). Si Auth no responde tras la RPC, la ficha muestra «Base y Auth desalineados» con un botón para reintentar (las RPC son idempotentes).
 
 Limitaciones conocidas M5: sin SMTP propio (local usa Inbucket; remoto requiere configurarlo en el Dashboard, ver runbook §6); el edge runtime local puede devolver `WORKER_LIMIT` en arranques en frío; el JWT vigente de una cuenta desactivada caduca solo (≤ 1 h) aunque ya no abre datos; los roles de consola no se restringen por dominio (los fixtures `@ebim.test` los tienen).
+
+---
+
+## 11. Credenciales de pasarela cifradas (2026-10-05)
+
+Rama `feature/masteradmin-culqi-credenciales`. Migración `20261014000100_payment_provider_vault_secrets.sql`, pgTAP `50_payment_provider_vault_secrets.test.sql`.
+
+**Requisito del dueño.** La configuración de Culqi se introduce desde la plataforma (no como secret de Supabase Function) y la llave secreta se guarda cifrada.
+
+**Diseño.**
+
+1. **Cifrado con Supabase Vault** (`supabase_vault`, activo por defecto en Supabase Cloud). La llave vive en `vault.secrets` con nombre `payment_provider:<account_id>`; `payment_provider_accounts` solo guarda `secret_vault_id` (puntero, único), `secret_hint` (`sk_test_…abcd`), `secret_set_at` y `secret_set_by`. CHECKs: la pista tiene exactamente esa forma (no cabe una llave), puntero/pista/fecha van juntos, la pista corresponde al entorno de la cuenta (con trigger `ppa_secret_env_guard` para el mensaje `LLAVE_NO_COINCIDE_CON_ENTORNO`). `ppa_no_real_keys_ck` se mantiene.
+2. **Privilegio de columna.** `authenticated` pierde el SELECT de tabla y recibe SELECT por columna sin `secret_vault_id` (patrón de `credential_profiles.secret_ref`). Consecuencia: la consola pide columnas explícitas (un `select *` falla con 42501) y una columna nueva de la tabla ya no es visible para el navegador hasta que se añada al GRANT.
+3. **RPCs de consola** (EBIM_FINANCE o super admin, como `upsert_payment_provider_account`): `set_payment_provider_secret(cuenta, llave, motivo?)` valida `^sk_(test|live)_[A-Za-z0-9]{10,}$` y el entorno, crea o actualiza la MISMA fila de Vault y audita `PROVIDER_ACCOUNT_KEY_SET/REPLACED` con `key_hint` (los nombres de clave de la auditoría evitan «secret» por el guard `reject_secret_like_json`); rechaza un motivo que contenga una llave (`MOTIVO_CON_LLAVE`). `clear_payment_provider_secret(cuenta, motivo)` borra la fila de Vault y limpia la cuenta (idempotente, auditado `PROVIDER_ACCOUNT_KEY_CLEARED`). `set_payment_provider_api_base(cuenta, url)` fija la URL base https (normalizada; vacía la retira; auditado).
+4. **RPC de servidor** `payment_provider_account_secret(cuenta)`: EXECUTE solo para `service_role`, guard `is_service_context()` y rechazo explícito de `anon`/`authenticated`; lee `vault.decrypted_secrets`.
+5. **Edge Functions.** `resolvePaymentProvider` pasa a ser asíncrona con dependencias inyectadas (`env`, `loadVaultSecret`). Llave: cifrada (RPC de servicio) → variable de `secret_key_ref` → MOCK. URL: `api_base_url` → `CULQI_API_BASE` → MOCK (sin valor por defecto, igual que antes). Una llave cifrada ilegible es error (`LLAVE_NO_DISPONIBLE`), no MOCK. `CULQI_ALLOW_LIVE` sigue siendo de entorno; el adapter conserva su aborto por llave/entorno incoherentes. Afecta a `pay-portal`, `payment-autocharge`, `payment-setup`, `culqi-webhook` y `payment-reconcile`.
+6. **Consola.** Configuración → Cuentas de pago: columna «Llave secreta» con «Configurada (`sk_test_…abcd`) · fecha» / «Variable de entorno» / «No configurada · modo de prueba (MOCK)», acciones «Configurar llave», «Reemplazar», «Quitar» (motivo). El diálogo usa un campo de contraseña con «Mostrar», sin autocompletar, que se vacía en cada envío; la llave no pasa por la caché de React Query (`useSetPaymentProviderSecret` no usa `useMutation`, que guarda las `variables`). La ficha gana «URL de la API (opcional)» y `secret_key_ref` pasa a «Variable de entorno (avanzado, opcional)».
+
+**Decisiones.**
+
+- **LIVE activa exige llave.** `ppa_live_needs_secret_ref_ck` acepta llave cifrada o variable de entorno y ahora solo aplica a cuentas `ACTIVE`: la llave cifrada se configura sobre una cuenta existente, así que una cuenta LIVE se crea Inactiva → se configura la llave → se activa. Las cuentas inactivas no cobran (routing, `resolve_*_card_account` y Edge Functions exigen `ACTIVE`). Quitar la llave de una cuenta LIVE activa sin variable de entorno se rechaza (`LIVE_SIN_LLAVE`).
+- **Elegibilidad.** `provider_account_candidates` (SECURITY INVOKER) pregunta por `secret_hint`, no por `secret_vault_id`, porque `authenticated` no puede leer el puntero; los CHECKs garantizan que la pista existe si y solo si existe la llave. `resolve_invoice_card_account` y `resolve_org_card_account` (DEFINER) aceptan cualquiera de las dos llaves. Las tres se recrearon desde su última definición cambiando solo esa condición.
+- **Prioridad.** Si una cuenta tiene llave cifrada y `secret_key_ref`, gana la cifrada; la variable queda como respaldo si la fila de Vault desaparece.
+- **Riesgo residual.** La llave viaja una vez como parámetro de la RPC (HTTPS). Si se activara un `log_statement`/`pgaudit` que registre parámetros podría quedar en los logs de Postgres (Supabase no lo hace por defecto).
+
+**Despliegue.** Migración + redeploy de las cinco Edge Functions de pago; luego configurar la llave desde la consola. Tras verificar un cobro TEST, el secret `CULQI_SECRET_KEY` (y `secret_key_ref` de la cuenta) pueden retirarse; `CULQI_API_BASE` es opcional si la cuenta define su URL; `CULQI_ALLOW_LIVE` se mantiene en el entorno.

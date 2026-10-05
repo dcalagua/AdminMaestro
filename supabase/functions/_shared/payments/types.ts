@@ -8,8 +8,9 @@
  * REGLAS QUE ESTE ARCHIVO IMPONE POR TIPOS:
  *   · el token de tarjeta ENTRA (`SetupInput.token`) pero no SALE de ningún sitio;
  *   · el resultado solo devuelve ids externos y `brand`/`last4`, jamás PAN ni CVV;
- *   · ninguna firma acepta una clave secreta por parámetro: el adapter la lee de
- *     `Deno.env`, y así no puede filtrarse por un log de argumentos.
+ *   · ninguna firma PÚBLICA acepta una clave secreta por parámetro: la resuelve
+ *     `resolvePaymentProvider` (Vault vía RPC de servicio, o `Deno.env`) y se
+ *     la entrega directamente al adapter; no viaja por ningún log de argumentos.
  */
 
 export type ProviderMode = 'MOCK' | 'TEST' | 'LIVE';
@@ -23,8 +24,15 @@ export interface ProviderAccountConfig {
   currency: string;
   /** Pública por diseño: el navegador la necesita para tokenizar. */
   publicKey: string | null;
-  /** NOMBRE de la variable de entorno donde vive la clave secreta. Nunca su valor. */
+  /** NOMBRE de la variable de entorno donde vive la clave secreta. Nunca su valor. Alternativa avanzada. */
   secretKeyRef: string | null;
+  /**
+   * ¿Tiene la cuenta una llave secreta CIFRADA en Vault (`secret_vault_id`)?
+   * Solo el indicador: el valor lo pide el servidor con la RPC de servicio.
+   */
+  hasVaultSecret?: boolean;
+  /** URL base de la API configurada en la cuenta. Null = `CULQI_API_BASE` del entorno. */
+  apiBaseUrl?: string | null;
 }
 
 export interface SetupInput {

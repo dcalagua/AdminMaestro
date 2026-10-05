@@ -125,8 +125,12 @@ creyendo que está en pruebas.
 | Dato | Ubicación | Por qué |
 |---|---|---|
 | `pk_test_…` | `payment_provider_accounts.public_key` (columna) | Es pública por diseño; el navegador la necesita |
-| `sk_test_…` / `sk_live_…` | **Supabase Edge Function secret** | Un `CHECK` de la tabla rechaza cualquier valor con forma `sk_`/`pk_` |
-| Nombre de esa variable | `payment_provider_accounts.secret_key_ref` (ej. `CULQI_SECRET_KEY`) | La base sabe *dónde buscar*, no *qué es* |
+| `sk_test_…` / `sk_live_…` | **Cifrada en Supabase Vault** (`vault.secrets`), configurada desde la consola (Configuración → Cuentas de pago → «Configurar llave») | Requisito del dueño (§12): se introduce desde la plataforma y se guarda cifrada. Solo el servidor (`service_role`) la lee en claro |
+| Puntero a esa llave | `payment_provider_accounts.secret_vault_id` | **Oculto** a `authenticated`/`anon` por privilegio de columna |
+| Pista de la llave | `payment_provider_accounts.secret_hint` (`sk_test_…abcd`) + `secret_set_at`/`secret_set_by` | Lo único que la consola vuelve a ver |
+| URL base de la API | `payment_provider_accounts.api_base_url` (opcional) o `CULQI_API_BASE` | No es secreta |
+| Alternativa avanzada: nombre de una variable de entorno | `payment_provider_accounts.secret_key_ref` (ej. `CULQI_SECRET_KEY`) | Compatibilidad con despliegues que ya usan `supabase secrets set`. Un `CHECK` sigue rechazando cualquier valor con forma `sk_`/`pk_` en columnas de texto |
+| `CULQI_ALLOW_LIVE` | **Entorno de Edge Functions** | Interruptor deliberado para cobrar dinero real. NO es editable desde la UI |
 | PAN, CVV, token de tarjeta | **En ningún sitio** | El PAN nunca toca nuestro servidor: lo tokeniza el navegador contra Culqi |
 | `brand`, `last4`, `exp_month/year` | `provider_payment_methods` | No son datos de tarjeta reutilizables; sirven para que el usuario reconozca su medio de pago |
 
@@ -152,7 +156,8 @@ sequenceDiagram
     C4-->>CP: token efímero (tkn_…)
     CP->>EF: POST {subscription_id, token} + JWT del usuario
     EF->>EF: valida JWT y autorización contra la base
-    EF->>EF: lee sk_ desde Deno.env[secret_key_ref]
+    EF->>DB: payment_provider_account_secret (service_role) → sk_ descifrada
+    Note over EF: si no hay llave cifrada:<br/>Deno.env[secret_key_ref]
     EF->>CU: crea Customer
     EF->>CU: crea Card (consume el token)
     EF->>CU: crea/reutiliza Plan
@@ -284,14 +289,19 @@ conjunto de `commission_events`. La Fase 16 lo comprueba con un test.
 
 ## 7. Modo sin credenciales (el modo por defecto hoy)
 
-El adapter resuelve el proveedor así:
+El adapter resuelve el proveedor así (`resolvePaymentProvider`, asíncrono desde §12):
 
 ```
-¿La cuenta declara secret_key_ref?           → no → MOCK
-¿Existe Deno.env[secret_key_ref]?            → no → MOCK
-¿environment = 'LIVE'?                       → sí → exige CULQI_ALLOW_LIVE=true
-                                                    (si falta → error ruidoso)
-                                             → no → CULQI TEST
+Llave secreta:
+  ¿La cuenta tiene llave cifrada (secret_vault_id)?  → sí → RPC de servicio
+                                                       (si no se puede leer → error, nunca MOCK)
+  si no, ¿existe Deno.env[secret_key_ref]?           → sí → esa
+  si no                                              → falta llave
+URL de la API:   api_base_url de la cuenta → CULQI_API_BASE → falta URL
+¿Falta llave o URL?   → TEST: MOCK · LIVE: error ruidoso (CULQI_LIVE_SIN_CONFIGURAR)
+¿environment = 'LIVE'?  → exige CULQI_ALLOW_LIVE=true en el ENTORNO (LIVE_NO_AUTORIZADO)
+                       → no → CULQI TEST
+El adapter vuelve a abortar si la llave no corresponde al entorno (LLAVE_NO_COINCIDE).
 ```
 
 El `MockCulqiProvider`:
@@ -360,11 +370,12 @@ de Culqi NO está validado**, y así se declara en `FINAL_REPORT_V2.md`.
 
 - [ ] Cuenta Culqi de comercio creada y verificada por el operador.
 - [ ] `pk_test_…` cargada en `payment_provider_accounts.public_key` de `culqi-pe-test`.
-- [ ] `CULQI_SECRET_KEY` (valor `sk_test_…`) cargada como **Edge Function secret**:
-      `supabase secrets set CULQI_SECRET_KEY=sk_test_…`
-- [ ] Confirmar la URL base de la API contra `https://apidocs.culqi.com/` y fijarla
-      en `CULQI_API_BASE`. **El adapter no asume una por su cuenta**: si la variable
-      falta, opera en MOCK.
+- [ ] Llave `sk_test_…` configurada desde Configuración → Cuentas de pago →
+      «Configurar llave» (queda cifrada en Vault; la ficha muestra `sk_test_…abcd`).
+      Alternativa avanzada: `secret_key_ref` + `supabase secrets set`.
+- [ ] URL base de la API (`https://api.culqi.com/v2`, verificada en V2.1) en el
+      campo «URL de la API» de la cuenta o en `CULQI_API_BASE`. **El adapter no
+      asume una por su cuenta**: si faltan ambas, opera en MOCK.
 - [ ] Prueba de alta de tarjeta con las tarjetas de prueba de Culqi.
 - [ ] Prueba de cobro recurrente en TEST y verificación de que llega el webhook.
 - [ ] Reenviar el mismo webhook 5 veces y comprobar 1 solo `payments` y 1 solo
@@ -373,11 +384,12 @@ de Culqi NO está validado**, y así se declara en `FINAL_REPORT_V2.md`.
 - [ ] Prueba de devolución y verificación del contra-evento de comisión.
 - [ ] Ejecutar `payment-reconcile` sobre el periodo de pruebas: debe salir `OK`.
 - [ ] Revisar que `npm run secrets:scan` sigue en PASS con las credenciales cargadas
-      (deben estar solo en secrets del servidor, nunca en el repo ni en `dist/`).
+      (deben estar solo cifradas en Vault o en secrets del servidor, nunca en el repo ni en `dist/`).
 - [ ] Restringir el webhook por IP de origen si Culqi publica su rango.
 - [ ] **Autorización explícita y por escrito del operador** para pasar a `sk_live_`.
-- [ ] Crear la cuenta `culqi-pe-live` con `environment = 'LIVE'` y su
-      `secret_key_ref`, y definir `CULQI_ALLOW_LIVE=true` en el entorno.
+- [ ] Crear la cuenta `culqi-pe-live` con `environment = 'LIVE'` **Inactiva**,
+      configurar su llave `sk_live_…` con «Configurar llave», activarla y definir
+      `CULQI_ALLOW_LIVE=true` en el entorno de las Edge Functions.
 
 ---
 
@@ -504,3 +516,43 @@ No había llave TEST en este entorno. `createCharge` y `saveCard` están
 probados con `fetch` simulado (mapeo de céntimos, metadatos, verificación por
 GET y rechazos) y el flujo completo en MOCK; falta ejercitar Checkout v4 y
 `POST /charges` con `pk_test_`/`sk_test_` reales (checklist en el runbook).
+
+---
+
+## 12. Llaves cifradas y gestionadas desde la consola (2026-10-05)
+
+Requisito del dueño: la configuración de Culqi se introduce **desde la
+plataforma**, no como secret de Edge Function, y la llave secreta se guarda
+**cifrada**. Diseño completo en el spec §11
+(`docs/superpowers/specs/2026-10-04-masteradmin-cobro-usuarios-design.md`);
+migración `20261014000100_payment_provider_vault_secrets.sql`, pgTAP 50.
+
+- **Dónde vive:** `vault.secrets` (extensión `supabase_vault`, activa por defecto
+  en Supabase Cloud). Nombre `payment_provider:<account_id>`. La clave de
+  cifrado la gestiona Supabase y no está en la base.
+- **Cómo entra:** `set_payment_provider_secret(cuenta, llave, motivo)` —
+  EBIM_FINANCE o super admin, la misma autorización que
+  `upsert_payment_provider_account`. Valida `^sk_(test|live)_[A-Za-z0-9]{10,}$`
+  y el entorno (`sk_test_` ↔ TEST, `sk_live_` ↔ LIVE). Reemplazar actualiza la
+  MISMA fila de Vault. Audita `PROVIDER_ACCOUNT_KEY_SET/REPLACED` con la pista,
+  nunca la llave; un motivo que contenga una llave se rechaza.
+- **Cómo sale:** solo `payment_provider_account_secret(cuenta)`, con EXECUTE
+  únicamente para `service_role` (+ guard `is_service_context()`). Las Edge
+  Functions la piden con su cliente de servicio en cada resolución; no se
+  cachea ni se registra.
+- **Cómo se quita:** `clear_payment_provider_secret(cuenta, motivo)` borra la
+  fila de Vault (auditado, idempotente). Una cuenta Culqi LIVE **activa** sin
+  variable de entorno alternativa no puede quedarse sin llave (`LIVE_SIN_LLAVE`).
+- **Qué ve la consola:** `secret_hint`, `secret_set_at` y `api_base_url`.
+  `secret_vault_id` está fuera de su alcance por privilegio de columna (un
+  `select *` falla con 42501, por eso la consola pide columnas explícitas).
+- **LIVE:** una cuenta Culqi LIVE activa exige llave (cifrada o variable de
+  entorno). Circuito: crear Inactiva → configurar llave → activar.
+  `CULQI_ALLOW_LIVE` **sigue siendo de entorno** y no se edita desde la UI.
+- **Compatibilidad:** `secret_key_ref` sigue funcionando. Si una cuenta tiene
+  ambas, gana la llave cifrada.
+- **Riesgo residual:** la llave viaja en claro como parámetro de la RPC (HTTPS
+  hasta PostgREST). Con `log_statement`/`pgaudit` configurados para registrar
+  parámetros podría quedar en los logs de Postgres; Supabase no lo hace por
+  defecto. No activar ese nivel de log en el proyecto.
+

@@ -239,6 +239,15 @@ describe('payment-autocharge', () => {
     expect(called('complete_card_charge_attempt')[0]![1]).toMatchObject({ p_succeeded: false, p_error_code: 'LIVE_NO_AUTORIZADO' });
   });
 
+  it('el selector es asíncrono (llave cifrada): un rechazo deja el intento FALLIDO con su código', async () => {
+    const { deps, called } = makeDeps();
+    (deps.resolveProvider as ReturnType<typeof vi.fn>).mockImplementation(() =>
+      Promise.reject(new ProviderError('LLAVE_NO_DISPONIBLE', 'No se pudo leer la llave secreta cifrada.', 500)),
+    );
+    await handleAutocharge(post({ invoice_id: INVOICE }), user, deps);
+    expect(called('complete_card_charge_attempt')[0]![1]).toMatchObject({ p_succeeded: false, p_error_code: 'LLAVE_NO_DISPONIBLE' });
+  });
+
   it('cuerpo inválido o sin acción → 400; método distinto de POST → 405', async () => {
     const { deps } = makeDeps();
     expect((await handleAutocharge({ method: 'POST', bodyText: '[' }, user, deps)).status).toBe(400);

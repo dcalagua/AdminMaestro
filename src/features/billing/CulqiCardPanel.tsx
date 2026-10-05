@@ -35,6 +35,9 @@ type AccountRow = {
   environment: string;
   public_key: string | null;
   secret_key_ref: string | null;
+  /** Pista de la llave secreta CIFRADA (`sk_test_…abcd`); la llave nunca llega al navegador. */
+  secret_hint?: string | null;
+  api_base_url?: string | null;
   status: string;
 } | null;
 
@@ -78,8 +81,10 @@ export function CulqiCardPanel({
   const isCardOnFile = current?.recurring_mode === 'CARD_ON_FILE';
 
   // Sin llave pública no se puede ni abrir el Checkout: el navegador la necesita
-  // para tokenizar. Es la señal inequívoca de «falta configurar».
-  const credentialsMissing = !account?.public_key;
+  // para tokenizar. Sin llave secreta (cifrada o por variable de entorno) el
+  // servidor no puede cobrar. Cualquiera de las dos es «falta configurar».
+  const hasSecret = Boolean(account?.secret_hint || account?.secret_key_ref);
+  const credentialsMissing = !account?.public_key || !hasSecret;
 
   const link = (providerSub.data ?? [])[0];
   const activeAuth = (authorizations.data ?? []).find((a) => a.is_active);
@@ -184,9 +189,13 @@ export function CulqiCardPanel({
               <div className="rounded-lg bg-warn-soft px-4 py-3">
                 <p className="text-sm font-semibold text-warn">Culqi pendiente de configurar</p>
                 <p className="mt-1 text-sm text-muted">
-                  La cuenta <span className="font-mono">{accountCode ?? '—'}</span> no tiene llave pública cargada, así
-                  que el Checkout no puede abrirse y el adapter opera en modo <strong>MOCK</strong>. No se ejecuta
-                  ningún cobro real.
+                  La cuenta <span className="font-mono">{accountCode ?? '—'}</span> no tiene{' '}
+                  {!account?.public_key && !hasSecret
+                    ? 'ni llave pública ni llave secreta'
+                    : !account?.public_key
+                      ? 'llave pública cargada, así que el Checkout no puede abrirse'
+                      : 'llave secreta configurada'}
+                  {' '}y el adapter opera en modo <strong>MOCK</strong>. No se ejecuta ningún cobro real.
                 </p>
                 <button type="button" className="ebim-link mt-2 text-[13px]" onClick={() => setShowHelp((v) => !v)}>
                   {showHelp ? 'Ocultar pasos' : '¿Qué falta para activarlo?'}
@@ -198,13 +207,17 @@ export function CulqiCardPanel({
                       Configuración → Cuentas de pago.
                     </li>
                     <li>
-                      Cargar la clave secreta como <em>secret</em> del servidor con el nombre declarado en la cuenta
-                      ({account?.secret_key_ref ? <span className="font-mono">{account.secret_key_ref}</span> : 'sin referencia'}
-                      ). Nunca en la base ni en el repositorio.
+                      Configurar la llave secreta <span className="font-mono">sk_test_…</span> con «Configurar llave» en
+                      la misma pantalla ({account?.secret_hint ? (
+                        <>configurada: <span className="font-mono">{account.secret_hint}</span></>
+                      ) : (
+                        'pendiente'
+                      )}
+                      ). Se guarda cifrada en el servidor y nunca vuelve al navegador.
                     </li>
                     <li>
-                      Definir <span className="font-mono">CULQI_API_BASE</span> con la URL confirmada en
-                      apidocs.culqi.com.
+                      Indicar en la cuenta la URL de la API (<span className="font-mono">https://api.culqi.com/v2</span>) o
+                      dejar que la defina el servidor (<span className="font-mono">CULQI_API_BASE</span>).
                     </li>
                     <li>
                       El checklist completo está en{' '}

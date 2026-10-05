@@ -89,10 +89,13 @@ export interface RpcResult {
 export interface PortalDeps {
   /** RPC con la clave de servicio (solo servidor). */
   rpc: (fn: string, args: Record<string, unknown>) => Promise<RpcResult>;
-  /** Fila de `payment_provider_accounts` (sin secretos: solo la referencia). */
+  /** Fila de `payment_provider_accounts` (sin secretos: solo metadatos y referencias). */
   loadAccount: (id: string) => Promise<Record<string, unknown> | null>;
-  /** Proveedor para la cuenta (MOCK/TEST/LIVE según `resolvePaymentProvider`). Puede lanzar. */
-  resolveProvider: (account: Record<string, unknown>) => PaymentProvider;
+  /**
+   * Proveedor para la cuenta (MOCK/TEST/LIVE según `resolvePaymentProvider`).
+   * Asíncrono porque la llave puede venir cifrada de Vault. Puede lanzar/rechazar.
+   */
+  resolveProvider: (account: Record<string, unknown>) => PaymentProvider | Promise<PaymentProvider>;
   /** ¿Se permite cobrar con una cuenta MOCK? Solo `true` explícito en el entorno. */
   allowMock: boolean;
   sha256Hex: (text: string) => Promise<string>;
@@ -211,7 +214,7 @@ interface AccountView {
 
 async function accountView(deps: PortalDeps, row: Record<string, unknown>): Promise<AccountView> {
   try {
-    const provider = deps.resolveProvider(row);
+    const provider = await deps.resolveProvider(row);
     if (provider.mode === 'MOCK') {
       return { publicKey: null, mode: deps.allowMock ? 'MOCK' : null };
     }
@@ -231,7 +234,7 @@ async function providerFor(
   if (!row) return portalError('CUENTA_NO_CONFIGURADA');
   let provider: PaymentProvider;
   try {
-    provider = deps.resolveProvider(row);
+    provider = await deps.resolveProvider(row);
   } catch {
     return portalError('CUENTA_NO_CONFIGURADA');
   }

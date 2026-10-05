@@ -4893,6 +4893,7 @@ export type Database = {
       };
       payment_provider_accounts: {
         Row: {
+          api_base_url: string | null;
           code: string;
           country_code: string;
           created_at: string;
@@ -4908,12 +4909,17 @@ export type Database = {
           routing_priority: number;
           rsa_id_ref: string | null;
           rsa_public_key_ref: string | null;
+          secret_hint: string | null;
           secret_key_ref: string | null;
+          secret_set_at: string | null;
+          secret_set_by: string | null;
+          secret_vault_id: string | null;
           status: Database['platform']['Enums']['entity_status'];
           updated_at: string;
           webhook_endpoint: string | null;
         };
         Insert: {
+          api_base_url?: string | null;
           code: string;
           country_code: string;
           created_at?: string;
@@ -4929,12 +4935,17 @@ export type Database = {
           routing_priority?: number;
           rsa_id_ref?: string | null;
           rsa_public_key_ref?: string | null;
+          secret_hint?: string | null;
           secret_key_ref?: string | null;
+          secret_set_at?: string | null;
+          secret_set_by?: string | null;
+          secret_vault_id?: string | null;
           status?: Database['platform']['Enums']['entity_status'];
           updated_at?: string;
           webhook_endpoint?: string | null;
         };
         Update: {
+          api_base_url?: string | null;
           code?: string;
           country_code?: string;
           created_at?: string;
@@ -4950,7 +4961,11 @@ export type Database = {
           routing_priority?: number;
           rsa_id_ref?: string | null;
           rsa_public_key_ref?: string | null;
+          secret_hint?: string | null;
           secret_key_ref?: string | null;
+          secret_set_at?: string | null;
+          secret_set_by?: string | null;
+          secret_vault_id?: string | null;
           status?: Database['platform']['Enums']['entity_status'];
           updated_at?: string;
           webhook_endpoint?: string | null;
@@ -13559,6 +13574,10 @@ export type Database = {
         Args: { p_catalog_item_code: string; p_reason: string };
         Returns: Json;
       };
+      clear_payment_provider_secret: {
+        Args: { p_account_id: string; p_reason: string };
+        Returns: Json;
+      };
       close_entitlement_grant: {
         Args: { p_grant_id: string; p_reason: string; p_valid_to: string };
         Returns: undefined;
@@ -14350,6 +14369,7 @@ export type Database = {
         Args: { p_client_fingerprint?: string; p_token_hash: string };
         Returns: Json;
       };
+      payment_provider_account_secret: { Args: { p_account_id: string }; Returns: string };
       plan_has_regional_price: {
         Args: { p_as_of?: string; p_currency: string; p_market_id: string; p_plan_id: string };
         Returns: boolean;
@@ -14821,6 +14841,14 @@ export type Database = {
       set_organization_membership_active: {
         Args: { p_active: boolean; p_membership_id: string; p_reason?: string };
         Returns: string;
+      };
+      set_payment_provider_api_base: {
+        Args: { p_account_id: string; p_api_base_url: string };
+        Returns: Json;
+      };
+      set_payment_provider_secret: {
+        Args: { p_account_id: string; p_reason?: string; p_secret: string };
+        Returns: Json;
       };
       set_plan_price: {
         Args: {

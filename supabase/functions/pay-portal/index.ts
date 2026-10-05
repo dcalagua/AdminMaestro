@@ -16,7 +16,7 @@
  *     poder fabricar pagos simulados en un entorno desplegado.
  */
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { resolvePaymentProvider, toAccountConfig } from '../_shared/payments/index.ts';
+import { PROVIDER_ACCOUNT_COLUMNS, providerResolver } from '../_shared/payments/index.ts';
 import { handlePayPortal, PORTAL_MAX_BODY_BYTES, portalError } from '../_shared/payments/portal.ts';
 import { parseAllowedOrigins, withCors } from '../_shared/provisioning/cors.ts';
 
@@ -54,6 +54,10 @@ Deno.serve(
     const bodyText = req.method === 'POST' ? await req.text() : '';
 
     const admin = createClient(supabaseUrl, serviceKey, { db: { schema: 'platform' } });
+    const rpc = async (fn: string, args: Record<string, unknown>) => {
+      const { data, error } = await admin.rpc(fn, args);
+      return { data, error };
+    };
     const route = new URL(req.url).pathname.split('/').filter(Boolean).pop() ?? '';
 
     const res = await handlePayPortal(
@@ -69,19 +73,17 @@ Deno.serve(
         userAgent: req.headers.get('user-agent'),
       },
       {
-        rpc: async (fn, args) => {
-          const { data, error } = await admin.rpc(fn, args);
-          return { data, error };
-        },
+        rpc,
         loadAccount: async (id) => {
           const { data } = await admin
             .from('payment_provider_accounts')
-            .select('id, code, provider_kind, environment, currency, public_key, secret_key_ref, status')
+            .select(PROVIDER_ACCOUNT_COLUMNS)
             .eq('id', id)
             .maybeSingle();
           return data && data.status === 'ACTIVE' ? (data as Record<string, unknown>) : null;
         },
-        resolveProvider: (row) => resolvePaymentProvider(toAccountConfig(row)),
+        // Llave cifrada (Vault) → variable de `secret_key_ref` → MOCK.
+        resolveProvider: providerResolver(rpc),
         allowMock: Deno.env.get('PAYMENT_PORTAL_ALLOW_MOCK') === 'true',
         sha256Hex,
       },
