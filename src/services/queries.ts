@@ -770,6 +770,65 @@ export function useWeeklyCollections(weeks = 12, reportingCurrency?: string) {
   });
 }
 
+export interface AccountSeriesPoint {
+  month: string;
+  asOf: string;
+  isPartial: boolean;
+  reportingCurrency: string;
+  mrr: number | null;
+  invoiced: number | null;
+  collected: number | null;
+  mrrNative: NativeAmounts;
+  invoicedNative: NativeAmounts;
+  collectedNative: NativeAmounts;
+  complete: boolean;
+  missingCurrencies: string[];
+  fxIsDemo: boolean;
+}
+
+/**
+ * S11 · MRR, facturado y cobrado por mes de UNA cuenta (organización facturada
+ * o tenant) para las fichas 360. El filtro es de alcance: RLS decide qué suma.
+ */
+export function useAccountSeries(
+  account: { organizationId?: string; tenantId?: string },
+  params: ExecutiveMrrSeriesParams = {},
+) {
+  const id = account.organizationId ?? account.tenantId;
+  return useQuery({
+    queryKey: [
+      'executive', 'account-series', account.organizationId ?? null, account.tenantId ?? null,
+      params.from ?? null, params.to ?? null, params.reportingCurrency ?? null,
+    ],
+    enabled: Boolean(id),
+    queryFn: async (): Promise<AccountSeriesPoint[]> => {
+      const { data, error } = await supabase.rpc('executive_account_series', {
+        p_organization_id: account.organizationId || undefined,
+        p_tenant_id: account.organizationId ? undefined : account.tenantId || undefined,
+        p_from: params.from || undefined,
+        p_to: params.to || undefined,
+        p_reporting_currency: params.reportingCurrency || undefined,
+      });
+      if (error) throw new Error(error.message);
+      return (data ?? []).map((r) => ({
+        month: r.month,
+        asOf: r.as_of,
+        isPartial: r.is_partial,
+        reportingCurrency: r.reporting_currency,
+        mrr: toAmount(r.mrr),
+        invoiced: toAmount(r.invoiced),
+        collected: toAmount(r.collected),
+        mrrNative: toNative(r.mrr_native),
+        invoicedNative: toNative(r.invoiced_native),
+        collectedNative: toNative(r.collected_native),
+        complete: r.complete,
+        missingCurrencies: r.missing_currencies ?? [],
+        fxIsDemo: r.fx_is_demo,
+      }));
+    },
+  });
+}
+
 /** Tarifas con su mercado. RLS de `plan_prices` decide qué filas ve cada rol. */
 export function usePlanPriceCatalog() {
   return useQuery({

@@ -14010,6 +14010,30 @@ export type Database = {
         };
         Returns: Json;
       };
+      executive_account_series: {
+        Args: {
+          p_from?: string;
+          p_organization_id?: string;
+          p_reporting_currency?: string;
+          p_tenant_id?: string;
+          p_to?: string;
+        };
+        Returns: {
+          as_of: string;
+          collected: number;
+          collected_native: Json;
+          complete: boolean;
+          fx_is_demo: boolean;
+          invoiced: number;
+          invoiced_native: Json;
+          is_partial: boolean;
+          missing_currencies: string[];
+          month: string;
+          mrr: number;
+          mrr_native: Json;
+          reporting_currency: string;
+        }[];
+      };
       executive_billing_series: {
         Args: { p_from?: string; p_reporting_currency?: string; p_to?: string };
         Returns: {

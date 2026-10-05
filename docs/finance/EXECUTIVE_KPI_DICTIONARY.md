@@ -34,11 +34,12 @@ Reglas comunes (spec §8.2):
 - «Costo registrado» (Σ `cost_entries.amount`) ≠ costo del margen (Σ asignaciones × peso). La
   diferencia se explica como «Plataforma» (asignaciones PLATFORM) y «Sin asignar».
 
-## Series ejecutivas (S01–S10)
+## Series ejecutivas (S01–S11)
 
 Migraciones `20261015000100_executive_series.sql` (S01–S05, pgTAP `51_executive_series`) y
 `20261016000100_executive_dashboard_series.sql` (S06–S08, pgTAP `52_executive_dashboard_series`) y
-`20261017000100_finance_screen_series.sql` (S09–S10, pantallas de Finanzas, pgTAP `53_finance_screen_series`). Todas son
+`20261017000100_finance_screen_series.sql` (S09–S10, pantallas de Finanzas, pgTAP `53_finance_screen_series`) y
+`20261018000100_account_series.sql` (S11, fichas 360, pgTAP `54_account_series`). Todas son
 `SECURITY INVOKER` (cada rol suma sólo lo que RLS le muestra; sin GRANT a `anon`) y devuelven el
 importe en **moneda de reporte** (parámetro o `control_plane_settings`) convertido con el motor FX
 existente (`to_reporting_amount`). Si a una moneda le falta tasa, el importe es `NULL`,
@@ -65,6 +66,7 @@ mix cuadran entre sí al céntimo.
 | S08 — Mix de MRR por partner | `platform.executive_mrr_mix(p_month, 'PARTNER', p_reporting_currency)` | Como S04, agrupado por el partner que gestiona el tenant (`tenants.managing_organization_id`, misma atribución que `finance_consolidated` PARTNER); sin partner → `DIRECTO` «Venta directa» | Cierre de mes | Σ mix = S01 del mismo mes |
 | S09 — Componentes del margen gerencial por mes | `platform.finance_monthly_series(p_from, p_to, p_reporting_currency)` | Sobre `v_finance_facts` (la base de `finance_consolidated` / K05): cobrado (`v_collected_revenue` por `collected_on`), costo asignado (`cost_allocations` × peso, por `period_end`), comisión devengada (`earned_on`, sin VOID) y su parte hoy PAID / ELIGIBLE+ACCRUED; margen = cobrado − costo − comisión | Por defecto 12 meses hasta el mes en curso (`is_partial`); máx. 120 | Tasa del cierre de cada mes por (mes, métrica, moneda). El margen es NULL si alguna de las tres falta. Pagada / por pagar es el estado **actual** de lo devengado en el mes, no la fecha de pago |
 | S10 — Cobrado por semana | `platform.collections_by_week(p_weeks, p_reporting_currency)` | Σ de `v_collected_payments` con `collected_on` en la semana ISO (lunes–domingo), la fórmula de K02 | Últimas N semanas (por defecto 12; 1–104), la actual a hoy (`is_partial`) | Tasa del cierre de cada semana por (semana, moneda) |
+| S11 — Serie de una cuenta (ficha 360) | `platform.executive_account_series(p_organization_id, p_tenant_id, p_from, p_to, p_reporting_currency)` | Para UNA organización facturada o UN tenant (exactamente uno): MRR contratado al cierre de cada mes (`executive_mrr_at` filtrado por `billed_organization_id` / `tenant_id`, = S01), facturado por emisión y cobrado (`v_collected_payments`) con la fórmula de S06, por `customer_organization_id` o por las suscripciones del tenant | Por defecto 12 meses hasta el mes en curso (`is_partial`); máx. 120 | Σ de las organizaciones = S01 / S06 del mes (probado). Filtro de alcance: RLS decide qué suma cada rol. La ficha grafica en la moneda nativa si la cuenta tiene una sola; si tiene varias, en moneda de reporte |
 
 Derivables del puente (no son funciones aparte): churn de MRR del mes = churn / opening;
 GRR = (opening − contraction − churn) / opening; NRR = (opening + expansion − contraction − churn) /
