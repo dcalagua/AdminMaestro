@@ -153,3 +153,61 @@ describe('SearchField', () => {
     expect(box).toHaveValue('');
   });
 });
+
+describe('validación nativa en español (U-13)', () => {
+  it('un required vacío muestra el error en el campo, no la burbuja del navegador', async () => {
+    const user = userEvent.setup();
+    render(
+      <form>
+        <TextField label="Nombre" required />
+        <SelectField label="País" required placeholder="Elige…" options={[{ value: 'PE', label: 'Perú' }]} />
+        <TextField label="Correo" type="email" defaultValue="no-es-correo" />
+      </form>,
+    );
+    const name = screen.getByRole('textbox', { name: 'Nombre' });
+    const country = screen.getByRole('combobox', { name: 'País' });
+    const mail = screen.getByRole('textbox', { name: 'Correo' });
+    const prevented = [name, country, mail].map((el) => {
+      const ev = new Event('invalid', { cancelable: true });
+      el.dispatchEvent(ev);
+      return ev.defaultPrevented;
+    });
+    // Cancelar el evento suprime la burbuja nativa.
+    expect(prevented).toEqual([true, true, true]);
+    expect(await screen.findByText('Este campo es obligatorio.')).toBeInTheDocument();
+    expect(screen.getByText('Elige una opción.')).toBeInTheDocument();
+    expect(screen.getByText('Escribe un correo válido.')).toBeInTheDocument();
+    expect(name).toHaveAttribute('aria-invalid', 'true');
+    expect(name).toHaveAccessibleDescription('Este campo es obligatorio.');
+
+    // Al corregir el valor el error se retira.
+    await user.type(name, 'Andina');
+    expect(screen.queryByText('Este campo es obligatorio.')).toBeNull();
+    expect(name).not.toHaveAttribute('aria-invalid');
+  });
+
+  it('checkValidity enfoca el primer campo inválido y conserva el onChange del consumidor', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <form>
+        <TextField label="Primero" required onChange={onChange} />
+        <TextField label="Segundo" required />
+      </form>,
+    );
+    const first = screen.getByRole('textbox', { name: 'Primero' });
+    const second = screen.getByRole('textbox', { name: 'Segundo' });
+    second.dispatchEvent(new Event('invalid', { cancelable: true }));
+    first.dispatchEvent(new Event('invalid', { cancelable: true }));
+    expect(first).toHaveFocus();
+    await user.type(first, 'x');
+    expect(onChange).toHaveBeenCalled();
+  });
+
+  it('un error explícito (React Hook Form) manda sobre el nativo', () => {
+    render(<TextField label="Código" required error={{ message: 'Código duplicado' }} />);
+    const input = screen.getByRole('textbox', { name: 'Código' });
+    input.dispatchEvent(new Event('invalid', { cancelable: true }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Código duplicado');
+  });
+});

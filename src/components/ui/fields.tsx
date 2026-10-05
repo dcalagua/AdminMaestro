@@ -1,4 +1,4 @@
-import { forwardRef, useId } from 'react';
+import { forwardRef, useId, useState } from 'react';
 import type { ReactNode } from 'react';
 import { CaretDownIcon, MagnifyingGlassIcon, WarningCircleIcon, XIcon } from '@phosphor-icons/react';
 
@@ -74,6 +74,67 @@ type InputProps = React.InputHTMLAttributes<HTMLInputElement>;
 type SelectProps = React.SelectHTMLAttributes<HTMLSelectElement>;
 type TextAreaProps = React.TextareaHTMLAttributes<HTMLTextAreaElement>;
 
+type Validatable = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+
+/**
+ * Mensaje en español para la validación nativa (`required`, `type="email"`,
+ * `min`…). Sin esto el navegador muestra su burbuja en el idioma del sistema
+ * («Please fill out this field», U-13) y fuera de la anatomía del campo.
+ */
+function validityMessage(el: Validatable): string {
+  const v = el.validity;
+  if (v.valueMissing) return el instanceof HTMLSelectElement ? 'Elige una opción.' : 'Este campo es obligatorio.';
+  if (v.badInput) return 'Escribe un número válido.';
+  if (v.typeMismatch) {
+    if (el.type === 'email') return 'Escribe un correo válido.';
+    if (el.type === 'url') return 'Escribe una dirección web válida (https://…).';
+    return 'El formato no es válido.';
+  }
+  if (v.patternMismatch) return el.title || 'El formato no es válido.';
+  if (v.tooShort && 'minLength' in el) return `Escribe al menos ${el.minLength} caracteres.`;
+  if (v.tooLong && 'maxLength' in el) return `Máximo ${el.maxLength} caracteres.`;
+  if (v.rangeUnderflow && 'min' in el) return `El valor mínimo es ${el.min}.`;
+  if (v.rangeOverflow && 'max' in el) return `El valor máximo es ${el.max}.`;
+  if (v.stepMismatch) return 'El valor no respeta el incremento permitido.';
+  return 'Revisa este campo.';
+}
+
+/**
+ * Captura el evento `invalid` del control: cancela la burbuja nativa, guarda el
+ * mensaje en español para pintarlo como error del campo y enfoca el primer
+ * control inválido del formulario. El mensaje se retira cuando el valor pasa a
+ * ser válido. Un `error` explícito (React Hook Form) siempre tiene prioridad.
+ */
+function useNativeValidation<E extends Validatable>(
+  onInvalid?: React.FormEventHandler<E>,
+  onChange?: React.ChangeEventHandler<E>,
+) {
+  const [message, setMessage] = useState<string | null>(null);
+  return {
+    message,
+    onInvalid: (e: React.FormEvent<E>) => {
+      onInvalid?.(e);
+      e.preventDefault();
+      const el = e.currentTarget;
+      setMessage(validityMessage(el));
+      // Se lee `validity` (sin efectos) y no `:invalid`, cuya evaluación puede
+      // volver a disparar `invalid` en algunos motores.
+      const first = Array.from(el.form?.elements ?? []).find(
+        (n) => 'validity' in n && (n as Validatable).willValidate && !(n as Validatable).validity.valid,
+      );
+      if (!first || first === el) el.focus();
+    },
+    onChange: (e: React.ChangeEvent<E>) => {
+      onChange?.(e);
+      if (message !== null) setMessage(e.currentTarget.validity.valid ? null : validityMessage(e.currentTarget));
+    },
+  };
+}
+
+function withNative(error: FieldIssue, native: string | null): FieldIssue {
+  return error ?? (native ? { message: native } : undefined);
+}
+
 export interface TextFieldProps extends Omit<InputProps, 'prefix'>, ShellProps {
   /** Icono a la izquierda (Phosphor 16 px), p. ej. `<EnvelopeIcon size={16} />`. */
   icon?: ReactNode;
@@ -84,17 +145,21 @@ export interface TextFieldProps extends Omit<InputProps, 'prefix'>, ShellProps {
 }
 
 export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function TextField(
-  { label, hint, error, className, icon, prefix, suffix, ...input },
+  { label, hint, error: explicitError, className, icon, prefix, suffix, onInvalid, onChange, ...input },
   ref,
 ) {
   const generated = useId();
   const id = input.id ?? generated;
+  const native = useNativeValidation(onInvalid, onChange);
+  const error = withNative(explicitError, native.message);
   const control = {
     id,
     ref,
     'aria-invalid': error ? true : undefined,
     'aria-describedby': describedBy(id, hint, error),
     ...input,
+    onInvalid: native.onInvalid,
+    onChange: native.onChange,
   };
   const adorned = icon != null || prefix != null || suffix != null;
   return (
@@ -155,9 +220,14 @@ export const SelectField = forwardRef<
       placeholder?: string;
       options: Array<{ value: string; label: string }>;
     }
->(function SelectField({ label, hint, error, options, placeholder, className, ...select }, ref) {
+>(function SelectField(
+  { label, hint, error: explicitError, options, placeholder, className, onInvalid, onChange, ...select },
+  ref,
+) {
   const generated = useId();
   const id = select.id ?? generated;
+  const native = useNativeValidation(onInvalid, onChange);
+  const error = withNative(explicitError, native.message);
   return (
     <FieldShell id={id} label={label} hint={hint} error={error} required={select.required} className={className}>
       <div className="relative">
@@ -168,6 +238,8 @@ export const SelectField = forwardRef<
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy(id, hint, error)}
           {...select}
+          onInvalid={native.onInvalid}
+          onChange={native.onChange}
         >
           {placeholder ? <option value="">{placeholder}</option> : null}
           {options.map((o) => (
@@ -187,11 +259,13 @@ export const SelectField = forwardRef<
 });
 
 export const TextAreaField = forwardRef<HTMLTextAreaElement, TextAreaProps & ShellProps>(function TextAreaField(
-  { label, hint, error, className, ...area },
+  { label, hint, error: explicitError, className, onInvalid, onChange, ...area },
   ref,
 ) {
   const generated = useId();
   const id = area.id ?? generated;
+  const native = useNativeValidation(onInvalid, onChange);
+  const error = withNative(explicitError, native.message);
   return (
     <FieldShell id={id} label={label} hint={hint} error={error} required={area.required} className={className}>
       <textarea
@@ -201,6 +275,8 @@ export const TextAreaField = forwardRef<HTMLTextAreaElement, TextAreaProps & She
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy(id, hint, error)}
         {...area}
+        onInvalid={native.onInvalid}
+        onChange={native.onChange}
       />
     </FieldShell>
   );
