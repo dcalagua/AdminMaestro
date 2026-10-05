@@ -13994,6 +13994,116 @@ export type Database = {
         };
         Returns: Json;
       };
+      executive_mrr_at: {
+        Args: { p_at: string; p_rate_date?: string; p_reporting_currency?: string };
+        Returns: {
+          billed_organization_id: string;
+          conversion_status: string;
+          fx_is_demo: boolean;
+          fx_rate_date: string;
+          market_id: string;
+          native_currency: string;
+          native_mrr: number;
+          reporting_currency: string;
+          reporting_mrr: number;
+          saas_product_id: string;
+          subscription_id: string;
+          tenant_id: string;
+        }[];
+      };
+      executive_mrr_mix: {
+        Args: { p_dimension?: string; p_month?: string; p_reporting_currency?: string };
+        Returns: {
+          active_customers: number;
+          active_subscriptions: number;
+          as_of: string;
+          complete: boolean;
+          dimension: string;
+          group_key: string;
+          group_label: string;
+          missing_currencies: string[];
+          month: string;
+          mrr: number;
+          mrr_native: Json;
+          reporting_currency: string;
+          share: number;
+        }[];
+      };
+      executive_mrr_movement_customers: {
+        Args: { p_month?: string; p_reporting_currency?: string };
+        Returns: {
+          as_of: string;
+          billed_organization_id: string;
+          closing_mrr: number;
+          complete: boolean;
+          delta_mrr: number;
+          month: string;
+          movement: string;
+          opening_mrr: number;
+          organization_name: string;
+          reporting_currency: string;
+        }[];
+      };
+      executive_mrr_movements: {
+        Args: { p_month?: string; p_reporting_currency?: string };
+        Returns: {
+          as_of: string;
+          churn_mrr: number;
+          churned_customers: number;
+          closing_mrr: number;
+          complete: boolean;
+          contraction_customers: number;
+          contraction_mrr: number;
+          expansion_customers: number;
+          expansion_mrr: number;
+          fx_revaluation: number;
+          month: string;
+          new_customers: number;
+          new_mrr: number;
+          opening_mrr: number;
+          prior_closing_mrr: number;
+          reporting_currency: string;
+        }[];
+      };
+      executive_mrr_series: {
+        Args: { p_from?: string; p_reporting_currency?: string; p_to?: string };
+        Returns: {
+          active_customers: number;
+          active_subscriptions: number;
+          arr: number;
+          as_of: string;
+          complete: boolean;
+          fx_is_demo: boolean;
+          is_partial: boolean;
+          missing_currencies: string[];
+          month: string;
+          mrr: number;
+          mrr_native: Json;
+          reporting_currency: string;
+        }[];
+      };
+      executive_receivables_aging: {
+        Args: { p_as_of?: string; p_reporting_currency?: string };
+        Returns: {
+          aging_bucket: string;
+          as_of: string;
+          balance: number;
+          balance_native: Json;
+          bucket_order: number;
+          complete: boolean;
+          fx_is_demo: boolean;
+          invoice_count: number;
+          missing_currencies: string[];
+          reporting_currency: string;
+        }[];
+      };
+      executive_reporting_config: {
+        Args: { p_reporting_currency?: string };
+        Returns: {
+          fx_max_rate_age_days: number;
+          reporting_currency: string;
+        }[];
+      };
       expire_ai_credits: {
         Args: { p_period_start: string; p_pool_key: string; p_tenant_id: string };
         Returns: number;
