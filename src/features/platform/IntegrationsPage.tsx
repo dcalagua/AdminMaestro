@@ -9,8 +9,11 @@ import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { useProvisioningAccess } from '@/hooks/useProvisioningAccess';
 import { StatusTabs } from '@/components/ui/SectionTabs';
 import {
-  PageContainer, Card, SearchBar, StatCard, LoadingState, ErrorState, EmptyState, Badge,
+  PageContainer, Card, SearchBar, KpiTile, LoadingState, ErrorState, EmptyState, Badge,
 } from '@/components/ui/primitives';
+import { Avatar } from '@/components/ui/Avatar';
+import { KpiStrip } from '@/features/billing/financeUi';
+import { formatDateTime } from '@/lib/format';
 import {
   INTEGRATION_STATUS_LABEL,
   INTEGRATION_TYPE_LABEL,
@@ -21,6 +24,7 @@ import {
 import { IntegrationDialog } from './IntegrationDialogs';
 import { ENVIRONMENT_ORDER, environmentLabel, isEvaluable, summarizeByEnvironment } from './targetHealth';
 import { EnvironmentHealthList } from './EnvironmentHealth';
+import { CutoverStepper } from './CutoverStepper';
 
 const ALL = 'ALL';
 
@@ -96,16 +100,26 @@ export function IntegrationsPage() {
         ) : null
       }
     >
-      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Integraciones" value={String(all.length)} />
-        <StatCard label="Listas" value={String(all.filter((i) => i.status === 'READY').length)} />
-        <StatCard label="Habilitadas" value={String(all.filter((i) => i.enabled).length)} />
-        <StatCard
-          label={environment === ALL ? 'Destinos habilitados' : `Destinos habilitados · ${environmentLabel(environment)}`}
-          value={`${enabledTargets.length} de ${scopedTargets.length}`}
-          hint="Sólo los habilitados entran en el resumen de salud."
+      <KpiStrip label="Resumen de integraciones">
+        <KpiTile label="Integraciones" value={integrations.isLoading ? null : String(all.length)} loading={integrations.isLoading} />
+        <KpiTile
+          label="Listas"
+          value={integrations.isLoading ? null : String(all.filter((i) => i.status === 'READY').length)}
+          loading={integrations.isLoading}
+          footer="Contrato completo para operar."
         />
-      </div>
+        <KpiTile
+          label="Habilitadas"
+          value={integrations.isLoading ? null : String(all.filter((i) => i.enabled).length)}
+          loading={integrations.isLoading}
+        />
+        <KpiTile
+          label={environment === ALL ? 'Destinos habilitados' : `Destinos habilitados · ${environmentLabel(environment)}`}
+          value={targets.isLoading ? null : `${enabledTargets.length} de ${scopedTargets.length}`}
+          loading={targets.isLoading}
+          footer="Sólo los habilitados entran en el semáforo de salud."
+        />
+      </KpiStrip>
 
       <Card>
         <SearchBar
@@ -139,71 +153,109 @@ export function IntegrationsPage() {
             }
           />
         ) : (
-          <ul className="divide-y divide-border">
+          <ul className="grid gap-4 p-5 lg:grid-cols-2 2xl:grid-cols-3" aria-label="Integraciones">
             {rows.map((integration) => {
               const product = integration.saas_products as
-                | { code: string; short_name: string }
+                | { code: string; short_name: string; accent_color?: string | null }
                 | null;
               const related = scopedTargets.filter((t) => t.product_integration_id === integration.id);
               const productOwners = ownerRows.filter(
                 (o) => o.saas_product_id === integration.saas_product_id,
               );
+              const lastObserved =
+                related
+                  .map((t) => t.health_checked_at)
+                  .filter((d): d is string => Boolean(d))
+                  .sort()
+                  .pop() ?? null;
 
               return (
-                <li key={integration.id} className="grid gap-3 p-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-                  <div className="min-w-0">
-                    <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                <li
+                  key={integration.id}
+                  className="flex min-w-0 flex-col overflow-hidden rounded-card border border-border bg-card transition-colors hover:border-border-strong"
+                  data-integration={integration.code}
+                >
+                  <div className="flex items-start gap-3 border-b border-border px-4 py-3.5">
+                    <Avatar name={product?.short_name ?? integration.name} size="md" ringColor={product?.accent_color} />
+                    <div className="min-w-0 flex-1">
                       <Link
                         to={`/integrations/${integration.id}`}
-                        className="break-all font-mono text-sm font-bold text-accent-deep hover:underline"
+                        className="block truncate text-h3 text-fg hover:text-accent-deep hover:underline"
+                        title={integration.name}
                       >
-                        {integration.code}
+                        {integration.name}
                       </Link>
-                      <Badge tone="accent">{product?.short_name ?? '—'}</Badge>
+                      <p className="truncate font-mono text-caption text-muted" title={integration.code}>
+                        {integration.code}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-1">
                       <Badge tone={integrationStatusTone(integration.status as IntegrationStatus)}>
                         {INTEGRATION_STATUS_LABEL[integration.status as IntegrationStatus]}
                       </Badge>
                       {integration.enabled ? (
-                        <Badge tone="ok">Habilitada</Badge>
+                        <Badge tone="ok" dot>Habilitada</Badge>
                       ) : (
                         <Badge tone="neutral">Deshabilitada</Badge>
                       )}
                     </div>
-                    <p className="text-sm text-fg">{integration.name}</p>
-                    <div className="mt-1.5 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted">
-                      <span>
-                        {INTEGRATION_TYPE_LABEL[integration.integration_type as IntegrationType]} · contrato{' '}
+                  </div>
+
+                  <div className="flex flex-1 flex-col gap-4 px-4 py-4">
+                    <section aria-label={`Salud de ${integration.code}`}>
+                      <p className="mb-2 text-micro text-muted">Salud por entorno</p>
+                      {targets.isLoading ? (
+                        <p className="text-compact text-muted" role="status">Leyendo destinos…</p>
+                      ) : targets.error ? (
+                        <p className="text-compact text-danger" role="alert">No se pudieron leer los destinos.</p>
+                      ) : (
+                        <EnvironmentHealthList summaries={summarizeByEnvironment(related)} />
+                      )}
+                    </section>
+
+                    <section aria-label={`Cutover de ${integration.code}`} className="grid gap-3 sm:grid-cols-2">
+                      <CutoverStepper axis="entitlements" state={integration.cutover_state_entitlements} />
+                      <CutoverStepper axis="billing" state={integration.cutover_state_billing} />
+                    </section>
+                  </div>
+
+                  <dl className="grid grid-cols-2 gap-x-4 gap-y-1 border-t border-border bg-sunken px-4 py-3 text-caption">
+                    <div className="min-w-0">
+                      <dt className="text-muted">Tipo · contrato</dt>
+                      <dd className="truncate text-fg">
+                        {INTEGRATION_TYPE_LABEL[integration.integration_type as IntegrationType]} ·{' '}
                         <span className="font-mono">{integration.contract_version}</span>
-                      </span>
-                      <span>
-                        Responsable:{' '}
+                      </dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="text-muted">Última observación</dt>
+                      <dd className="truncate text-fg">
+                        {lastObserved ? (
+                          <time dateTime={lastObserved}>{formatDateTime(lastObserved)}</time>
+                        ) : (
+                          'Nunca comprobada'
+                        )}
+                      </dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="text-muted">Responsable</dt>
+                      <dd className="truncate text-fg">
                         {integration.owner_name ??
                           (integration.profiles as { full_name: string | null } | null)?.full_name ??
-                          'sin asignar'}
-                      </span>
-                      <span>
-                        Propietarios técnicos: {productOwners.length === 0 ? 'ninguno' : productOwners.length}
-                      </span>
+                          'Sin asignar'}
+                      </dd>
                     </div>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wider text-muted">
-                      Salud observada por entorno
-                    </p>
-                    {targets.isLoading ? (
-                      <p className="text-xs text-muted" role="status">Leyendo destinos…</p>
-                    ) : targets.error ? (
-                      <p className="text-xs text-danger" role="alert">No se pudieron leer los destinos.</p>
-                    ) : (
-                      <EnvironmentHealthList summaries={summarizeByEnvironment(related)} />
-                    )}
-                  </div>
+                    <div className="min-w-0">
+                      <dt className="text-muted">Propietarios técnicos</dt>
+                      <dd className="text-fg tabular-nums">{productOwners.length === 0 ? 'Ninguno' : productOwners.length}</dd>
+                    </div>
+                  </dl>
                 </li>
               );
             })}
           </ul>
         )}
-        <p className="border-t border-border px-4 py-3 text-xs text-muted">
+        <p className="border-t border-border px-5 py-3 text-caption text-muted">
           Un destino deshabilitado o en borrador figura como «No evaluado» y no entra en el resumen.
           La certificación de un contrato no se muestra aquí: la consola no dispone de una fuente
           verificable para afirmarla.

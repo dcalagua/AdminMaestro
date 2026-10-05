@@ -48,24 +48,28 @@ import { RevealSecretRefButton } from './RevealSecretRef';
 import { contractAdapterFor } from '@/features/deployments/contractAdapters';
 import { environmentLabel, isEvaluable, notEvaluatedReason, observedHealth, summarizeByEnvironment } from './targetHealth';
 import { EnvironmentHealthList, HealthBadge, ObservationDate } from './EnvironmentHealth';
+import { CutoverStepper } from './CutoverStepper';
+import { Avatar } from '@/components/ui/Avatar';
+import { AuditTimeline } from '@/features/settings/AuditTimeline';
+import { AuditDetail } from '@/features/settings/AuditPage';
 
 /** Fila etiqueta/valor para las fichas de configuración. */
 function Row({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string }) {
   return (
     <div className="flex flex-col gap-0.5 border-b border-border py-2.5 last:border-b-0 sm:flex-row sm:items-baseline sm:gap-4">
-      <span className="w-56 shrink-0 text-xs font-semibold uppercase tracking-wide text-muted">
+      <span className="w-56 shrink-0 text-micro text-muted">
         {label}
       </span>
-      <div className="min-w-0 flex-1 text-sm text-fg">
+      <div className="min-w-0 flex-1 text-body text-fg">
         {value}
-        {hint ? <p className="mt-0.5 text-xs text-muted">{hint}</p> : null}
+        {hint ? <p className="mt-0.5 text-caption text-muted">{hint}</p> : null}
       </div>
     </div>
   );
 }
 
 function Mono({ children }: { children: React.ReactNode }) {
-  return <span className="font-mono text-[13px]">{children}</span>;
+  return <span className="font-mono text-compact">{children}</span>;
 }
 
 const NOT_SET = <span className="text-muted">Sin configurar</span>;
@@ -112,7 +116,9 @@ export function IntegrationDetailPage() {
   }
 
   const data = integration.data;
-  const product = data.saas_products as { id: string; code: string; short_name: string } | null;
+  const product = data.saas_products as
+    | { id: string; code: string; short_name: string; accent_color?: string | null }
+    | null;
   const productId = data.saas_product_id;
   const type = data.integration_type as IntegrationType;
   const isHttp = type === 'HTTP_M2M' || type === 'EDGE_FUNCTION';
@@ -173,7 +179,17 @@ export function IntegrationDetailPage() {
   return (
     <PageContainer
       title={data.name}
-      description={`${product?.short_name ?? 'Producto'} · contrato ${data.contract_version}`}
+      description={`${product?.short_name ?? 'Producto'} · ${INTEGRATION_TYPE_LABEL[type]} · contrato ${data.contract_version}`}
+      leading={<Avatar name={product?.short_name ?? data.name} size="lg" ringColor={product?.accent_color} />}
+      titleAside={
+        <>
+          <Badge tone={integrationStatusTone(data.status as IntegrationStatus)}>
+            {INTEGRATION_STATUS_LABEL[data.status as IntegrationStatus]}
+          </Badge>
+          {data.enabled ? <Badge tone="ok" dot>Habilitada</Badge> : <Badge>Deshabilitada</Badge>}
+        </>
+      }
+      meta={<span className="font-mono">{data.code}</span>}
       actions={
         canManage ? (
           <button type="button" className="ebim-btn-primary" onClick={() => setEditOpen(true)}>
@@ -182,15 +198,6 @@ export function IntegrationDetailPage() {
         ) : null
       }
     >
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <Badge tone="accent">{product?.short_name ?? '—'}</Badge>
-        <Badge>{INTEGRATION_TYPE_LABEL[type]}</Badge>
-        <Badge tone={integrationStatusTone(data.status as IntegrationStatus)}>
-          {INTEGRATION_STATUS_LABEL[data.status as IntegrationStatus]}
-        </Badge>
-        {data.enabled ? <Badge tone="ok">Habilitada</Badge> : <Badge>Deshabilitada</Badge>}
-      </div>
-
       <SectionTabs
         tabs={[
           {
@@ -241,20 +248,31 @@ export function IntegrationDetailPage() {
                     />
                   </div>
                 </Card>
-                <Card
-                  title="Salud observada por entorno"
-                  description="Última comprobación guardada de cada entorno. No es monitoreo en tiempo real: se actualiza con «Verificar conexión» en Entornos y despliegues."
-                >
-                  <div className="p-4">
-                    {targets.isLoading ? (
-                      <LoadingState label="Leyendo destinos…" />
-                    ) : targets.error ? (
-                      <ErrorState error={targets.error} onRetry={() => void targets.refetch()} />
-                    ) : (
-                      <EnvironmentHealthList summaries={summarizeByEnvironment(relatedTargets)} />
-                    )}
-                  </div>
-                </Card>
+                <div className="flex flex-col gap-4">
+                  <Card
+                    title="Salud observada por entorno"
+                    description="Última comprobación guardada de cada entorno. No es monitoreo en tiempo real: se actualiza con «Verificar conexión» en Entornos y despliegues."
+                  >
+                    <div className="p-4">
+                      {targets.isLoading ? (
+                        <LoadingState label="Leyendo destinos…" />
+                      ) : targets.error ? (
+                        <ErrorState error={targets.error} onRetry={() => void targets.refetch()} />
+                      ) : (
+                        <EnvironmentHealthList summaries={summarizeByEnvironment(relatedTargets)} />
+                      )}
+                    </div>
+                  </Card>
+                  <Card
+                    title="Modo de cutover"
+                    description="Quién manda en cada eje para este producto. Se mueve paso a paso, con motivo, desde Billing shadow; aquí solo se muestra."
+                  >
+                    <div className="grid gap-5 p-4 sm:grid-cols-2">
+                      <CutoverStepper axis="entitlements" state={data.cutover_state_entitlements} />
+                      <CutoverStepper axis="billing" state={data.cutover_state_billing} />
+                    </div>
+                  </Card>
+                </div>
               </div>
             ),
           },
@@ -619,40 +637,22 @@ export function IntegrationDetailPage() {
             id: 'audit',
             label: 'Auditoría',
             content: (
-              <Card title="Cambios de configuración">
-                <p className="px-4 pb-3 text-xs text-muted">
-                  Cada cambio guarda el antes, el después y quién lo hizo. Los valores de secreto no
-                  aparecen: esta configuración no contiene ninguno.
-                </p>
+              <Card
+                title="Eventos de la integración"
+                description="Cada cambio guarda el antes, el después y quién lo hizo. Los valores de secreto no aparecen: esta configuración no contiene ninguno."
+              >
                 {audit.isLoading ? (
-                  <LoadingState />
+                  <LoadingState label="Cargando eventos…" />
+                ) : audit.error ? (
+                  <ErrorState error={audit.error} onRetry={() => void audit.refetch()} />
                 ) : (audit.data ?? []).length === 0 ? (
-                  <EmptyState title="Sin cambios registrados" />
+                  <EmptyState title="Sin cambios registrados" description="Aún no hay eventos de configuración para esta integración." />
                 ) : (
-                  <DataTable columns={['Cuándo', 'Acción', 'Actor', 'Campos modificados']}>
-                    {(audit.data ?? []).map((entry) => {
-                      const metadata = (entry.metadata ?? {}) as Record<string, unknown>;
-                      const changed = (metadata.changed_fields ?? []) as string[];
-                      return (
-                        <tr key={entry.id}>
-                          <td className="ebim-td whitespace-nowrap">
-                            {formatDateTime(entry.occurred_at)}
-                          </td>
-                          <td className="ebim-td">
-                            <Mono>{entry.action}</Mono>
-                          </td>
-                          <td className="ebim-td">{entry.actor_email ?? '—'}</td>
-                          <td className="ebim-td">
-                            {changed.length === 0 ? (
-                              <span className="text-muted">Sin campos registrados</span>
-                            ) : (
-                              <Mono>{changed.join(', ')}</Mono>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </DataTable>
+                  <AuditTimeline
+                    label="Eventos de la integración"
+                    rows={audit.data ?? []}
+                    renderDetail={(row) => <AuditDetail row={row} embedded />}
+                  />
                 )}
               </Card>
             ),
