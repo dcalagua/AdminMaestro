@@ -110,16 +110,18 @@ test.describe('clientes y catálogo · capturas', () => {
       check(r.path, await shoot(page, name(r.slug, '1440-claro'), shots));
     }
 
-    // Nueva venta con el asistente en el paso 2 (cliente elegido) para ver el resumen lateral.
+    // Nueva venta con el asistente en el paso 2 (cliente y producto elegidos) para ver el resumen lateral.
     if (wanted('onboarding')) {
       await page.goto('/onboarding');
-      const org = page.getByLabel('Organización cliente');
-      if (await org.isVisible().catch(() => false)) {
-        const value = await org.locator('option').nth(1).getAttribute('value');
-        if (value) await org.selectOption(value);
-        await page.getByRole('button', { name: /Siguiente|Continuar/ }).first().click().catch(() => undefined);
-        check('/onboarding paso 2', await shoot(page, name('onboarding', 'paso2-1440-claro'), shots));
-      }
+      await page.getByLabel('Organización cliente').selectOption({ label: 'Empresa Directa Alpha' });
+      await page.getByLabel('Producto SaaS').selectOption({ label: 'eSupplier (esupplier)' });
+      await page.getByRole('button', { name: 'Continuar' }).click();
+      await expect(page.getByLabel('Nombre del tenant')).toBeVisible();
+      await page.getByLabel('Nombre del tenant').fill('Alpha Producción');
+      check('/onboarding paso 2', await shoot(page, name('onboarding', 'paso2-1440-claro'), shots));
+      // «Continuar» sin los datos obligatorios: aviso del paso + errores en los campos.
+      await page.getByRole('button', { name: 'Continuar' }).click();
+      await shoot(page, name('onboarding', 'validacion-1440-claro'), shots);
     }
 
     let orgUrl: string | null = null;
