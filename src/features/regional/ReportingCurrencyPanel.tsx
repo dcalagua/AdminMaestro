@@ -83,13 +83,13 @@ export function ReportingCurrencyPanel() {
       </div>
 
       {save.error ? (
-        <p className="mx-4 mb-3 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger" role="alert">
+        <p className="mx-4 mb-3 rounded-lg bg-danger-soft px-3 py-2 text-body text-danger" role="alert">
           {businessErrorMessage(save.error)}
         </p>
       ) : null}
 
       <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
-        <p className="text-xs text-muted">
+        <p className="text-compact text-muted">
           {canEdit
             ? 'El cambio queda en auditoría (REPORTING_SETTINGS_CHANGED).'
             : 'Solo EBIM_FINANCE o el super admin pueden cambiarla.'}

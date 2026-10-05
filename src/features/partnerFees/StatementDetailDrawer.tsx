@@ -39,7 +39,7 @@ export function StatementDetailDrawer({ statement, onClose }: { statement: State
               ...(s.void_reason ? ([['Motivo de anulación', s.void_reason]] as Array<[string, string]>) : []),
             ]}
           />
-          <h3 className="text-sm font-bold text-fg">Detalle por tenant</h3>
+          <h3 className="text-body font-bold text-fg">Detalle por tenant</h3>
           {lines.isLoading ? (
             <LoadingState label="Cargando detalle…" />
           ) : lines.error ? (
@@ -52,22 +52,22 @@ export function StatementDetailDrawer({ statement, onClose }: { statement: State
                 <tr key={l.id}>
                   <td className="ebim-td">
                     <div className="font-semibold">{l.tenant_name ?? l.tenant_slug ?? '—'}</div>
-                    <div className="text-[11px] text-muted">
+                    <div className="text-caption text-muted">
                       {l.product_short_name}
                       {l.subscription_code ? ` · ${l.subscription_code}` : ''}
                       {l.line_kind && l.line_kind !== 'TENANT' ? ` · ${LINE_KIND_LABEL[l.line_kind] ?? l.line_kind}` : ''}
                     </div>
                   </td>
-                  <td className="ebim-td whitespace-nowrap text-xs tabular-nums">
+                  <td className="ebim-td whitespace-nowrap text-compact tabular-nums">
                     {formatMoney(Number(l.base_list_amount), l.currency)}
                   </td>
-                  <td className="ebim-td text-xs tabular-nums">
+                  <td className="ebim-td text-compact tabular-nums">
                     {l.fee_rate !== null ? formatPercent(Number(l.fee_rate)) : '—'}
                   </td>
-                  <td className="ebim-td whitespace-nowrap text-xs tabular-nums">
+                  <td className="ebim-td whitespace-nowrap text-compact tabular-nums">
                     {l.fee_fixed_amount !== null ? formatMoney(Number(l.fee_fixed_amount), l.currency) : '—'}
                   </td>
-                  <td className="ebim-td whitespace-nowrap text-xs font-semibold tabular-nums">
+                  <td className="ebim-td whitespace-nowrap text-compact font-semibold tabular-nums">
                     {formatMoney(Number(l.fee_amount), l.currency)}
                   </td>
                 </tr>

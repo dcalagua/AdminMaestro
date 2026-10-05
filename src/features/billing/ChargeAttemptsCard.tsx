@@ -28,19 +28,19 @@ export function ChargeAttemptsCard({ subscriptionId }: { subscriptionId: string 
           {rows.map((a) => (
             <tr key={a.id as string}>
               <td className="ebim-td tabular-nums">#{a.attempt_no}</td>
-              <td className="ebim-td font-mono text-xs">{a.invoice_number}</td>
+              <td className="ebim-td font-mono text-compact">{a.invoice_number}</td>
               <td className="ebim-td">
                 <Badge tone={ATTEMPT_STATUS_TONE[a.status as string] ?? 'neutral'}>
                   {ATTEMPT_STATUS_LABEL[a.status as string] ?? a.status}
                 </Badge>
               </td>
               <td className="ebim-td tabular-nums">{formatMoney(Number(a.amount), a.currency)}</td>
-              <td className="ebim-td font-mono text-xs">{a.error_code ?? '—'}</td>
-              <td className="ebim-td text-xs text-muted">
+              <td className="ebim-td font-mono text-compact">{a.error_code ?? '—'}</td>
+              <td className="ebim-td text-compact text-muted">
                 {a.next_retry_at ? formatDateTime(a.next_retry_at as string) : a.status === 'FAILED' ? 'Sin reintentos' : '—'}
               </td>
-              <td className="ebim-td text-xs">{TRIGGER_SOURCE_LABEL[a.trigger_source as string] ?? a.trigger_source}</td>
-              <td className="ebim-td text-xs text-muted">{formatDateTime(a.created_at as string)}</td>
+              <td className="ebim-td text-compact">{TRIGGER_SOURCE_LABEL[a.trigger_source as string] ?? a.trigger_source}</td>
+              <td className="ebim-td text-compact text-muted">{formatDateTime(a.created_at as string)}</td>
             </tr>
           ))}
         </DataTable>

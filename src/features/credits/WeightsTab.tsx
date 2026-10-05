@@ -68,7 +68,7 @@ export function WeightsTab() {
         description="Créditos EBIM por unidad de cada capacidad de IA. Los tokens del proveedor nunca son la unidad comercial."
         actions={
           perms.canReadFinance ? (
-            <button type="button" className="ebim-btn-primary h-8 px-3 text-xs" onClick={() => setCreatingFor('')}>
+            <button type="button" className="ebim-btn-primary ebim-btn-sm" onClick={() => setCreatingFor('')}>
               Nueva versión
             </button>
           ) : null
@@ -98,10 +98,10 @@ export function WeightsTab() {
               <tr key={r.capability.id}>
                 <td className="ebim-td">
                   <div className="font-semibold">{r.capability.name}</div>
-                  <div className="font-mono text-[11px] text-muted">{r.capability.code}</div>
+                  <div className="font-mono text-caption text-muted">{r.capability.code}</div>
                 </td>
-                <td className="ebim-td text-xs">{lookups.productName(r.capability.saas_product_id)}</td>
-                <td className="ebim-td text-sm">
+                <td className="ebim-td text-compact">{lookups.productName(r.capability.saas_product_id)}</td>
+                <td className="ebim-td text-body">
                   {r.current ? (
                     <span className="font-semibold tabular-nums">
                       {formatQuantity(r.current.credits_per_unit)} créditos / {r.current.unit}
@@ -110,10 +110,10 @@ export function WeightsTab() {
                     <Undecided code="D-03" />
                   )}
                 </td>
-                <td className="ebim-td whitespace-nowrap text-xs text-muted">
+                <td className="ebim-td whitespace-nowrap text-compact text-muted">
                   {r.current ? formatDateTime(r.current.valid_from) : '—'}
                 </td>
-                <td className="ebim-td text-xs">
+                <td className="ebim-td text-compact">
                   {r.scheduled ? (
                     <Badge tone="info">
                       {formatQuantity(r.scheduled.credits_per_unit)} desde {formatDateTime(r.scheduled.valid_from)}
@@ -124,7 +124,7 @@ export function WeightsTab() {
                 </td>
                 <td className="ebim-td text-right">
                   {perms.canReadFinance ? (
-                    <button type="button" className="ebim-link text-[13px]" onClick={() => setCreatingFor(r.capability.code)}>
+                    <button type="button" className="ebim-link text-compact" onClick={() => setCreatingFor(r.capability.code)}>
                       Nueva versión
                     </button>
                   ) : null}
@@ -144,14 +144,14 @@ export function WeightsTab() {
           <DataTable columns={['Capacidad', 'Peso', 'Vigencia', 'Motivo']}>
             {history.map((w) => (
               <tr key={w.id}>
-                <td className="ebim-td font-mono text-xs">{capabilityById.get(w.capability_id)?.code ?? w.capability_id}</td>
-                <td className="ebim-td text-xs tabular-nums">
+                <td className="ebim-td font-mono text-compact">{capabilityById.get(w.capability_id)?.code ?? w.capability_id}</td>
+                <td className="ebim-td text-compact tabular-nums">
                   {formatQuantity(w.credits_per_unit)} / {w.unit}
                 </td>
-                <td className="ebim-td whitespace-nowrap text-xs">
+                <td className="ebim-td whitespace-nowrap text-compact">
                   {formatDateTime(w.valid_from)} → {w.valid_to ? formatDateTime(w.valid_to) : 'sin fin'}
                 </td>
-                <td className="ebim-td max-w-[320px] text-xs text-muted">{w.reason}</td>
+                <td className="ebim-td max-w-[320px] text-compact text-muted">{w.reason}</td>
               </tr>
             ))}
           </DataTable>

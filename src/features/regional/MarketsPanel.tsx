@@ -26,7 +26,7 @@ export function MarketsPanel() {
             {(markets.data ?? []).map((m) => (
               <tr key={m.id}>
                 <td className="ebim-td font-semibold">
-                  {m.name} <span className="font-mono text-xs text-muted">({m.code})</span>
+                  {m.name} <span className="font-mono text-compact text-muted">({m.code})</span>
                 </td>
                 <td className="ebim-td">{m.countryCode}</td>
                 <td className="ebim-td"><Badge tone="accent">{m.defaultCurrency}</Badge></td>
@@ -57,11 +57,11 @@ export function MarketsPanel() {
               <tr key={r.provider_account_id ?? undefined}>
                 <td className="ebim-td">
                   <div className="font-semibold">{r.name}</div>
-                  <div className="font-mono text-xs text-muted">{r.code} · {r.provider_kind}</div>
+                  <div className="font-mono text-compact text-muted">{r.code} · {r.provider_kind}</div>
                 </td>
                 <td className="ebim-td">{r.market_code ? <Badge tone="accent">{r.market_code}</Badge> : <Badge tone="warn">Sin mercado</Badge>}</td>
-                <td className="ebim-td text-xs">{(r.currencies ?? []).join(', ') || '—'}</td>
-                <td className="ebim-td text-xs">{(r.supported_methods ?? []).join(', ') || 'Ninguno'}</td>
+                <td className="ebim-td text-compact">{(r.currencies ?? []).join(', ') || '—'}</td>
+                <td className="ebim-td text-compact">{(r.supported_methods ?? []).join(', ') || 'Ninguno'}</td>
                 <td className="ebim-td">
                   <Badge tone={r.is_live ? 'danger' : 'info'}>{r.environment}</Badge>
                 </td>

@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { usePartnerFeeStatements, usePlatformFeeAgreements } from '@/services/queries';
 import {
   useComputeAllPartnerFeeStatements,
@@ -11,15 +10,20 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { StatusTabs } from '@/components/ui/SectionTabs';
 import {
-  Badge, Card, DataTable, EmptyState, ErrorState, LoadingState, PageContainer, SearchBar,
+  Badge, Card, DataTable, EmptyState, ErrorState, KpiTile, LoadingState, PageContainer, SearchBar,
 } from '@/components/ui/primitives';
+import { ActionMenu } from '@/components/ui/ActionMenu';
+import { KpiStrip, NativeAmountTile } from '@/features/billing/financeUi';
+import { fromQuery } from '@/features/executive/dataState';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { FormDialog } from '@/components/ui/FormDialog';
-import { SelectField, TextAreaField, TextField } from '@/components/ui/fields';
+import { SelectField, TextAreaField } from '@/components/ui/fields';
 import { useToast } from '@/components/ui/toast-context';
 import { businessErrorMessage } from '@/lib/pgError';
-import { formatDate, formatMoney } from '@/lib/format';
-import { currentPeriodStart, formatPeriod, labelOf, monthOf, periodFromMonth } from '@/features/usage/usageLabels';
+import { formatDate, formatMoney, formatNumber, sumByCurrency } from '@/lib/format';
+import { formatPeriod, labelOf, periodFromMonth } from '@/features/usage/usageLabels';
+import { analyzedMonthOptions } from '@/features/dashboard/executiveModel';
+import { analyzedMonth } from '@/features/billing/financeModel';
 import { STATEMENT_STATUS } from './feeLabels';
 import { StatementDetailDrawer, type Statement } from './StatementDetailDrawer';
 
@@ -38,7 +42,10 @@ type Tab = 'ALL' | 'DRAFT' | 'ISSUED' | 'VOID';
 export function PartnerFeesPage() {
   const perms = usePermissions();
   const toast = useToast();
-  const [month, setMonth] = useState(() => monthOf(currentPeriodStart()));
+  // Por defecto el último mes CERRADO: la tarifa se calcula sobre un mes completo.
+  const [month, setMonth] = useState(() => analyzedMonth());
+  // Últimos 13 meses, el más reciente primero; el en curso rotulado parcial.
+  const monthOptions = useMemo(() => analyzedMonthOptions(new Date(), 13), []);
   const period = periodFromMonth(month);
   const statements = usePartnerFeeStatements({ periodStart: period || undefined });
   const agreements = usePlatformFeeAgreements();
@@ -67,6 +74,13 @@ export function PartnerFeesPage() {
   const count = (t: Tab) => filtered.filter((s) => t === 'ALL' || s.status === t).length;
   const visible = filtered.filter((s) => tab === 'ALL' || s.status === tab);
   const hasAny = (statements.data ?? []).length > 0;
+
+  // Franja del período elegido: lo ya leído, por moneda (nunca se suman monedas).
+  const all = statements.data ?? [];
+  const live = all.filter((x) => x.status !== 'VOID');
+  const drafts = all.filter((x) => x.status === 'DRAFT').length;
+  const owed = all.filter((x) => x.status === 'ISSUED' && Number(x.invoice_balance ?? 0) > 0);
+  const listState = fromQuery(statements, { isEmpty: () => false });
 
   async function runComputeAll() {
     if (!period) return;
@@ -97,24 +111,73 @@ export function PartnerFeesPage() {
       title="Tarifas de partners"
       description="Lo que cada partner paga a EBIM por usar la plataforma con los clientes que él factura. Un estado de cuenta por partner, mes y moneda; se emite como factura al partner y se cobra por el portal de pago. No son comisiones."
       actions={
-        perms.canReadFinance ? (
-          <div className="flex flex-wrap gap-2">
-            <button type="button" className="ebim-btn-secondary h-8 px-3 text-xs" disabled={!period}
-              onClick={() => setComputing(true)}>
-              Calcular
-            </button>
-            <button type="button" className="ebim-btn-primary h-8 px-3 text-xs" disabled={!period}
-              onClick={() => setConfirmAll(true)}>
-              Calcular todos
-            </button>
-          </div>
-        ) : null
+        <>
+          <label className="flex items-center gap-2">
+            <span className="text-micro text-muted">Período</span>
+            <select className="ebim-input h-control w-auto min-w-[200px]" value={month} onChange={(e) => setMonth(e.target.value)}>
+              {monthOptions.some((o) => o.value === month) ? null : <option value={month}>{month}</option>}
+              {monthOptions.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          {perms.canReadFinance ? (
+            <>
+              <button type="button" className="ebim-btn-secondary" disabled={!period} onClick={() => setComputing(true)}>
+                Calcular
+              </button>
+              <button type="button" className="ebim-btn-primary" disabled={!period} onClick={() => setConfirmAll(true)}>
+                Calcular todos
+              </button>
+            </>
+          ) : null}
+        </>
       }
+      meta={`Período ${formatPeriod(period)}`}
     >
+      <KpiStrip label="Indicadores de tarifas de partners">
+        <NativeAmountTile
+          label="Tarifa del período"
+          info="Lo que los partners deben a EBIM por la plataforma en el período, sin las anuladas. Por moneda."
+          amounts={sumByCurrency(live, (x) => x.fee_total, (x) => x.currency)}
+          state={listState}
+          onRetry={() => void statements.refetch()}
+          emptyLabel="Sin tarifas calculadas"
+          footer={`${formatNumber(live.length)} estado(s) de cuenta`}
+        />
+        <NativeAmountTile
+          label="Base facturada por partners"
+          info="Base mensual de los tenants que gestiona y factura cada partner, sobre la que se calcula la tarifa."
+          amounts={sumByCurrency(live, (x) => x.base_total, (x) => x.currency)}
+          state={listState}
+          onRetry={() => void statements.refetch()}
+          emptyLabel="Sin base en el período"
+          footer={`${formatNumber(live.reduce((t, x) => t + Number(x.tenant_count ?? 0), 0))} tenants`}
+        />
+        <KpiTile
+          label="Por emitir"
+          info="Borradores del período: aún no son factura al partner."
+          value={statements.data ? formatNumber(drafts) : null}
+          tone={drafts > 0 ? 'warn' : 'neutral'}
+          footer={drafts > 0 ? 'Borradores sin factura' : 'Nada por emitir'}
+          loading={statements.isLoading}
+          error={statements.error}
+          onRetry={() => void statements.refetch()}
+        />
+        <NativeAmountTile
+          label="Saldo por cobrar"
+          info="Facturas de tarifa emitidas y no pagadas del período. Se cobran por el portal de pago."
+          amounts={sumByCurrency(owed, (x) => x.invoice_balance, (x) => x.currency)}
+          state={listState}
+          onRetry={() => void statements.refetch()}
+          emptyLabel="Sin saldo pendiente"
+          footer={`${formatNumber(owed.length)} factura(s) con saldo`}
+        />
+      </KpiStrip>
+
       <Card>
-        <div className="mb-3 max-w-[220px]">
-          <TextField label="Período" type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
-        </div>
         <SearchBar
           value={term}
           onChange={setTerm}
@@ -148,56 +211,59 @@ export function PartnerFeesPage() {
             }
           />
         ) : (
-          <DataTable columns={['Partner', 'Tenants', 'Base mensual', 'Tarifa', 'Estado', 'Factura', 'Saldo', '']}>
+          <DataTable
+            label="Estados de cuenta de partners"
+            columns={[
+              'Partner',
+              { label: 'Tenants', align: 'right' },
+              { label: 'Base mensual', align: 'right' },
+              { label: 'Tarifa', align: 'right' },
+              'Estado',
+              'Factura',
+              { label: 'Saldo', align: 'right' },
+              { label: 'Acciones', srOnly: true },
+            ]}
+          >
             {visible.map((s) => {
               const st = labelOf(STATEMENT_STATUS, s.status);
               const balance = s.invoice_balance !== null ? Number(s.invoice_balance) : null;
+              const canFinance = perms.canReadFinance;
               return (
                 <tr key={s.id}>
                   <td className="ebim-td">
-                    <div className="font-semibold">{s.partner_name}</div>
-                    <div className="text-[11px] text-muted">{s.currency}</div>
+                    {/* Acción primaria de la fila: abrir el detalle del estado de cuenta. */}
+                    <button type="button" className="ebim-link text-left" onClick={() => setDetail(s)}>
+                      {s.partner_name}
+                    </button>
+                    <div className="text-caption text-muted">{s.currency}</div>
                   </td>
-                  <td className="ebim-td text-xs tabular-nums">{s.tenant_count}</td>
-                  <td className="ebim-td whitespace-nowrap text-xs tabular-nums">{formatMoney(Number(s.base_total), s.currency)}</td>
-                  <td className="ebim-td whitespace-nowrap text-xs font-semibold tabular-nums">
-                    {formatMoney(Number(s.fee_total), s.currency)}
-                  </td>
+                  <td className="ebim-td ebim-num">{s.tenant_count}</td>
+                  <td className="ebim-td ebim-num whitespace-nowrap">{formatMoney(Number(s.base_total), s.currency)}</td>
+                  <td className="ebim-td ebim-num whitespace-nowrap font-semibold">{formatMoney(Number(s.fee_total), s.currency)}</td>
                   <td className="ebim-td"><Badge tone={st.tone}>{st.label}</Badge></td>
-                  <td className="ebim-td text-xs">
+                  <td className="ebim-td">
                     {s.invoice_number ? (
                       <>
-                        <div className="font-mono">{s.invoice_number}</div>
-                        {s.invoice_due_date ? <div className="text-[11px] text-muted">Vence {formatDate(s.invoice_due_date)}</div> : null}
+                        <div className="whitespace-nowrap font-mono text-compact">{s.invoice_number}</div>
+                        {s.invoice_due_date ? <div className="text-caption text-muted">Vence {formatDate(s.invoice_due_date)}</div> : null}
                       </>
                     ) : (
-                      <span className="text-muted">Sin emitir</span>
+                      <span className="text-compact text-muted">Sin emitir</span>
                     )}
                   </td>
-                  <td className="ebim-td whitespace-nowrap text-xs tabular-nums">
-                    {balance !== null ? formatMoney(balance, s.currency) : '—'}
-                  </td>
-                  <td className="ebim-td">
-                    <div className="flex items-center justify-end gap-3 whitespace-nowrap">
-                      <button type="button" className="ebim-link text-[13px]" onClick={() => setDetail(s)}>
-                        Detalle
-                      </button>
-                      {perms.canReadFinance && s.status === 'DRAFT' ? (
-                        <button type="button" className="ebim-link text-[13px]" onClick={() => setIssuing(s)}>
-                          Emitir
-                        </button>
-                      ) : null}
-                      {perms.canReadFinance && s.status === 'ISSUED' && (balance ?? 0) > 0 && s.partner_organization_id ? (
-                        <Link className="ebim-link text-[13px]" to={`/organizations/${s.partner_organization_id}#payment-portal`}>
-                          Compartir enlace de pago
-                        </Link>
-                      ) : null}
-                      {perms.canReadFinance && s.status !== 'VOID' ? (
-                        <button type="button" className="text-[13px] text-danger hover:underline" onClick={() => setVoiding(s)}>
-                          Anular
-                        </button>
-                      ) : null}
-                    </div>
+                  <td className="ebim-td ebim-num whitespace-nowrap">{balance !== null ? formatMoney(balance, s.currency) : '—'}</td>
+                  <td className="ebim-td w-12 text-right">
+                    <ActionMenu
+                      label={`Acciones de ${s.partner_name} · ${s.currency}`}
+                      items={[
+                        { label: 'Ver detalle', onSelect: () => setDetail(s) },
+                        canFinance && s.status === 'DRAFT' ? { label: 'Emitir factura…', onSelect: () => setIssuing(s) } : null,
+                        canFinance && s.status === 'ISSUED' && (balance ?? 0) > 0 && s.partner_organization_id
+                          ? { label: 'Compartir enlace de pago', to: `/organizations/${s.partner_organization_id}#payment-portal` }
+                          : null,
+                        canFinance && s.status !== 'VOID' ? { label: 'Anular…', tone: 'danger', onSelect: () => setVoiding(s) } : null,
+                      ]}
+                    />
                   </td>
                 </tr>
               );

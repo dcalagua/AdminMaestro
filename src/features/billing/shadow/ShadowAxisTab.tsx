@@ -72,18 +72,18 @@ export function ShadowAxisTab() {
                 <tr key={i.integration_id}>
                   <td className="ebim-td">
                     <div className="font-semibold">{i.product_short_name ?? '—'}</div>
-                    <div className="font-mono text-[11px] text-muted">{i.product_code}</div>
+                    <div className="font-mono text-caption text-muted">{i.product_code}</div>
                   </td>
-                  <td className="ebim-td font-mono text-xs">{i.integration_code}</td>
+                  <td className="ebim-td font-mono text-compact">{i.integration_code}</td>
                   <td className="ebim-td">
                     <Badge tone={axis.tone}>{axis.label}</Badge>
-                    <div className="mt-0.5 font-mono text-[11px] text-muted">
+                    <div className="mt-0.5 font-mono text-caption text-muted">
                       {i.cutover_state_billing}
                     </div>
                   </td>
                   <td className="ebim-td">
                     <ol
-                      className="flex flex-wrap items-center gap-1 text-[11px]"
+                      className="flex flex-wrap items-center gap-1 text-caption"
                       aria-label={`Recorrido de ${i.integration_code}`}
                     >
                       {BILLING_AXIS_ORDER.map((s, idx) => (
@@ -115,7 +115,7 @@ export function ShadowAxisTab() {
                             <button
                               key={to}
                               type="button"
-                              className="ebim-link text-[13px]"
+                              className="ebim-link text-compact"
                               onClick={() => setTransition({ integration: i, to })}
                             >
                               {forward ? 'Avanzar' : 'Retroceder'} a {to.replace('BILLING_', '')}
@@ -160,17 +160,17 @@ function CutoverHistoryCard() {
         <DataTable columns={['Fecha', 'Producto', 'Integración', 'Cambio', 'Motivo', 'Quién']}>
           {rows.map((h) => (
             <tr key={h.id ?? `${h.integration_id}:${h.occurred_at}`}>
-              <td className="ebim-td whitespace-nowrap text-xs text-muted">
+              <td className="ebim-td whitespace-nowrap text-compact text-muted">
                 {formatDateTime(h.occurred_at)}
               </td>
-              <td className="ebim-td text-xs">{h.product_code ?? '—'}</td>
-              <td className="ebim-td font-mono text-xs">{h.integration_code}</td>
-              <td className="ebim-td whitespace-nowrap text-xs">
+              <td className="ebim-td text-compact">{h.product_code ?? '—'}</td>
+              <td className="ebim-td font-mono text-compact">{h.integration_code}</td>
+              <td className="ebim-td whitespace-nowrap text-compact">
                 {labelOf(BILLING_AXIS, h.from_state).label} →{' '}
                 <strong>{labelOf(BILLING_AXIS, h.to_state).label}</strong>
               </td>
-              <td className="ebim-td max-w-[320px] text-xs">{h.reason}</td>
-              <td className="ebim-td text-xs">{h.actor_name ?? 'Servidor'}</td>
+              <td className="ebim-td max-w-[320px] text-compact">{h.reason}</td>
+              <td className="ebim-td text-compact">{h.actor_name ?? 'Servidor'}</td>
             </tr>
           ))}
         </DataTable>

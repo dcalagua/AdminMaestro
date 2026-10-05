@@ -216,7 +216,8 @@ test.describe('R5 · UI regional: FX, tarifas por mercado e importes con ISO (fa
     await expect(page.getByTestId('fx-test-result')).toContainText(/USD\s100\.00/);
     await expect(page.getByTestId('fx-test-result')).toContainText('recíproca');
 
-    await row.getByRole('button', { name: 'Anular' }).click();
+    await row.getByRole('button', { name: /^Acciones de la tasa/ }).click();
+    await page.getByRole('menuitem', { name: 'Anular tasa…' }).click();
     const voidDialog = page.getByRole('dialog');
     await voidDialog.getByLabel(/Motivo/).fill('Limpieza E2E');
     await voidDialog.getByRole('button', { name: 'Anular tasa' }).click();
@@ -228,7 +229,7 @@ test.describe('R5 · UI regional: FX, tarifas por mercado e importes con ISO (fa
     await page.goto('/regional#prices');
     await page.getByRole('tab', { name: 'Tarifas por mercado' }).click();
     await page.getByRole('searchbox').fill('esupplier-shared-standard');
-    const licenses = page.getByRole('row').filter({ hasText: 'LICENSE' }).filter({ hasText: 'MONTHLY' });
+    const licenses = page.getByRole('row').filter({ hasText: 'Licencia' }).filter({ hasText: 'Mensual' });
     // Misma moneda, distinto mercado, distinto precio (PE/USD ≠ EC/USD).
     const market = (code: string) => page.getByRole('cell', { name: code, exact: true });
     const peUsd = licenses.filter({ hasText: /USD\s850\.00/ }).filter({ has: market('PE') });
@@ -237,7 +238,8 @@ test.describe('R5 · UI regional: FX, tarifas por mercado e importes con ISO (fa
     await expect(ecUsd).toHaveCount(1);
     await expect(licenses.filter({ hasText: /BOB\s5,900\.00/ })).toHaveCount(1);
     await expect(licenses.filter({ hasText: /PEN\s3,150\.00/ })).toHaveCount(1);
-    await expect(peUsd.getByRole('button', { name: 'Versionar tarifa' })).toBeVisible();
+    await peUsd.getByRole('button', { name: /^Acciones de la tarifa/ }).click();
+    await expect(page.getByRole('menuitem', { name: 'Versionar tarifa' })).toBeVisible();
   });
 
   test('el dashboard muestra importes con código ISO, nunca un símbolo ambiguo', async ({ page }) => {

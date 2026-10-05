@@ -63,19 +63,35 @@ export function BalancesTab({ tenantId }: { tenantId?: string } = {}) {
         />
       ) : (
         <DataTable
-          columns={['Tenant', 'Pool', 'Período', 'Incluidos', 'Comprados', 'Bono', 'Reservados', 'Usados', 'Expirados', 'Ajuste', 'Saldo']}
+          maxHeight={560}
+          label="Saldos de créditos"
+          columns={[
+            'Tenant',
+            'Pool',
+            'Período',
+            ...['Incluidos', 'Comprados', 'Bono', 'Reservados', 'Usados', 'Expirados', 'Ajuste', 'Saldo'].map((label) => ({
+              label,
+              align: 'right' as const,
+            })),
+          ]}
         >
           {visible.map((b) => {
             const negative = Number(b.balance ?? 0) < 0;
             return (
               <tr key={`${b.tenant_id}:${b.pool_key}:${b.period_start}`}>
-                <td className="ebim-td text-xs font-semibold">{lookups.tenantName(b.tenant_id)}</td>
-                <td className="ebim-td text-xs">{poolLabel(b.pool_key)}</td>
-                <td className="ebim-td whitespace-nowrap text-xs">{formatPeriod(b.period_start)}</td>
+                <td className="ebim-td">
+                  <span className="block max-w-[240px] truncate font-semibold" title={lookups.tenantName(b.tenant_id)}>
+                    {lookups.tenantName(b.tenant_id)}
+                  </span>
+                </td>
+                <td className="ebim-td whitespace-nowrap text-compact text-fg-2">{poolLabel(b.pool_key)}</td>
+                <td className="ebim-td whitespace-nowrap text-compact">{formatPeriod(b.period_start)}</td>
                 {[b.included, b.purchased, b.bonus, b.reserved, b.used, b.expired, b.adjusted].map((v, i) => (
-                  <td key={i} className="ebim-td text-xs tabular-nums">{formatQuantity(v)}</td>
+                  <td key={i} className={`ebim-td ebim-num text-compact ${Number(v ?? 0) === 0 ? 'text-muted' : ''}`}>
+                    {formatQuantity(v)}
+                  </td>
                 ))}
-                <td className={`ebim-td text-sm font-bold tabular-nums ${negative ? 'text-danger' : 'text-fg'}`}>
+                <td className={`ebim-td ebim-num font-semibold ${negative ? 'text-danger' : 'text-fg'}`}>
                   {formatQuantity(b.balance)}
                 </td>
               </tr>

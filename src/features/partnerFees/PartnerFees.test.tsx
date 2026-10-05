@@ -83,6 +83,12 @@ const voided = statement({ id: 'st-void', partner_name: 'Reseller Pacífico', st
 
 const wrap = (ui: React.ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter>);
 
+/** Abre el menú de acciones (DotsThree) de la fila y devuelve sus ítems. */
+async function menuOf(row: RegExp): Promise<string[]> {
+  await userEvent.click(within(screen.getByRole('row', { name: row })).getByRole('button', { name: /^Acciones de / }));
+  return within(screen.getByRole('menu')).getAllByRole('menuitem').map((i) => i.textContent ?? '');
+}
+
 beforeEach(() => {
   for (const fn of Object.values(m)) fn.mockReset();
   m.permissions.mockReturnValue(FINANCE);
@@ -106,26 +112,34 @@ describe('PartnerFeesPage', () => {
     expect(screen.getAllByRole('row')).toHaveLength(2);
   });
 
-  it('acciones según estado: emitir en borrador; compartir enlace solo emitida con saldo; anular salvo anuladas', () => {
+  it('acciones según estado: emitir en borrador; compartir enlace solo emitida con saldo; anular salvo anuladas', async () => {
     wrap(<PartnerFeesPage />);
-    const draft = screen.getByRole('row', { name: /Borrador/ });
-    expect(within(draft).getByRole('button', { name: 'Emitir' })).toBeInTheDocument();
-    expect(within(draft).queryByRole('link', { name: /Compartir enlace/ })).toBeNull();
-    const bob = screen.getByRole('row', { name: /INV-202610-PFEE-ANDINA-BOB/ });
-    expect(within(bob).getByRole('link', { name: 'Compartir enlace de pago' })).toHaveAttribute(
-      'href', `/organizations/${PARTNER}#payment-portal`,
-    );
-    expect(within(bob).queryByRole('button', { name: 'Emitir' })).toBeNull();
-    expect(within(screen.getByRole('row', { name: /Pacífico/ })).queryByRole('button', { name: 'Anular' })).toBeNull();
+    expect(await menuOf(/Borrador/)).toEqual(['Ver detalle', 'Emitir factura…', 'Anular…']);
+    await userEvent.keyboard('{Escape}');
+    expect(await menuOf(/INV-202610-PFEE-ANDINA-BOB/)).toEqual(['Ver detalle', 'Compartir enlace de pago', 'Anular…']);
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Compartir enlace de pago' }));
+    await userEvent.keyboard('{Escape}');
+    expect(await menuOf(/Pacífico/)).toEqual(['Ver detalle']);
   });
 
-  it('sin finanzas no ofrece calcular, emitir ni anular', () => {
+  it('sin finanzas no ofrece calcular, emitir ni anular', async () => {
     m.permissions.mockReturnValue(READER);
     wrap(<PartnerFeesPage />);
     expect(screen.queryByRole('button', { name: 'Calcular todos' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Emitir' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Anular' })).toBeNull();
-    expect(screen.getAllByRole('button', { name: 'Detalle' }).length).toBeGreaterThan(0);
+    expect(await menuOf(/Borrador/)).toEqual(['Ver detalle']);
+  });
+
+  it('la franja resume el período por moneda, sin sumar monedas, y cuenta lo que falta emitir', () => {
+    wrap(<PartnerFeesPage />);
+    const strip = document.querySelector('[data-kpi-strip]') as HTMLElement;
+    // Tarifa: USD 354 (borrador) y BOB 590 (emitida); la anulada no cuenta.
+    expect(within(strip).getByTitle('USD 354.00')).toBeInTheDocument();
+    // BOB 590: la tarifa emitida y, a la vez, su saldo por cobrar.
+    expect(within(strip).getAllByTitle('BOB 590.00')).toHaveLength(2);
+    expect(strip).not.toHaveTextContent('944');
+    expect(within(strip).getByText('2 estado(s) de cuenta')).toBeInTheDocument();
+    expect(within(strip).getByText('Borradores sin factura')).toBeInTheDocument();
+    expect(within(strip).getByText('1 factura(s) con saldo')).toBeInTheDocument();
   });
 
   it('«Calcular» exige el partner y llama a compute_partner_fee_statement con el período', async () => {
@@ -152,7 +166,8 @@ describe('PartnerFeesPage', () => {
   it('«Emitir» confirma y llama a issue_partner_fee_statement', async () => {
     m.issue.mockResolvedValue({ number: 'INV-202610-PFEE-ANDINA-USD' });
     wrap(<PartnerFeesPage />);
-    await userEvent.click(within(screen.getByRole('row', { name: /Borrador/ })).getByRole('button', { name: 'Emitir' }));
+    await menuOf(/Borrador/);
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Emitir factura…' }));
     await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Emitir factura' }));
     await waitFor(() => expect(m.issue).toHaveBeenCalledWith({ p_statement_id: 'st-draft' }));
   });
@@ -160,7 +175,8 @@ describe('PartnerFeesPage', () => {
   it('«Anular» exige motivo y avisa que también anula la factura', async () => {
     m.voidSt.mockResolvedValue({ status: 'VOID' });
     wrap(<PartnerFeesPage />);
-    await userEvent.click(within(screen.getByRole('row', { name: /INV-202610-PFEE-ANDINA-BOB/ })).getByRole('button', { name: 'Anular' }));
+    await menuOf(/INV-202610-PFEE-ANDINA-BOB/);
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Anular…' }));
     const dialog = screen.getByRole('dialog');
     expect(dialog).toHaveTextContent('También se anula la factura INV-202610-PFEE-ANDINA-BOB');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Anular' }));
@@ -179,7 +195,7 @@ describe('PartnerFeesPage', () => {
       }]),
     );
     wrap(<PartnerFeesPage />);
-    await userEvent.click(within(screen.getByRole('row', { name: /Borrador/ })).getByRole('button', { name: 'Detalle' }));
+    await userEvent.click(within(screen.getByRole('row', { name: /Borrador/ })).getByRole('button', { name: 'Consultora Andina' }));
     const drawer = screen.getByRole('dialog');
     expect(within(drawer).getByText('Cliente P1')).toBeInTheDocument();
     expect(m.lines).toHaveBeenCalledWith('st-draft');
@@ -193,7 +209,9 @@ describe('PartnerFeesPage', () => {
     unmount();
     m.statements.mockReturnValue(failed());
     wrap(<PartnerFeesPage />);
-    expect(screen.getByRole('alert')).toBeInTheDocument();
+    // La tabla y cada tile de la franja dicen que no pudieron leer; ninguno pinta un 0.
+    expect(screen.getAllByRole('alert').length).toBeGreaterThanOrEqual(2);
+    expect(document.querySelector('[data-kpi-strip]')).not.toHaveTextContent(/USD|BOB|0\.00/);
   });
 });
 

@@ -81,8 +81,8 @@ export function ShadowPreviewTab() {
         <LoadingState label="Calculando lo que MasterAdmin facturaría…" />
       ) : expected.error ? (
         <div role="alert" className="px-4 py-10 text-center">
-          <p className="text-sm font-semibold text-danger">No se pudo calcular la vista previa</p>
-          <p className="mx-auto mt-1 max-w-lg text-sm text-muted">{businessErrorMessage(expected.error)}</p>
+          <p className="text-body font-semibold text-danger">No se pudo calcular la vista previa</p>
+          <p className="mx-auto mt-1 max-w-lg text-body text-muted">{businessErrorMessage(expected.error)}</p>
           <button type="button" className="ebim-btn-ghost mt-4" onClick={() => void expected.refetch()}>
             Reintentar
           </button>
@@ -97,15 +97,15 @@ export function ShadowPreviewTab() {
           <DataTable columns={['Línea (itemCode)', 'Cantidad', 'Importe']}>
             {data.lines.map((l) => (
               <tr key={l.itemCode}>
-                <td className="ebim-td font-mono text-xs">{l.itemCode}</td>
-                <td className="ebim-td text-xs tabular-nums">{formatQuantity(l.quantity)}</td>
-                <td className="ebim-td text-sm">
+                <td className="ebim-td font-mono text-compact">{l.itemCode}</td>
+                <td className="ebim-td text-compact tabular-nums">{formatQuantity(l.quantity)}</td>
+                <td className="ebim-td text-body">
                   <Money amount={l.amount} currency={l.currency ?? data.currency} />
                 </td>
               </tr>
             ))}
           </DataTable>
-          <div className="flex items-center justify-end gap-3 border-t border-border px-4 py-3 text-sm">
+          <div className="flex items-center justify-end gap-3 border-t border-border px-4 py-3 text-body">
             <span className="text-muted">Total {formatPeriod(data.periodStart)}</span>
             <Money className="text-base font-bold" amount={data.total} currency={data.currency} />
           </div>

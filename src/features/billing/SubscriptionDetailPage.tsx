@@ -189,7 +189,7 @@ export function SubscriptionDetailPage() {
             Facturación: {labelOf(BILLING_CHANNEL, s.billing_channel).label}
           </Badge>
           {perms.canReadFinance ? (
-            <button type="button" className="ebim-link text-xs" onClick={() => setChannelOpen(true)}>
+            <button type="button" className="ebim-link text-compact" onClick={() => setChannelOpen(true)}>
               Cambiar canal
             </button>
           ) : null}
@@ -270,7 +270,7 @@ export function SubscriptionDetailPage() {
                         <td className="ebim-td tabular-nums font-semibold">
                           {formatMoney(Number(i.amount), i.currency as string)}
                         </td>
-                        <td className="ebim-td text-xs text-muted">
+                        <td className="ebim-td text-compact text-muted">
                           {formatDate(i.valid_from as string)} →{' '}
                           {i.valid_to ? formatDate(i.valid_to as string) : 'sin fin'}
                         </td>
@@ -328,7 +328,7 @@ export function SubscriptionDetailPage() {
                         ['Suspensión automática', profile.auto_suspend ? 'Sí' : 'No'],
                         ['Vigente desde', formatDate(profile.effective_from as string)],
                       ].map(([k, v]) => (
-                        <div key={k as string} className="flex justify-between gap-4 px-4 py-2.5 text-sm">
+                        <div key={k as string} className="flex justify-between gap-4 px-4 py-2.5 text-body">
                           <dt className="text-muted">{k}</dt>
                           <dd className="text-right font-medium">{v as string}</dd>
                         </div>
@@ -381,7 +381,7 @@ export function SubscriptionDetailPage() {
                           <td className="ebim-td font-medium">
                             {d.document_type === 'SERVICE_ORDER' ? 'Orden de Servicio' : 'Orden de Compra'}
                           </td>
-                          <td className="ebim-td font-mono text-xs">
+                          <td className="ebim-td font-mono text-compact">
                             {(d.document_number as string) ?? '—'}
                           </td>
                           <td className="ebim-td">
@@ -392,11 +392,11 @@ export function SubscriptionDetailPage() {
                           <td className="ebim-td tabular-nums">
                             {d.amount ? formatMoney(Number(d.amount), d.currency as string) : '—'}
                           </td>
-                          <td className="ebim-td text-xs text-muted">
+                          <td className="ebim-td text-compact text-muted">
                             {d.valid_from ? formatDate(d.valid_from as string) : '—'} →{' '}
                             {d.valid_to ? formatDate(d.valid_to as string) : '—'}
                           </td>
-                          <td className="ebim-td text-xs text-muted">
+                          <td className="ebim-td text-compact text-muted">
                             <div>Solicitada: {formatDateTime(d.requested_at as string)}</div>
                             {d.received_at ? (
                               <div>Recibida: {formatDateTime(d.received_at as string)}</div>
@@ -410,7 +410,7 @@ export function SubscriptionDetailPage() {
                               <div className="flex items-center justify-end gap-3">
                                 {d.status === 'REQUESTED' ? (
                                   <button
-                                    type="button" className="ebim-link text-[13px]"
+                                    type="button" className="ebim-link text-compact"
                                     onClick={() => setReceiveId(d.id as string)}
                                   >
                                     Registrar recepción
@@ -419,7 +419,7 @@ export function SubscriptionDetailPage() {
                                 {d.status === 'RECEIVED' ? (
                                   <>
                                     <button
-                                      type="button" className="ebim-link text-[13px]"
+                                      type="button" className="ebim-link text-compact"
                                       onClick={() =>
                                         setApproveDoc({
                                           id: d.id as string,
@@ -432,7 +432,7 @@ export function SubscriptionDetailPage() {
                                     </button>
                                     <button
                                       type="button"
-                                      className="text-[13px] text-danger hover:underline"
+                                      className="text-compact text-danger hover:underline"
                                       onClick={() => setRejectId(d.id as string)}
                                     >
                                       Rechazar
@@ -442,7 +442,7 @@ export function SubscriptionDetailPage() {
                                 {['REQUESTED', 'RECEIVED', 'APPROVED'].includes(d.status as string) ? (
                                   <button
                                     type="button"
-                                    className="text-[13px] text-muted hover:underline"
+                                    className="text-compact text-muted hover:underline"
                                     onClick={() => setCancelId(d.id as string)}
                                   >
                                     Anular
@@ -471,7 +471,7 @@ export function SubscriptionDetailPage() {
                 actions={
                   perms.canReadFinance ? (
                     <Link
-                      className="ebim-btn-ghost h-8 px-3 text-xs"
+                      className="ebim-btn-ghost ebim-btn-sm"
                       to={`/organizations/${s.billed_organization_id}#payment-portal`}
                     >
                       Compartir enlace de pago
@@ -480,7 +480,7 @@ export function SubscriptionDetailPage() {
                 }
               >
                 {s.billing_channel === 'PARTNER_STATEMENT' ? (
-                  <p role="note" className="mb-3 rounded-lg border border-border bg-accent-soft px-3 py-2 text-sm text-fg">
+                  <p role="note" className="mb-3 rounded-lg border border-border bg-accent-soft px-3 py-2 text-body text-fg">
                     Este contrato lo <strong>factura el partner</strong> al cliente final: EBIM no le emite facturas. EBIM
                     cobra al partner la tarifa de plataforma en <Link className="ebim-link" to="/partner-fees">Tarifas de partners</Link>.
                   </p>
@@ -502,10 +502,10 @@ export function SubscriptionDetailPage() {
                         Math.round((Number(i.total) - confirmed.reduce((a, p) => a + Number(p.amount ?? 0), 0)) * 100) / 100;
                       return (
                         <tr key={i.id}>
-                          <td className="ebim-td font-mono text-xs font-semibold">{i.number}</td>
-                          <td className="ebim-td text-xs text-muted">{formatPeriod(i.period_start)}</td>
-                          <td className="ebim-td text-xs text-muted">{formatDate(i.issue_date)}</td>
-                          <td className="ebim-td text-xs text-muted">{formatDate(i.due_date)}</td>
+                          <td className="ebim-td font-mono text-compact font-semibold">{i.number}</td>
+                          <td className="ebim-td text-compact text-muted">{formatPeriod(i.period_start)}</td>
+                          <td className="ebim-td text-compact text-muted">{formatDate(i.issue_date)}</td>
+                          <td className="ebim-td text-compact text-muted">{formatDate(i.due_date)}</td>
                           <td className="ebim-td tabular-nums font-semibold">
                             {formatMoney(Number(i.total), i.currency)}
                           </td>
@@ -518,7 +518,7 @@ export function SubscriptionDetailPage() {
                               {INVOICE_STATUS_LABEL[i.status as keyof typeof INVOICE_STATUS_LABEL] ?? i.status}
                             </Badge>
                           </td>
-                          <td className="ebim-td text-xs">
+                          <td className="ebim-td text-compact">
                             {confirmed.length === 0 ? (
                               <span className="text-muted">Sin cobros confirmados</span>
                             ) : (
@@ -536,7 +536,7 @@ export function SubscriptionDetailPage() {
                                 {isCardOnFile ? (
                                   <button
                                     type="button"
-                                    className="ebim-link text-[13px]"
+                                    className="ebim-link text-compact"
                                     onClick={() =>
                                       setCharging({ id: i.id, number: i.number, amount: formatMoney(outstanding, i.currency) })
                                     }
@@ -546,7 +546,7 @@ export function SubscriptionDetailPage() {
                                 ) : null}
                                 <button
                                   type="button"
-                                  className="ebim-link text-[13px]"
+                                  className="ebim-link text-compact"
                                   onClick={() => setPaying({ id: i.id, number: i.number, currency: i.currency, outstanding })}
                                 >
                                   Registrar cobro
