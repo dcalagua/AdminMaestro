@@ -34,9 +34,10 @@ Reglas comunes (spec §8.2):
 - «Costo registrado» (Σ `cost_entries.amount`) ≠ costo del margen (Σ asignaciones × peso). La
   diferencia se explica como «Plataforma» (asignaciones PLATFORM) y «Sin asignar».
 
-## Series ejecutivas (S01–S05)
+## Series ejecutivas (S01–S08)
 
-Migración `20261015000100_executive_series.sql`, pgTAP `51_executive_series`. Todas son
+Migraciones `20261015000100_executive_series.sql` (S01–S05, pgTAP `51_executive_series`) y
+`20261016000100_executive_dashboard_series.sql` (S06–S08, pgTAP `52_executive_dashboard_series`). Todas son
 `SECURITY INVOKER` (cada rol suma sólo lo que RLS le muestra; sin GRANT a `anon`) y devuelven el
 importe en **moneda de reporte** (parámetro o `control_plane_settings`) convertido con el motor FX
 existente (`to_reporting_amount`). Si a una moneda le falta tasa, el importe es `NULL`,
@@ -58,6 +59,9 @@ mix cuadran entre sí al céntimo.
 | S03 — Detalle del puente por cliente | `platform.executive_mrr_movement_customers(p_month, p_reporting_currency)` | Una fila por organización facturada con `movement`, opening, closing y delta; sus sumas son los totales de S02 | Mes calendario | Drill-down del waterfall |
 | S04 — Mix de MRR por producto o mercado | `platform.executive_mrr_mix(p_month, p_dimension, p_reporting_currency)` | MRR contratado al cierre del mes agrupado por `PRODUCT` (`saas_products.short_name`) o `MARKET` (`subscriptions.market_id`, «Sin mercado»); `share` sobre el total | Cierre de mes | Σ mix = S01 del mismo mes; `share` NULL si falta una tasa |
 | S05 — Cartera por antigüedad a una fecha | `platform.executive_receivables_aging(p_as_of, p_reporting_currency)` | Facturas ISSUED/PARTIALLY_PAID/PAID emitidas hasta la fecha, menos pagos CONFIRMED con `paid_at ≤ fecha`; saldo > 0 en 6 bandas fijas: VIGENTE, D1_30, D31_60, D61_90, D90_MAS, SIN_FECHA | Fecha (por defecto hoy; no futura) | A hoy concilia con `receivables_aging()` (K04). Usa el estado actual de la factura: no hay historial de anulaciones |
+| S06 — Facturado, cobrado, razón de cobro y vencida por mes | `platform.executive_billing_series(p_from, p_to, p_reporting_currency)` | Facturado = Σ total de facturas ISSUED/PARTIALLY_PAID/PAID emitidas en el mes (`coalesce(issue_date, created_at)`); cobrado = Σ de `v_collected_payments` con `collected_on` en el mes (= `collections_by_month`, la fuente de K02); razón de cobro = cobrado / facturado del mismo mes; vencida = bandas D1_30…D90_MAS de S05 al cierre del mes | Por defecto 12 meses hasta el mes en curso (`is_partial`); máx. 120 | Tasa del cierre de cada mes por (mes, moneda). La razón es **de caja**, no de cohorte: un mes puede superar 100 % si se cobró atraso; sin facturación es NULL |
+| S07 — Puente de MRR por mes | `platform.executive_mrr_movements_series(p_from, p_to, p_reporting_currency)` | S02 para cada mes del rango, en una llamada | Por defecto 12 meses; máx. 36 | Base de NRR y churn del Resumen Ejecutivo |
+| S08 — Mix de MRR por partner | `platform.executive_mrr_mix(p_month, 'PARTNER', p_reporting_currency)` | Como S04, agrupado por el partner que gestiona el tenant (`tenants.managing_organization_id`, misma atribución que `finance_consolidated` PARTNER); sin partner → `DIRECTO` «Venta directa» | Cierre de mes | Σ mix = S01 del mismo mes |
 
 Derivables del puente (no son funciones aparte): churn de MRR del mes = churn / opening;
 GRR = (opening − contraction − churn) / opening; NRR = (opening + expansion − contraction − churn) /

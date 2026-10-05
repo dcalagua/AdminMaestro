@@ -13994,6 +13994,27 @@ export type Database = {
         };
         Returns: Json;
       };
+      executive_billing_series: {
+        Args: { p_from?: string; p_reporting_currency?: string; p_to?: string };
+        Returns: {
+          as_of: string;
+          collected: number;
+          collected_native: Json;
+          collection_rate: number;
+          complete: boolean;
+          fx_is_demo: boolean;
+          invoice_count: number;
+          invoiced: number;
+          invoiced_native: Json;
+          is_partial: boolean;
+          missing_currencies: string[];
+          month: string;
+          overdue: number;
+          overdue_invoice_count: number;
+          payment_count: number;
+          reporting_currency: string;
+        }[];
+      };
       executive_mrr_at: {
         Args: { p_at: string; p_rate_date?: string; p_reporting_currency?: string };
         Returns: {
@@ -14046,6 +14067,27 @@ export type Database = {
       };
       executive_mrr_movements: {
         Args: { p_month?: string; p_reporting_currency?: string };
+        Returns: {
+          as_of: string;
+          churn_mrr: number;
+          churned_customers: number;
+          closing_mrr: number;
+          complete: boolean;
+          contraction_customers: number;
+          contraction_mrr: number;
+          expansion_customers: number;
+          expansion_mrr: number;
+          fx_revaluation: number;
+          month: string;
+          new_customers: number;
+          new_mrr: number;
+          opening_mrr: number;
+          prior_closing_mrr: number;
+          reporting_currency: string;
+        }[];
+      };
+      executive_mrr_movements_series: {
+        Args: { p_from?: string; p_reporting_currency?: string; p_to?: string };
         Returns: {
           as_of: string;
           churn_mrr: number;

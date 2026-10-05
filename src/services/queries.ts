@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import type { DashboardSummary, Enums, FinanceConsolidated } from '@/types/domain';
+import type { Database } from '@/types/database.types';
 import { toMarketOptions, type MarketRow } from '@/lib/regional';
 import type { SubscriptionBillingStatus } from '@/lib/billing';
 import {
@@ -445,25 +446,46 @@ export function useExecutiveMrrMovements(month?: string, reportingCurrency?: str
       });
       if (error) throw new Error(error.message);
       const r = (data ?? [])[0];
-      if (!r) return null;
-      return {
-        month: r.month,
-        asOf: r.as_of,
-        reportingCurrency: r.reporting_currency,
-        opening: toAmount(r.opening_mrr),
-        newMrr: toAmount(r.new_mrr),
-        expansion: toAmount(r.expansion_mrr),
-        contraction: toAmount(r.contraction_mrr),
-        churn: toAmount(r.churn_mrr),
-        closing: toAmount(r.closing_mrr),
-        priorClosing: toAmount(r.prior_closing_mrr),
-        fxRevaluation: toAmount(r.fx_revaluation),
-        newCustomers: r.new_customers,
-        expansionCustomers: r.expansion_customers,
-        contractionCustomers: r.contraction_customers,
-        churnedCustomers: r.churned_customers,
-        complete: r.complete,
-      };
+      return r ? toBridge(r) : null;
+    },
+  });
+}
+
+type BridgeRow = Database['platform']['Functions']['executive_mrr_movements']['Returns'][number];
+
+function toBridge(r: BridgeRow): ExecutiveMrrBridge {
+  return {
+    month: r.month,
+    asOf: r.as_of,
+    reportingCurrency: r.reporting_currency,
+    opening: toAmount(r.opening_mrr),
+    newMrr: toAmount(r.new_mrr),
+    expansion: toAmount(r.expansion_mrr),
+    contraction: toAmount(r.contraction_mrr),
+    churn: toAmount(r.churn_mrr),
+    closing: toAmount(r.closing_mrr),
+    priorClosing: toAmount(r.prior_closing_mrr),
+    fxRevaluation: toAmount(r.fx_revaluation),
+    newCustomers: r.new_customers,
+    expansionCustomers: r.expansion_customers,
+    contractionCustomers: r.contraction_customers,
+    churnedCustomers: r.churned_customers,
+    complete: r.complete,
+  };
+}
+
+/** S07 · Puente de MRR de cada mes del rango (sin valor: 12 meses hasta el actual). Base de NRR y churn. */
+export function useExecutiveMrrMovementsSeries(params: ExecutiveMrrSeriesParams = {}) {
+  return useQuery({
+    queryKey: ['executive', 'mrr-movements-series', params.from ?? null, params.to ?? null, params.reportingCurrency ?? null],
+    queryFn: async (): Promise<ExecutiveMrrBridge[]> => {
+      const { data, error } = await supabase.rpc('executive_mrr_movements_series', {
+        p_from: params.from || undefined,
+        p_to: params.to || undefined,
+        p_reporting_currency: params.reportingCurrency || undefined,
+      });
+      if (error) throw new Error(error.message);
+      return (data ?? []).map(toBridge);
     },
   });
 }
@@ -496,7 +518,7 @@ export function useExecutiveMrrMovementCustomers(
   });
 }
 
-export type MrrMixDimension = 'PRODUCT' | 'MARKET';
+export type MrrMixDimension = 'PRODUCT' | 'MARKET' | 'PARTNER';
 
 export interface ExecutiveMrrMixRow {
   key: string;
@@ -511,7 +533,7 @@ export interface ExecutiveMrrMixRow {
   missingCurrencies: string[];
 }
 
-/** S04 · Mix de MRR por producto o mercado al cierre del mes (orden: mayor MRR primero). */
+/** S04 · Mix de MRR por producto, mercado o partner (S08) al cierre del mes (orden: mayor MRR primero). */
 export function useExecutiveMrrMix(dimension: MrrMixDimension, month?: string, reportingCurrency?: string) {
   return useQuery({
     queryKey: ['executive', 'mrr-mix', dimension, month ?? null, reportingCurrency ?? null],
@@ -583,6 +605,60 @@ export function useExecutiveAging(asOf?: string, reportingCurrency?: string) {
         complete: rows.every((r) => r.complete),
         fxIsDemo: rows.some((r) => r.fx_is_demo),
       };
+    },
+  });
+}
+
+export interface ExecutiveBillingPoint {
+  month: string;
+  asOf: string;
+  isPartial: boolean;
+  reportingCurrency: string;
+  invoiced: number | null;
+  collected: number | null;
+  /** cobrado / facturado del mes (razón 0–n); NULL sin facturación o sin tasa. */
+  collectionRate: number | null;
+  /** Saldo vencido (1 día o más) al cierre del mes. */
+  overdue: number | null;
+  invoiceCount: number;
+  paymentCount: number;
+  overdueInvoiceCount: number;
+  invoicedNative: NativeAmounts;
+  collectedNative: NativeAmounts;
+  complete: boolean;
+  missingCurrencies: string[];
+  fxIsDemo: boolean;
+}
+
+/** S06 · Facturado, cobrado, razón de cobro y vencida por mes en moneda de reporte. */
+export function useExecutiveBillingSeries(params: ExecutiveMrrSeriesParams = {}) {
+  return useQuery({
+    queryKey: ['executive', 'billing-series', params.from ?? null, params.to ?? null, params.reportingCurrency ?? null],
+    queryFn: async (): Promise<ExecutiveBillingPoint[]> => {
+      const { data, error } = await supabase.rpc('executive_billing_series', {
+        p_from: params.from || undefined,
+        p_to: params.to || undefined,
+        p_reporting_currency: params.reportingCurrency || undefined,
+      });
+      if (error) throw new Error(error.message);
+      return (data ?? []).map((r) => ({
+        month: r.month,
+        asOf: r.as_of,
+        isPartial: r.is_partial,
+        reportingCurrency: r.reporting_currency,
+        invoiced: toAmount(r.invoiced),
+        collected: toAmount(r.collected),
+        collectionRate: toAmount(r.collection_rate),
+        overdue: toAmount(r.overdue),
+        invoiceCount: r.invoice_count,
+        paymentCount: r.payment_count,
+        overdueInvoiceCount: r.overdue_invoice_count,
+        invoicedNative: toNative(r.invoiced_native),
+        collectedNative: toNative(r.collected_native),
+        complete: r.complete,
+        missingCurrencies: r.missing_currencies ?? [],
+        fxIsDemo: r.fx_is_demo,
+      }));
     },
   });
 }
