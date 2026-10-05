@@ -95,6 +95,29 @@ export function formatPercent(value: number | null | undefined, digits = 1): str
 }
 
 /**
+ * Variación con signo siempre visible (VISUAL_SYSTEM_V2 §6.5): `+4.1%`,
+ * `−2.3%` (signo menos tipográfico U+2212), `+1.2 pp`, `+12`. Cero sin signo.
+ * - `percent`: `value` es una razón (0.041 → +4.1%), igual que `formatPercent`.
+ * - `pp`: puntos porcentuales ya en puntos (1.2 → +1.2 pp).
+ * - `number`: conteo sin decimales.
+ */
+export function formatDelta(
+  value: number | null | undefined,
+  kind: 'percent' | 'pp' | 'number' = 'percent',
+): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '—';
+  const text = new Intl.NumberFormat(LOCALE, {
+    style: kind === 'percent' ? 'percent' : 'decimal',
+    signDisplay: 'exceptZero',
+    minimumFractionDigits: kind === 'number' ? 0 : 1,
+    maximumFractionDigits: kind === 'number' ? 0 : 1,
+  })
+    .format(value)
+    .replace('-', '−');
+  return kind === 'pp' ? `${text} pp` : text;
+}
+
+/**
  * Una fecha SIN hora (`2026-09-13`) es un día de calendario, no un instante:
  * `new Date('2026-09-13')` la interpreta como medianoche UTC y en Lima (UTC−5)
  * se pintaba el día anterior. Se construye en hora local.

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { CaretDownIcon, CaretLeftIcon, CaretRightIcon, CaretUpIcon } from '@phosphor-icons/react';
+import { CaretDownIcon, CaretLeftIcon, CaretRightIcon, CaretUpDownIcon, CaretUpIcon } from '@phosphor-icons/react';
 import { EmptyState, ErrorState, LoadingState } from './primitives';
 import { formatNumber } from '@/lib/format';
 import type { SortDir } from '@/services/financeRead';
@@ -77,7 +77,7 @@ export function PagedTable<Row>({
     <div aria-busy={fetching || undefined}>
       <div className="relative overflow-x-auto" role="region" aria-label={label} tabIndex={0}>
         <table className="w-full border-collapse" aria-label={label}>
-          <thead className="border-b border-border bg-sunken">
+          <thead className="sticky top-0 z-[1] border-b border-border bg-sunken">
             <tr>
               {columns.map((c) => {
                 const active = c.sortKey && c.sortKey === sortBy;
@@ -92,7 +92,7 @@ export function PagedTable<Row>({
                     {c.sortKey ? (
                       <button
                         type="button"
-                        className={`inline-flex items-center gap-1 uppercase tracking-wider hover:text-fg ${
+                        className={`inline-flex items-center gap-1 rounded-sm uppercase hover:text-fg ${
                           active ? 'text-fg' : ''
                         }`}
                         onClick={() =>
@@ -101,8 +101,10 @@ export function PagedTable<Row>({
                       >
                         {c.header}
                         {active ? (
-                          sortDir === 'asc' ? <CaretUpIcon size={12} aria-hidden /> : <CaretDownIcon size={12} aria-hidden />
-                        ) : null}
+                          sortDir === 'asc' ? <CaretUpIcon size={12} weight="bold" aria-hidden /> : <CaretDownIcon size={12} weight="bold" aria-hidden />
+                        ) : (
+                          <CaretUpDownIcon size={12} className="opacity-60" aria-hidden />
+                        )}
                       </button>
                     ) : (
                       c.header
@@ -112,13 +114,13 @@ export function PagedTable<Row>({
               })}
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody className="divide-y divide-border [&>tr]:transition-colors [&>tr]:duration-fast [&>tr:hover]:bg-hover">
             {rows.map((row) => (
               <tr key={rowKey(row)} className={rowClassName?.(row)}>
                 {columns.map((c) => (
                   <td
                     key={c.id}
-                    className={`ebim-td ${c.align === 'right' ? 'text-right tabular-nums' : ''} ${c.className ?? ''}`}
+                    className={`ebim-td ${c.align === 'right' ? 'ebim-num' : ''} ${c.className ?? ''}`}
                   >
                     {c.cell(row)}
                   </td>
@@ -129,7 +131,7 @@ export function PagedTable<Row>({
         </table>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 text-xs text-muted">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-3 text-caption text-muted">
         <p aria-live="polite">
           Mostrando <span className="font-semibold text-fg tabular-nums">{formatNumber(from)}–{formatNumber(to)}</span> de{' '}
           <span className="font-semibold text-fg tabular-nums">{formatNumber(total)}</span>
@@ -138,7 +140,7 @@ export function PagedTable<Row>({
           <label className="flex items-center gap-1.5">
             Filas
             <select
-              className="rounded-field border border-border bg-card px-2 py-1 text-xs text-fg"
+              className="h-8 rounded-md border border-border-strong bg-card px-2 text-caption text-fg hover:border-fg-2"
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
             >
@@ -151,7 +153,7 @@ export function PagedTable<Row>({
           </label>
           <button
             type="button"
-            className="ebim-btn-ghost h-8 w-8 px-0"
+            className="ebim-btn-ghost ebim-btn-sm w-8 px-0"
             aria-label="Página anterior"
             disabled={page === 0}
             onClick={() => onPageChange(page - 1)}
@@ -163,7 +165,7 @@ export function PagedTable<Row>({
           </span>
           <button
             type="button"
-            className="ebim-btn-ghost h-8 w-8 px-0"
+            className="ebim-btn-ghost ebim-btn-sm w-8 px-0"
             aria-label="Página siguiente"
             disabled={page + 1 >= pages}
             onClick={() => onPageChange(page + 1)}

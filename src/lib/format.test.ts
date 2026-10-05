@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   formatMoney, formatMoneyCompact, formatNumber, formatPercent,
-  formatDate, formatDateTime, formatCurrencyMap, sumByCurrency, subtractByCurrency,
+  formatDate, formatDateTime, formatCurrencyMap, sumByCurrency, subtractByCurrency, formatDelta,
 } from './format';
 
 describe('formateo de dinero', () => {
@@ -106,5 +106,23 @@ describe('formatCurrencyMap', () => {
   it('devuelve marcador con un mapa vacío', () => {
     expect(formatCurrencyMap({})).toBe('—');
     expect(formatCurrencyMap(null)).toBe('—');
+  });
+});
+
+describe('formatDelta (VISUAL_SYSTEM_V2 §6.5)', () => {
+  it('lleva signo siempre y usa el menos tipográfico', () => {
+    expect(formatDelta(0.041)).toBe('+4.1%');
+    expect(formatDelta(-0.023)).toBe('−2.3%');
+    expect(formatDelta(0)).toBe('0.0%');
+  });
+
+  it('formatea puntos porcentuales y conteos', () => {
+    expect(formatDelta(1.2, 'pp')).toBe('+1.2 pp');
+    expect(formatDelta(-3, 'number')).toBe('−3');
+  });
+
+  it('sin dato devuelve el marcador, nunca un 0 que parezca dato', () => {
+    expect(formatDelta(null)).toBe('—');
+    expect(formatDelta(Number.NaN)).toBe('—');
   });
 });

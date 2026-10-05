@@ -60,7 +60,8 @@ function renderPage() {
 }
 
 function statValue(label: string): string {
-  const card = screen.getByText(label).parentElement!;
+  // El KpiTile anida la etiqueta en su fila (icono, info, estado): se lee el tile entero.
+  const card = screen.getByText(label).closest('.ebim-card')!;
   return card.textContent ?? '';
 }
 
