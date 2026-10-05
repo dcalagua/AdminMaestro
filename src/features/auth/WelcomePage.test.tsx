@@ -31,9 +31,10 @@ vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({ session: { user: { email: 'nora@ebim.test' } }, refreshRoles: m.refreshRoles }),
 }));
 vi.mock('@/components/ui/EbimMark', () => ({ EbimMark: () => null }));
+vi.mock('@/hooks/useAppearance', () => ({ useAppearance: () => ({ mode: 'light', toggleMode: vi.fn() }) }));
 
 import { WelcomePage } from './WelcomePage';
-import { passwordProblem } from './welcomeSession';
+import { passwordProblem, passwordStrength } from './welcomeSession';
 
 function renderAt(url: string) {
   window.history.replaceState(null, '', url);
@@ -102,5 +103,35 @@ describe('WelcomePage', () => {
     expect(passwordProblem('abcdefgh', 'abcdefgh')).toBe('Combina letras y números.');
     expect(passwordProblem('abcd1234', 'abcd1235')).toBe('Las contraseñas no coinciden.');
     expect(passwordProblem('abcd1234', 'abcd1234')).toBeNull();
+  });
+
+  it('medidor de fortaleza: débil → aceptable → buena → fuerte, y avisa si no coinciden', async () => {
+    renderAt('/bienvenida#access_token=at-3&refresh_token=rt-3&type=invite');
+    await screen.findByRole('heading', { name: 'Te damos la bienvenida' });
+    const meter = screen.getByRole('meter', { name: 'Fortaleza de la contraseña' });
+    expect(meter).toHaveAttribute('aria-valuenow', '0');
+
+    const field = screen.getByLabelText('Nueva contraseña');
+    fireEvent.change(field, { target: { value: 'abc' } });
+    expect(meter).toHaveAttribute('aria-valuetext', 'Débil');
+    fireEvent.change(field, { target: { value: 'Segura2026!xyz' } });
+    expect(meter).toHaveAttribute('aria-valuetext', 'Fuerte');
+    expect(screen.getByText('Al menos 8 caracteres').closest('li')).toHaveTextContent('(cumplido)');
+
+    fireEvent.change(screen.getByLabelText('Repite la contraseña'), { target: { value: 'Segura' } });
+    expect(screen.getByText('Las contraseñas aún no coinciden')).toBeInTheDocument();
+    // El ojo controla los dos campos a la vez.
+    fireEvent.click(screen.getAllByRole('button', { name: 'Mostrar contraseña' })[0]!);
+    expect(field).toHaveAttribute('type', 'text');
+    expect(screen.getByLabelText('Repite la contraseña')).toHaveAttribute('type', 'text');
+  });
+
+  it('niveles de fortaleza (solo UX: la regla que bloquea es passwordProblem)', () => {
+    expect(passwordStrength('')).toEqual({ level: 0, label: '' });
+    expect(passwordStrength('abcdefgh').level).toBe(1);
+    expect(passwordStrength('abcd1234').label).toBe('Aceptable');
+    expect(passwordStrength('abcd12345678').label).toBe('Buena');
+    expect(passwordStrength('Abcd1234').label).toBe('Buena');
+    expect(passwordStrength('Abcd-1234-xyz').label).toBe('Fuerte');
   });
 });
