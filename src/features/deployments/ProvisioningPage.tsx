@@ -9,9 +9,10 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/toast-context';
 import { businessErrorMessage } from '@/lib/pgError';
 import {
-  PageContainer, Card, DataTable, SearchBar, StatCard, LoadingState, ErrorState, EmptyState, Badge,
+  PageContainer, Card, DataTable, SearchBar, KpiTile, LoadingState, ErrorState, EmptyState, Badge,
 } from '@/components/ui/primitives';
-import { formatDateTime } from '@/lib/format';
+import { formatDateTime, formatNumber } from '@/lib/format';
+import { KpiStrip } from '@/features/billing/financeUi';
 import { PROVISIONING_STATUS_LABEL } from '@/types/domain';
 import { EnqueueProvisioningDialog } from './DeploymentDialogs';
 
@@ -114,23 +115,29 @@ export function ProvisioningPage() {
         </div>
       }
     >
-      <p className="mb-4 text-sm text-muted">
+      <p className="-mt-3 mb-5 text-compact text-muted">
         ¿Buscas el alta de un tenant en un producto?{' '}
         <Link className="ebim-link" to="/saas-provisioning">
           Ir a Altas SaaS
         </Link>
       </p>
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Solicitudes" value={String(all.length)} />
-        <StatCard
+      <KpiStrip label="Estado de la cola">
+        <KpiTile label="Solicitudes" value={formatNumber(all.length)} loading={requests.isLoading} />
+        <KpiTile
           label="En cola"
-          value={String(all.filter((r) => OPEN_STATUSES.includes(r.status as string)).length)}
-          tone="warn"
+          value={formatNumber(all.filter((r) => OPEN_STATUSES.includes(r.status as string)).length)}
+          loading={requests.isLoading}
+          footer="Pendientes o en ejecución."
         />
-        <StatCard label="Completadas" value={String(all.filter((r) => r.status === 'SUCCEEDED').length)} tone="ok" />
-        <StatCard label="Fallidas" value={String(failed)} tone={failed > 0 ? 'danger' : 'neutral'} />
-      </div>
+        <KpiTile
+          label="Completadas"
+          value={formatNumber(all.filter((r) => r.status === 'SUCCEEDED').length)}
+          tone="ok"
+          loading={requests.isLoading}
+        />
+        <KpiTile label="Fallidas" value={formatNumber(failed)} tone={failed > 0 ? 'danger' : 'neutral'} loading={requests.isLoading} />
+      </KpiStrip>
 
       <Card>
         <SearchBar
@@ -157,7 +164,10 @@ export function ProvisioningPage() {
         ) : rows.length === 0 ? (
           <EmptyState title="Sin solicitudes de infraestructura" description="Nada en cola para este filtro." />
         ) : (
-          <DataTable columns={['Acción', 'Tenant', 'Destino', 'Modo', 'Estado', 'Intentos', 'Creada', '']}>
+          <DataTable
+            label="Solicitudes de infraestructura"
+            columns={['Acción', 'Tenant', 'Destino', 'Modo', 'Estado', { label: 'Intentos', align: 'right' }, 'Creada', { label: 'Acciones', srOnly: true }]}
+          >
             {rows.map((r) => {
               const id = r.id as string;
               const isExpanded = expanded === id;
@@ -169,32 +179,34 @@ export function ProvisioningPage() {
                   <tr>
                     <td className="ebim-td">
                       <span className="font-medium">{ACTION_LABEL[r.action as string] ?? (r.action as string)}</span>
-                      <p className="font-mono text-xs text-muted">{r.action as string}</p>
+                      <p className="font-mono text-caption text-muted">{r.action as string}</p>
                     </td>
                     <td className="ebim-td">{(r.tenants as { name: string } | null)?.name ?? '—'}</td>
-                    <td className="ebim-td font-mono text-xs text-muted">
+                    <td className="ebim-td font-mono text-caption text-muted">
                       {(r.deployment_targets as { code: string } | null)?.code ?? '—'}
                     </td>
                     <td className="ebim-td">
                       <ModeBadge mode={r.mode as string} />
                     </td>
                     <td className="ebim-td">
-                      <Badge tone={statusTone(r.status as string)}>{statusLabel(r.status as string)}</Badge>
+                      <Badge tone={statusTone(r.status as string)} dot>
+                        {statusLabel(r.status as string)}
+                      </Badge>
                       {r.error_message ? (
-                        <p className="mt-1 max-w-[220px] truncate text-xs text-danger" title={r.error_message as string}>
+                        <p className="mt-1 max-w-[220px] truncate text-caption text-danger" title={r.error_message as string}>
                           {r.error_message as string}
                         </p>
                       ) : null}
                     </td>
-                    <td className="ebim-td tabular-nums">
+                    <td className="ebim-td ebim-num text-compact">
                       {r.attempts as number}/{r.max_attempts as number}
                     </td>
-                    <td className="ebim-td whitespace-nowrap text-xs text-muted">{formatDateTime(r.created_at as string)}</td>
+                    <td className="ebim-td whitespace-nowrap text-caption text-muted">{formatDateTime(r.created_at as string)}</td>
                     <td className="ebim-td text-right">
-                      <div className="flex flex-wrap justify-end gap-3">
+                      <div className="flex items-center justify-end gap-1 whitespace-nowrap">
                         <button
                           type="button"
-                          className="ebim-link text-[13px]"
+                          className="ebim-btn-ghost ebim-btn-sm"
                           aria-expanded={isExpanded}
                           onClick={() => setExpanded(isExpanded ? null : id)}
                         >
@@ -203,7 +215,7 @@ export function ProvisioningPage() {
                         {r.status === 'FAILED' && (r.attempts as number) < (r.max_attempts as number) ? (
                           <button
                             type="button"
-                            className="ebim-link text-[13px]"
+                            className="ebim-btn-secondary ebim-btn-sm"
                             onClick={() => setRetryTarget(id)}
                           >
                             Reintentar
@@ -214,10 +226,10 @@ export function ProvisioningPage() {
                   </tr>
                   {isExpanded ? (
                     <tr>
-                      <td colSpan={8} className="bg-[color:var(--bg)] px-4 py-3">
+                      <td colSpan={8} className="bg-sunken px-4 py-3">
                         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
-                          <div className="min-w-0 space-y-2 text-[13px]">
-                            <p className="text-xs font-bold uppercase tracking-wide text-muted">Resultado</p>
+                          <div className="min-w-0 space-y-2 text-compact">
+                            <p className="text-micro text-muted">Resultado</p>
                             <p className="text-fg">
                               {r.mode === 'DRY_RUN'
                                 ? 'Simulación: no se llamó a ninguna API remota ni se creó infraestructura.'
@@ -225,25 +237,29 @@ export function ProvisioningPage() {
                             </p>
                             <p className="text-muted">
                               Clave de idempotencia:{' '}
-                              <span className="break-all font-mono text-xs">{r.idempotency_key as string}</span>
+                              <span className="break-all font-mono text-caption">{r.idempotency_key as string}</span>
                             </p>
                             {r.finished_at ? (
                               <p className="text-muted">Finalizada el {formatDateTime(r.finished_at as string)}</p>
                             ) : null}
                             {r.error_message ? (
-                              <div role="note" className="rounded-field bg-danger-soft px-3 py-2 text-xs text-danger">
+                              <div role="note" className="rounded-field bg-danger-soft px-3 py-2 text-caption text-danger">
                                 <p className="font-semibold">Error completo</p>
                                 <p className="mt-1 whitespace-pre-wrap break-words">{r.error_message as string}</p>
                               </div>
                             ) : null}
                           </div>
                           <div className="min-w-0">
-                            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted">
+                            <p className="mb-2 text-micro text-muted">
                               Timeline de la solicitud
                             </p>
                             <ol className="space-y-2">
                               {events.map((e) => (
-                                <li key={e.id as string} className="border-l-2 border-border pl-3 text-xs">
+                                <li key={e.id as string} className="relative border-l-2 border-border pb-1 pl-4 text-caption">
+                                  <span
+                                    aria-hidden
+                                    className="absolute -left-[5px] top-1.5 h-2 w-2 rounded-full bg-border-strong ring-2 ring-sunken"
+                                  />
                                   <div className="flex flex-wrap items-center gap-2">
                                     <Badge tone={statusTone(e.status as string)}>{statusLabel(e.status as string)}</Badge>
                                     <time className="text-muted" dateTime={e.occurred_at as string}>
@@ -254,7 +270,7 @@ export function ProvisioningPage() {
                                 </li>
                               ))}
                               {events.length === 0 ? (
-                                <li className="text-xs text-muted">Sin eventos registrados.</li>
+                                <li className="text-caption text-muted">Sin eventos registrados.</li>
                               ) : null}
                             </ol>
                           </div>

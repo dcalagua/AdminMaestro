@@ -105,27 +105,27 @@ export function AlertsTab() {
             const meta = labelOf(ALERT_CODE, a.code ?? '');
             return (
               <tr key={a.id}>
-                <td className="ebim-td whitespace-nowrap text-xs text-muted">{formatDateTime(a.created_at)}</td>
+                <td className="ebim-td whitespace-nowrap text-caption text-muted">{formatDateTime(a.created_at)}</td>
                 <td className="ebim-td">
                   <Badge tone={meta.tone}>{meta.label}</Badge>
-                  <div className="mt-0.5 font-mono text-[11px] text-muted">{a.code}</div>
+                  <div className="mt-0.5 font-mono text-caption text-muted">{a.code}</div>
                 </td>
-                <td className="ebim-td text-xs">{a.tenant_id ? lookups.tenantName(a.tenant_id) : '—'}</td>
-                <td className="ebim-td text-xs">{a.saas_product_id ? lookups.productName(a.saas_product_id) : '—'}</td>
-                <td className="ebim-td max-w-[360px] break-words font-mono text-[11px] text-muted">
+                <td className="ebim-td text-caption">{a.tenant_id ? lookups.tenantName(a.tenant_id) : '—'}</td>
+                <td className="ebim-td text-caption">{a.saas_product_id ? lookups.productName(a.saas_product_id) : '—'}</td>
+                <td className="ebim-td max-w-[360px] break-words font-mono text-caption text-muted">
                   {detailText(a.detail) || '—'}
                 </td>
-                <td className="ebim-td text-xs">
+                <td className="ebim-td text-caption">
                   {isAcked(a) ? (
                     <>
                       <Badge tone="ok">Atendida</Badge>
-                      <div className="mt-0.5 text-[11px] text-muted">
+                      <div className="mt-0.5 text-caption text-muted">
                         {a.acknowledged_by_name ?? 'EBIM'} · {formatDateTime(a.acknowledged_at)}
                       </div>
-                      {a.ack_note ? <div className="max-w-[220px] text-[11px]">{a.ack_note}</div> : null}
+                      {a.ack_note ? <div className="max-w-[220px] text-caption">{a.ack_note}</div> : null}
                     </>
                   ) : canAck && a.id ? (
-                    <button type="button" className="ebim-link text-[13px]" onClick={() => setAcking(a)}>
+                    <button type="button" className="ebim-link text-compact" onClick={() => setAcking(a)}>
                       Dar acuse
                     </button>
                   ) : (

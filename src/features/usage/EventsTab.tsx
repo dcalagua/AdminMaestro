@@ -73,7 +73,7 @@ export function EventsTab() {
           {perms.canReadFinance ? (
             <button
               type="button"
-              className="ebim-btn-secondary h-9 px-3 text-xs"
+              className="ebim-btn-secondary h-9 px-3 text-caption"
               disabled={!tenantId}
               title={tenantId ? undefined : 'Elige un tenant para ver su COGS'}
               aria-pressed={showCogs}
@@ -101,20 +101,20 @@ export function EventsTab() {
           <DataTable columns={['Ocurrido', 'Tenant', 'Medidor', 'Cantidad', 'Sujeto / empresa', 'Período', 'Lote']}>
             {filtered.map((e) => (
               <tr key={e.id}>
-                <td className="ebim-td whitespace-nowrap text-xs">{formatDateTime(e.occurred_at)}</td>
-                <td className="ebim-td text-xs font-semibold">{lookups.tenantName(e.tenant_id)}</td>
+                <td className="ebim-td whitespace-nowrap text-caption">{formatDateTime(e.occurred_at)}</td>
+                <td className="ebim-td text-caption font-semibold">{lookups.tenantName(e.tenant_id)}</td>
                 <td className="ebim-td">
-                  <div className="font-mono text-xs">{e.meter_code}</div>
-                  {e.capability_code ? <div className="font-mono text-[11px] text-muted">{e.capability_code}</div> : null}
+                  <div className="font-mono text-caption">{e.meter_code}</div>
+                  {e.capability_code ? <div className="font-mono text-caption text-muted">{e.capability_code}</div> : null}
                 </td>
-                <td className="ebim-td text-xs tabular-nums">
+                <td className="ebim-td text-caption tabular-nums">
                   {formatQuantity(e.quantity)} {e.unit}
                 </td>
-                <td className="ebim-td text-xs">
+                <td className="ebim-td text-caption">
                   <div>{e.subject_ref ?? '—'}</div>
-                  {e.external_company_id ? <div className="text-[11px] text-muted">{e.external_company_id}</div> : null}
+                  {e.external_company_id ? <div className="text-caption text-muted">{e.external_company_id}</div> : null}
                 </td>
-                <td className="ebim-td text-xs">
+                <td className="ebim-td text-caption">
                   {formatPeriod(e.period_start)}
                   {e.late ? (
                     <div className="mt-0.5">
@@ -122,7 +122,7 @@ export function EventsTab() {
                     </div>
                   ) : null}
                 </td>
-                <td className="ebim-td font-mono text-[11px] text-muted" title={e.event_hash}>
+                <td className="ebim-td font-mono text-caption text-muted" title={e.event_hash}>
                   {e.ingest_batch_id.slice(0, 8)}…
                 </td>
               </tr>
@@ -149,20 +149,20 @@ export function EventsTab() {
                 const num = (k: string) => (typeof internal[k] === 'number' ? (internal[k] as number) : null);
                 return (
                   <tr key={c.event_id}>
-                    <td className="ebim-td whitespace-nowrap text-xs">{formatDateTime(c.occurred_at)}</td>
-                    <td className="ebim-td font-mono text-xs">{c.meter_code}</td>
-                    <td className="ebim-td text-xs tabular-nums">{formatQuantity(c.quantity)}</td>
-                    <td className="ebim-td text-xs">
+                    <td className="ebim-td whitespace-nowrap text-caption">{formatDateTime(c.occurred_at)}</td>
+                    <td className="ebim-td font-mono text-caption">{c.meter_code}</td>
+                    <td className="ebim-td text-caption tabular-nums">{formatQuantity(c.quantity)}</td>
+                    <td className="ebim-td text-caption">
                       {String(internal.provider ?? '—')}
-                      <div className="text-[11px] text-muted">{String(internal.model ?? '')}</div>
+                      <div className="text-caption text-muted">{String(internal.model ?? '')}</div>
                     </td>
-                    <td className="ebim-td text-xs tabular-nums">
+                    <td className="ebim-td text-caption tabular-nums">
                       {formatNumber(num('inputTokens'))} / {formatNumber(num('outputTokens'))} / {formatNumber(num('cacheTokens'))}
                     </td>
-                    <td className="ebim-td text-xs tabular-nums">
+                    <td className="ebim-td text-caption tabular-nums">
                       {num('latencyMs') === null ? '—' : `${formatNumber(num('latencyMs'))} ms`}
                     </td>
-                    <td className="ebim-td text-xs">
+                    <td className="ebim-td text-caption">
                       {num('costAmount') !== null && typeof internal.costCurrency === 'string' ? (
                         <Money amount={num('costAmount')} currency={internal.costCurrency} />
                       ) : (

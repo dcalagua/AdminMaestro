@@ -348,7 +348,7 @@ export function IntegrationDetailPage() {
                         />
                       </>
                     ) : (
-                      <p className="py-6 text-sm text-muted">
+                      <p className="py-6 text-body text-muted">
                         Una integración {INTEGRATION_TYPE_LABEL[type].toLowerCase()} no firma tokens
                         M2M: no arrastra issuer, audience, algoritmo ni TTL.
                       </p>
@@ -415,7 +415,7 @@ export function IntegrationDetailPage() {
                     }
                   />
                 </div>
-                <p className="px-4 pb-4 text-xs text-muted">
+                <p className="px-4 pb-4 text-caption text-muted">
                   El orquestador rechaza firmar un token sin scope: un token sin alcance declarado
                   es un token con todos.
                 </p>
@@ -439,7 +439,7 @@ export function IntegrationDetailPage() {
                     {relatedTargets.map((t) => (
                       <tr key={t.deployment_target_id}>
                         <td className="ebim-td">
-                          <Link to="/deployments" className="font-mono text-[13px] text-accent-deep hover:underline">
+                          <Link to="/deployments" className="font-mono text-compact text-accent-deep hover:underline">
                             {t.code}
                           </Link>
                         </td>
@@ -465,7 +465,7 @@ export function IntegrationDetailPage() {
                         </td>
                         <td className="ebim-td">
                           <HealthBadge health={observedHealth(t)} />
-                          <p className="mt-1 text-xs">
+                          <p className="mt-1 text-caption">
                             {isEvaluable(t) ? (
                               <ObservationDate at={t.health_checked_at} />
                             ) : (
@@ -499,7 +499,7 @@ export function IntegrationDetailPage() {
                   ) : null
                 }
               >
-                <p className="px-4 pb-3 text-xs text-muted">
+                <p className="px-4 pb-3 text-caption text-muted">
                   Un perfil guarda la <strong>referencia</strong> del secreto de firma, nunca su
                   valor. El valor vive en el almacén de secretos del servidor y esta base no puede
                   conocerlo.
@@ -514,7 +514,7 @@ export function IntegrationDetailPage() {
                       <tr key={c.id}>
                         <td className="ebim-td">
                           <Mono>{c.code}</Mono>
-                          <p className="text-xs text-muted">{c.name}</p>
+                          <p className="text-caption text-muted">{c.name}</p>
                         </td>
                         <td className="ebim-td">
                           {PROVISIONING_ENVIRONMENT_LABEL[c.environment as ProvisioningEnvironment]}
@@ -586,7 +586,7 @@ export function IntegrationDetailPage() {
                   ) : null
                 }
               >
-                <p className="px-4 pb-3 text-xs text-muted">
+                <p className="px-4 pb-3 text-caption text-muted">
                   Un propietario ve y opera el provisioning de <strong>este</strong> producto, y de
                   ningún otro. No es un rol de plataforma: repartir la propiedad exige alcance
                   transversal, para que nadie pueda auto-nombrarse en el producto del vecino.
