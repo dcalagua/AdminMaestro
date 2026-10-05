@@ -24,10 +24,10 @@ export function PageContainer({
   return (
     <div className="mx-auto w-full max-w-[1440px] px-6 py-6">
       {breadcrumbs ? <div className="mb-3">{breadcrumbs}</div> : null}
-      <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
+      <header className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-[22px] font-bold tracking-tight text-fg">{title}</h1>
-          {description ? <p className="mt-1 max-w-3xl text-sm text-muted">{description}</p> : null}
+          <h1 className="text-h1 text-fg">{title}</h1>
+          {description ? <p className="mt-1 max-w-[72ch] text-body text-fg-2">{description}</p> : null}
         </div>
         {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
       </header>
@@ -54,8 +54,8 @@ export function Card({
       {title ? (
         <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
           <div>
-            <h2 className="text-sm font-bold text-fg">{title}</h2>
-            {description ? <p className="mt-0.5 text-xs text-muted">{description}</p> : null}
+            <h2 className="text-h3 text-fg">{title}</h2>
+            {description ? <p className="mt-0.5 text-compact text-muted">{description}</p> : null}
           </div>
           {actions}
         </div>
@@ -219,7 +219,7 @@ export function DataTable({
     // posicionados (p. ej. etiquetas sr-only); sin él ensanchan la página.
     <div className="relative overflow-x-auto">
       <table className="w-full border-collapse">
-        <thead className="border-b border-border bg-[color:var(--bg)]">
+        <thead className="border-b border-border bg-sunken">
           <tr>
             {columns.map((c) => (
               <th key={c} scope="col" className="ebim-th">

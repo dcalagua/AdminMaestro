@@ -77,7 +77,7 @@ export function PagedTable<Row>({
     <div aria-busy={fetching || undefined}>
       <div className="relative overflow-x-auto" role="region" aria-label={label} tabIndex={0}>
         <table className="w-full border-collapse" aria-label={label}>
-          <thead className="border-b border-border bg-[color:var(--bg)]">
+          <thead className="border-b border-border bg-sunken">
             <tr>
               {columns.map((c) => {
                 const active = c.sortKey && c.sortKey === sortBy;

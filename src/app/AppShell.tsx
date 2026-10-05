@@ -187,7 +187,7 @@ export function AppShell() {
     <div className="flex min-h-screen bg-bg">
       {/* ---- Sidebar de escritorio: aquí vive la marca ---- */}
       <aside
-        className={`sticky top-0 hidden h-screen shrink-0 overflow-y-auto overflow-x-hidden text-white lg:block ${
+        className={`ebim-on-brand sticky top-0 hidden h-screen shrink-0 overflow-y-auto overflow-x-hidden text-white lg:block ${
           rail ? 'w-[76px]' : 'w-[248px]'
         }`}
         style={{ background: 'var(--sidebar)' }}
@@ -211,7 +211,7 @@ export function AppShell() {
             role="dialog"
             aria-modal="true"
             aria-label="Menú de navegación"
-            className="absolute inset-y-0 left-0 w-[min(86vw,300px)] overflow-y-auto text-white shadow-pop"
+            className="ebim-on-brand absolute inset-y-0 left-0 w-[min(86vw,300px)] overflow-y-auto text-white shadow-pop"
             style={{ background: 'var(--sidebar)' }}
           >
             <div className="flex items-start justify-between">
