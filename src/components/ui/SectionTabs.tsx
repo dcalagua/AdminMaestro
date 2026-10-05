@@ -18,6 +18,8 @@ export interface TabDefinition {
   content: ReactNode;
   /** Oculta la pestaña cuando el rol no debería verla. */
   hidden?: boolean;
+  /** Contador opcional (pendientes, elementos) junto a la etiqueta. */
+  count?: number;
 }
 
 export function SectionTabs({ tabs }: { tabs: TabDefinition[] }) {
@@ -61,8 +63,10 @@ export function SectionTabs({ tabs }: { tabs: TabDefinition[] }) {
 
   return (
     <div>
-      <div className="mb-4 flex justify-center overflow-x-auto border-b border-border">
-        <div role="tablist" aria-label="Secciones" className="flex flex-nowrap justify-center gap-1 sm:flex-wrap">
+      {/* Centradas (U-07). Si no caben, scroll horizontal en UNA fila (nunca
+          dos renglones, A08/A09): `w-max mx-auto` centra mientras sobra sitio. */}
+      <div className="mb-5 overflow-x-auto border-b border-border [scrollbar-width:thin]">
+        <div role="tablist" aria-label="Secciones" className="mx-auto flex w-max flex-nowrap gap-1">
           {visible.map((tab, index) => {
             const isActive = tab.id === current?.id;
             return (
@@ -77,26 +81,47 @@ export function SectionTabs({ tabs }: { tabs: TabDefinition[] }) {
                 aria-selected={isActive}
                 aria-controls={`panel-${tab.id}`}
                 tabIndex={isActive ? 0 : -1}
-                className={`-mb-px shrink-0 whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors ${
+                className={`-mb-px inline-flex h-11 shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-4 text-compact font-semibold transition-colors duration-fast ease-out ${
                   isActive
-                    ? 'border-accent text-accent-deep'
-                    : 'border-transparent text-muted hover:text-fg'
+                    ? 'border-accent-deep text-accent-deep'
+                    : 'border-transparent text-muted hover:border-border-strong hover:text-fg'
                 }`}
                 onClick={() => select(tab.id)}
                 onKeyDown={(e) => onKeyDown(e, index)}
               >
                 {tab.label}
+                {/* El espacio separa etiqueta y contador en el nombre accesible («Pendientes 4»). */}
+                {tab.count !== undefined ? <>{' '}<TabCount value={tab.count} active={isActive} /></> : null}
               </button>
             );
           })}
         </div>
       </div>
       {current ? (
-        <div role="tabpanel" id={`panel-${current.id}`} aria-labelledby={`tab-${current.id}`} tabIndex={0}>
+        <div
+          role="tabpanel"
+          id={`panel-${current.id}`}
+          aria-labelledby={`tab-${current.id}`}
+          tabIndex={0}
+          className="rounded-card focus-visible:outline-offset-4"
+        >
           {current.content}
         </div>
       ) : null}
     </div>
+  );
+}
+
+/** Contador de pestaña: `text-caption` tabular en pastilla. */
+function TabCount({ value, active }: { value: number; active: boolean }) {
+  return (
+    <span
+      className={`inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1.5 text-caption font-semibold tabular-nums ${
+        active ? 'bg-accent-soft text-accent-deep' : 'bg-border text-fg-2'
+      }`}
+    >
+      {value}
+    </span>
   );
 }
 
@@ -108,15 +133,23 @@ export function StatusTabs<T extends string>({
   options,
   value,
   onChange,
+  label = 'Filtro de estado',
 }: {
   options: Array<{ id: T; label: string; count?: number }>;
   value: T;
   onChange: (value: T) => void;
+  /** Nombre accesible del grupo. */
+  label?: string;
 }) {
   const buttons = useRef<Array<HTMLButtonElement | null>>([]);
   const current = Math.max(0, options.findIndex((o) => o.id === value));
   return (
-    <div role="tablist" aria-label="Filtro de estado" className="flex flex-wrap gap-1">
+    // Control segmentado (§5.8): pozo --sunken, pestaña activa elevada sobre --card.
+    <div
+      role="tablist"
+      aria-label={label}
+      className="inline-flex max-w-full flex-wrap gap-1 rounded-field border border-border bg-sunken p-1"
+    >
       {options.map((opt, index) => {
         const isActive = opt.id === value;
         return (
@@ -136,17 +169,13 @@ export function StatusTabs<T extends string>({
               onChange(options[target]!.id);
               buttons.current[target]?.focus();
             }}
-            className={`rounded-field px-3 py-1.5 text-[13px] font-semibold transition-colors ${
-              isActive
-                ? 'bg-accent-soft text-accent-deep'
-                : 'text-muted hover:bg-[color:var(--bg)] hover:text-fg'
+            className={`inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md px-3 text-compact font-semibold transition-colors duration-fast ease-out ${
+              isActive ? 'bg-card text-fg shadow-card ring-1 ring-border' : 'text-muted hover:text-fg'
             }`}
             onClick={() => onChange(opt.id)}
           >
             {opt.label}
-            {opt.count !== undefined ? (
-              <span className="ml-1.5 tabular-nums opacity-70">{opt.count}</span>
-            ) : null}
+            {opt.count !== undefined ? <>{' '}<TabCount value={opt.count} active={isActive} /></> : null}
           </button>
         );
       })}

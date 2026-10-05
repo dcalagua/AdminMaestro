@@ -97,7 +97,7 @@ describe('UsersPage', () => {
 
     const tabs = screen.getByRole('tablist', { name: 'Filtro de estado' });
     expect(within(tabs).getAllByRole('tab').map((t) => t.textContent)).toEqual([
-      'Todos5', 'EBIM1', 'Partners1', 'Clientes2', 'Inactivos1',
+      'Todos 5', 'EBIM 1', 'Partners 1', 'Clientes 2', 'Inactivos 1',
     ]);
     fireEvent.click(within(tabs).getByRole('tab', { name: /Clientes/ }));
     expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(3);

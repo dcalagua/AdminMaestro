@@ -1,5 +1,6 @@
 import { useId, useRef } from 'react';
 import type { ReactNode } from 'react';
+import { WarningCircleIcon, XIcon } from '@phosphor-icons/react';
 import { businessErrorMessage } from '@/lib/pgError';
 import { useModalFocus } from './useModalFocus';
 
@@ -59,7 +60,7 @@ export function FormDialog({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 py-10">
+    <div className="ebim-scrim fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:py-10">
       <form
         ref={formRef}
         role="dialog"
@@ -67,43 +68,59 @@ export function FormDialog({
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         aria-busy={busy || undefined}
-        className={`ebim-card w-full ${wide ? 'max-w-3xl' : 'max-w-xl'} p-5 shadow-pop`}
+        className={`ebim-dialog flex max-h-[85vh] w-full flex-col ${wide ? 'max-w-[720px]' : 'max-w-[560px]'}`}
         onSubmit={(e) => {
           e.preventDefault();
           if (busy) return;
           onSubmit();
         }}
       >
-        <h2 id={titleId} className="text-base font-bold text-fg">
-          {title}
-        </h2>
-        {description ? (
-          <p id={descriptionId} className="mt-1 text-sm text-muted">
-            {description}
-          </p>
-        ) : null}
+        <header className="flex items-start justify-between gap-4 px-6 pt-6">
+          <div className="min-w-0">
+            <h2 id={titleId} className="text-h2 text-fg">
+              {title}
+            </h2>
+            {description ? (
+              <p id={descriptionId} className="mt-1 text-compact text-fg-2">
+                {description}
+              </p>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            className="ebim-icon-btn -mr-2 -mt-1"
+            aria-label="Cerrar"
+            title="Cerrar"
+            onClick={onCancel}
+            disabled={busy}
+          >
+            <XIcon size={18} aria-hidden />
+          </button>
+        </header>
 
-        <div ref={bodyRef} className="mt-4 grid gap-4">
+        <div ref={bodyRef} className="grid min-h-0 flex-1 gap-4 overflow-y-auto px-6 py-5">
           {children}
         </div>
 
         {error ? (
           <p
-            className="mt-4 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger"
+            className="mx-6 mb-1 flex items-start gap-2 rounded-field bg-danger-soft px-3 py-2.5 text-compact text-danger"
             role="alert"
           >
-            {businessErrorMessage(error)}
+            <WarningCircleIcon size={18} className="mt-px shrink-0" aria-hidden />
+            <span>{businessErrorMessage(error)}</span>
           </p>
         ) : null}
 
-        <div className="mt-5 flex justify-end gap-2">
+        <footer className="flex flex-wrap justify-end gap-2 border-t border-border px-6 py-4">
           <button type="button" className="ebim-btn-ghost" onClick={onCancel} disabled={busy}>
             {cancelLabel}
           </button>
           <button type="submit" className="ebim-btn-primary" disabled={busy} aria-busy={busy || undefined}>
+            {busy ? <span className="ebim-spinner" aria-hidden /> : null}
             {busy ? 'Guardando…' : submitLabel}
           </button>
-        </div>
+        </footer>
       </form>
     </div>
   );

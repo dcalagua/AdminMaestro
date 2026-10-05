@@ -5,6 +5,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { ConfirmDialog } from './ConfirmDialog';
 import { FormDialog } from './FormDialog';
 import { SectionTabs, StatusTabs } from './SectionTabs';
+import { DetailDrawer, DetailList } from './DetailDrawer';
 
 /*
  * E09 · Ciclo completo de teclado (spec §6.5, AC05). No basta con roles ARIA:
@@ -130,6 +131,40 @@ describe('FormDialog', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
+
+  it('el botón Cerrar de la cabecera cancela, salvo durante el guardado', async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<FormHarness />);
+    await user.click(screen.getByText('Nuevo registro'));
+    await user.click(screen.getByRole('button', { name: 'Cerrar' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    unmount();
+
+    render(<FormHarness busy />);
+    fireEvent.click(screen.getByText('Nuevo registro'));
+    expect(screen.getByRole('button', { name: 'Cerrar' })).toBeDisabled();
+    // Guardando: el envío anuncia ocupado y conserva su texto.
+    expect(screen.getByRole('button', { name: 'Guardando…' })).toHaveAttribute('aria-busy', 'true');
+  });
+});
+
+describe('DetailDrawer', () => {
+  it('es un diálogo con título, enfoca Cerrar y Escape lo cierra', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    render(
+      <DetailDrawer open title="Movimiento" subtitle="ID 123" onClose={onClose}>
+        <DetailList items={[['Importe', 'USD 10.00'], ['Estado', null]]} />
+      </DetailDrawer>,
+    );
+    expect(screen.getByRole('dialog', { name: 'Movimiento' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cerrar' })).toHaveFocus();
+    // DetailList: término → definición; un valor vacío se pinta «—».
+    expect(screen.getByText('Importe').tagName).toBe('DT');
+    expect(screen.getByText('—').tagName).toBe('DD');
+    await user.keyboard('{Escape}');
+    expect(onClose).toHaveBeenCalled();
+  });
 });
 
 describe('SectionTabs', () => {
@@ -173,6 +208,20 @@ describe('SectionTabs', () => {
     window.location.hash = '#auditoria';
     render(<SectionTabs tabs={tabs} />);
     expect(screen.getByRole('tabpanel')).toHaveTextContent('Panel auditoría');
+  });
+});
+
+describe('Contadores de pestañas', () => {
+  it('SectionTabs y StatusTabs muestran el contador dentro de la pestaña', () => {
+    render(
+      <>
+        <SectionTabs tabs={[{ id: 'pend', label: 'Pendientes', count: 4, content: <p>x</p> }]} />
+        <StatusTabs value="ALL" onChange={() => undefined} label="Estado de facturas" options={[{ id: 'ALL', label: 'Todas', count: 832 }]} />
+      </>,
+    );
+    expect(screen.getByRole('tab', { name: 'Pendientes 4' })).toBeInTheDocument();
+    expect(screen.getByRole('tablist', { name: 'Estado de facturas' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Todas 832' })).toBeInTheDocument();
   });
 });
 

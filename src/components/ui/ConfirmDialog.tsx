@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { QuestionIcon, WarningOctagonIcon } from '@phosphor-icons/react';
 import { useModalFocus } from './useModalFocus';
 
 /**
@@ -82,22 +83,34 @@ export function ConfirmDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div className="ebim-scrim fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
         ref={panelRef}
-        className="ebim-card w-full max-w-md p-5 shadow-pop"
+        className="ebim-dialog w-full max-w-[440px] p-6"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={messageId}
       >
-        <h2 id={titleId} className="text-base font-bold text-fg">
-          {title}
-        </h2>
-        <p id={messageId} className="mt-2 text-sm text-muted">
-          {message}
-        </p>
-        <div className="mt-5 flex flex-wrap justify-end gap-2">
+        <div className="flex items-start gap-4">
+          <span
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+              tone === 'danger' ? 'bg-danger-soft text-danger' : 'bg-accent-soft text-accent-deep'
+            }`}
+            aria-hidden
+          >
+            {tone === 'danger' ? <WarningOctagonIcon size={22} /> : <QuestionIcon size={22} />}
+          </span>
+          <div className="min-w-0">
+            <h2 id={titleId} className="text-h2 text-fg">
+              {title}
+            </h2>
+            <p id={messageId} className="mt-1.5 text-body text-fg-2">
+              {message}
+            </p>
+          </div>
+        </div>
+        <div className="mt-6 flex flex-wrap justify-end gap-2">
           <button ref={cancelRef} type="button" className="ebim-btn-ghost" onClick={onCancel} disabled={pending}>
             {cancelLabel}
           </button>
@@ -109,6 +122,7 @@ export function ConfirmDialog({
             disabled={pending}
             aria-busy={pending || undefined}
           >
+            {pending ? <span className="ebim-spinner" aria-hidden /> : null}
             {pending ? 'Procesando…' : confirmLabel}
           </button>
         </div>
