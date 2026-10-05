@@ -260,6 +260,35 @@
            transition-colors duration-fast ease-out hover:bg-hover hover:text-fg
            disabled:cursor-not-allowed disabled:opacity-55;
   }
+
+  /* Menú y tooltip (§5.15). */
+  .ebim-menu {
+    @apply rounded-card border border-border bg-elevated p-1 text-fg shadow-pop;
+    animation: ebim-rise-in var(--dur-overlay) var(--ease-out);
+  }
+
+  .ebim-menu-item {
+    @apply flex h-9 w-full items-center gap-2.5 rounded-md px-2.5 text-left text-compact text-fg
+           transition-colors duration-fast ease-out hover:bg-hover focus-visible:bg-hover;
+  }
+
+  .ebim-tooltip {
+    @apply pointer-events-none fixed z-50 max-w-[280px] rounded-md border border-border bg-elevated px-2.5 py-2
+           text-caption font-medium text-fg shadow-pop;
+    animation: ebim-fade-in var(--dur-fast) var(--ease-out);
+  }
+
+  /* Tecla de atajo (⌘K, Esc, ↑↓). */
+  .ebim-kbd {
+    @apply inline-flex h-5 min-w-5 items-center justify-center rounded border border-border bg-sunken px-1
+           text-caption font-semibold leading-none text-muted;
+    font-family: inherit;
+  }
+
+  /* Transición de ruta (§7): solo opacidad, 120 ms, no bloquea la interacción. */
+  .ebim-route-enter {
+    animation: ebim-fade-in 120ms var(--ease-out);
+  }
 }
 
 @keyframes ebim-shimmer {

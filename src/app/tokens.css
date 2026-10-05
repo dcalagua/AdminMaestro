@@ -31,6 +31,7 @@
   /* Sidebar en gradiente teal profundo (D-V03, tratamiento B de U-11):
      blanco ≥ 8.09:1, texto de grupo rgba(255,255,255,.72) ≥ 4.95:1. */
   --sidebar: linear-gradient(180deg, #0a3d3a 0%, #0a5a52 100%);
+  --sidebar-base: #0a5a52; /* fin del gradiente: continúa el sidebar bajo el primer pantallazo */
   --sidebar-indicator: #7fd3a6; /* barra del ítem activo: 4.53:1 sobre el tramo claro */
   --hero-grad: linear-gradient(155deg, #0a3d3a 0%, #0a5a52 55%, #1f7a68 100%);
   --on-brand: #ffffff; /* texto y foco sobre sidebar/hero */
@@ -148,6 +149,7 @@
   --accent-action-hover: #7dd3c2;
   --accent-action-fg: #062420;
   --sidebar: linear-gradient(180deg, #08201f 0%, #0c3532 100%);
+  --sidebar-base: #0c3532;
 
   /* En oscuro el texto semántico se aclara; el relleno del botón peligroso se
      queda oscuro para que el blanco siga siendo legible. */

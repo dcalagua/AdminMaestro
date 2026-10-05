@@ -59,9 +59,15 @@ export function useProduct(productId: string | undefined) {
   });
 }
 
-export function useOrganizations() {
+/** `enabled: false` difiere la lectura (p. ej. la paleta ⌘K solo lee al buscar). */
+interface LazyQueryOptions {
+  enabled?: boolean;
+}
+
+export function useOrganizations({ enabled = true }: LazyQueryOptions = {}) {
   return useQuery({
     queryKey: ['organizations'],
+    enabled,
     queryFn: async () =>
       unwrap(
         await supabase
@@ -145,9 +151,10 @@ export function usePartnerAgreements(organizationId?: string) {
   });
 }
 
-export function useTenantOverview() {
+export function useTenantOverview({ enabled = true }: LazyQueryOptions = {}) {
   return useQuery({
     queryKey: ['tenant-overview'],
+    enabled,
     queryFn: async () =>
       unwrap(await supabase.from('v_tenant_overview').select('*').order('name')),
   });
@@ -329,9 +336,10 @@ export function usePlanPriceCatalog() {
   });
 }
 
-export function useSubscriptions() {
+export function useSubscriptions({ enabled = true }: LazyQueryOptions = {}) {
   return useQuery({
     queryKey: ['subscriptions'],
+    enabled,
     queryFn: async () =>
       unwrap(
         await supabase
@@ -585,6 +593,27 @@ export function useBillingAlerts(status: Enums<'billing_alert_status'> = 'OPEN')
           .eq('status', status)
           .order('due_at'),
       ),
+  });
+}
+
+/**
+ * Cuántas alertas de cobranza ABIERTAS son críticas (badge del menú lateral).
+ * Solo cuenta (`head: true`): no trae filas. La clave cuelga de `billing-alerts`
+ * para que las mutaciones que ya invalidan alertas también la refresquen.
+ */
+export function useCriticalBillingAlertCount({ enabled = true }: LazyQueryOptions = {}) {
+  return useQuery({
+    queryKey: ['billing-alerts', 'OPEN', 'critical-count'],
+    enabled,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('billing_alerts')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'OPEN')
+        .eq('severity', 'CRITICAL');
+      if (error) throw new Error(error.message);
+      return count ?? 0;
+    },
   });
 }
 
