@@ -100,7 +100,7 @@ export function PoliciesTab() {
           }
         />
       ) : (
-        <DataTable columns={['Origen', 'Producto', 'Pool', 'Incluidos', 'Exceso', 'Rollover / expiración', 'Vigencia', '']}>
+        <DataTable columns={['Origen', 'Producto · pool', 'Incluidos · exceso', 'Rollover / expiración', 'Vigencia', '']}>
           {visible.map((p) => {
             const src = sourceOf(p);
             return (
@@ -111,26 +111,34 @@ export function PoliciesTab() {
                     {POLICY_SOURCE_LABEL[p.source_type] ?? p.source_type} · <span className="font-mono">{src?.code ?? '—'}</span>
                   </div>
                 </td>
-                <td className="ebim-td text-compact">{lookups.productName(p.saas_product_id)}</td>
+                {/* Pool bajo el producto y exceso bajo lo incluido: con ocho columnas la
+                    tabla escondía la vigencia y «Cerrar» a 1280. */}
                 <td className="ebim-td text-compact">
-                  {p.pool_scope ? POOL_SCOPE_LABEL[p.pool_scope] ?? p.pool_scope : <Undecided code="D-03" />}
-                </td>
-                <td className="ebim-td text-compact tabular-nums">
-                  {p.included_credits === null ? <Undecided code="D-03" /> : formatQuantity(p.included_credits)}
+                  <div>{lookups.productName(p.saas_product_id)}</div>
+                  <div className="mt-0.5 text-fg-2">
+                    {p.pool_scope ? POOL_SCOPE_LABEL[p.pool_scope] ?? p.pool_scope : <Undecided code="D-03" />}
+                  </div>
                 </td>
                 <td className="ebim-td text-compact">
-                  {p.overage_mode ? (
-                    <Badge tone={p.overage_mode === 'BLOCK' ? 'neutral' : 'warn'}>{OVERAGE_MODE_LABEL[p.overage_mode] ?? p.overage_mode}</Badge>
-                  ) : (
-                    <Undecided code="D-03" />
-                  )}
+                  <div className="tabular-nums">
+                    {p.included_credits === null ? <Undecided code="D-03" /> : formatQuantity(p.included_credits)}
+                  </div>
+                  <div className="mt-0.5">
+                    {p.overage_mode ? (
+                      <Badge tone={p.overage_mode === 'BLOCK' ? 'neutral' : 'warn'}>{OVERAGE_MODE_LABEL[p.overage_mode] ?? p.overage_mode}</Badge>
+                    ) : (
+                      <Undecided code="D-03" />
+                    )}
+                  </div>
                 </td>
                 <td className="ebim-td text-compact">
                   <Undecided code="D-04" />
                 </td>
                 <td className="ebim-td whitespace-nowrap text-compact">
                   {formatDate(p.valid_from)} → {p.valid_to ? formatDate(p.valid_to) : 'sin fin'}
-                  <div className="max-w-[220px] text-caption text-muted" title={p.reason}>{p.reason}</div>
+                  <div className="line-clamp-2 max-w-[200px] whitespace-normal text-caption text-muted" title={p.reason}>
+                    {p.reason}
+                  </div>
                 </td>
                 <td className="ebim-td text-right">
                   {perms.canReadFinance && !p.valid_to ? (

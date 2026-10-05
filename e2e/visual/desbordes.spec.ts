@@ -10,8 +10,8 @@ import { USERS } from '../fixtures';
  * acciones). Las filas de pestañas pueden desbordar: SectionTabs lleva la
  * activa a la vista.
  *
- * Recorre la pestaña por defecto de cada ruta del menú y las fichas del seed
- * como super admin (ve todas las columnas).
+ * Recorre cada ruta del menú y las fichas del seed, con todas sus pestañas
+ * de sección, como super admin (ve todas las columnas).
  */
 
 const WIDTHS = [
@@ -31,6 +31,15 @@ function routes(): string[] {
     `/products/${SEED.productId}`,
   ];
   return ONLY ? all.filter((r) => ONLY.some((o) => r === o || r.startsWith(`${o}/`))) : all;
+}
+
+async function quiet(page: Page) {
+  await settle(page);
+  await page
+    .locator('.ebim-skeleton')
+    .first()
+    .waitFor({ state: 'detached', timeout: 15_000 })
+    .catch(() => undefined);
 }
 
 async function overflowsOf(page: Page): Promise<string[]> {
@@ -65,7 +74,7 @@ async function overflowsOf(page: Page): Promise<string[]> {
 }
 
 test('ninguna pantalla desborda a 1440 ni a 1280', async ({ page }) => {
-  test.setTimeout(15 * 60_000);
+  test.setTimeout(30 * 60_000);
   // El auth local tiene timeouts intermitentes con la máquina cargada: un reintento.
   await login(page, USERS.superAdmin).catch(() => login(page, USERS.superAdmin));
   const problems: string[] = [];
@@ -75,13 +84,23 @@ test('ninguna pantalla desborda a 1440 ni a 1280', async ({ page }) => {
       await page.goto(route);
       await page.locator('h1').first().waitFor({ timeout: 15_000 });
       await settle(page);
-      await page
-        .locator('.ebim-skeleton')
-        .first()
-        .waitFor({ state: 'detached', timeout: 15_000 })
-        .catch(() => undefined);
+      await quiet(page);
       for (const what of await overflowsOf(page)) {
         problems.push(`${viewport.width} ${route}: ${what}`);
+      }
+      // Cada pestaña de sección de la página (SectionTabs) es otra pantalla.
+      const tabs = page
+        .locator('main [role="tablist"][aria-label="Secciones"]')
+        .first()
+        .getByRole('tab');
+      const names = (await tabs.allTextContents()).map((t) => t.trim());
+      for (const [i, name] of names.entries()) {
+        if (i === 0) continue;
+        await tabs.nth(i).click();
+        await quiet(page);
+        for (const what of await overflowsOf(page)) {
+          problems.push(`${viewport.width} ${route} › ${name}: ${what}`);
+        }
       }
     }
   }

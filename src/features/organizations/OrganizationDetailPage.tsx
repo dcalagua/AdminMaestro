@@ -338,16 +338,26 @@ export function OrganizationDetailPage() {
                 ) : (
                   <DataTable
                     columns={[
-                      'Producto', 'Revende', 'Administra', { label: 'Margen', align: 'right' }, 'Modelos permitidos',
+                      'Producto · permisos', { label: 'Margen', align: 'right' }, 'Modelos permitidos',
                       'Tipos', { label: 'Tenants', align: 'right' }, 'Factura', 'Tarifa plataforma', 'Vigencia',
                       { label: 'Acciones', srOnly: true },
                     ]}
                   >
                     {(agreements.data ?? []).map((a) => (
                       <tr key={a.agreement_id as string}>
-                        <td className="ebim-td font-semibold">{a.product_short_name}</td>
-                        <td className="ebim-td">{a.can_resell ? 'Sí' : 'No'}</td>
-                        <td className="ebim-td">{a.can_manage_tenants ? 'Sí' : 'No'}</td>
+                        {/* Revende / administra bajo el producto: once columnas no cabían a 1280. */}
+                        <td className="ebim-td">
+                          <span className="block font-semibold">{a.product_short_name}</span>
+                          <span className="block whitespace-nowrap text-caption text-fg-2">
+                            {a.can_resell && a.can_manage_tenants
+                              ? 'Revende y administra'
+                              : a.can_resell
+                                ? 'Solo revende'
+                                : a.can_manage_tenants
+                                  ? 'Solo administra'
+                                  : 'Sin reventa ni administración'}
+                          </span>
+                        </td>
                         <td className="ebim-td ebim-num font-semibold">
                           {formatPercent(Number(a.margin_rate))}
                         </td>
@@ -380,8 +390,8 @@ export function OrganizationDetailPage() {
                         <td className="ebim-td text-compact text-fg-2">{BILLING_RESPONSIBILITY_TEXT[a.billing_responsibility as string] ?? a.billing_responsibility}</td>
                         <td className="ebim-td text-compact">{feeTermsText(feeById.get(a.agreement_id as string))}</td>
                         <td className="ebim-td whitespace-nowrap text-compact text-fg-2">
-                          {formatDate(a.valid_from as string)} →{' '}
-                          {a.valid_to ? formatDate(a.valid_to as string) : 'sin fin'}
+                          {formatDate(a.valid_from as string)} →
+                          <span className="block">{a.valid_to ? formatDate(a.valid_to as string) : 'sin fin'}</span>
                         </td>
                         <td className="ebim-td w-12 text-right">
                           <ActionMenu

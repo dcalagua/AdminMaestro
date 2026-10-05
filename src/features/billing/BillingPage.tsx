@@ -318,7 +318,7 @@ function InvoicesSection() {
       header: 'Número',
       sortKey: 'number',
       cell: (r) => (
-        <span className="block max-w-[160px] truncate whitespace-nowrap font-mono text-compact font-semibold" title={r.number ?? undefined}>
+        <span className="block max-w-[160px] truncate whitespace-nowrap font-mono text-compact font-semibold min-[1400px]:max-w-[240px]" title={r.number ?? undefined}>
           {r.number ?? '—'}
         </span>
       ),
@@ -330,14 +330,14 @@ function InvoicesSection() {
       cell: (r) =>
         r.customer_organization_id ? (
           <Link
-            className="ebim-link block max-w-[160px] truncate"
+            className="ebim-link block max-w-[160px] truncate min-[1400px]:max-w-[220px]"
             title={r.organization_name ?? undefined}
             to={`/organizations/${r.customer_organization_id}`}
           >
             {r.organization_name ?? 'Sin nombre'}
           </Link>
         ) : (
-          <span className="block max-w-[160px] truncate text-muted">{r.organization_name ?? '—'}</span>
+          <span className="block max-w-[160px] truncate text-muted min-[1400px]:max-w-[220px]">{r.organization_name ?? '—'}</span>
         ),
     },
     { id: 'issue', header: 'Emisión', sortKey: 'issue_date', cell: (r) => <span className="whitespace-nowrap text-compact text-fg-2">{formatDate(r.issue_date)}</span> },
@@ -557,7 +557,7 @@ function CollectedPaymentsSection() {
       header: 'Factura',
       sortKey: 'invoice_number',
       cell: (r) => (
-        <span className="block max-w-[160px] truncate whitespace-nowrap font-mono text-compact font-semibold" title={r.invoice_number ?? undefined}>
+        <span className="block max-w-[160px] truncate whitespace-nowrap font-mono text-compact font-semibold min-[1400px]:max-w-[240px]" title={r.invoice_number ?? undefined}>
           {r.invoice_number ?? '—'}
         </span>
       ),
@@ -569,14 +569,14 @@ function CollectedPaymentsSection() {
       cell: (r) =>
         r.customer_organization_id ? (
           <Link
-            className="ebim-link block max-w-[160px] truncate"
+            className="ebim-link block max-w-[160px] truncate min-[1400px]:max-w-[220px]"
             title={r.organization_name ?? undefined}
             to={`/organizations/${r.customer_organization_id}`}
           >
             {r.organization_name ?? 'Sin nombre'}
           </Link>
         ) : (
-          <span className="block max-w-[160px] truncate text-muted">{r.organization_name ?? '—'}</span>
+          <span className="block max-w-[160px] truncate text-muted min-[1400px]:max-w-[220px]">{r.organization_name ?? '—'}</span>
         ),
     },
     { id: 'method', header: 'Método', cell: (r) => <span className="text-compact text-fg-2">{r.method ?? 'Sin método'}</span> },

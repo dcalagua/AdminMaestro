@@ -570,13 +570,19 @@ function ProductMarginSection() {
         {(rows) => (
           <>
             <DataTable label="Margen gerencial por producto"
-              columns={['Producto', 'Moneda', R('MRR'), R('ARR (estimado)'), R('Cobrado recurrente'), R('Cobrado único'), R('Costo asignado'), R('Comisión'), R('Margen gerencial')]}>
+              columns={['Producto', R('MRR · ARR estimado'), R('Cobrado recurrente'), R('Cobrado único'), R('Costo asignado'), R('Comisión'), R('Margen gerencial')]}>
               {rows.map((r) => (
                 <tr key={`${r.saas_product_id}-${r.currency}`}>
-                  <td className="ebim-td font-semibold">{r.short_name}</td>
-                  <td className="ebim-td text-muted">{r.currency ?? '—'}</td>
-                  <td className="ebim-td ebim-num whitespace-nowrap">{formatMoney(num(r.mrr), r.currency)}</td>
-                  <td className="ebim-td ebim-num whitespace-nowrap text-muted">{formatMoney(num(r.arr), r.currency)}</td>
+                  {/* Moneda bajo el nombre (cada importe ya la lleva) y ARR bajo el MRR:
+                      como columnas propias la matriz no cabía a 1280. */}
+                  <td className="ebim-td">
+                    <span className="block font-semibold">{r.short_name}</span>
+                    <span className="block text-caption text-muted">{r.currency ?? '—'}</span>
+                  </td>
+                  <td className="ebim-td ebim-num whitespace-nowrap">
+                    {formatMoney(num(r.mrr), r.currency)}
+                    <span className="block text-caption text-muted">ARR {formatMoney(num(r.arr), r.currency)}</span>
+                  </td>
                   <td className="ebim-td ebim-num whitespace-nowrap">{formatMoney(num(r.collected_recurring), r.currency)}</td>
                   <td className="ebim-td ebim-num whitespace-nowrap text-muted">{formatMoney(num(r.collected_one_time), r.currency)}</td>
                   <td className="ebim-td ebim-num whitespace-nowrap">{formatMoney(num(r.direct_cost), r.currency)}</td>
@@ -603,7 +609,7 @@ function PartnerMarginSection() {
         {(rows) => (
           <>
             <DataTable label="Margen gerencial por partner"
-              columns={['Partner', 'Moneda', R('Tenants'), R('MRR'), R('Cobrado'), R('Costo asignado'), R('Comisión'), R('Margen gerencial')]}>
+              columns={['Partner', R('Tenants'), R('MRR'), R('Cobrado'), R('Costo asignado'), R('Comisión'), R('Margen gerencial')]}>
               {rows.map((r) => (
                 <tr key={`${r.organization_id}-${r.currency}`}>
                   <td className="ebim-td font-semibold">
@@ -614,8 +620,8 @@ function PartnerMarginSection() {
                     ) : (
                       r.display_name
                     )}
+                    <span className="block text-caption font-normal text-muted">{r.currency ?? '—'}</span>
                   </td>
-                  <td className="ebim-td text-muted">{r.currency ?? '—'}</td>
                   <td className="ebim-td ebim-num whitespace-nowrap">{Number(r.managed_tenants ?? 0)}</td>
                   <td className="ebim-td ebim-num whitespace-nowrap">{formatMoney(num(r.mrr), r.currency)}</td>
                   <td className="ebim-td ebim-num whitespace-nowrap">{formatMoney(num(r.collected_revenue), r.currency)}</td>
@@ -643,7 +649,7 @@ function TenantMarginSection() {
         {(rows) => (
           <>
             <DataTable label="Margen gerencial por tenant"
-              columns={['Tenant', 'Producto', 'Modelo', 'Moneda', R('MRR'), R('Cobrado'), R('Costo asignado'), R('Comisión'), R('Margen gerencial')]}>
+              columns={['Tenant', 'Producto · modelo', R('MRR'), R('Cobrado'), R('Costo asignado'), R('Comisión'), R('Margen gerencial')]}>
               {rows.map((r) => (
                 <tr key={`${r.tenant_id}-${r.currency}`}>
                   <td className="ebim-td font-semibold">
@@ -654,14 +660,14 @@ function TenantMarginSection() {
                     ) : (
                       r.name
                     )}
+                    <span className="block text-caption font-normal text-muted">{r.currency ?? '—'}</span>
                   </td>
-                  <td className="ebim-td">{r.product_code}</td>
                   <td className="ebim-td">
-                    <Badge tone="accent">
+                    <span className="block">{r.product_code}</span>
+                    <span className="block text-caption text-fg-2">
                       {DEPLOYMENT_MODE_LABEL[r.deployment_mode as keyof typeof DEPLOYMENT_MODE_LABEL] ?? r.deployment_mode ?? '—'}
-                    </Badge>
+                    </span>
                   </td>
-                  <td className="ebim-td text-muted">{r.currency ?? '—'}</td>
                   <td className="ebim-td ebim-num whitespace-nowrap">{formatMoney(num(r.mrr), r.currency)}</td>
                   <td className="ebim-td ebim-num whitespace-nowrap">{formatMoney(num(r.collected_revenue), r.currency)}</td>
                   <td className="ebim-td ebim-num whitespace-nowrap">{formatMoney(num(r.direct_cost), r.currency)}</td>

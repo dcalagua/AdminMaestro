@@ -149,14 +149,16 @@ export function SettlementsSection({
                 <tr key={s.id} data-settlement={s.code} data-settlement-status={s.status}>
                   <td className="ebim-td">
                     {/* Acción primaria de la fila: abrir el detalle. */}
-                    <button type="button" className="ebim-link block whitespace-nowrap text-left font-mono text-compact"
-                      onClick={() => setDetailId(s.id)}>
+                    <button type="button" className="ebim-link block max-w-[200px] truncate whitespace-nowrap text-left font-mono text-compact"
+                      title={s.code} onClick={() => setDetailId(s.id)}>
                       {s.code}
                     </button>
-                    <span className="block max-w-[220px] truncate text-caption text-muted">{agentOf(s)?.full_name ?? '—'}</span>
+                    <span className="block max-w-[200px] truncate text-caption text-muted">{agentOf(s)?.full_name ?? '—'}</span>
                   </td>
+                  {/* Período en dos líneas: en una sola la tabla no cabía a 1280. */}
                   <td className="ebim-td whitespace-nowrap text-compact text-fg-2">
-                    {formatDate(s.period_start)} – {formatDate(s.period_end)}
+                    {formatDate(s.period_start)} –
+                    <span className="block">{formatDate(s.period_end)}</span>
                   </td>
                   <td className="ebim-td ebim-num text-compact">
                     {s.status === 'CANCELLED' ? <span className="text-muted" title="Liberadas al anular">—</span> : formatNumber(s.event_count)}

@@ -260,16 +260,20 @@ export function ReconciliationPage() {
                   <DataTable
                     label="Panel gerencial por producto"
                     columns={[
-                      'Producto', 'Moneda', R('MRR'), R('Licencia cobrada'), R('Implementación'),
-                      R('Infraestructura'), R('Costo'), R('Comisiones'), R('Margen gerencial'), R('% sobre cobrado'),
+                      'Producto', R('MRR'), R('Licencia cobrada'), R('Implementación · infraestructura'),
+                      R('Costo'), R('Comisiones'), R('Margen gerencial'),
                     ]}
                   >
                     {(products.data ?? [])
                       .filter((p) => Number(p.collected_revenue) > 0 || Number(p.mrr) > 0)
                       .map((p) => (
                         <tr key={`${p.saas_product_id}-${p.currency}`}>
-                          <td className="ebim-td font-semibold">{p.short_name}</td>
-                          <td className="ebim-td text-muted">{p.currency}</td>
+                          {/* Moneda bajo el producto, implementación con infraestructura y el %
+                              bajo el margen: con diez columnas la matriz no cabía a 1280. */}
+                          <td className="ebim-td">
+                            <span className="block font-semibold">{p.short_name}</span>
+                            <span className="block text-caption text-muted">{p.currency}</span>
+                          </td>
                           <td className="ebim-td ebim-num whitespace-nowrap">
                             {formatMoney(Number(p.mrr), p.currency)}
                           </td>
@@ -278,9 +282,9 @@ export function ReconciliationPage() {
                           </td>
                           <td className="ebim-td ebim-num whitespace-nowrap">
                             {formatMoney(Number(p.collected_implementation), p.currency)}
-                          </td>
-                          <td className="ebim-td ebim-num whitespace-nowrap">
-                            {formatMoney(Number(p.collected_infrastructure), p.currency)}
+                            <span className="block text-caption text-muted">
+                              infra. {formatMoney(Number(p.collected_infrastructure), p.currency)}
+                            </span>
                           </td>
                           <td className="ebim-td ebim-num whitespace-nowrap">
                             {formatMoney(Number(p.direct_cost), p.currency)}
@@ -292,9 +296,9 @@ export function ReconciliationPage() {
                             className={`ebim-td ebim-num whitespace-nowrap font-semibold ${lossClass(p.gross_margin)}`}
                           >
                             {formatMoney(Number(p.gross_margin), p.currency)}
-                          </td>
-                          <td className="ebim-td ebim-num whitespace-nowrap text-fg-2">
-                            {p.margin_rate !== null ? formatPercent(Number(p.margin_rate)) : '—'}
+                            <span className="block text-caption font-normal text-fg-2">
+                              {p.margin_rate !== null ? `${formatPercent(Number(p.margin_rate))} sobre cobrado` : '—'}
+                            </span>
                           </td>
                         </tr>
                       ))}
@@ -321,8 +325,8 @@ export function ReconciliationPage() {
                   <DataTable
                     label="Panel por partner"
                     columns={[
-                      'Organización', 'Moneda', R('MRR'), R('Cobrado'), R('Costo directo'),
-                      R('Margen gerencial'), R('Margen de canal'), R('Comisión a comerciales'), R('Tenants'),
+                      'Organización', R('MRR'), R('Cobrado'), R('Costo directo'),
+                      R('Margen gerencial'), R('Margen de canal'), R('Comisión a comerciales'),
                     ]}
                   >
                     {(partners.data ?? []).map((p) => (
@@ -331,8 +335,12 @@ export function ReconciliationPage() {
                           <Link className="ebim-link" to={`/organizations/${p.organization_id}`}>
                             {p.organization_name}
                           </Link>
+                          {/* Moneda y tenants gestionados bajo el nombre (la matriz no cabía a 1280). */}
+                          <span className="block text-caption text-muted">
+                            {p.currency} · {formatNumber(Number(p.managed_tenants))}{' '}
+                            {Number(p.managed_tenants) === 1 ? 'tenant' : 'tenants'}
+                          </span>
                         </td>
-                        <td className="ebim-td text-muted">{p.currency}</td>
                         <td className="ebim-td ebim-num whitespace-nowrap">
                           {formatMoney(Number(p.mrr), p.currency)}
                         </td>
@@ -355,7 +363,6 @@ export function ReconciliationPage() {
                         <td className="ebim-td ebim-num whitespace-nowrap">
                           {formatMoney(Number(p.agent_commissions), p.currency)}
                         </td>
-                        <td className="ebim-td ebim-num whitespace-nowrap">{formatNumber(Number(p.managed_tenants))}</td>
                       </tr>
                     ))}
                   </DataTable>

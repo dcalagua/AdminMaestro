@@ -133,8 +133,7 @@ export function AggregatesTab() {
             maxHeight={720}
             columns={[
               'Tenant',
-              'Medidor',
-              'Período',
+              'Medidor · período',
               'Estado',
               { label: 'Cantidad', align: 'right' },
               'Consumo vs incluido',
@@ -147,15 +146,18 @@ export function AggregatesTab() {
               const finalized = a.status === 'FINALIZED';
               return (
                 <tr key={a.id ?? `${a.tenant_id}:${a.meter_code}:${a.period_start}`}>
-                  <td className="ebim-td max-w-[240px]">
+                  <td className="ebim-td max-w-[200px]">
                     <div className="truncate font-semibold" title={a.tenant_slug ?? undefined}>
                       {a.tenant_slug ?? '—'}
                     </div>
                     <div className="text-caption text-muted">{a.product_code}</div>
                   </td>
-                  <td className="ebim-td font-mono text-caption">{a.meter_code}</td>
-                  <td className="ebim-td whitespace-nowrap text-compact">
-                    {formatPeriod(a.period_start)}
+                  {/* El período va bajo el medidor: como columna propia la tabla no cabía a 1280. */}
+                  <td className="ebim-td">
+                    <div className="max-w-[180px] truncate font-mono text-caption" title={a.meter_code ?? undefined}>
+                      {a.meter_code}
+                    </div>
+                    <div className="whitespace-nowrap text-compact text-fg-2">{formatPeriod(a.period_start)}</div>
                   </td>
                   <td className="ebim-td">
                     <Badge tone={st.tone}>{st.label}</Badge>
