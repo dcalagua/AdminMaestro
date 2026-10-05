@@ -694,14 +694,17 @@ update platform.organizations o
    and not exists (select 1 from demo_sub_map m where m.org_id = o.id and m.ends_on is null);
 
 -- ---------------------------------------------------------------------------
--- 13. Liquidaciones: trimestres cerrados PAGADOS; el trimestre anterior queda
---     ABIERTO para Lucía (USD); el resto de comisiones recientes, ELEGIBLES.
+-- 13. Liquidaciones: trimestres cerrados PAGADOS (aprobar → pagar con las
+--     RPCs reales de la fase 13); del trimestre anterior, la de Lucía (USD)
+--     queda ABIERTA y la primera de otro comercial queda APROBADA a la espera
+--     del pago; el resto de comisiones recientes, ELEGIBLES.
 -- ---------------------------------------------------------------------------
 do $$
 declare
-  v_q     record;
-  v_stl   uuid;
-  v_open_q date := (date_trunc('quarter', current_date) - interval '3 months')::date;
+  v_q        record;
+  v_stl      uuid;
+  v_open_q   date := (date_trunc('quarter', current_date) - interval '3 months')::date;
+  v_approved boolean := false;
 begin
   perform pg_temp.act_as(pg_temp.finance());
   for v_q in
@@ -715,19 +718,24 @@ begin
      order by qs, a.code, e.currency
   loop
     if v_q.qs = v_open_q then
-      continue when not (v_q.code = 'lucia-paredes' and v_q.currency = 'USD');
-      perform platform.settle_commissions(v_q.sales_agent_id, v_q.qs, v_q.qe, v_q.currency);
+      if v_q.code = 'lucia-paredes' and v_q.currency = 'USD' then
+        perform platform.settle_commissions(v_q.sales_agent_id, v_q.qs, v_q.qe, v_q.currency);
+      elsif not v_approved then
+        v_stl := platform.settle_commissions(v_q.sales_agent_id, v_q.qs, v_q.qe, v_q.currency);
+        perform platform.approve_commission_settlement(v_stl, 'Revisada contra cobros del trimestre.');
+        update platform.commission_settlements set approved_at = pg_temp.at15(v_q.qe + 8) where id = v_stl;
+        v_approved := true;
+      end if;
       continue;
     end if;
     v_stl := platform.settle_commissions(v_q.sales_agent_id, v_q.qs, v_q.qe, v_q.currency);
-    update platform.commission_events set status = 'PAID', updated_at = now() where settlement_id = v_stl;
-    update platform.commission_settlements
-       set status = 'PAID',
-           approved_at = pg_temp.at15(v_q.qe + 8), approved_by = pg_temp.finance(),
-           paid_at = pg_temp.at15(v_q.qe + 15),
-           payment_reference = 'LIQ-' || to_char(v_q.qs, 'YYYY') || 'Q' || extract(quarter from v_q.qs) || '-' || upper(left(v_q.code, 6)),
-           notes = 'Liquidación trimestral pagada por transferencia.'
-     where id = v_stl;
+    perform platform.approve_commission_settlement(v_stl, null);
+    -- La aprobación se fecha en su día real antes de pagar (luego es terminal).
+    update platform.commission_settlements set approved_at = pg_temp.at15(v_q.qe + 8) where id = v_stl;
+    perform platform.pay_commission_settlement(
+      v_stl, v_q.qe + 15,
+      'LIQ-' || to_char(v_q.qs, 'YYYY') || 'Q' || extract(quarter from v_q.qs) || '-' || upper(left(v_q.code, 6)),
+      'BANK_TRANSFER', 'Liquidación trimestral pagada por transferencia.');
   end loop;
 end;
 $$;
@@ -981,9 +989,14 @@ update platform.audit_logs l
   from platform.payments p
  where l.id > (select id from demo_audit_floor) and l.action = 'MANUAL_PAYMENT_CONFIRMED' and l.entity_id = p.id::text;
 update platform.audit_logs l
-   set occurred_at = pg_temp.at15(s.period_end + 8)
+   set occurred_at = case l.action
+                       when 'COMMISSION_SETTLEMENT_PAID' then s.paid_at
+                       when 'COMMISSION_SETTLEMENT_APPROVED' then s.approved_at
+                       else pg_temp.at15(s.period_end + 8) - interval '2 hours' end
   from platform.commission_settlements s
- where l.id > (select id from demo_audit_floor) and l.action = 'COMMISSIONS_SETTLED' and l.entity_id = s.id::text;
+ where l.id > (select id from demo_audit_floor)
+   and l.action in ('COMMISSIONS_SETTLED', 'COMMISSION_SETTLEMENT_APPROVED', 'COMMISSION_SETTLEMENT_PAID')
+   and l.entity_id = s.id::text;
 update platform.audit_logs
    set metadata = metadata || pg_temp.tag()
  where id > (select id from demo_audit_floor);
@@ -994,7 +1007,7 @@ update platform.audit_logs
 do $$
 declare
   v_customers int; v_subs int; v_churned int; v_invoices int; v_payments int; v_events int;
-  v_desync int; v_integrity int; v_buckets int; v_paid_stl int; v_open_stl int; v_ledger int;
+  v_desync int; v_integrity int; v_buckets int; v_paid_stl int; v_open_stl int; v_appr_stl int; v_ledger int;
   v_links int; v_stmts int; v_products int;
 begin
   select count(*) into v_customers from platform.organizations o
@@ -1019,8 +1032,9 @@ begin
   select count(distinct b.aging_bucket) into v_buckets from platform.v_invoice_balances b
     join platform.invoices i on i.id = b.invoice_id
    where i.metadata ->> 'demo' = 'gerencia-v4' and b.aging_bucket in ('D1_30', 'D31_60', 'D61_90', 'D90_MAS');
-  select count(*) filter (where s.status = 'PAID'), count(*) filter (where s.status = 'OPEN')
-    into v_paid_stl, v_open_stl
+  select count(*) filter (where s.status = 'PAID'), count(*) filter (where s.status = 'OPEN'),
+         count(*) filter (where s.status = 'APPROVED')
+    into v_paid_stl, v_open_stl, v_appr_stl
     from platform.commission_settlements s join platform.sales_agents a on a.id = s.sales_agent_id
    where a.metadata ->> 'demo' = 'gerencia-v4';
   select count(*) into v_ledger from platform.ai_credit_ledger
@@ -1037,8 +1051,8 @@ begin
   if v_desync > 0 then raise exception 'DEMO_INCOHERENTE: % facturas con estado distinto a sus cobros', v_desync; end if;
   if v_integrity > 0 then raise exception 'DEMO_INCOHERENTE: % filas con moneda distinta a su padre', v_integrity; end if;
   if v_buckets < 4 then raise exception 'DEMO_INCOMPLETO: cartera vencida solo en % bandas de 4', v_buckets; end if;
-  if v_paid_stl = 0 or v_open_stl <> 1 then
-    raise exception 'DEMO_INCOMPLETO: liquidaciones pagadas=% abiertas=%', v_paid_stl, v_open_stl;
+  if v_paid_stl = 0 or v_open_stl <> 1 or v_appr_stl <> 1 then
+    raise exception 'DEMO_INCOMPLETO: liquidaciones pagadas=% abiertas=% aprobadas=%', v_paid_stl, v_open_stl, v_appr_stl;
   end if;
   if v_ledger = 0 then raise exception 'DEMO_INCOMPLETO: sin movimientos de créditos IA'; end if;
   if v_links < 2 then raise exception 'DEMO_INCOMPLETO: enlaces de pago=%', v_links; end if;

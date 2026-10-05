@@ -1525,14 +1525,21 @@ export type Database = {
       };
       commission_settlements: {
         Row: {
+          approval_note: string | null;
           approved_at: string | null;
           approved_by: string | null;
+          cancellation_reason: string | null;
+          cancelled_at: string | null;
+          cancelled_by: string | null;
           code: string;
           created_at: string;
           currency: string;
           id: string;
           notes: string | null;
           paid_at: string | null;
+          paid_by: string | null;
+          payment_method: string | null;
+          payment_note: string | null;
           payment_reference: string | null;
           period_end: string;
           period_start: string;
@@ -1542,14 +1549,21 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          approval_note?: string | null;
           approved_at?: string | null;
           approved_by?: string | null;
+          cancellation_reason?: string | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
           code: string;
           created_at?: string;
           currency: string;
           id?: string;
           notes?: string | null;
           paid_at?: string | null;
+          paid_by?: string | null;
+          payment_method?: string | null;
+          payment_note?: string | null;
           payment_reference?: string | null;
           period_end: string;
           period_start: string;
@@ -1559,14 +1573,21 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          approval_note?: string | null;
           approved_at?: string | null;
           approved_by?: string | null;
+          cancellation_reason?: string | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
           code?: string;
           created_at?: string;
           currency?: string;
           id?: string;
           notes?: string | null;
           paid_at?: string | null;
+          paid_by?: string | null;
+          payment_method?: string | null;
+          payment_note?: string | null;
           payment_reference?: string | null;
           period_end?: string;
           period_start?: string;
@@ -1584,11 +1605,25 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'commission_settlements_cancelled_by_fkey';
+            columns: ['cancelled_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
             foreignKeyName: 'commission_settlements_currency_fk';
             columns: ['currency'];
             isOneToOne: false;
             referencedRelation: 'currencies';
             referencedColumns: ['code'];
+          },
+          {
+            foreignKeyName: 'commission_settlements_paid_by_fkey';
+            columns: ['paid_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
           },
           {
             foreignKeyName: 'commission_settlements_sales_agent_id_fkey';
@@ -13376,6 +13411,10 @@ export type Database = {
         Args: { p_document_id: string; p_notes?: string; p_valid_to?: string };
         Returns: undefined;
       };
+      approve_commission_settlement: {
+        Args: { p_note?: string; p_settlement_id: string };
+        Returns: Json;
+      };
       approve_tenant_addon: {
         Args: { p_reason: string; p_tenant_addon_id: string };
         Returns: Json;
@@ -13473,6 +13512,10 @@ export type Database = {
       cancel_commercial_document: {
         Args: { p_document_id: string; p_reason?: string };
         Returns: undefined;
+      };
+      cancel_commission_settlement: {
+        Args: { p_reason: string; p_settlement_id: string };
+        Returns: Json;
       };
       cancel_saas_provisioning_request: {
         Args: { p_reason?: string; p_request_id: string };
@@ -14542,6 +14585,16 @@ export type Database = {
           subscription_id: string;
           tenant_id: string;
         }[];
+      };
+      pay_commission_settlement: {
+        Args: {
+          p_method: string;
+          p_note?: string;
+          p_paid_at: string;
+          p_payment_reference: string;
+          p_settlement_id: string;
+        };
+        Returns: Json;
       };
       payment_link_card_on_file: { Args: { p_organization_id: string }; Returns: Json };
       payment_link_charge_context: {

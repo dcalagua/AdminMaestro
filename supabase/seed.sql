@@ -771,7 +771,7 @@ begin
   insert into platform.commission_settlements (code, sales_agent_id, period_start, period_end, currency, status)
   values ('STL-carla-independiente-' || to_char(v_period_start, 'YYYYMM'),
           '80000000-0000-4000-a000-000000000001', v_period_start, v_period_end, 'USD', 'OPEN')
-  on conflict (code) do nothing
+  on conflict (code) where status <> 'CANCELLED' do nothing
   returning id into v_settlement;
 
   if v_settlement is not null then
@@ -786,7 +786,8 @@ begin
            approved_at = now() - interval '20 days',
            approved_by = '10000000-0000-4000-a000-000000000003',
            paid_at = now() - interval '15 days',
-           payment_reference = 'TRF-CARLA-001'
+           payment_reference = 'TRF-CARLA-001',
+           payment_method = 'BANK_TRANSFER'
      where id = v_settlement;
   end if;
 end;
