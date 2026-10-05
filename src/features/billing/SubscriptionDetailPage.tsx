@@ -8,12 +8,16 @@ import { useRejectDocument, useCancelDocument, useAutocharge } from '@/services/
 import { usePermissions } from '@/hooks/usePermissions';
 import { SectionTabs } from '@/components/ui/SectionTabs';
 import {
-  PageContainer, Card, DataTable, StatCard, LoadingState, ErrorState, EmptyState, Badge,
+  PageContainer, Card, DataTable, KpiTile, LoadingState, ErrorState, EmptyState, Badge, type DataColumn,
 } from '@/components/ui/primitives';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { ActionMenu } from '@/components/ui/ActionMenu';
+import { DetailList } from '@/components/ui/DetailDrawer';
+import { KpiStrip, NativeAmountTile } from './financeUi';
+import { nativeInline } from './financeModel';
 import { useToast } from '@/components/ui/toast-context';
 import { businessErrorMessage } from '@/lib/pgError';
-import { formatMoney, formatDate, formatDateTime } from '@/lib/format';
+import { formatMoney, formatDate, formatDateTime, formatNumber, sumByCurrency } from '@/lib/format';
 import { INVOICE_STATUS_LABEL } from '@/types/domain';
 import { formatPeriod } from '@/lib/billing';
 import {
@@ -32,11 +36,8 @@ import {
 } from './subscriptionLabels';
 
 
-function moneyByCurrency(map: Record<string, number>): string {
-  const entries = Object.entries(map).sort(([a], [b]) => a.localeCompare(b));
-  if (entries.length === 0) return '—';
-  return entries.map(([currency, amount]) => formatMoney(amount, currency)).join(' · ');
-}
+const R = (label: string): DataColumn => ({ label, align: 'right' });
+const READY = { status: 'ready', data: null } as const;
 
 /**
  * Detalle de suscripción, con la pestaña **Cobranza** que introduce la Fase 07.
@@ -121,6 +122,20 @@ export function SubscriptionDetailPage() {
 
   const charges = splitCharges(items, s.currency);
 
+  // Saldo de las facturas abiertas (ya leídas): total − cobros CONFIRMED, por moneda.
+  const today = new Date().toISOString().slice(0, 10);
+  const openInvoices = subInvoices
+    .filter((i) => i.status === 'ISSUED' || i.status === 'PARTIALLY_PAID')
+    .map((i) => {
+      const paid = ((i.payments ?? []) as Array<Record<string, unknown>>)
+        .filter((p) => p.status === 'CONFIRMED')
+        .reduce((a, p) => a + Number(p.amount ?? 0), 0);
+      return { currency: i.currency, outstanding: Math.round((Number(i.total) - paid) * 100) / 100, due: i.due_date };
+    })
+    .filter((i) => i.outstanding > 0);
+  const overdueCount = openInvoices.filter((i) => i.due && i.due < today).length;
+  const showMoney = perms.canReadFinance || perms.canManagePlatform;
+
   const isCardOnFile =
     (currentProfile.data as { recurring_mode?: string } | null | undefined)?.recurring_mode === 'CARD_ON_FILE';
 
@@ -180,35 +195,71 @@ export function SubscriptionDetailPage() {
       description={`${(s.saas_products as { lockup_name: string } | null)?.lockup_name} · ${
         (s.organizations as { display_name: string } | null)?.display_name
       }${(s.tenants as { name: string } | null)?.name ? ` · ${(s.tenants as { name: string }).name}` : ' · nivel partner'}`}
-      actions={
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge tone={SUBSCRIPTION_STATUS_TONE[s.status] ?? 'neutral'}>
+      meta={
+        <span className="flex flex-wrap items-center gap-2">
+          <Badge tone={SUBSCRIPTION_STATUS_TONE[s.status] ?? 'neutral'} dot>
             Contrato: {SUBSCRIPTION_STATUS_LABEL[s.status] ?? s.status}
           </Badge>
           <Badge tone={labelOf(BILLING_CHANNEL, s.billing_channel).tone}>
             Facturación: {labelOf(BILLING_CHANNEL, s.billing_channel).label}
           </Badge>
-          {perms.canReadFinance ? (
-            <button type="button" className="ebim-link text-compact" onClick={() => setChannelOpen(true)}>
-              Cambiar canal
-            </button>
-          ) : null}
-        </div>
+        </span>
+      }
+      actions={
+        perms.canReadFinance ? (
+          <>
+            {s.billing_channel !== 'PARTNER_STATEMENT' ? (
+              <Link className="ebim-btn-secondary" to={`/organizations/${s.billed_organization_id}#payment-portal`}>
+                Compartir enlace de pago
+              </Link>
+            ) : null}
+            <ActionMenu
+              variant="page"
+              label="Más acciones del contrato"
+              items={[{ label: 'Cambiar canal de facturación…', onSelect: () => setChannelOpen(true) }]}
+            />
+          </>
+        ) : null
       }
     >
-      <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Recurrente (mensual)"
-          value={charges.recurringCount === 0 ? 'Sin líneas recurrentes' : moneyByCurrency(charges.monthly)}
-          hint={`Cadencia de facturación: ${BILLING_INTERVAL_LABEL[s.billing_interval] ?? s.billing_interval}. Líneas normalizadas a mes.`}
-          tone="ok"
+      <KpiStrip label="Resumen del contrato">
+        <NativeAmountTile
+          label="Recurrente mensual"
+          info="Líneas recurrentes normalizadas a mes. Los cargos únicos no cuentan para el MRR."
+          amounts={charges.monthly}
+          state={READY}
+          emptyLabel="Sin líneas recurrentes"
+          footer={`Cadencia: ${BILLING_INTERVAL_LABEL[s.billing_interval] ?? s.billing_interval}${
+            charges.oneTimeCount > 0 ? ` · cargos únicos ${nativeInline(charges.oneTime)}` : ''
+          }`}
         />
-        <StatCard
-          label="Cargos únicos"
-          value={charges.oneTimeCount === 0 ? 'Ninguno' : moneyByCurrency(charges.oneTime)}
-          hint="Se facturan una vez. No cuentan para el MRR."
-        />
-        <StatCard
+        {showMoney ? (
+          <NativeAmountTile
+            label="Saldo por cobrar"
+            info="Facturas emitidas o con pago parcial menos cobros confirmados, por moneda."
+            amounts={sumByCurrency(openInvoices, (i) => i.outstanding, (i) => i.currency)}
+            state={
+              invoices.isLoading
+                ? { status: 'loading' }
+                : invoices.error
+                  ? { status: 'error', message: String((invoices.error as Error).message ?? invoices.error) }
+                  : READY
+            }
+            onRetry={() => void invoices.refetch()}
+            tone={overdueCount > 0 ? 'warn' : 'neutral'}
+            emptyLabel={s.billing_channel === 'PARTNER_STATEMENT' ? 'Lo factura el partner' : 'Sin saldo pendiente'}
+            footer={`${formatNumber(openInvoices.length)} factura(s) abierta(s)${overdueCount > 0 ? ` · ${formatNumber(overdueCount)} vencida(s)` : ''}`}
+          />
+        ) : (
+          <NativeAmountTile
+            label="Cargos únicos"
+            info="Se facturan una vez. No cuentan para el MRR."
+            amounts={charges.oneTime}
+            state={READY}
+            emptyLabel="Ninguno"
+          />
+        )}
+        <KpiTile
           label="Método de cobro"
           value={
             profile?.collection_method
@@ -216,8 +267,14 @@ export function SubscriptionDetailPage() {
               : 'Sin configurar'
           }
           tone={profile?.collection_method ? 'neutral' : 'warn'}
+          footer={
+            profile?.collection_method
+              ? `${profile.auto_charge ? 'Cargo automático' : 'Sin cargo automático'}${isCardOnFile ? ' · tarjeta guardada' : ''}`
+              : 'Se cobra manualmente; no se presupone tarjeta'
+          }
+          loading={collection.isLoading}
         />
-        <StatCard
+        <KpiTile
           label="Documento vigente"
           value={
             !needsDocument
@@ -227,8 +284,16 @@ export function SubscriptionDetailPage() {
                 : (DOC_STATUS_LABEL[activeDoc?.status as string] ?? 'Ninguno')
           }
           tone={!needsDocument ? 'neutral' : activeDoc?.status === 'APPROVED' ? 'ok' : 'warn'}
+          footer={
+            !needsDocument
+              ? 'El método de cobro no exige OS/OC'
+              : activeDoc?.valid_to
+                ? `Vigente hasta ${formatDate(activeDoc.valid_to as string)}`
+                : 'El método exige OS/OC'
+          }
+          loading={documents.isLoading}
         />
-      </div>
+      </KpiStrip>
 
       <SectionTabs
         tabs={[
@@ -244,7 +309,8 @@ export function SubscriptionDetailPage() {
                   <EmptyState title="Sin líneas" description="Esta suscripción no tiene cargos." />
                 ) : (
                   <DataTable
-                    columns={['Concepto', 'Tipo', 'Periodicidad', 'Cantidad', 'Unitario', 'Importe', 'Vigencia']}
+                    label="Líneas de la suscripción"
+                    columns={['Concepto', 'Tipo', 'Periodicidad', R('Cantidad'), R('Unitario'), R('Importe'), 'Vigencia']}
                   >
                     {items.map((i) => (
                       <tr key={i.id as string}>
@@ -263,14 +329,14 @@ export function SubscriptionDetailPage() {
                             </Badge>
                           )}
                         </td>
-                        <td className="ebim-td tabular-nums">{Number(i.quantity)}</td>
-                        <td className="ebim-td tabular-nums">
+                        <td className="ebim-td ebim-num">{Number(i.quantity)}</td>
+                        <td className="ebim-td ebim-num whitespace-nowrap">
                           {formatMoney(Number(i.unit_amount), i.currency as string)}
                         </td>
-                        <td className="ebim-td tabular-nums font-semibold">
+                        <td className="ebim-td ebim-num whitespace-nowrap font-semibold">
                           {formatMoney(Number(i.amount), i.currency as string)}
                         </td>
-                        <td className="ebim-td text-compact text-muted">
+                        <td className="ebim-td whitespace-nowrap text-compact text-fg-2">
                           {formatDate(i.valid_from as string)} →{' '}
                           {i.valid_to ? formatDate(i.valid_to as string) : 'sin fin'}
                         </td>
@@ -310,30 +376,27 @@ export function SubscriptionDetailPage() {
                       description="Sin perfil, la suscripción se cobra manualmente. No se presupone tarjeta."
                     />
                   ) : (
-                    <dl className="divide-y divide-border">
-                      {[
-                        ['Método', METHOD_LABEL[profile.collection_method as string]],
-                        [
-                          'Proveedor',
-                          profile.provider_account_code
-                            ? `${profile.provider_account_code} (${profile.provider_environment})`
-                            : 'Ninguno',
-                        ],
-                        ['Cargo automático', profile.auto_charge ? 'Sí' : 'No'],
-                        ['Emitir factura', `${profile.invoice_lead_days} días antes`],
-                        ['Aviso de renovación', `${profile.renewal_notice_days} días antes`],
-                        ['Vencimiento', `${profile.payment_due_days} días tras emitir`],
-                        ['Periodo de gracia', `${profile.grace_period_days} días`],
-                        ['Pedir OS/OC', `${profile.document_lead_days} días antes`],
-                        ['Suspensión automática', profile.auto_suspend ? 'Sí' : 'No'],
-                        ['Vigente desde', formatDate(profile.effective_from as string)],
-                      ].map(([k, v]) => (
-                        <div key={k as string} className="flex justify-between gap-4 px-4 py-2.5 text-body">
-                          <dt className="text-muted">{k}</dt>
-                          <dd className="text-right font-medium">{v as string}</dd>
-                        </div>
-                      ))}
-                    </dl>
+                    <div className="px-5 py-4">
+                      <DetailList
+                        items={[
+                          ['Método', METHOD_LABEL[profile.collection_method as string] ?? String(profile.collection_method)],
+                          [
+                            'Proveedor',
+                            profile.provider_account_code
+                              ? `${profile.provider_account_code} (${profile.provider_environment})`
+                              : 'Ninguno',
+                          ],
+                          ['Cargo automático', profile.auto_charge ? 'Sí' : 'No'],
+                          ['Emitir factura', `${profile.invoice_lead_days} días antes`],
+                          ['Aviso de renovación', `${profile.renewal_notice_days} días antes`],
+                          ['Vencimiento', `${profile.payment_due_days} días tras emitir`],
+                          ['Periodo de gracia', `${profile.grace_period_days} días`],
+                          ['Pedir OS/OC', `${profile.document_lead_days} días antes`],
+                          ['Suspensión automática', profile.auto_suspend ? 'Sí' : 'No'],
+                          ['Vigente desde', formatDate(profile.effective_from as string)],
+                        ]}
+                      />
+                    </div>
                   )}
                 </Card>
 
@@ -374,7 +437,8 @@ export function SubscriptionDetailPage() {
                     />
                   ) : (
                     <DataTable
-                      columns={['Tipo', 'Número', 'Estado', 'Importe', 'Vigencia', 'Hitos', '']}
+                      label="Órdenes de servicio y compra"
+                      columns={['Tipo', 'Número', 'Estado', R('Importe'), 'Vigencia', 'Hitos', { label: 'Acciones', srOnly: true }]}
                     >
                       {docs.map((d) => (
                         <tr key={d.id as string}>
@@ -389,7 +453,7 @@ export function SubscriptionDetailPage() {
                               {DOC_STATUS_LABEL[d.status as string] ?? (d.status as string)}
                             </Badge>
                           </td>
-                          <td className="ebim-td tabular-nums">
+                          <td className="ebim-td ebim-num whitespace-nowrap">
                             {d.amount ? formatMoney(Number(d.amount), d.currency as string) : '—'}
                           </td>
                           <td className="ebim-td text-compact text-muted">
@@ -407,47 +471,41 @@ export function SubscriptionDetailPage() {
                           </td>
                           <td className="ebim-td">
                             {perms.canManageCommercial ? (
-                              <div className="flex items-center justify-end gap-3">
+                              <div className="flex items-center justify-end gap-1 whitespace-nowrap">
+                                {/* La acción que hace avanzar el trámite queda a la vista; el resto, en el menú. */}
                                 {d.status === 'REQUESTED' ? (
                                   <button
-                                    type="button" className="ebim-link text-compact"
+                                    type="button" className="ebim-btn-ghost ebim-btn-sm"
                                     onClick={() => setReceiveId(d.id as string)}
                                   >
                                     Registrar recepción
                                   </button>
                                 ) : null}
                                 {d.status === 'RECEIVED' ? (
-                                  <>
-                                    <button
-                                      type="button" className="ebim-link text-compact"
-                                      onClick={() =>
-                                        setApproveDoc({
-                                          id: d.id as string,
-                                          number: (d.document_number as string) ?? '',
-                                          validTo: (d.valid_to as string) ?? null,
-                                        })
-                                      }
-                                    >
-                                      Aprobar
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="text-compact text-danger hover:underline"
-                                      onClick={() => setRejectId(d.id as string)}
-                                    >
-                                      Rechazar
-                                    </button>
-                                  </>
-                                ) : null}
-                                {['REQUESTED', 'RECEIVED', 'APPROVED'].includes(d.status as string) ? (
                                   <button
-                                    type="button"
-                                    className="text-compact text-muted hover:underline"
-                                    onClick={() => setCancelId(d.id as string)}
+                                    type="button" className="ebim-btn-ghost ebim-btn-sm"
+                                    onClick={() =>
+                                      setApproveDoc({
+                                        id: d.id as string,
+                                        number: (d.document_number as string) ?? '',
+                                        validTo: (d.valid_to as string) ?? null,
+                                      })
+                                    }
                                   >
-                                    Anular
+                                    Aprobar
                                   </button>
                                 ) : null}
+                                <ActionMenu
+                                  label={`Acciones del documento ${(d.document_number as string) ?? ''}`.trim()}
+                                  items={[
+                                    d.status === 'RECEIVED'
+                                      ? { label: 'Rechazar…', tone: 'danger', onSelect: () => setRejectId(d.id as string) }
+                                      : null,
+                                    ['REQUESTED', 'RECEIVED', 'APPROVED'].includes(d.status as string)
+                                      ? { label: 'Anular…', tone: 'danger', onSelect: () => setCancelId(d.id as string) }
+                                      : null,
+                                  ]}
+                                />
                               </div>
                             ) : null}
                           </td>
@@ -468,16 +526,6 @@ export function SubscriptionDetailPage() {
               <Card
                 title="Facturas de esta suscripción"
                 description="Aquí sí hay dinero: una factura PAGADA implica un pago CONFIRMED, y solo eso devenga comisión."
-                actions={
-                  perms.canReadFinance ? (
-                    <Link
-                      className="ebim-btn-ghost ebim-btn-sm"
-                      to={`/organizations/${s.billed_organization_id}#payment-portal`}
-                    >
-                      Compartir enlace de pago
-                    </Link>
-                  ) : null
-                }
               >
                 {s.billing_channel === 'PARTNER_STATEMENT' ? (
                   <p role="note" className="mb-3 rounded-lg border border-border bg-accent-soft px-3 py-2 text-body text-fg">
@@ -494,7 +542,10 @@ export function SubscriptionDetailPage() {
                 ) : subInvoices.length === 0 ? (
                   <EmptyState title="Sin facturas emitidas" />
                 ) : (
-                  <DataTable columns={['Número', 'Período', 'Emitida', 'Vence', 'Total', 'Estado', 'Cobros', '']}>
+                  <DataTable
+                    label="Facturas de esta suscripción"
+                    columns={['Número', 'Período', 'Emitida', 'Vence', R('Total'), 'Estado', 'Cobros', { label: 'Acciones', srOnly: true }]}
+                  >
                     {subInvoices.map((i) => {
                       const payments = (i.payments ?? []) as Array<Record<string, unknown>>;
                       const confirmed = payments.filter((p) => p.status === 'CONFIRMED');
@@ -502,11 +553,15 @@ export function SubscriptionDetailPage() {
                         Math.round((Number(i.total) - confirmed.reduce((a, p) => a + Number(p.amount ?? 0), 0)) * 100) / 100;
                       return (
                         <tr key={i.id}>
-                          <td className="ebim-td font-mono text-compact font-semibold">{i.number}</td>
-                          <td className="ebim-td text-compact text-muted">{formatPeriod(i.period_start)}</td>
-                          <td className="ebim-td text-compact text-muted">{formatDate(i.issue_date)}</td>
-                          <td className="ebim-td text-compact text-muted">{formatDate(i.due_date)}</td>
-                          <td className="ebim-td tabular-nums font-semibold">
+                          <td className="ebim-td">
+                            <span className="block max-w-[220px] truncate whitespace-nowrap font-mono text-compact font-semibold" title={i.number}>
+                              {i.number}
+                            </span>
+                          </td>
+                          <td className="ebim-td whitespace-nowrap text-compact text-fg-2">{formatPeriod(i.period_start)}</td>
+                          <td className="ebim-td whitespace-nowrap text-compact text-fg-2">{formatDate(i.issue_date)}</td>
+                          <td className="ebim-td whitespace-nowrap text-compact text-fg-2">{formatDate(i.due_date)}</td>
+                          <td className="ebim-td ebim-num whitespace-nowrap font-semibold">
                             {formatMoney(Number(i.total), i.currency)}
                           </td>
                           <td className="ebim-td">
@@ -532,11 +587,11 @@ export function SubscriptionDetailPage() {
                           </td>
                           <td className="ebim-td text-right">
                             {perms.canReadFinance && (i.status === 'ISSUED' || i.status === 'PARTIALLY_PAID') && outstanding > 0 ? (
-                              <div className="flex items-center justify-end gap-3">
+                              <div className="flex items-center justify-end gap-1 whitespace-nowrap">
                                 {isCardOnFile ? (
                                   <button
                                     type="button"
-                                    className="ebim-link text-compact"
+                                    className="ebim-btn-ghost ebim-btn-sm"
                                     onClick={() =>
                                       setCharging({ id: i.id, number: i.number, amount: formatMoney(outstanding, i.currency) })
                                     }
@@ -546,7 +601,7 @@ export function SubscriptionDetailPage() {
                                 ) : null}
                                 <button
                                   type="button"
-                                  className="ebim-link text-compact"
+                                  className="ebim-btn-ghost ebim-btn-sm"
                                   onClick={() => setPaying({ id: i.id, number: i.number, currency: i.currency, outstanding })}
                                 >
                                   Registrar cobro
