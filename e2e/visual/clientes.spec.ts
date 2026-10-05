@@ -43,6 +43,8 @@ const DEMO_CUSTOMER = process.env.VISUAL_CUSTOMER ?? 'Qhapaq';
 async function settle(page: Page) {
   await page.waitForLoadState('networkidle', { timeout: 20_000 }).catch(() => undefined);
   await page.locator('[aria-busy="true"]').first().waitFor({ state: 'detached', timeout: 15_000 }).catch(() => undefined);
+  // Los gráficos de Recharts llegan en un chunk perezoso: esperar a que el esqueleto se vaya.
+  await page.locator('[data-chart-skeleton]').first().waitFor({ state: 'detached', timeout: 15_000 }).catch(() => undefined);
   await page.evaluate(() => document.fonts?.ready);
   await page.waitForTimeout(600);
 }

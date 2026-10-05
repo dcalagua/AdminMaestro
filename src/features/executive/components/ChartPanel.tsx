@@ -132,7 +132,7 @@ export function ChartPanel({
 /** Forma de un gráfico de barras mientras carga (§5.12). */
 export function ChartSkeleton({ height = 220 }: { height?: number }) {
   return (
-    <div aria-hidden>
+    <div aria-hidden data-chart-skeleton>
       <div className="flex items-end gap-3 border-b border-border" style={{ height }}>
         {[45, 60, 52, 70, 64, 82, 76, 90].map((h, i) => (
           <Skeleton key={i} className="flex-1 rounded-b-none" style={{ height: `${h}%` }} />

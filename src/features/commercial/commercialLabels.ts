@@ -5,3 +5,11 @@ export const AGENT_TYPE_LABEL: Record<string, string> = {
   INDEPENDENT: 'Independiente',
   PARTNER_AGENT: 'De partner',
 };
+
+export const SOURCE_LABEL: Record<string, string> = {
+  DIRECT: 'Venta directa',
+  PARTNER: 'Vía partner',
+  REFERRAL: 'Referido',
+  INBOUND: 'Inbound',
+  CAMPAIGN: 'Campaña',
+};

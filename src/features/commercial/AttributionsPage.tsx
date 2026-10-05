@@ -17,14 +17,7 @@ import {
 } from '@/features/catalog/catalogLabels';
 import type { EntityStatusTab } from '@/features/catalog/catalogLabels';
 import { AttributionFormDialog } from './CommercialDialogs';
-
-const SOURCE_LABEL: Record<string, string> = {
-  DIRECT: 'Venta directa',
-  PARTNER: 'Vía partner',
-  REFERRAL: 'Referido',
-  INBOUND: 'Inbound',
-  CAMPAIGN: 'Campaña',
-};
+import { SOURCE_LABEL } from './commercialLabels';
 
 function pct(value: unknown): string {
   return `${(Number(value) * 100).toFixed(0)}%`;

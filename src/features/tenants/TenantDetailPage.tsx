@@ -3,7 +3,14 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 import {
   useTenant, useTenantFeatures, useTenantAttributions, useTenantProductMappings, useProvisioningTargets,
 } from '@/services/queries';
-import { useTenantAudit, useTenantInfraRequests, useTenantMarginRows, useTenantSubscriptions } from './tenantQueries';
+import { useTenantAudit, useTenantInfraRequests, useTenantMarginRows, useTenantRenewals, useTenantSubscriptions } from './tenantQueries';
+import { useAccountSeries } from '@/services/queries';
+import { Avatar } from '@/components/ui/Avatar';
+import { KpiTile } from '@/components/ui/primitives';
+import { KpiStrip } from '@/features/billing/financeUi';
+import { AccountMrrTile, AccountTrendCharts, HealthTile } from '@/features/organizations/AccountPanels';
+import { accountHealth } from '@/features/organizations/accountSeriesModel';
+import { AGENT_TYPE_LABEL, SOURCE_LABEL } from '@/features/commercial/commercialLabels';
 import { tenantDimensions } from './tenantDimensions';
 import { TenantDimensionsView } from './TenantDimensionsView';
 import { TenantAddonsPanel } from './TenantAddonsPanel';
@@ -14,7 +21,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { isFinance, canManagePlatform } from '@/features/auth/session';
 import { SectionTabs } from '@/components/ui/SectionTabs';
 import {
-  PageContainer, Card, DataTable, StatCard, LoadingState, ErrorState, EmptyState, Badge,
+  PageContainer, Card, DataTable, LoadingState, ErrorState, EmptyState, Badge,
 } from '@/components/ui/primitives';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/toast-context';
@@ -28,6 +35,13 @@ import {
   type ProvisioningEnvironment,
   type SaasProvisioningStatus,
 } from '@/lib/provisioning';
+
+const ENVIRONMENT_TEXT: Record<string, string> = {
+  PRODUCTION: 'Producción',
+  TRIAL: 'Prueba',
+  DEMO: 'Demostración',
+  SANDBOX: 'Sandbox',
+};
 
 /**
  * Tenant 360 (P31, spec §11.2): cuatro dimensiones visibles — comercial, alta
@@ -64,6 +78,8 @@ export function TenantDetailPage() {
   const productProvisioning = useTenantProductMappings(tenantId);
   const provisioning = useTenantInfraRequests(tenantId);
   const audit = useTenantAudit(tenantId);
+  const series = useAccountSeries({ tenantId });
+  const renewals = useTenantRenewals(tenantId);
   const perms = usePermissions();
   const toast = useToast();
   const suspend = useRequestTenantSuspension();
@@ -129,35 +145,41 @@ export function TenantDetailPage() {
   return (
     <PageContainer
       title={t.name as string}
-      description={`${t.product_lockup} · ${t.customer_name}${t.managing_name ? ` · administrado por ${t.managing_name}` : ' · venta directa EBIM'}`}
-      actions={
-        <div className="flex flex-wrap items-center gap-1.5">
-          <Badge tone={t.tenant_type === 'PRODUCTION' ? 'ok' : 'info'}>
-            {TENANT_TYPE_LABEL[t.tenant_type as keyof typeof TENANT_TYPE_LABEL]}
-          </Badge>
-          <Badge tone="accent">
-            {DEPLOYMENT_MODE_LABEL[t.deployment_mode as keyof typeof DEPLOYMENT_MODE_LABEL]}
-          </Badge>
-          <Badge tone={t.status === 'ACTIVE' ? 'ok' : 'warn'}>
+      leading={<Avatar name={(t.customer_name as string) ?? (t.name as string)} size="lg" />}
+      titleAside={
+        <>
+          <Badge tone={t.status === 'ACTIVE' ? 'ok' : t.status === 'SUSPENDED' || t.status === 'CHURNED' ? 'danger' : 'warn'} dot>
             {TENANT_STATUS_LABEL[t.status as keyof typeof TENANT_STATUS_LABEL]}
           </Badge>
-          {perms.canManagePlatform && t.status === 'ACTIVE' ? (
-            <button
-              type="button" className="ebim-btn-ghost ml-2"
-              onClick={() => setPendingAction('SUSPEND')}
-            >
-              Suspender
-            </button>
+          <Badge tone={t.tenant_type === 'PRODUCTION' ? 'neutral' : 'info'}>
+            {TENANT_TYPE_LABEL[t.tenant_type as keyof typeof TENANT_TYPE_LABEL]}
+          </Badge>
+          <Badge tone="neutral">
+            {DEPLOYMENT_MODE_LABEL[t.deployment_mode as keyof typeof DEPLOYMENT_MODE_LABEL]}
+          </Badge>
+        </>
+      }
+      description={`${t.product_lockup} · ${t.customer_name}${t.managing_name ? ` · administrado por ${t.managing_name}` : ' · venta directa EBIM'}`}
+      meta={
+        <>
+          {t.customer_organization_id ? (
+            <Link className="ebim-link" to={`/organizations/${t.customer_organization_id}`}>
+              Ficha 360 de {t.customer_name as string}
+            </Link>
           ) : null}
-          {perms.canManagePlatform && t.status === 'SUSPENDED' ? (
-            <button
-              type="button" className="ebim-btn-primary ml-2"
-              onClick={() => setPendingAction('RESUME')}
-            >
-              Reactivar
-            </button>
-          ) : null}
-        </div>
+          {t.market_code ? <span> · Mercado {t.market_code as string}</span> : null}
+        </>
+      }
+      actions={
+        perms.canManagePlatform && t.status === 'ACTIVE' ? (
+          <button type="button" className="ebim-btn-ghost" onClick={() => setPendingAction('SUSPEND')}>
+            Suspender
+          </button>
+        ) : perms.canManagePlatform && t.status === 'SUSPENDED' ? (
+          <button type="button" className="ebim-btn-primary" onClick={() => setPendingAction('RESUME')}>
+            Reactivar
+          </button>
+        ) : null
       }
     >
       {onboarded ? (
@@ -170,18 +192,18 @@ export function TenantDetailPage() {
           <ul className="mt-2 flex flex-wrap gap-2 text-sm">
             {onboarded.subscriptionId ? (
               <li>
-                <Link className="ebim-btn-secondary h-8 px-3 text-xs" to={`/subscriptions/${onboarded.subscriptionId}`}>
+                <Link className="ebim-btn-secondary ebim-btn-sm" to={`/subscriptions/${onboarded.subscriptionId}`}>
                   Revisar el contrato
                 </Link>
               </li>
             ) : null}
             <li>
-              <a className="ebim-btn-ghost h-8 px-3 text-xs" href="#products">
+              <a className="ebim-btn-ghost ebim-btn-sm" href="#products">
                 Ver estado del alta en el producto
               </a>
             </li>
             <li>
-              <Link className="ebim-btn-ghost h-8 px-3 text-xs" to="/saas-provisioning">
+              <Link className="ebim-btn-ghost ebim-btn-sm" to="/saas-provisioning">
                 Ir a Altas SaaS (decisión manual)
               </Link>
             </li>
@@ -189,30 +211,46 @@ export function TenantDetailPage() {
         </section>
       ) : null}
 
-      <div className="mb-4">
+      <KpiStrip label="Indicadores del tenant">
+        <AccountMrrTile
+          query={series}
+          info="MRR contratado de los contratos de este tenant, a hoy (misma definición que el Resumen Ejecutivo)"
+        />
+        <KpiTile
+          label="Plan"
+          value={t.plan_name ? <span className="text-h2">{t.plan_name as string}</span> : null}
+          footer={t.plan_name ? `${t.product_short_name as string} · ${TENANT_TYPE_LABEL[t.tenant_type as keyof typeof TENANT_TYPE_LABEL]}` : 'Sin plan contratado'}
+        />
+        <KpiTile
+          label="Infraestructura"
+          value={
+            t.deployment_target_code ? (
+              <span className="block max-w-full truncate font-mono text-h3" title={t.deployment_target_code as string}>
+                {t.deployment_target_code as string}
+              </span>
+            ) : null
+          }
+          footer={
+            t.deployment_target_code
+              ? `${DEPLOYMENT_MODE_LABEL[t.deployment_mode as keyof typeof DEPLOYMENT_MODE_LABEL]}${t.deployment_region ? ` · ${t.deployment_region as string}` : ''}`
+              : 'Sin destino asignado'
+          }
+        />
+        <HealthTile
+          health={accountHealth(renewals.data ?? [])}
+          loading={renewals.isLoading}
+          error={Boolean(renewals.error)}
+          onRetry={() => void renewals.refetch()}
+        />
+      </KpiStrip>
+
+      <div className="mb-6">
         {productProvisioning.error ? (
-          <p className="mb-2 text-xs font-semibold text-warn" role="status">
+          <p className="mb-2 text-compact font-semibold text-warn" role="status">
             No se pudieron leer las altas SaaS: «Alta técnica» y «Acceso administrador» pueden estar incompletos.
           </p>
         ) : null}
         <TenantDimensionsView dims={dims} />
-      </div>
-
-      <div className="mb-5 grid gap-3 sm:grid-cols-4">
-        <StatCard
-          label="MRR vigente"
-          value={Number(t.mrr) === 0 || !t.currency ? 'Sin recurrente vigente' : formatMoney(Number(t.mrr), t.currency as string | null)}
-          tone={Number(t.mrr) > 0 ? 'ok' : 'neutral'}
-          hint="Foto actual del contrato"
-        />
-        <StatCard label="Plan" value={(t.plan_name as string) ?? 'Sin plan'} />
-        <StatCard label="Infraestructura" value={(t.deployment_target_code as string) ?? 'Sin asignar'} hint={(t.deployment_region as string) ?? undefined} />
-        <StatCard
-          label="Administrador"
-          value={t.admin_activated_at ? 'Activado' : 'Sin activar'}
-          tone={t.admin_activated_at ? 'ok' : 'warn'}
-          hint={t.admin_email as string}
-        />
       </div>
 
       <SectionTabs
@@ -221,28 +259,31 @@ export function TenantDetailPage() {
             id: 'overview',
             label: 'Resumen',
             content: (
-              <Card title="Datos del tenant">
-                <dl className="divide-y divide-border">
-                  {[
-                    ['Slug', t.slug],
-                    ['Producto', t.product_lockup],
-                    ['Organización cliente', t.customer_name],
-                    ['Organización que administra', t.managing_name ?? 'Ninguna (venta directa EBIM)'],
-                    ['Tipo', TENANT_TYPE_LABEL[t.tenant_type as keyof typeof TENANT_TYPE_LABEL]],
-                    ['Entorno', t.environment],
-                    ['Modelo de despliegue', DEPLOYMENT_MODE_LABEL[t.deployment_mode as keyof typeof DEPLOYMENT_MODE_LABEL]],
-                    ['Correo del administrador', t.admin_email],
-                    ['Administrador activado', t.admin_activated_at ? formatDateTime(t.admin_activated_at as string) : 'Pendiente de activar'],
-                    ['Creado', formatDateTime(t.created_at as string)],
-                    ['Activado', t.activated_at ? formatDateTime(t.activated_at as string) : '—'],
-                  ].map(([k, v]) => (
-                    <div key={k as string} className="flex justify-between gap-4 px-4 py-2.5 text-sm">
-                      <dt className="text-muted">{k as string}</dt>
-                      <dd className="text-right font-medium">{(v as string) ?? '—'}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </Card>
+              <div className="space-y-4">
+                <AccountTrendCharts query={series} subject={t.name as string} />
+                <Card title="Datos del tenant">
+                  <dl className="grid gap-x-8 px-5 py-2 md:grid-cols-2">
+                    {[
+                      ['Slug', <span key="slug" className="font-mono text-compact">{t.slug as string}</span>],
+                      ['Producto', t.product_lockup],
+                      ['Organización cliente', t.customer_name],
+                      ['Organización que administra', t.managing_name ?? 'Ninguna (venta directa EBIM)'],
+                      ['Tipo', TENANT_TYPE_LABEL[t.tenant_type as keyof typeof TENANT_TYPE_LABEL]],
+                      ['Entorno', ENVIRONMENT_TEXT[t.environment as string] ?? t.environment],
+                      ['Modelo de despliegue', DEPLOYMENT_MODE_LABEL[t.deployment_mode as keyof typeof DEPLOYMENT_MODE_LABEL]],
+                      ['Correo del administrador', t.admin_email],
+                      ['Administrador activado', t.admin_activated_at ? formatDateTime(t.admin_activated_at as string) : 'Pendiente de activar'],
+                      ['Creado', formatDateTime(t.created_at as string)],
+                      ['Activado', t.activated_at ? formatDateTime(t.activated_at as string) : '—'],
+                    ].map(([k, v]) => (
+                      <div key={k as string} className="flex justify-between gap-4 border-b border-border py-2.5 text-body">
+                        <dt className="text-muted">{k as string}</dt>
+                        <dd className="min-w-0 truncate text-right font-medium">{(v as React.ReactNode) ?? '—'}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </Card>
+              </div>
             ),
           },
           {
@@ -253,19 +294,19 @@ export function TenantDetailPage() {
                 {(attributions.data ?? []).length === 0 ? (
                   <EmptyState title="Sin atribución comercial" description="Esta venta no tiene comercial asignado." />
                 ) : (
-                  <DataTable columns={['Comercial', 'Tipo', 'Participación', 'Plan de comisión', 'Origen', 'Vigencia']}>
+                  <DataTable columns={['Comercial', 'Tipo', { label: 'Participación', align: 'right' }, 'Plan de comisión', 'Origen', 'Vigencia']}>
                     {(attributions.data ?? []).map((a) => (
                       <tr key={a.id as string}>
                         <td className="ebim-td font-semibold">
                           {(a.sales_agents as { full_name: string } | null)?.full_name}
                         </td>
                         <td className="ebim-td">
-                          <Badge tone="info">{(a.sales_agents as { agent_type: string } | null)?.agent_type}</Badge>
+                          <Badge tone="neutral">{AGENT_TYPE_LABEL[(a.sales_agents as { agent_type: string } | null)?.agent_type ?? ''] ?? (a.sales_agents as { agent_type: string } | null)?.agent_type}</Badge>
                         </td>
-                        <td className="ebim-td tabular-nums">{(Number(a.attribution_pct) * 100).toFixed(0)}%</td>
+                        <td className="ebim-td ebim-num">{(Number(a.attribution_pct) * 100).toFixed(0)}%</td>
                         <td className="ebim-td">{(a.commission_plans as { name: string } | null)?.name ?? '—'}</td>
-                        <td className="ebim-td text-muted">{a.source as string}</td>
-                        <td className="ebim-td text-xs text-muted">
+                        <td className="ebim-td text-fg-2">{SOURCE_LABEL[a.source as string] ?? (a.source as string)}</td>
+                        <td className="ebim-td text-compact text-muted">
                           {formatDate(a.valid_from as string)} → {a.valid_to ? formatDate(a.valid_to as string) : 'sin fin'}
                         </td>
                       </tr>
@@ -296,7 +337,7 @@ export function TenantDetailPage() {
                         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2.5">
                           <div>
                             <Link className="ebim-link font-semibold" to={`/subscriptions/${s.id}`}>{s.code}</Link>
-                            <span className="ml-2 text-sm text-muted">
+                            <span className="ml-2 text-compact text-muted">
                               {(s.plans as { name: string } | null)?.name}
                             </span>
                           </div>
@@ -340,7 +381,7 @@ export function TenantDetailPage() {
                       ['Proveedor', t.deployment_provider ?? '—'],
                       ['Región', t.deployment_region ?? '—'],
                     ].map(([k, v]) => (
-                      <div key={k as string} className="flex justify-between gap-4 px-4 py-2.5 text-sm">
+                      <div key={k as string} className="flex justify-between gap-4 px-5 py-2.5 text-body">
                         <dt className="text-muted">{k as string}</dt>
                         <dd className="text-right font-medium">{(v as string) ?? '—'}</dd>
                       </div>
@@ -363,7 +404,7 @@ export function TenantDetailPage() {
                             </Badge>
                           </td>
                           <td className="ebim-td tabular-nums">{p.attempts as number}/{p.max_attempts as number}</td>
-                          <td className="ebim-td text-xs text-muted">{formatDateTime(p.created_at as string)}</td>
+                          <td className="ebim-td text-compact text-muted">{formatDateTime(p.created_at as string)}</td>
                         </tr>
                       ))}
                     </DataTable>
@@ -409,15 +450,15 @@ export function TenantDetailPage() {
                             ]
                           }
                         </td>
-                        <td className="ebim-td font-mono text-xs">
+                        <td className="ebim-td font-mono text-compact">
                           {(r.deployment_code as string) ?? '—'}
                         </td>
-                        <td className="ebim-td font-mono text-xs">
+                        <td className="ebim-td font-mono text-compact">
                           {(r.external_tenant_id as string) ?? (
                             <span className="text-muted">todavía sin ID</span>
                           )}
                         </td>
-                        <td className="ebim-td text-xs text-muted">
+                        <td className="ebim-td text-compact text-muted">
                           {r.completed_at ? formatDateTime(r.completed_at as string) : '—'}
                         </td>
                       </tr>
@@ -447,7 +488,7 @@ export function TenantDetailPage() {
                         <td className="ebim-td">
                           <Badge tone={f.enabled ? 'ok' : 'neutral'}>{f.enabled ? 'Activo' : 'Inactivo'}</Badge>
                         </td>
-                        <td className="ebim-td text-xs text-muted">{formatDateTime(f.updated_at)}</td>
+                        <td className="ebim-td text-compact text-muted">{formatDateTime(f.updated_at)}</td>
                       </tr>
                     ))}
                   </DataTable>
@@ -475,21 +516,30 @@ export function TenantDetailPage() {
             label: 'Costos y margen',
             hidden: !showFinance,
             content: (
-              <Card title="Rentabilidad del tenant">
+              <Card title="Rentabilidad del tenant" description="Margen bruto = cobrado − costo − comisión, una fila por moneda (nunca se mezclan).">
                 {tenantMargins.length > 0 ? (
-                  tenantMargins.map((margin) => (
-                    <div key={margin.currency} className="grid gap-3 p-4 sm:grid-cols-4">
-                      <StatCard label={`MRR · ${margin.currency}`} value={formatMoney(Number(margin.mrr), margin.currency)} />
-                      <StatCard label="Ingreso cobrado" value={formatMoney(Number(margin.collected_revenue), margin.currency)} />
-                      <StatCard label="Costo directo" value={formatMoney(Number(margin.direct_cost), margin.currency)} tone="warn" />
-                      <StatCard
-                        label="Margen bruto"
-                        value={formatMoney(Number(margin.gross_margin), margin.currency)}
-                        tone={Number(margin.gross_margin) >= 0 ? 'ok' : 'danger'}
-                        hint="cobrado − costo − comisión, en la misma moneda"
-                      />
-                    </div>
-                  ))
+                  <DataTable
+                    label="Margen por moneda"
+                    columns={[
+                      'Moneda',
+                      { label: 'MRR', align: 'right' },
+                      { label: 'Ingreso cobrado', align: 'right' },
+                      { label: 'Costo directo', align: 'right' },
+                      { label: 'Margen bruto', align: 'right' },
+                    ]}
+                  >
+                    {tenantMargins.map((m) => (
+                      <tr key={m.currency}>
+                        <td className="ebim-td font-semibold">{m.currency}</td>
+                        <td className="ebim-td ebim-num">{formatMoney(Number(m.mrr), m.currency)}</td>
+                        <td className="ebim-td ebim-num">{formatMoney(Number(m.collected_revenue), m.currency)}</td>
+                        <td className="ebim-td ebim-num">{formatMoney(Number(m.direct_cost), m.currency)}</td>
+                        <td className={`ebim-td ebim-num font-semibold ${Number(m.gross_margin) < 0 ? 'text-danger' : ''}`}>
+                          {formatMoney(Number(m.gross_margin), m.currency)}
+                        </td>
+                      </tr>
+                    ))}
+                  </DataTable>
                 ) : (
                   <EmptyState title="Sin datos de margen para este tenant" />
                 )}
@@ -507,7 +557,7 @@ export function TenantDetailPage() {
                   <DataTable columns={['Fecha', 'Actor', 'Acción', 'Entidad']}>
                     {tenantAudit.map((a) => (
                       <tr key={a.id as unknown as string}>
-                        <td className="ebim-td text-xs text-muted">{formatDateTime(a.occurred_at)}</td>
+                        <td className="ebim-td text-compact text-muted">{formatDateTime(a.occurred_at)}</td>
                         <td className="ebim-td">{a.actor_email ?? '—'}</td>
                         <td className="ebim-td font-semibold">{a.action}</td>
                         <td className="ebim-td text-muted">{a.entity_type}</td>

@@ -20,15 +20,15 @@ const TONE: Record<DimTone, string> = {
 function Cell({ title, question, dim, extra }: { title: string; question: string; dim: Dimension; extra?: string }) {
   const Icon = ICON[dim.tone];
   return (
-    <div className="ebim-card p-4">
-      <p className="text-[11px] font-bold uppercase tracking-wider text-muted">{title}</p>
-      <p className="text-[11px] text-muted">{question}</p>
-      <p className={`mt-2 flex items-start gap-1.5 text-sm font-semibold ${TONE[dim.tone]}`}>
-        <Icon size={18} aria-hidden className="mt-px shrink-0" />
+    <div className="p-4">
+      <p className="text-micro text-muted">{title}</p>
+      <p className="text-caption text-muted">{question}</p>
+      <p className="mt-2 flex items-start gap-1.5 text-compact font-semibold text-fg">
+        <Icon size={18} aria-hidden className={`mt-px shrink-0 ${TONE[dim.tone]}`} />
         <span>{dim.label}</span>
       </p>
-      {extra ? <p className="mt-1 text-sm font-semibold text-fg">{extra}</p> : null}
-      <p className="mt-1 text-xs text-muted">{dim.detail}</p>
+      {extra ? <p className="mt-1 text-compact font-semibold text-fg">{extra}</p> : null}
+      <p className="mt-1 text-caption text-fg-2">{dim.detail}</p>
     </div>
   );
 }
@@ -36,7 +36,10 @@ function Cell({ title, question, dim, extra }: { title: string; question: string
 /** Cuatro dimensiones en paralelo, sin resumen global (spec §11.2). */
 export function TenantDimensionsView({ dims }: { dims: TenantDimensions }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Estado del tenant por dimensión">
+    <div
+      className="ebim-card grid divide-y divide-border sm:grid-cols-2 sm:divide-y-0 xl:grid-cols-4 xl:divide-x"
+      aria-label="Estado del tenant por dimensión"
+    >
       <Cell title="Comercial" question="¿Qué dice el contrato?" dim={dims.commercial} extra={dims.commercial.mrr} />
       <Cell title="Alta técnica" question="¿Se registró en el producto?" dim={dims.technical} />
       <Cell title="Salud" question="¿Qué se observó del destino?" dim={dims.health} />
@@ -53,7 +56,7 @@ export function TenantDimensionsInline({ dims }: { dims: TenantDimensions }) {
     ['Admin', dims.admin],
   ];
   return (
-    <ul className="space-y-0.5 text-xs">
+    <ul className="space-y-0.5 text-caption">
       {rows.map(([k, d]) => {
         const Icon = ICON[d.tone];
         return (
