@@ -73,7 +73,8 @@ test('error, no disponible, carga y vacío son distintos de cero', async ({ brow
     route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ message: 'fallo simulado de lectura' }) }),
   );
   await page.goto('/billing');
-  await expect(page.getByText('No se pudo leer este dato').first()).toBeVisible();
+  // Los totales del filtro viven dentro de la tarjeta del listado (fase 10).
+  await expect(page.getByRole('alert').filter({ hasText: 'No se pudieron leer los totales del resultado.' })).toBeVisible();
   await shot(page, 'state-error-billing-summary', 'error de la agregación: error explícito, nunca 0');
   await page.unroute('**/rest/v1/rpc/invoice_summary');
   // En el resumen V4 el cobrado y la vencida salen de executive_billing_series.
