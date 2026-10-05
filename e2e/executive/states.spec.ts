@@ -141,7 +141,8 @@ test('E11 en navegador real: la sesión B no ve datos de A', async ({ browser })
   await login(page, USERS.superAdmin);
   await page.goto('/billing?q=DEMO-EXEC-0002');
   await expect(page.getByText('DEMO-EXEC-0002').first()).toBeVisible();
-  await page.getByRole('button', { name: 'Salir' }).first().click();
+  await page.getByRole('button', { name: 'Menú de cuenta' }).first().click();
+  await page.getByRole('menuitem', { name: 'Salir' }).click();
   await expect(page.getByLabel('Correo corporativo')).toBeVisible();
 
   // Mismo navegador, otra identidad (partner de otra organización).
