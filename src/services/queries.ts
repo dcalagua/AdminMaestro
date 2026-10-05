@@ -360,12 +360,25 @@ export function useSubscriptionCollection(subscriptionId?: string) {
   });
 }
 
-/** Cuentas de proveedor de cobro. No contienen secretos, solo referencias. */
+/**
+ * Columnas de `payment_provider_accounts` que puede leer la consola. Lista
+ * explícita, no `*`: `secret_vault_id` está fuera del alcance de `authenticated`
+ * por privilegio de columna y un `select *` fallaría con 42501.
+ */
+const PROVIDER_ACCOUNT_COLUMNS =
+  'id, code, name, provider_kind, environment, owner_organization_id, country_code, currency, ' +
+  'public_key, secret_key_ref, rsa_public_key_ref, rsa_id_ref, webhook_endpoint, status, metadata, ' +
+  'market_id, routing_priority, secret_hint, secret_set_at, api_base_url, created_at, updated_at';
+
+/**
+ * Cuentas de proveedor de cobro. Sin secretos: de la llave cifrada solo llega su
+ * PISTA (`sk_test_…abcd`) y la fecha en que se configuró.
+ */
 export function useProviderAccounts() {
   return useQuery({
     queryKey: ['provider-accounts'],
     queryFn: async () =>
-      unwrap(await supabase.from('payment_provider_accounts').select('*').order('code')),
+      unwrap(await supabase.from('payment_provider_accounts').select(PROVIDER_ACCOUNT_COLUMNS).order('code')),
   });
 }
 
@@ -1258,7 +1271,7 @@ export function useCurrentCollectionProfile(subscriptionId: string | undefined) 
       const { data, error } = await supabase
         .from('subscription_collection_profiles')
         .select(
-          'id, collection_method, recurring_mode, payment_method_id, auto_charge, provider_account_id, payment_provider_accounts(code, environment, public_key, secret_key_ref, status)',
+          'id, collection_method, recurring_mode, payment_method_id, auto_charge, provider_account_id, payment_provider_accounts(code, environment, public_key, secret_key_ref, secret_hint, api_base_url, status)',
         )
         .eq('subscription_id', subscriptionId!)
         .is('effective_to', null)

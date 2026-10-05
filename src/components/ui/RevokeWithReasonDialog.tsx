@@ -10,6 +10,7 @@ export function RevokeWithReasonDialog({
   open,
   title,
   description,
+  submitLabel = 'Revocar',
   busy,
   onSubmit,
   onCancel,
@@ -17,6 +18,8 @@ export function RevokeWithReasonDialog({
   open: boolean;
   title: string;
   description: string;
+  /** Texto del botón de confirmación (por defecto «Revocar»). */
+  submitLabel?: string;
   busy: boolean;
   onSubmit: (reason: string) => Promise<void>;
   onCancel: () => void;
@@ -37,13 +40,13 @@ export function RevokeWithReasonDialog({
       open={open}
       title={title}
       description={description}
-      submitLabel="Revocar"
+      submitLabel={submitLabel}
       busy={busy}
       error={error}
       onCancel={onCancel}
       onSubmit={() => {
         if (reason.trim() === '') {
-          setError(new Error('MOTIVO_REQUERIDO: indica el motivo de la revocación.'));
+          setError(new Error('MOTIVO_REQUERIDO: indica el motivo.'));
           return;
         }
         setError(null);

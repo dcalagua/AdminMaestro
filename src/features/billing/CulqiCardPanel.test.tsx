@@ -67,6 +67,24 @@ describe('CulqiCardPanel', () => {
     expect(screen.getByText('Culqi pendiente de configurar')).toBeInTheDocument();
   });
 
+  it('la llave secreta cifrada (solo su pista) cuenta como configurada; sin ninguna llave secreta, MOCK', () => {
+    state.profile = {
+      recurring_mode: 'PROVIDER_SUBSCRIPTION', payment_method_id: null,
+      payment_provider_accounts: { ...account('pk_test_abc'), secret_key_ref: null, secret_hint: 'sk_test_…abcd' },
+    };
+    const { unmount } = renderPanel();
+    expect(screen.queryByText('Culqi pendiente de configurar')).not.toBeInTheDocument();
+    unmount();
+
+    state.profile = {
+      recurring_mode: 'PROVIDER_SUBSCRIPTION', payment_method_id: null,
+      payment_provider_accounts: { ...account('pk_test_abc'), secret_key_ref: null, secret_hint: null },
+    };
+    renderPanel();
+    expect(screen.getByText('Culqi pendiente de configurar')).toBeInTheDocument();
+    expect(screen.getByText(/llave secreta configurada/)).toBeInTheDocument();
+  });
+
   it('muestra la tarjeta guardada, la autorización y el modo CARD_ON_FILE', () => {
     state.profile = { recurring_mode: 'CARD_ON_FILE', payment_method_id: 'pm1', payment_provider_accounts: account('pk_test_abc') };
     state.auths = [{ id: 'a1', brand: 'VISA', last4: '4242', accepted_at: '2026-10-01T00:00:00Z', terms_version: 'CARD_ON_FILE_V1',

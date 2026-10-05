@@ -1,22 +1,31 @@
 import { useState } from 'react';
 import { useMarkets, useProviderAccountRoutes, useProviderAccounts } from '@/services/queries';
-import { useUpsertProviderAccount } from '@/services/mutations';
+import {
+  useClearPaymentProviderSecret, useSetPaymentProviderApiBase, useUpsertProviderAccount,
+} from '@/services/mutations';
 import { useSearchFilter } from '@/hooks/useSearchFilter';
+import { usePermissions } from '@/hooks/usePermissions';
+import { formatDate } from '@/lib/format';
 import {
   Badge, Card, DataTable, EmptyState, ErrorState, LoadingState, SearchBar,
 } from '@/components/ui/primitives';
 import { FormDialog } from '@/components/ui/FormDialog';
+import { RevokeWithReasonDialog } from '@/components/ui/RevokeWithReasonDialog';
 import { CheckboxField, FieldRow, NumberField, SelectField, TextField } from '@/components/ui/fields';
 import { useToast } from '@/components/ui/toast-context';
-import { validateProviderAccount, type DraftErrors, type ProviderAccountDraft } from './providerAccountForm';
+import {
+  normalizeApiBaseUrl, validateProviderAccount, type DraftErrors, type ProviderAccountDraft,
+} from './providerAccountForm';
+import { ProviderSecretDialog, type SecretTarget } from './ProviderSecretDialog';
 
 /**
- * Configuración → «Cuentas de pago» (finanzas). Spec §2.5.
+ * Configuración → «Cuentas de pago» (finanzas). Spec §2.5 y §11.
  *
- * Alta y edición con `upsert_payment_provider_account`. Aquí solo viven la llave
- * PÚBLICA (`pk_`, la usa el Checkout del navegador) y el NOMBRE del secret del
- * servidor. La clave secreta (`sk_`) nunca se escribe en esta pantalla: se carga
- * con `supabase secrets set <NOMBRE>=…` en el servidor.
+ * Ficha de la cuenta con `upsert_payment_provider_account` (+ URL de la API con
+ * `set_payment_provider_api_base`). La llave SECRETA (`sk_`) se gestiona aparte
+ * —«Configurar llave», «Reemplazar», «Quitar»— y se guarda CIFRADA en el servidor
+ * (Supabase Vault): esta pantalla solo vuelve a ver su pista (`sk_test_…abcd`).
+ * La variable de entorno (`secret_key_ref`) queda como opción avanzada.
  */
 
 const KIND_LABEL: Record<string, string> = {
@@ -42,8 +51,10 @@ const EMPTY: ProviderAccountDraft = {
   currencies: [],
   publicKey: '',
   secretKeyRef: '',
+  apiBaseUrl: '',
   routingPriority: '100',
   status: 'ACTIVE',
+  hasEncryptedKey: false,
 };
 
 type FullAccount = {
@@ -55,14 +66,26 @@ type FullAccount = {
   rsa_id_ref: string | null;
   webhook_endpoint: string | null;
   metadata: unknown;
+  secret_hint: string | null;
+  secret_set_at: string | null;
+  api_base_url: string | null;
 };
+
+type ClearTarget = { id: string; code: string; environment: string };
 
 export function PaymentAccountsPanel() {
   const routes = useProviderAccountRoutes();
   const accounts = useProviderAccounts();
   const markets = useMarkets();
   const upsert = useUpsertProviderAccount();
+  const setApiBase = useSetPaymentProviderApiBase();
+  const clearSecret = useClearPaymentProviderSecret();
   const toast = useToast();
+  // La RPC vuelve a decidir: esto solo evita ofrecer acciones que la base rechazaría.
+  const canConfigure = usePermissions().canReadFinance;
+
+  const [secretTarget, setSecretTarget] = useState<SecretTarget | null>(null);
+  const [clearTarget, setClearTarget] = useState<ClearTarget | null>(null);
 
   const [draft, setDraft] = useState<ProviderAccountDraft | null>(null);
   const [errors, setErrors] = useState<DraftErrors>({});
@@ -93,8 +116,10 @@ export function PaymentAccountsPanel() {
       currencies: r.currencies ?? [],
       publicKey: a?.public_key ?? '',
       secretKeyRef: a?.secret_key_ref ?? '',
+      apiBaseUrl: a?.api_base_url ?? '',
       routingPriority: String(r.routing_priority ?? 100),
       status: (r.status ?? 'ACTIVE') as ProviderAccountDraft['status'],
+      hasEncryptedKey: Boolean(a?.secret_hint),
     });
     setErrors({});
     setServerError(null);
@@ -111,7 +136,7 @@ export function PaymentAccountsPanel() {
     if (Object.keys(found).length > 0) return;
     const previous = draft.id ? full.get(draft.id) : undefined;
     try {
-      await upsert.mutateAsync({
+      const id = await upsert.mutateAsync({
         p_id: draft.id ?? undefined,
         p_code: draft.code.trim(),
         p_name: draft.name.trim(),
@@ -131,6 +156,11 @@ export function PaymentAccountsPanel() {
         p_webhook_endpoint: previous?.webhook_endpoint ?? undefined,
         p_metadata: (previous?.metadata as never) ?? undefined,
       });
+      // La URL de la API no la reescribe el upsert: va por su propia RPC (auditada).
+      const apiBase = normalizeApiBaseUrl(draft.apiBaseUrl);
+      if (apiBase !== (previous?.api_base_url ?? null)) {
+        await setApiBase.mutateAsync({ p_account_id: id, p_api_base_url: apiBase ?? '' });
+      }
       toast.success(draft.id ? 'Cuenta actualizada' : 'Cuenta creada', draft.code);
       setDraft(null);
     } catch (error) {
@@ -140,14 +170,69 @@ export function PaymentAccountsPanel() {
 
   const rows = filtered;
 
+  async function clear(reason: string) {
+    if (!clearTarget) return;
+    await clearSecret.mutateAsync({ p_account_id: clearTarget.id, p_reason: reason });
+    toast.success('Llave quitada', clearTarget.code);
+    setClearTarget(null);
+  }
+
+  function keyCell(r: NonNullable<typeof routes.data>[number], a: FullAccount | undefined) {
+    if (r.provider_kind !== 'CULQI') return <span className="text-xs text-muted">No aplica</span>;
+    const target: SecretTarget = {
+      id: r.provider_account_id as string,
+      code: r.code ?? '',
+      environment: (r.environment ?? 'TEST') as SecretTarget['environment'],
+      hint: a?.secret_hint ?? null,
+    };
+    return (
+      <div className="space-y-1">
+        {a?.secret_hint ? (
+          <div className="flex flex-wrap items-center gap-1 text-xs">
+            <Badge tone="ok">Configurada</Badge>
+            <span className="font-mono">({a.secret_hint})</span>
+            <span className="text-muted">· {formatDate(a.secret_set_at)}</span>
+          </div>
+        ) : a?.secret_key_ref ? (
+          <div className="flex flex-wrap items-center gap-1 text-xs">
+            <Badge tone="info">Variable de entorno</Badge>
+            <span className="font-mono">{a.secret_key_ref}</span>
+          </div>
+        ) : (
+          <Badge tone="warn">
+            {r.environment === 'LIVE' ? 'No configurada · no cobra' : 'No configurada · modo de prueba (MOCK)'}
+          </Badge>
+        )}
+        {canConfigure ? (
+          <div className="flex gap-3">
+            <button type="button" className="ebim-link text-[13px]" onClick={() => setSecretTarget(target)}>
+              {a?.secret_hint ? 'Reemplazar' : 'Configurar llave'}
+            </button>
+            {a?.secret_hint ? (
+              <button
+                type="button"
+                className="ebim-link text-[13px]"
+                onClick={() => setClearTarget({ id: target.id, code: target.code, environment: target.environment })}
+              >
+                Quitar
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <Card
       title="Cuentas de pago"
-      description="Cuentas de cobro por mercado y moneda. Aquí solo se guardan la llave pública y el NOMBRE del secret del servidor: la clave secreta nunca pasa por el navegador."
+      description="Cuentas de cobro por mercado y moneda. La llave secreta de Culqi se configura aquí y se guarda cifrada en el servidor: nunca vuelve a mostrarse, solo su pista."
       actions={
-        <button type="button" className="ebim-btn-primary h-8 px-3 text-xs" onClick={openNew}>
-          Nueva cuenta
-        </button>
+        canConfigure ? (
+          <button type="button" className="ebim-btn-primary h-8 px-3 text-xs" onClick={openNew}>
+            Nueva cuenta
+          </button>
+        ) : undefined
       }
     >
       <SearchBar value={term} onChange={setTerm} placeholder="Buscar por código, nombre, mercado o tipo…" />
@@ -158,7 +243,7 @@ export function PaymentAccountsPanel() {
       ) : rows.length === 0 ? (
         <EmptyState title="Sin cuentas de pago" description="Crea la cuenta del proveedor para el mercado que vas a cobrar." />
       ) : (
-        <DataTable columns={['Cuenta', 'Tipo', 'Entorno', 'Mercado', 'Monedas', 'Prioridad', 'Llave pública', 'Secreto del servidor', 'Estado', '']}>
+        <DataTable columns={['Cuenta', 'Tipo', 'Entorno', 'Mercado', 'Monedas', 'Prioridad', 'Llave pública', 'Llave secreta', 'Estado', '']}>
           {rows.map((r) => {
             const a = full.get(r.provider_account_id as string);
             return (
@@ -179,16 +264,16 @@ export function PaymentAccountsPanel() {
                 <td className="ebim-td">
                   {a?.public_key ? <Badge tone="ok">Configurada</Badge> : <Badge tone="warn">Pendiente</Badge>}
                 </td>
-                <td className="ebim-td font-mono text-xs">
-                  {a?.secret_key_ref ?? <span className="font-sans text-muted">sin referencia</span>}
-                </td>
+                <td className="ebim-td">{keyCell(r, a)}</td>
                 <td className="ebim-td">
                   <Badge tone={r.status === 'ACTIVE' ? 'ok' : 'neutral'}>{STATUS_LABEL[r.status as string] ?? r.status}</Badge>
                 </td>
                 <td className="ebim-td text-right">
-                  <button type="button" className="ebim-link text-[13px]" onClick={() => openEdit(r)}>
-                    Editar
-                  </button>
+                  {canConfigure ? (
+                    <button type="button" className="ebim-link text-[13px]" onClick={() => openEdit(r)}>
+                      Editar
+                    </button>
+                  ) : null}
                 </td>
               </tr>
             );
@@ -200,8 +285,8 @@ export function PaymentAccountsPanel() {
         open={Boolean(draft)}
         wide
         title={draft?.id ? 'Editar cuenta de pago' : 'Nueva cuenta de pago'}
-        description="La clave secreta NO se escribe aquí. Se carga en el servidor con «supabase secrets set NOMBRE=…» y en esta ficha solo se indica ese NOMBRE."
-        busy={upsert.isPending}
+        description="La llave secreta no va en esta ficha: tras guardar, usa «Configurar llave» en la lista. Se guarda cifrada en el servidor."
+        busy={upsert.isPending || setApiBase.isPending}
         error={serverError}
         onCancel={() => setDraft(null)}
         onSubmit={() => void save()}
@@ -211,7 +296,8 @@ export function PaymentAccountsPanel() {
             {draft.environment === 'LIVE' ? (
               <p className="rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn" role="note">
                 Cuenta <strong>LIVE</strong>: cobra dinero real. Además exige <span className="font-mono">CULQI_ALLOW_LIVE=true</span>{' '}
-                en el servidor y autorización explícita del operador.
+                en el servidor y autorización explícita del operador. Una cuenta nueva se crea <strong>Inactiva</strong>, se le
+                configura la llave y después se activa.
               </p>
             ) : null}
             <FieldRow>
@@ -284,24 +370,55 @@ export function PaymentAccountsPanel() {
               onChange={(e) => set('publicKey', e.target.value)}
               hint="pk_test_… o pk_live_…. Es pública por diseño: la usa el Checkout para tokenizar la tarjeta."
             />
-            <TextField
-              label="Nombre del secret del servidor"
-              value={draft.secretKeyRef}
-              autoComplete="off"
-              spellCheck={false}
-              error={errors.secretKeyRef ? { message: errors.secretKeyRef } : undefined}
-              onChange={(e) => set('secretKeyRef', e.target.value)}
-              hint="Solo el NOMBRE (ej. CULQI_SECRET_KEY). El valor se carga con «supabase secrets set CULQI_SECRET_KEY=…»; sin él la cuenta opera en modo de prueba (MOCK)."
-            />
+            {draft.providerKind === 'CULQI' ? (
+              <>
+                <TextField
+                  label="URL de la API (opcional)"
+                  value={draft.apiBaseUrl}
+                  autoComplete="off"
+                  spellCheck={false}
+                  placeholder="https://api.culqi.com/v2"
+                  error={errors.apiBaseUrl ? { message: errors.apiBaseUrl } : undefined}
+                  onChange={(e) => set('apiBaseUrl', e.target.value)}
+                  hint="URL base de la API de Culqi (verificada: https://api.culqi.com/v2). Vacía = la que defina el servidor (CULQI_API_BASE); si tampoco existe, la cuenta opera en modo de prueba (MOCK)."
+                />
+                <TextField
+                  label="Variable de entorno (avanzado, opcional)"
+                  value={draft.secretKeyRef}
+                  autoComplete="off"
+                  spellCheck={false}
+                  error={errors.secretKeyRef ? { message: errors.secretKeyRef } : undefined}
+                  onChange={(e) => set('secretKeyRef', e.target.value)}
+                  hint="Déjala vacía: la llave se configura con «Configurar llave» y se guarda cifrada. Solo si la llave vive como variable del servidor, escribe su NOMBRE (ej. CULQI_SECRET_KEY); la llave cifrada tiene prioridad."
+                />
+              </>
+            ) : null}
             <SelectField
               label="Estado"
               value={draft.status}
+              error={errors.status ? { message: errors.status } : undefined}
               onChange={(e) => set('status', e.target.value as ProviderAccountDraft['status'])}
               options={Object.entries(STATUS_LABEL).map(([value, label]) => ({ value, label }))}
             />
           </>
         ) : null}
       </FormDialog>
+
+      <ProviderSecretDialog target={secretTarget} onClose={() => setSecretTarget(null)} />
+
+      <RevokeWithReasonDialog
+        open={Boolean(clearTarget)}
+        title="Quitar llave secreta"
+        description={
+          clearTarget?.environment === 'LIVE'
+            ? `Se borra del servidor la llave cifrada de ${clearTarget.code}. Una cuenta LIVE activa no puede quedarse sin llave: desactívala antes o reemplaza la llave.`
+            : `Se borra del servidor la llave cifrada de ${clearTarget?.code ?? ''}. Sin llave, la cuenta TEST opera en modo de prueba (MOCK).`
+        }
+        submitLabel="Quitar llave"
+        busy={clearSecret.isPending}
+        onSubmit={clear}
+        onCancel={() => setClearTarget(null)}
+      />
     </Card>
   );
 }
