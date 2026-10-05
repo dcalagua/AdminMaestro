@@ -1,21 +1,18 @@
-import { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ClockCountdownIcon, FlaskIcon } from '@phosphor-icons/react';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ClockCountdownIcon, FlaskIcon, PresentationChartIcon } from '@phosphor-icons/react';
 import {
   useCurrencies,
-  useExecutiveAging,
-  useExecutiveBillingSeries,
-  useExecutiveMrrMix,
-  useExecutiveMrrMovementCustomers,
-  useExecutiveMrrMovementsSeries,
-  useExecutiveMrrSeries,
+  type useExecutiveBillingSeries,
+  type useExecutiveMrrMovementCustomers,
+  type useExecutiveMrrMovementsSeries,
+  type useExecutiveMrrSeries,
   type ExecutiveBillingPoint,
   type ExecutiveMrrBridge,
   type ExecutiveMrrPoint,
 } from '@/services/queries';
 import { KpiTile } from '@/components/ui/primitives';
 import { fromQuery, type DataState } from '@/features/executive/dataState';
-import { currentMonth, isoDate, lastMonths, previousMonth } from '@/features/executive/reportContext';
 import { ChartLegend, ChartPanel, CurrencyPicker } from '@/features/executive/components/ChartPanel';
 import { StateMessage } from '@/features/executive/components/StateView';
 import {
@@ -25,15 +22,14 @@ import {
   type BilledCollectedDatum,
   type MrrPointDatum,
 } from '@/features/executive/components/executiveCharts';
+import { longMonthName } from '@/features/billing/financeModel';
 import { formatCompactAmount, formatDate, formatDelta, formatMoney, formatNumber, formatPercent } from '@/lib/format';
 import { monthShortLabel } from './executiveData';
 import {
-  analyzedMonthOptions,
   bridgeSteps,
   changeSteps,
   customersFor,
   HORIZONS,
-  lastClosedMonth,
   monthBounds,
   monthLongLabel,
   mrrChurnRate,
@@ -46,6 +42,8 @@ import {
   type Horizon,
 } from './executiveModel';
 import { AgingPanel, AttentionPanel, MixPanel, PanelBoundary, TopCustomersPanel, TopPartnersPanel } from './executivePanels';
+import { usePresentationView } from './presentation/presentationContext';
+import { useExecutiveDashboard, type ExecutiveDashboardData, type useExecutiveFilters } from './executiveDashboardData';
 
 /**
  * Perspectiva EJECUTIVA — Resumen Ejecutivo V4 (fase 09, D-V05).
@@ -59,161 +57,154 @@ import { AgingPanel, AttentionPanel, MixPanel, PanelBoundary, TopCustomersPanel,
  * Una sola fila de filtros (moneda, horizonte, mes analizado) acota todo lo de
  * abajo y vive en la URL (`?moneda=USD&horizonte=18&cierre=2026-09`). El mes
  * analizado por defecto es el último CERRADO: el mes en curso es parcial.
- * Cada panel lee su propia fuente y falla solo.
+ * Cada panel lee su propia fuente y falla solo. El modo presentación (fase 14)
+ * proyecta estos mismos paneles, uno o dos por diapositiva.
  */
-export function ExecutivePerspective({ today = new Date() }: { today?: Date }) {
-  const navigate = useNavigate();
-  const filters = useExecutiveFilters(today);
-  const { month, horizon, reportingCurrency } = filters;
-  const now = currentMonth(today);
-  const isCurrent = month === now;
-  const prev = previousMonth(month);
-  const monthLabel = monthLongLabel(month);
-  const prevShort = monthShortLabel(prev).split(' ')[0];
-
-  // 24 meses de serie: el horizonte (12/18) más la tendencia de 12 de cualquier mes analizado.
-  const seriesFrom = `${lastMonths(now, 24)[0]}-01`;
-  const series = useExecutiveMrrSeries({ from: seriesFrom, reportingCurrency });
-  const billing = useExecutiveBillingSeries({ from: seriesFrom, reportingCurrency });
-  const movements = useExecutiveMrrMovementsSeries({ from: `${lastMonths(month, 12)[0]}-01`, to: `${month}-01`, reportingCurrency });
-  const customers = useExecutiveMrrMovementCustomers(`${month}-01`, reportingCurrency);
-  const asOf = isCurrent ? isoDate(today) : monthBounds(month).to;
-  const aging = useExecutiveAging(asOf, reportingCurrency);
-  const mixProduct = useExecutiveMrrMix('PRODUCT', `${month}-01`, reportingCurrency);
-  const mixMarket = useExecutiveMrrMix('MARKET', `${month}-01`, reportingCurrency);
-  const mixPartner = useExecutiveMrrMix('PARTNER', `${month}-01`, reportingCurrency);
-  const mixPartnerPrev = useExecutiveMrrMix('PARTNER', `${prev}-01`, reportingCurrency);
-
-  const rc = series.data?.[0]?.reportingCurrency ?? billing.data?.[0]?.reportingCurrency ?? reportingCurrency ?? '';
-  const missing = [...new Set([...(series.data ?? []), ...(billing.data ?? [])].flatMap((p) => p.missingCurrencies))].sort();
-  const fxIsDemo = [...(series.data ?? []), ...(billing.data ?? [])].some((p) => p.fxIsDemo);
-  const bridge = movements.data?.find((b) => b.month.slice(0, 7) === month) ?? null;
+export function ExecutivePerspective({ today = new Date(), canPresent = false }: { today?: Date; canPresent?: boolean }) {
+  const d = useExecutiveDashboard(today);
 
   return (
     <div className="space-y-6">
       <FilterRow
-        {...filters}
-        currency={rc}
-        missing={missing}
-        fxIsDemo={fxIsDemo}
-        isCurrent={isCurrent}
-        today={today}
+        {...d.filters}
+        currency={d.rc}
+        missing={d.missing}
+        fxIsDemo={d.fxIsDemo}
+        isCurrent={d.isCurrent}
+        canPresent={canPresent}
       />
 
-      <HeroKpis
-        month={month}
-        prevShort={prevShort}
-        isCurrent={isCurrent}
-        currency={rc}
-        series={series}
-        billing={billing}
-        movements={movements}
-      />
+      <HeroKpis d={d} />
 
-      <div className="grid gap-4 xl:grid-cols-12">
-        <div className="min-w-0 xl:col-span-8">
-          <PanelBoundary title="Evolución del MRR">
-            <MrrEvolutionPanel query={series} currency={rc} horizon={horizon} month={month} onSelect={(m) => filters.setMonth(m)} />
-          </PanelBoundary>
+      {/* Cada fila es una sección: al imprimir, una por página (A4 apaisado). */}
+      <div className="space-y-4">
+        <div className="grid gap-4 xl:grid-cols-12 print:break-before-page print:grid-cols-12" data-print-section="evolucion">
+          <div className="min-w-0 xl:col-span-8 print:col-span-8">
+            <ExecutivePanel d={d} panel="evolucion-mrr" />
+          </div>
+          <div className="min-w-0 xl:col-span-4 print:col-span-4">
+            <ExecutivePanel d={d} panel="puente" />
+          </div>
         </div>
-        <div className="min-w-0 xl:col-span-4">
-          <PanelBoundary title="Puente de MRR">
-            <BridgePanel key={month} query={movements} bridge={bridge} customers={customers} currency={rc} month={month} />
-          </PanelBoundary>
+        <div className="grid gap-4 xl:grid-cols-12 print:break-before-page print:grid-cols-12" data-print-section="cobranza">
+          <div className="min-w-0 xl:col-span-7 print:col-span-7">
+            <ExecutivePanel d={d} panel="facturado-cobrado" />
+          </div>
+          <div className="min-w-0 xl:col-span-5 print:col-span-5">
+            <ExecutivePanel d={d} panel="antiguedad" />
+          </div>
         </div>
-
-        <div className="min-w-0 xl:col-span-7">
-          <PanelBoundary title="Facturado vs cobrado">
-            <BilledCollectedPanel
-              query={billing}
-              currency={rc}
-              horizon={horizon}
-              month={month}
-              onSelect={(m) => {
-                const r = monthBounds(m);
-                navigate(`/billing?desde=${r.from}&hasta=${r.to}#cobros`);
-              }}
-            />
-          </PanelBoundary>
+        <div className="grid gap-4 xl:grid-cols-12 print:break-before-page print:grid-cols-12" data-print-section="mix">
+          <div className="min-w-0 xl:col-span-6 print:col-span-6">
+            <ExecutivePanel d={d} panel="mix-producto" />
+          </div>
+          <div className="min-w-0 xl:col-span-6 print:col-span-6">
+            <ExecutivePanel d={d} panel="mix-mercado" />
+          </div>
         </div>
-        <div className="min-w-0 xl:col-span-5">
-          <PanelBoundary title="Cartera por antigüedad">
-            <AgingPanel
-              query={aging}
-              currency={rc}
-              asOfLabel={isCurrent ? `A hoy, ${formatDate(asOf)}` : `Al cierre de ${monthLabel}`}
-              refreshing={aging.isPlaceholderData}
-            />
-          </PanelBoundary>
-        </div>
-
-        <div className="min-w-0 xl:col-span-6">
-          <PanelBoundary title="Mix por producto">
-            <MixPanel dimension="PRODUCT" query={mixProduct} currency={rc} monthLabel={monthLabel} refreshing={mixProduct.isPlaceholderData} />
-          </PanelBoundary>
-        </div>
-        <div className="min-w-0 xl:col-span-6">
-          <PanelBoundary title="Mix por mercado">
-            <MixPanel dimension="MARKET" query={mixMarket} currency={rc} monthLabel={monthLabel} refreshing={mixMarket.isPlaceholderData} />
-          </PanelBoundary>
-        </div>
-
-        <div className="min-w-0 xl:col-span-4">
-          <PanelBoundary title="Top clientes">
-            <TopCustomersPanel
-              rows={customers.data}
-              state={fromQuery(customers)}
-              currency={rc}
-              monthLabel={monthLabel}
-              onRetry={() => void customers.refetch()}
-            />
-          </PanelBoundary>
-        </div>
-        <div className="min-w-0 xl:col-span-4">
-          <PanelBoundary title="Top partners">
-            <TopPartnersPanel current={mixPartner} previous={mixPartnerPrev} currency={rc} monthLabel={monthLabel} />
-          </PanelBoundary>
-        </div>
-        <div className="min-w-0 xl:col-span-4">
-          <PanelBoundary title="Requiere atención">
-            <AttentionPanel />
-          </PanelBoundary>
+        <div className="grid gap-4 xl:grid-cols-12 print:break-before-page print:grid-cols-12" data-print-section="tops">
+          <div className="min-w-0 xl:col-span-4 print:col-span-4">
+            <ExecutivePanel d={d} panel="top-clientes" />
+          </div>
+          <div className="min-w-0 xl:col-span-4 print:col-span-4">
+            <ExecutivePanel d={d} panel="top-partners" />
+          </div>
+          <div className="min-w-0 xl:col-span-4 print:col-span-4">
+            <ExecutivePanel d={d} panel="atencion" />
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-/* ---- Filtros (URL) ------------------------------------------------------------------ */
+export type ExecutivePanelId =
+  | 'evolucion-mrr'
+  | 'puente'
+  | 'facturado-cobrado'
+  | 'antiguedad'
+  | 'mix-producto'
+  | 'mix-mercado'
+  | 'top-clientes'
+  | 'top-partners'
+  | 'atencion';
 
-function useExecutiveFilters(today: Date) {
-  const [params, setParams] = useSearchParams();
-  const options = analyzedMonthOptions(today, 12);
-  const rawMonth = params.get('cierre') ?? '';
-  const month = options.some((o) => o.value === rawMonth) ? rawMonth : lastClosedMonth(today);
-  const rawHorizon = Number(params.get('horizonte'));
-  const horizon: Horizon = (HORIZONS as readonly number[]).includes(rawHorizon) ? (rawHorizon as Horizon) : 18;
-  const rawCurrency = (params.get('moneda') ?? '').toUpperCase();
-  const reportingCurrency = /^[A-Z]{3}$/.test(rawCurrency) ? rawCurrency : undefined;
-  const set = (key: string, value: string) =>
-    setParams(
-      (current) => {
-        const next = new URLSearchParams(current);
-        next.set(key, value);
-        return next;
-      },
-      { replace: true, preventScrollReset: true },
-    );
-  return {
-    month,
-    horizon,
-    reportingCurrency,
-    options,
-    setMonth: (m: string) => set('cierre', m),
-    setHorizon: (h: Horizon) => set('horizonte', String(h)),
-    setCurrency: (c: string) => set('moneda', c),
-  };
+const PANEL_TITLE: Record<ExecutivePanelId, string> = {
+  'evolucion-mrr': 'Evolución del MRR',
+  puente: 'Puente de MRR',
+  'facturado-cobrado': 'Facturado vs cobrado',
+  antiguedad: 'Cartera por antigüedad',
+  'mix-producto': 'Mix por producto',
+  'mix-mercado': 'Mix por mercado',
+  'top-clientes': 'Top clientes',
+  'top-partners': 'Top partners',
+  atencion: 'Requiere atención',
+};
+
+/** Un panel del tablero, aislado: si falla al dibujarse, solo él muestra su aviso. */
+export function ExecutivePanel({ d, panel }: { d: ExecutiveDashboardData; panel: ExecutivePanelId }) {
+  const navigate = useNavigate();
+  const view = usePresentationView();
+  const { month, horizon, rc } = d;
+  return <PanelBoundary title={PANEL_TITLE[panel]}>{renderPanel()}</PanelBoundary>;
+
+  function renderPanel() {
+    switch (panel) {
+      case 'evolucion-mrr':
+        return <MrrEvolutionPanel query={d.series} currency={rc} horizon={horizon} month={month} onSelect={(m) => d.filters.setMonth(m)} />;
+      case 'puente':
+        return <BridgePanel key={month} query={d.movements} bridge={d.bridge} customers={d.customers} currency={rc} month={month} />;
+      case 'facturado-cobrado':
+        return (
+          <BilledCollectedPanel
+            query={d.billing}
+            currency={rc}
+            horizon={horizon}
+            month={month}
+            // Proyectando, un clic analiza ese mes (no saca de la presentación hacia Facturación).
+            onSelect={(m) => {
+              if (view.active) return d.filters.setMonth(m);
+              const r = monthBounds(m);
+              navigate(`/billing?desde=${r.from}&hasta=${r.to}#cobros`);
+            }}
+          />
+        );
+      case 'antiguedad':
+        return (
+          <AgingPanel
+            query={d.aging}
+            currency={rc}
+            asOfLabel={d.isCurrent ? `A hoy, ${formatDate(d.asOf)}` : `Al cierre de ${d.monthLabel}`}
+            refreshing={d.aging.isPlaceholderData}
+          />
+        );
+      case 'mix-producto':
+        return <MixPanel dimension="PRODUCT" query={d.mixProduct} currency={rc} monthLabel={d.monthLabel} refreshing={d.mixProduct.isPlaceholderData} />;
+      case 'mix-mercado':
+        return <MixPanel dimension="MARKET" query={d.mixMarket} currency={rc} monthLabel={d.monthLabel} refreshing={d.mixMarket.isPlaceholderData} />;
+      case 'top-clientes':
+        return (
+          <TopCustomersPanel
+            rows={d.customers.data}
+            state={fromQuery(d.customers)}
+            currency={rc}
+            monthLabel={d.monthLabel}
+            onRetry={() => void d.customers.refetch()}
+          />
+        );
+      case 'top-partners':
+        return <TopPartnersPanel current={d.mixPartner} previous={d.mixPartnerPrev} currency={rc} monthLabel={d.monthLabel} />;
+      case 'atencion':
+        return <AttentionPanel />;
+    }
+  }
 }
+
+/** Alto de los gráficos al proyectar: lo que deja libre la diapositiva (al imprimir, alturas fijas que caben en A4). */
+const PRESENTATION_CHART_HEIGHT = 'clamp(260px, calc(100vh - 400px), 520px)';
+const PRESENTATION_BARS_HEIGHT = 'clamp(240px, calc(100vh - 490px), 420px)';
+
+/* ---- Filtros (URL) ------------------------------------------------------------------ */
 
 function FilterRow({
   month,
@@ -226,19 +217,35 @@ function FilterRow({
   missing,
   fxIsDemo,
   isCurrent,
+  present,
+  canPresent,
 }: ReturnType<typeof useExecutiveFilters> & {
   currency: string;
   missing: string[];
   fxIsDemo: boolean;
   isCurrent: boolean;
-  today: Date;
+  canPresent: boolean;
 }) {
   const currencies = useCurrencies();
   const codes = [...new Set([...(currencies.data ?? []).filter((c) => c.status === 'ACTIVE').map((c) => c.code), currency].filter(Boolean))].sort();
+  const presentRef = useRef<HTMLButtonElement>(null);
+  const location = useLocation();
+  const backFromPresentation = (location.state as { fromPresentation?: boolean } | null)?.fromPresentation === true;
+  // Al salir del modo presentación el foco vuelve al botón que lo abrió.
+  useEffect(() => {
+    if (backFromPresentation) presentRef.current?.focus();
+  }, [backFromPresentation]);
   return (
     <section aria-label="Filtros del resumen" className="flex flex-wrap items-end gap-x-6 gap-y-3">
-      <CurrencyPicker currencies={codes} value={currency} onChange={setCurrency} label="Moneda de reporte" showLabel />
-      <label className="flex flex-col gap-1.5">
+      {/* Al imprimir, los controles se reemplazan por la línea de contexto. */}
+      <p className="hidden text-compact text-fg-2 print:block">
+        Moneda de reporte <strong className="text-fg">{currency}</strong> · Mes analizado{' '}
+        <strong className="text-fg">{monthLongLabel(month)}</strong> · Horizonte {horizon} meses
+      </p>
+      <div className="print:hidden">
+        <CurrencyPicker currencies={codes} value={currency} onChange={setCurrency} label="Moneda de reporte" showLabel />
+      </div>
+      <label className="flex flex-col gap-1.5 print:hidden">
         <span className="text-micro text-muted">Mes analizado</span>
         <select className="ebim-input h-9 min-w-[210px]" value={month} onChange={(e) => setMonth(e.target.value)}>
           {options.map((o) => (
@@ -248,7 +255,7 @@ function FilterRow({
           ))}
         </select>
       </label>
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1.5 print:hidden">
         <span className="text-micro text-muted" id="horizonte-label">
           Horizonte
         </span>
@@ -285,31 +292,30 @@ function FilterRow({
           </li>
         ) : null}
       </ul>
+      {canPresent ? (
+        <button
+          ref={presentRef}
+          type="button"
+          className="ebim-btn ebim-btn-secondary ml-auto print:hidden"
+          onClick={present}
+          aria-keyshortcuts="Escape"
+          title="Proyectar el resumen a pantalla completa, sin menús (Esc para salir)"
+        >
+          <PresentationChartIcon size={18} aria-hidden /> Presentar
+        </button>
+      ) : null}
     </section>
   );
 }
 
 /* ---- Franja hero -------------------------------------------------------------------- */
 
-function HeroKpis({
-  month,
-  prevShort,
-  isCurrent,
-  currency,
-  series,
-  billing,
-  movements,
-}: {
-  month: string;
-  prevShort: string;
-  isCurrent: boolean;
-  currency: string;
-  series: ReturnType<typeof useExecutiveMrrSeries>;
-  billing: ReturnType<typeof useExecutiveBillingSeries>;
-  movements: ReturnType<typeof useExecutiveMrrMovementsSeries>;
-}) {
-  const prev = previousMonth(month);
-  const vs = `vs ${prevShort}`;
+export function HeroKpis({ d }: { d: ExecutiveDashboardData }) {
+  const { month, isCurrent, rc: currency, series, billing, movements } = d;
+  const view = usePresentationView();
+  const prev = d.prev;
+  // Mes completo («vs agosto»): «vs ago» se leería como inglés.
+  const vs = `vs ${longMonthName(prev)}`;
   const s = pointAt<ExecutiveMrrPoint>(series.data, month);
   const sp = pointAt<ExecutiveMrrPoint>(series.data, prev);
   const b = pointAt<ExecutiveBillingPoint>(billing.data, month);
@@ -335,7 +341,11 @@ function HeroKpis({
   const partialNote = isCurrent ? 'Mes en curso, a hoy' : null;
 
   return (
-    <section aria-label="Indicadores clave" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6" data-hero>
+    <section
+      aria-label="Indicadores clave"
+      className={`grid gap-4 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-3 ${view.active ? 'xl:gap-6' : '2xl:grid-cols-6'}`}
+      data-hero
+    >
       <KpiTile
         size="display"
         label="MRR"
@@ -460,6 +470,7 @@ function MrrEvolutionPanel({
   month: string;
   onSelect: (month: string) => void;
 }) {
+  const view = usePresentationView();
   const points = (query.data ?? []).slice(-horizon);
   const data: MrrPointDatum[] = points.map((p) => ({
     month: p.month.slice(0, 7),
@@ -498,6 +509,9 @@ function MrrEvolutionPanel({
           currency={currency}
           analyzed={month}
           onSelect={onSelect}
+          // Proyectando: el gráfico ocupa el alto disponible de la diapositiva y el texto sube un escalón.
+          height={view.printing ? 380 : view.active ? PRESENTATION_CHART_HEIGHT : 340}
+          fontSize={view.active ? 14 : 12}
           ariaLabel={`MRR en ${currency} de ${data[0]?.label ?? ''} a ${data[data.length - 1]?.label ?? ''}${
             growth != null ? `, crecimiento de ${formatPercent(growth, 0)} en meses cerrados` : ''
           }. Use la vista Tabla para leer cada mes.`}
@@ -552,6 +566,7 @@ function BridgePanel({
   currency: string;
   month: string;
 }) {
+  const view = usePresentationView();
   const [selected, setSelected] = useState<BridgeStep | null>(null); // se reinicia con el mes (key)
   const steps = bridgeSteps(bridge);
   const base = fromQuery(query, { isEmpty: () => bridge === null });
@@ -600,6 +615,8 @@ function BridgePanel({
               currency={currency}
               selected={active?.key ?? null}
               onSelect={pick}
+              rowHeight={view.active ? 60 : 44}
+              fontSize={view.active ? 14 : 12}
               ariaLabel={`Puente de MRR de ${monthLongLabel(month)}: ${steps.concat(net ? [net] : []).map((s) => `${s.label} ${stepLabel(s, currency)}`).join(', ')}`}
             />
             <div role="group" aria-label="Ver clientes por movimiento" className="mt-2 flex flex-wrap gap-1.5">
@@ -670,6 +687,7 @@ function MovementCustomers({
   query: ReturnType<typeof useExecutiveMrrMovementCustomers>;
   currency: string;
 }) {
+  const view = usePresentationView();
   const state = fromQuery(query, { isEmpty: () => false });
   const rows = step.movement ? customersFor(query.data, step.movement) : [];
   return (
@@ -681,9 +699,14 @@ function MovementCustomers({
         <ul className="mt-1 max-h-48 divide-y divide-border overflow-auto">
           {rows.map((r) => (
             <li key={r.organizationId} className="flex items-center justify-between gap-3 py-1.5">
-              <Link className="ebim-link truncate text-compact" to={`/organizations/${r.organizationId}`} title={r.organizationName ?? undefined}>
-                {r.organizationName ?? 'Organización sin nombre'}
-              </Link>
+              {view.masked ? (
+                // Nombres ocultos: alias sin enlace (la ficha mostraría el nombre real).
+                <span className="truncate text-compact text-fg">{view.customerName(r.organizationId, r.organizationName ?? '')}</span>
+              ) : (
+                <Link className="ebim-link truncate text-compact" to={`/organizations/${r.organizationId}`} title={r.organizationName ?? undefined}>
+                  {r.organizationName ?? 'Organización sin nombre'}
+                </Link>
+              )}
               <span className="whitespace-nowrap text-compact font-semibold tabular-nums text-fg">
                 {r.delta == null ? 'Sin tasa' : `${r.delta >= 0 ? '+' : '−'}${formatMoney(Math.abs(r.delta), currency)}`}
               </span>
@@ -712,6 +735,7 @@ function BilledCollectedPanel({
   month: string;
   onSelect: (month: string) => void;
 }) {
+  const view = usePresentationView();
   // Barras legibles: como máximo 12 meses, terminando en el mes analizado (o el actual si el horizonte lo incluye).
   const all = query.data ?? [];
   const end = all.findIndex((p) => p.month.slice(0, 7) === month);
@@ -759,6 +783,8 @@ function BilledCollectedPanel({
           data={data}
           currency={currency}
           onSelect={onSelect}
+          height={view.printing ? 280 : view.active ? PRESENTATION_BARS_HEIGHT : 292}
+          fontSize={view.active ? 14 : 12}
           ariaLabel={`Facturado y cobrado por mes en ${currency}${rate != null ? `; en meses cerrados se cobró ${formatPercent(rate)} de lo facturado` : ''}. Use la vista Tabla para leer cada mes.`}
         />
       )}

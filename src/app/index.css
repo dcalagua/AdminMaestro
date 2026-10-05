@@ -386,3 +386,119 @@
     text-transform: uppercase;
   }
 }
+
+/* ---- Modo presentación (fase 14) ---------------------------------------------------- */
+
+/* Proyectando, todo el texto de la diapositiva sube UN escalón de la escala V2 (§2):
+   micro→caption, caption→compact, compact→body, body→16, h3→h2, h2→h1, h1→kpi, kpi→display, display→hero. */
+.ebim-present-scale .text-display {
+  font-size: 56px;
+  line-height: 60px;
+  letter-spacing: -0.025em;
+}
+.ebim-present-scale .text-kpi {
+  font-size: 40px;
+  line-height: 44px;
+}
+.ebim-present-scale .text-h1 {
+  font-size: 32px;
+  line-height: 38px;
+}
+.ebim-present-scale .text-h2 {
+  font-size: 28px;
+  line-height: 34px;
+}
+.ebim-present-scale .text-h3 {
+  font-size: 20px;
+  line-height: 28px;
+}
+.ebim-present-scale .text-body {
+  font-size: 16px;
+  line-height: 24px;
+}
+.ebim-present-scale .text-compact {
+  font-size: 14px;
+  line-height: 22px;
+}
+.ebim-present-scale .text-caption {
+  font-size: 13px;
+  line-height: 20px;
+}
+.ebim-present-scale .text-micro {
+  font-size: 12px;
+  line-height: 16px;
+}
+
+/* Impresión / PDF: A4 apaisado, sin menús, una sección por página. Los colores de
+   los gráficos se imprimen tal cual (el tema claro se fuerza al imprimir). */
+@page {
+  size: A4 landscape;
+  margin: 10mm;
+}
+
+@media print {
+  html,
+  body {
+    background: var(--card) !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  [data-print-hide] {
+    display: none !important;
+  }
+
+  .ebim-card {
+    box-shadow: none;
+    break-inside: avoid;
+  }
+
+  /* Los gráficos se midieron con el ancho de la pantalla: en papel escalan por su viewBox
+     en lugar de salirse de la tarjeta. Los tooltips no se imprimen. */
+  .recharts-responsive-container > div,
+  .recharts-wrapper {
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  .recharts-surface {
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  .recharts-tooltip-wrapper {
+    display: none !important;
+  }
+
+  /* En modo presentación solo se imprime la presentación, en flujo normal. */
+  html.ebim-presenting #root {
+    display: none !important;
+  }
+
+  html.ebim-presenting body {
+    overflow: visible !important;
+  }
+
+  .ebim-presentation {
+    position: static !important;
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .ebim-presentation-stage {
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  .ebim-slide {
+    break-after: page;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  .ebim-slide:last-child {
+    break-after: auto;
+  }
+}

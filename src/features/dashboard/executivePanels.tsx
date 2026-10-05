@@ -30,6 +30,7 @@ import { ChartPanel } from '@/features/executive/components/ChartPanel';
 import { StateMessage } from '@/features/executive/components/StateView';
 import { formatCompactAmount, formatDelta, formatMoney, formatNumber, formatPercent } from '@/lib/format';
 import { agingSummary, DIRECT_CHANNEL, topCustomers, topPartners, type RankedRow } from './executiveModel';
+import { usePresentationView } from './presentation/presentationContext';
 
 /* ---- Aislamiento por panel -------------------------------------------------------- */
 
@@ -398,26 +399,30 @@ const AGING_LABEL: Record<string, string> = {
 
 /* ---- Top clientes y partners ------------------------------------------------------ */
 
+/**
+ * Ranking con barra de participación. Con nombres ocultos (modo presentación)
+ * las filas muestran el alias y NO enlazan: la ficha revelaría el nombre real.
+ */
 function RankedList({
   rows,
   currency,
   hrefFor,
   emptyText,
+  masked = false,
 }: {
   rows: RankedRow[];
   currency: string;
   hrefFor: (key: string) => string;
   emptyText: string;
+  masked?: boolean;
 }) {
   if (rows.length === 0) return <p className="py-6 text-compact text-muted">{emptyText}</p>;
+  const rowClass = 'grid grid-cols-[1.25rem_minmax(0,1fr)_auto] items-center gap-x-3 rounded-md px-1 py-2.5';
   return (
     <ol className="divide-y divide-border">
-      {rows.map((r, i) => (
-        <li key={r.key}>
-          <Link
-            to={hrefFor(r.key)}
-            className="grid grid-cols-[1.25rem_minmax(0,1fr)_auto] items-center gap-x-3 rounded-md px-1 py-2.5 transition-colors duration-fast hover:bg-hover"
-          >
+      {rows.map((r, i) => {
+        const body = (
+          <>
             <span className="text-caption font-semibold tabular-nums text-muted">{i + 1}</span>
             <span className="min-w-0">
               <span className="block truncate text-compact font-semibold text-fg" title={r.label}>
@@ -436,9 +441,20 @@ function RankedList({
                 <Change value={r.change} isNew={r.isNew} />
               </span>
             </span>
-          </Link>
-        </li>
-      ))}
+          </>
+        );
+        return (
+          <li key={r.key} data-ranked-row>
+            {masked ? (
+              <div className={rowClass}>{body}</div>
+            ) : (
+              <Link to={hrefFor(r.key)} className={`${rowClass} transition-colors duration-fast hover:bg-hover`}>
+                {body}
+              </Link>
+            )}
+          </li>
+        );
+      })}
     </ol>
   );
 }
@@ -456,7 +472,8 @@ export function TopCustomersPanel({
   monthLabel: string;
   onRetry: () => void;
 }) {
-  const top = topCustomers(rows, 5);
+  const view = usePresentationView();
+  const top = topCustomers(rows, 5).map((r) => ({ ...r, label: view.customerName(r.key, r.label) }));
   return (
     <PanelCard
       id="top-clientes"
@@ -474,7 +491,13 @@ export function TopCustomersPanel({
       {state.status === 'loading' ? (
         <ListSkeleton />
       ) : state.status === 'ready' || state.status === 'empty' ? (
-        <RankedList rows={top} currency={currency} hrefFor={(id) => `/organizations/${id}`} emptyText="Sin clientes con MRR al cierre del mes" />
+        <RankedList
+          rows={top}
+          currency={currency}
+          hrefFor={(id) => `/organizations/${id}`}
+          emptyText="Sin clientes con MRR al cierre del mes"
+          masked={view.masked}
+        />
       ) : (
         <StateMessage state={state} onRetry={onRetry} />
       )}
@@ -494,7 +517,8 @@ export function TopPartnersPanel({
   monthLabel: string;
 }) {
   const state = fromQuery(current, { isEmpty: () => false });
-  const top = topPartners(current.data, previous.data, 5);
+  const view = usePresentationView();
+  const top = topPartners(current.data, previous.data, 5).map((r) => ({ ...r, label: view.partnerName(r.key, r.label) }));
   const direct = current.data?.find((r) => r.key === DIRECT_CHANNEL);
   return (
     <PanelCard
@@ -514,7 +538,13 @@ export function TopPartnersPanel({
         <ListSkeleton />
       ) : state.status === 'ready' ? (
         <>
-          <RankedList rows={top} currency={currency} hrefFor={(id) => `/organizations/${id}`} emptyText="Ningún partner gestiona tenants con MRR" />
+          <RankedList
+            rows={top}
+            currency={currency}
+            hrefFor={(id) => `/organizations/${id}`}
+            emptyText="Ningún partner gestiona tenants con MRR"
+            masked={view.masked}
+          />
           {direct && direct.share != null ? (
             <p className="mt-2 text-caption text-muted">
               Venta directa: {currency} {formatCompactAmount(direct.mrr)} ({formatPercent(direct.share, 0)} del MRR).

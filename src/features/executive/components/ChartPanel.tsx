@@ -71,7 +71,7 @@ export function ChartPanel({
         <div className="flex flex-wrap items-center gap-2">
           {controls}
           {ready ? (
-            <div role="group" aria-label="Vista" className="inline-flex rounded-field border border-border p-0.5">
+            <div role="group" aria-label="Vista" className="inline-flex rounded-field border border-border p-0.5" data-print-hide>
               <button
                 type="button"
                 aria-pressed={view === 'chart'}

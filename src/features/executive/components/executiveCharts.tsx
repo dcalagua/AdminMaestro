@@ -93,18 +93,25 @@ export function MrrEvolutionChart({
   analyzed,
   onSelect,
   ariaLabel,
+  height = 340,
+  fontSize = 12,
 }: {
   data: MrrPointDatum[];
   currency: string;
   analyzed?: string;
   onSelect?: (month: string) => void;
   ariaLabel: string;
+  /** Alto del gráfico (px o expresión CSS: la presentación lo ajusta a la ventana). */
+  height?: number | string;
+  /** Texto de ejes y etiquetas (≥ 12; 14 al proyectar). */
+  fontSize?: number;
 }) {
+  const axis = { ...AXIS, fontSize };
   const gradientId = `mrr-area-${useId().replace(/:/g, '')}`;
   const last = data[data.length - 1];
   const picked = data.find((d) => d.month === analyzed);
   return (
-    <div role="img" aria-label={ariaLabel} style={{ height: 340 }}>
+    <div role="img" aria-label={ariaLabel} style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart
           data={data}
@@ -126,7 +133,7 @@ export function MrrEvolutionChart({
           <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
           <XAxis
             dataKey="label"
-            tick={AXIS}
+            tick={axis}
             tickLine={false}
             axisLine={{ stroke: 'var(--chart-baseline)' }}
             // Con más de 12 meses, un mes sí y uno no: ritmo regular (el último lleva etiqueta directa).
@@ -134,9 +141,9 @@ export function MrrEvolutionChart({
             tickFormatter={(label: string) => axisMonth(data, data.find((d) => d.label === label)?.month)}
           />
           <YAxis
-            tick={AXIS}
+            tick={axis}
             tickFormatter={(v: number) => formatCompactAmount(v)}
-            width={52}
+            width={fontSize > 12 ? 60 : 52}
             tickLine={false}
             axisLine={false}
             domain={[0, 'auto']}
@@ -171,7 +178,7 @@ export function MrrEvolutionChart({
                 position: 'insideBottomRight',
                 offset: 12,
                 fill: 'var(--text)',
-                fontSize: 12,
+                fontSize,
                 fontWeight: 600,
               }}
             />
@@ -189,7 +196,7 @@ export function MrrEvolutionChart({
                 position: 'right',
                 offset: 8,
                 fill: 'var(--text)',
-                fontSize: 12,
+                fontSize,
                 fontWeight: 600,
               }}
             />
@@ -250,28 +257,32 @@ export function BridgeWaterfall({
   selected,
   onSelect,
   ariaLabel,
+  rowHeight = 44,
+  fontSize = 12,
 }: {
   steps: BridgeStep[];
   currency: string;
   selected?: BridgeStep['key'] | null;
   onSelect?: (step: BridgeStep) => void;
   ariaLabel: string;
+  rowHeight?: number;
+  fontSize?: number;
 }) {
   const clickable = (s: BridgeStep) => Boolean(onSelect && s.movement && (s.customers ?? 0) > 0);
   const negativeEnd = (s: BridgeStep) => s.kind === 'neg' || (s.key === 'NET' && s.value < 0);
   return (
-    <div role="img" aria-label={ariaLabel} style={{ height: steps.length * 44 + 12 }}>
+    <div role="img" aria-label={ariaLabel} style={{ height: steps.length * rowHeight + 12 }}>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={steps} layout="vertical" margin={{ top: 4, right: 92, bottom: 4, left: 0 }} barCategoryGap="30%" accessibilityLayer>
+        <BarChart data={steps} layout="vertical" margin={{ top: 4, right: fontSize > 12 ? 112 : 92, bottom: 4, left: 0 }} barCategoryGap="30%" accessibilityLayer>
           <CartesianGrid stroke="var(--chart-grid)" horizontal={false} />
           <XAxis type="number" hide domain={[(min: number) => Math.min(0, min), (max: number) => Math.max(0, max)]} />
-          <YAxis type="category" dataKey="label" tick={AXIS} width={104} tickLine={false} axisLine={false} />
+          <YAxis type="category" dataKey="label" tick={{ ...AXIS, fontSize }} width={fontSize > 12 ? 124 : 104} tickLine={false} axisLine={false} />
           <ReferenceLine x={0} stroke="var(--chart-baseline)" />
           <Tooltip cursor={{ fill: 'var(--hover)' }} content={<BridgeTooltip currency={currency} />} />
           <Bar
             dataKey="range"
             isAnimationActive={false}
-            maxBarSize={20}
+            maxBarSize={rowHeight > 44 ? 28 : 20}
             minPointSize={2}
             shape={(props: RectangleProps & { payload?: BridgeStep }) => (
               <Rectangle {...props} radius={props.payload && negativeEnd(props.payload) ? [4, 0, 0, 4] : [0, 4, 4, 0]} />
@@ -303,7 +314,7 @@ export function BridgeWaterfall({
                     y={Number(y) + Number(height) / 2}
                     dominantBaseline="central"
                     fill="var(--text)"
-                    fontSize={12}
+                    fontSize={fontSize}
                     fontWeight={s.kind === 'total' ? 700 : 600}
                     className="tabular-nums"
                   >
@@ -359,14 +370,26 @@ function BilledTooltip({
 }
 
 /** Tick de dos líneas: mes y, debajo, % cobrado del mes (sin segundo eje Y, §6.6). */
-function MonthRateTick({ x, y, payload, data }: { x?: number; y?: number; payload?: { value: string; index: number }; data: BilledCollectedDatum[] }) {
+function MonthRateTick({
+  x,
+  y,
+  payload,
+  data,
+  fontSize = 12,
+}: {
+  x?: number;
+  y?: number;
+  payload?: { value: string; index: number };
+  data: BilledCollectedDatum[];
+  fontSize?: number;
+}) {
   const d = data.find((p) => p.label === payload?.value);
   return (
     <g transform={`translate(${x ?? 0},${y ?? 0})`}>
-      <text dy={12} textAnchor="middle" fill="var(--chart-axis)" fontSize={12}>
+      <text dy={fontSize} textAnchor="middle" fill="var(--chart-axis)" fontSize={fontSize}>
         {axisMonth(data, d?.month)}
       </text>
-      <text dy={30} textAnchor="middle" fill="var(--text-2)" fontSize={12} fontWeight={600} className="tabular-nums">
+      <text dy={fontSize * 2.5} textAnchor="middle" fill="var(--text-2)" fontSize={fontSize} fontWeight={600} className="tabular-nums">
         {d?.rate == null ? '—' : formatPercent(d.rate, 0)}
       </text>
     </g>
@@ -378,18 +401,22 @@ export function BilledCollectedChart({
   currency,
   onSelect,
   ariaLabel,
+  height = 292,
+  fontSize = 12,
 }: {
   data: BilledCollectedDatum[];
   currency: string;
   onSelect?: (month: string) => void;
   ariaLabel: string;
+  height?: number | string;
+  fontSize?: number;
 }) {
   const click = (entry: unknown) => {
     const d = (entry as { payload?: BilledCollectedDatum }).payload ?? (entry as BilledCollectedDatum);
     if (d?.month) onSelect?.(d.month);
   };
   return (
-    <div role="img" aria-label={ariaLabel} style={{ height: 292 }}>
+    <div role="img" aria-label={ariaLabel} style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 8, bottom: 4, left: 0 }} barGap={2} barCategoryGap="24%" accessibilityLayer>
           <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
@@ -398,17 +425,17 @@ export function BilledCollectedChart({
             tickLine={false}
             axisLine={{ stroke: 'var(--chart-baseline)' }}
             interval={0}
-            height={44}
-            tick={<MonthRateTick data={data} />}
+            height={Math.round(fontSize * 3.7)}
+            tick={<MonthRateTick data={data} fontSize={fontSize} />}
           />
-          <YAxis tick={AXIS} tickFormatter={(v: number) => formatCompactAmount(v)} width={52} tickLine={false} axisLine={false} />
+          <YAxis tick={{ ...AXIS, fontSize }} tickFormatter={(v: number) => formatCompactAmount(v)} width={fontSize > 12 ? 60 : 52} tickLine={false} axisLine={false} />
           <Tooltip cursor={{ fill: 'var(--hover)' }} content={<BilledTooltip currency={currency} />} />
           <Bar
             dataKey="invoiced"
             name="Facturado"
             fill="var(--chart-billed)"
             radius={[4, 4, 0, 0]}
-            maxBarSize={16}
+            maxBarSize={fontSize > 12 ? 22 : 16}
             isAnimationActive={false}
             onClick={click}
             cursor={onSelect ? 'pointer' : undefined}
@@ -418,7 +445,7 @@ export function BilledCollectedChart({
             name="Cobrado"
             fill="var(--chart-collected-2)"
             radius={[4, 4, 0, 0]}
-            maxBarSize={16}
+            maxBarSize={fontSize > 12 ? 22 : 16}
             isAnimationActive={false}
             onClick={click}
             cursor={onSelect ? 'pointer' : undefined}

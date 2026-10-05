@@ -1,8 +1,9 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SessionRoles } from '@/types/domain';
 import { lastMonths } from '@/features/executive/reportContext';
+import { formatDate } from '@/lib/format';
 
 /*
  * Resumen ejecutivo V4 (fase 09, D-V05) y perspectivas.
@@ -346,5 +347,154 @@ describe('Perspectivas y permisos', () => {
     expect(screen.getByText('1 de 2')).toBeInTheDocument();
     expect(screen.queryByText(/8\/8/)).not.toBeInTheDocument();
     expect(state.healthCalls).toBe(0);
+  });
+});
+
+describe('Modo presentación (fase 14)', () => {
+  const deck = () => screen.getByRole('region', { name: 'Presentación del resumen ejecutivo' });
+  const slideId = () => document.querySelector('[data-slide]')?.getAttribute('data-slide');
+  const where = () => document.querySelector('[data-testid="where"]');
+
+  it('se activa con ?presentacion=1: sin pestañas ni filtros, cabecera con fecha de corte y moneda', () => {
+    renderHome('/?presentacion=1');
+    expect(deck()).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Resumen ejecutivo' })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Finanzas' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Mes analizado')).not.toBeInTheDocument();
+    expect(slideId()).toBe('kpis');
+    expect(screen.getByRole('group', { name: '1 de 6: Indicadores clave' })).toBeInTheDocument();
+    // Fecha de corte = cierre del mes analizado (último cerrado) y moneda de reporte.
+    const header = within(deck()).getAllByRole('banner')[0]!;
+    expect(header).toHaveTextContent(`Datos al${formatDate('2026-09-30')}`);
+    expect(header).toHaveTextContent('Moneda de reporteUSD');
+    expect(header).toHaveTextContent(/Mes analizadose(p)?tiembre 2026/);
+    expect(document.documentElement).toHaveClass('ebim-presenting');
+    expect(document.activeElement).toBe(deck());
+  });
+
+  it('«Presentar» solo lo ve el personal EBIM y abre la presentación conservando los filtros', () => {
+    renderHome('/?moneda=USD&cierre=2026-08');
+    fireEvent.click(screen.getByRole('button', { name: /Presentar/ }));
+    expect(deck()).toBeInTheDocument();
+    expect(within(deck()).getAllByRole('banner')[0]).toHaveTextContent('Mes analizadoagosto 2026');
+  });
+
+  it('un partner con ?presentacion=1 sigue en su tablero (el parámetro no abre nada)', () => {
+    state.persona = 'PARTNER';
+    state.roles = { ...superAdmin, platformRole: null };
+    renderHome('/?presentacion=1');
+    expect(screen.queryByRole('region', { name: 'Presentación del resumen ejecutivo' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Presentar/ })).not.toBeInTheDocument();
+  });
+
+  it('teclado: flechas, espacio, Inicio/Fin y números; Esc sale y devuelve el foco a «Presentar»', () => {
+    renderHome('/?presentacion=1');
+    const key = (k: string, extra: Record<string, unknown> = {}) => fireEvent.keyDown(document.activeElement ?? window, { key: k, ...extra });
+    key('ArrowRight');
+    expect(slideId()).toBe('mrr');
+    key(' ');
+    expect(slideId()).toBe('puente');
+    key('ArrowLeft');
+    expect(slideId()).toBe('mrr');
+    key('End');
+    expect(slideId()).toBe('tops');
+    key('ArrowRight'); // en la última no da la vuelta
+    expect(slideId()).toBe('tops');
+    key('Home');
+    expect(slideId()).toBe('kpis');
+    key('4');
+    expect(slideId()).toBe('cobranza');
+    expect(screen.getByText('Diapositiva 4 de 6: Facturado vs cobrado y cartera')).toBeInTheDocument();
+    key('Escape');
+    expect(screen.queryByRole('region', { name: 'Presentación del resumen ejecutivo' })).not.toBeInTheDocument();
+    expect(document.documentElement).not.toHaveClass('ebim-presenting');
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: /Presentar/ }));
+  });
+
+  it('el espacio sobre un botón lo activa y no cambia de diapositiva; los puntos saltan a cada una', () => {
+    renderHome('/?presentacion=1&diapositiva=2');
+    const auto = screen.getByRole('button', { name: 'Automático' });
+    auto.focus();
+    fireEvent.keyDown(auto, { key: ' ' });
+    expect(slideId()).toBe('mrr');
+    fireEvent.click(screen.getByRole('button', { name: 'Ir a la diapositiva 5: Mix por producto y mercado' }));
+    expect(slideId()).toBe('mix');
+    expect(screen.getByRole('button', { name: 'Ir a la diapositiva 5: Mix por producto y mercado' })).toHaveAttribute('aria-current', 'step');
+    expect(screen.getByRole('button', { name: 'Diapositiva siguiente' })).toBeEnabled();
+  });
+
+  it('reproducción automática: avanza cada 20 s y tras la última vuelve a la primera', () => {
+    vi.useRealTimers();
+    vi.useFakeTimers({ now: TODAY, toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+    renderHome('/?presentacion=1&diapositiva=5');
+    fireEvent.click(screen.getByRole('button', { name: 'Automático' }));
+    expect(screen.getByRole('button', { name: 'Automático' })).toHaveAttribute('aria-pressed', 'true');
+    act(() => vi.advanceTimersByTime(19_000));
+    expect(slideId()).toBe('mix');
+    act(() => vi.advanceTimersByTime(1_000));
+    expect(slideId()).toBe('tops');
+    act(() => vi.advanceTimersByTime(20_000));
+    expect(slideId()).toBe('kpis');
+  });
+
+  it('ocultar nombres: clientes y partners pasan a «Cliente A…/Partner A…» por importe y sin enlace a su ficha', () => {
+    renderHome('/?presentacion=1&diapositiva=6');
+    const tops = () => deck().querySelector('[data-panel="top-clientes"]') as HTMLElement;
+    expect(within(tops()).getByText('Minera Cordillera')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Ocultar nombres' }));
+    expect(screen.getByRole('button', { name: 'Ocultar nombres' })).toHaveAttribute('aria-pressed', 'true');
+    for (const real of ['Minera Cordillera', 'Transportes Sajama', 'Nueva Andina SA', 'Recorte SAC', 'Andes Digital Partners']) {
+      expect(deck()).not.toHaveTextContent(real);
+    }
+    // Orden por MRR al cierre: Minera 5 700 → A, Sajama 4 600 → B, Recorte 1 000 → C, Nueva Andina 800 → D.
+    const rows = [...tops().querySelectorAll('[data-ranked-row]')].map((r) => r.textContent);
+    expect(rows[0]).toContain('Cliente A');
+    expect(rows[1]).toContain('Cliente B');
+    expect(rows[2]).toContain('Cliente C');
+    expect(rows[3]).toContain('Cliente D');
+    expect(within(tops()).queryAllByRole('link', { name: /Cliente/ })).toHaveLength(0);
+    const partners = deck().querySelector('[data-panel="top-partners"]') as HTMLElement;
+    expect(partners).toHaveTextContent('Partner A');
+    expect(within(deck()).getAllByRole('banner')[0]).toHaveTextContent('Nombres ocultos');
+  });
+
+  it('ocultar nombres también cubre el detalle del puente, con el mismo alias que en el top', () => {
+    renderHome('/?presentacion=1&diapositiva=3&anonimo=1');
+    fireEvent.click(within(deck()).getByRole('button', { name: /Expansión/ }));
+    const list = screen.getByTestId('bridge-customers');
+    expect(list).toHaveTextContent('Cliente A');
+    expect(list).not.toHaveTextContent('Minera Cordillera');
+    expect(within(list).queryByRole('link')).not.toBeInTheDocument();
+  });
+
+  it('imprimir dibuja las seis diapositivas (una por hoja) y luego vuelve a la actual', () => {
+    vi.useRealTimers();
+    vi.useFakeTimers({ now: TODAY, toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+    const print = vi.spyOn(window, 'print').mockImplementation(() => {});
+    renderHome('/?presentacion=1&diapositiva=2');
+    fireEvent.click(screen.getByRole('button', { name: /Imprimir/ }));
+    expect([...document.querySelectorAll('[data-slide]')].map((s) => s.getAttribute('data-slide'))).toEqual(['kpis', 'mrr', 'puente', 'cobranza', 'mix', 'tops']);
+    act(() => vi.advanceTimersByTime(400));
+    expect(print).toHaveBeenCalledTimes(1);
+    expect(document.querySelectorAll('[data-slide]')).toHaveLength(1);
+    expect(slideId()).toBe('mrr');
+    // Ctrl/⌘+P también imprime todas, no solo la visible.
+    fireEvent.keyDown(window, { key: 'p', ctrlKey: true });
+    expect(document.querySelectorAll('[data-slide]')).toHaveLength(6);
+    print.mockRestore();
+  });
+
+  it('el tema claro se fuerza mientras se presenta y al salir vuelve el de la persona', () => {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    renderHome('/?presentacion=1');
+    expect(document.documentElement).toHaveAttribute('data-theme', 'light');
+    fireEvent.click(screen.getByRole('button', { name: 'Tema claro' }));
+    expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
+    fireEvent.click(screen.getByRole('button', { name: 'Tema claro' }));
+    expect(document.documentElement).toHaveAttribute('data-theme', 'light');
+    fireEvent.click(screen.getByRole('button', { name: /Salir/ }));
+    expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
+    expect(where()).toBeNull();
+    document.documentElement.removeAttribute('data-theme');
   });
 });

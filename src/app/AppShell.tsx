@@ -349,6 +349,7 @@ export function AppShell() {
       {/* ---- Sidebar de escritorio: aquí vive la marca. El color base continúa
            el gradiente para que la columna no se corte en páginas largas. ---- */}
       <aside
+        data-print-hide
         className={`ebim-on-brand hidden shrink-0 text-white transition-[width] duration-overlay ease-out lg:block ${
           rail ? 'w-[76px]' : 'w-[248px]'
         }`}
@@ -425,7 +426,7 @@ export function AppShell() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* ---- Topbar neutro (tratamiento A) ---- */}
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-border bg-card px-3 sm:gap-3 sm:px-6">
+        <header data-print-hide className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-border bg-card px-3 sm:gap-3 sm:px-6">
           <button
             ref={openerRef}
             type="button"
