@@ -101,7 +101,7 @@ export function TenantDetailPage() {
     }
   }
 
-  if (tenant.isLoading) return <LoadingState />;
+  if (tenant.isLoading) return <LoadingState variant="page" />;
   if (tenant.error) return <ErrorState error={tenant.error} />;
   if (!tenant.data) {
     return (

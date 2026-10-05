@@ -6,7 +6,7 @@ import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { LoadingState } from '@/components/ui/primitives';
 import { ToastProvider } from '@/components/ui/Toast';
 import { AppShell } from './AppShell';
-import { RequireAuth, RequireFinanceView, RequirePersona } from './guards';
+import { RequireAuth, RequireDesignGallery, RequireFinanceView, RequirePersona } from './guards';
 import { createAppQueryClient } from './queryClient';
 import { AppearanceProvider } from './AppearanceProvider';
 
@@ -63,6 +63,11 @@ const DashboardPage = lazy(() =>
   import('@/features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })),
 );
 
+/** Galería de componentes (solo desarrollo o super admin): fuera del bundle principal. */
+const DesignGalleryPage = lazy(() =>
+  import('@/features/design/DesignGalleryPage').then((m) => ({ default: m.DesignGalleryPage })),
+);
+
 /** Una caché por pestaña, firmada por identidad de sesión (ver `queryClient.ts`). */
 const queryClient = createAppQueryClient();
 
@@ -98,7 +103,7 @@ export function App() {
                     <Route
                     index
                     element={
-                      <Suspense fallback={<LoadingState label="Cargando el resumen ejecutivo…" />}>
+                      <Suspense fallback={<LoadingState variant="page" label="Cargando el resumen ejecutivo…" />}>
                         <DashboardPage />
                       </Suspense>
                     }
@@ -381,6 +386,17 @@ export function App() {
                         <RequirePersona personas={['EBIM', 'PARTNER']}>
                           <UserDetailPage />
                         </RequirePersona>
+                      }
+                    />
+
+                    <Route
+                      path="design"
+                      element={
+                        <RequireDesignGallery>
+                          <Suspense fallback={<LoadingState variant="page" label="Cargando la galería…" />}>
+                            <DesignGalleryPage />
+                          </Suspense>
+                        </RequireDesignGallery>
                       }
                     />
 

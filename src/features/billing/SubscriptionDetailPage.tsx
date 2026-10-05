@@ -98,7 +98,7 @@ export function SubscriptionDetailPage() {
   const [charging, setCharging] = useState<{ id: string; number: string; amount: string } | null>(null);
   const [channelOpen, setChannelOpen] = useState(false);
 
-  if (subscription.isLoading) return <LoadingState />;
+  if (subscription.isLoading) return <LoadingState variant="page" />;
   if (subscription.error) return <ErrorState error={subscription.error} />;
   if (!subscription.data) {
     return (

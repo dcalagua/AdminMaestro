@@ -34,7 +34,7 @@ interface ReadLike {
  * acceso) se dice eso — nunca se pinta como lista vacía ni como cero.
  */
 function guard(query: ReadLike): ReactNode | null {
-  if (query.isLoading) return <LoadingState />;
+  if (query.isLoading) return <LoadingState variant="page" />;
   if (query.error) {
     return (
       <div className="px-4">

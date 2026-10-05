@@ -89,7 +89,7 @@ export function IntegrationDetailPage() {
   const [ownerDialogOpen, setOwnerDialogOpen] = useState(false);
   const [ownerToRemove, setOwnerToRemove] = useState<{ id: string; name: string } | null>(null);
 
-  if (integration.isLoading) return <LoadingState />;
+  if (integration.isLoading) return <LoadingState variant="page" />;
   if (integration.error) {
     return <ErrorState error={integration.error} onRetry={() => void integration.refetch()} />;
   }

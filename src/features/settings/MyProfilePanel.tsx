@@ -51,7 +51,7 @@ export function MyProfilePanel() {
     }
   }
 
-  if (profile.isLoading) return <LoadingState label="Cargando tu perfil…" />;
+  if (profile.isLoading) return <LoadingState variant="card" label="Cargando tu perfil…" />;
   if (profile.error) return <ErrorState error={profile.error} onRetry={() => void profile.refetch()} />;
 
   return (

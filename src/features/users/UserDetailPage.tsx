@@ -34,7 +34,7 @@ export function UserDetailPage() {
 
   const back = <Link className="text-xs text-muted hover:text-fg" to="/users">← Usuarios y accesos</Link>;
 
-  if (user.isLoading) return <LoadingState label="Cargando la ficha del usuario…" />;
+  if (user.isLoading) return <LoadingState variant="page" label="Cargando la ficha del usuario…" />;
   if (user.error || !user.data) {
     return (
       <PageContainer title="Usuario no disponible" breadcrumbs={back}>

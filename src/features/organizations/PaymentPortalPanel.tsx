@@ -87,18 +87,18 @@ function LinkCreatedDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div className="ebim-scrim fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
         ref={ref}
         role="dialog"
         aria-modal="true"
         aria-labelledby="link-created-title"
-        className="ebim-card w-full max-w-xl p-5 shadow-pop"
+        className="ebim-dialog w-full max-w-[560px] p-6"
       >
-        <h2 id="link-created-title" className="text-base font-bold text-fg">
+        <h2 id="link-created-title" className="text-h2 text-fg">
           Enlace de pago generado
         </h2>
-        <p className="mt-2 rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn" role="note">
+        <p className="mt-3 rounded-field bg-warn-soft px-3 py-2.5 text-compact text-warn" role="note">
           Este enlace se muestra <strong>una sola vez</strong>. EBIM solo guarda una huella del token: si lo pierdes,
           revócalo y genera uno nuevo.
         </p>
@@ -112,7 +112,7 @@ function LinkCreatedDialog({
           value={created.url}
           onFocus={(e) => e.currentTarget.select()}
         />
-        <p className="mt-1 text-xs text-muted">
+        <p className="ebim-help">
           Termina en <span className="font-mono">…{created.hint}</span>
           {created.expiresAt ? ` · vence el ${formatDate(created.expiresAt)}` : ''}
         </p>
@@ -151,15 +151,15 @@ function LinkEventsDialog({ linkId, hint, onClose }: { linkId: string | null; hi
   }>;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 py-10">
+    <div className="ebim-scrim fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 py-10">
       <div
         ref={ref}
         role="dialog"
         aria-modal="true"
         aria-labelledby="link-events-title"
-        className="ebim-card w-full max-w-3xl p-5 shadow-pop"
+        className="ebim-dialog w-full max-w-[720px] p-6"
       >
-        <h2 id="link-events-title" className="text-base font-bold text-fg">
+        <h2 id="link-events-title" className="text-h2 text-fg">
           Actividad del enlace …{hint}
         </h2>
         <div className="mt-4">

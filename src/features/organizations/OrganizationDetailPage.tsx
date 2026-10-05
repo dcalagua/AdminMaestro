@@ -81,7 +81,7 @@ export function OrganizationDetailPage() {
     }
   }
 
-  if (org.isLoading) return <LoadingState />;
+  if (org.isLoading) return <LoadingState variant="page" />;
   if (org.error) return <ErrorState error={org.error} />;
   if (!org.data) {
     return (

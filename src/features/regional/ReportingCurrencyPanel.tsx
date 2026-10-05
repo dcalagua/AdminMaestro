@@ -30,7 +30,7 @@ export function ReportingCurrencyPanel() {
     setMaxAge(String(settings.data.fx_max_rate_age_days ?? ''));
   }, [settings.data]);
 
-  if (settings.isLoading || currencies.isLoading) return <LoadingState />;
+  if (settings.isLoading || currencies.isLoading) return <LoadingState variant="card" />;
   if (settings.error) return <ErrorState error={settings.error} onRetry={() => void settings.refetch()} />;
 
   const active = (currencies.data ?? []).filter((c) => c.status === 'ACTIVE');
