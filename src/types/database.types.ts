@@ -13593,6 +13593,22 @@ export type Database = {
           payment_count: number;
         }[];
       };
+      collections_by_week: {
+        Args: { p_reporting_currency?: string; p_weeks?: number };
+        Returns: {
+          as_of: string;
+          collected: number;
+          collected_native: Json;
+          complete: boolean;
+          fx_is_demo: boolean;
+          is_partial: boolean;
+          missing_currencies: string[];
+          payment_count: number;
+          reporting_currency: string;
+          week_end: string;
+          week_start: string;
+        }[];
+      };
       commercial_cutover_axes: {
         Args: Record<PropertyKey, never>;
         Returns: {
@@ -14178,6 +14194,27 @@ export type Database = {
           p_saas_product_id?: string;
         };
         Returns: Json;
+      };
+      finance_monthly_series: {
+        Args: { p_from?: string; p_reporting_currency?: string; p_to?: string };
+        Returns: {
+          as_of: string;
+          collected: number;
+          collected_native: Json;
+          commission: number;
+          commission_native: Json;
+          commission_paid: number;
+          commission_pending: number;
+          complete: boolean;
+          cost: number;
+          cost_native: Json;
+          fx_is_demo: boolean;
+          is_partial: boolean;
+          margin: number;
+          missing_currencies: string[];
+          month: string;
+          reporting_currency: string;
+        }[];
       };
       finance_reporting_rows: {
         Args: {

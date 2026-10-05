@@ -669,6 +669,107 @@ export function useExecutiveBillingSeries(params: ExecutiveMrrSeriesParams = {})
   });
 }
 
+export interface FinanceMonthlyPoint {
+  month: string;
+  asOf: string;
+  isPartial: boolean;
+  reportingCurrency: string;
+  collected: number | null;
+  /** Costo asignado del mes (K05: cost_allocations × peso, por fin de período). */
+  cost: number | null;
+  /** Comisión devengada en el mes (sin anuladas). */
+  commission: number | null;
+  /** Parte de `commission` que hoy está pagada. */
+  commissionPaid: number | null;
+  /** Parte de `commission` que hoy se debe (elegible + devengada). */
+  commissionPending: number | null;
+  /** Cobrado − costo − comisión; NULL si falta una tasa. */
+  margin: number | null;
+  collectedNative: NativeAmounts;
+  costNative: NativeAmounts;
+  commissionNative: NativeAmounts;
+  complete: boolean;
+  missingCurrencies: string[];
+  fxIsDemo: boolean;
+}
+
+/** S09 · Cobrado, costo, comisión y margen gerencial (K05) por mes en moneda de reporte. */
+export function useFinanceMonthlySeries(params: ExecutiveMrrSeriesParams = {}) {
+  return useQuery({
+    queryKey: ['finance', 'monthly-series', params.from ?? null, params.to ?? null, params.reportingCurrency ?? null],
+    placeholderData: keepPreviousData,
+    queryFn: async (): Promise<FinanceMonthlyPoint[]> => {
+      const { data, error } = await supabase.rpc('finance_monthly_series', {
+        p_from: params.from || undefined,
+        p_to: params.to || undefined,
+        p_reporting_currency: params.reportingCurrency || undefined,
+      });
+      if (error) throw new Error(error.message);
+      return (data ?? []).map((r) => ({
+        month: r.month,
+        asOf: r.as_of,
+        isPartial: r.is_partial,
+        reportingCurrency: r.reporting_currency,
+        collected: toAmount(r.collected),
+        cost: toAmount(r.cost),
+        commission: toAmount(r.commission),
+        commissionPaid: toAmount(r.commission_paid),
+        commissionPending: toAmount(r.commission_pending),
+        margin: toAmount(r.margin),
+        collectedNative: toNative(r.collected_native),
+        costNative: toNative(r.cost_native),
+        commissionNative: toNative(r.commission_native),
+        complete: r.complete,
+        missingCurrencies: r.missing_currencies ?? [],
+        fxIsDemo: r.fx_is_demo,
+      }));
+    },
+  });
+}
+
+export interface WeeklyCollectionPoint {
+  /** Lunes de la semana (YYYY-MM-DD). */
+  weekStart: string;
+  weekEnd: string;
+  asOf: string;
+  isPartial: boolean;
+  reportingCurrency: string;
+  collected: number | null;
+  paymentCount: number;
+  native: NativeAmounts;
+  complete: boolean;
+  missingCurrencies: string[];
+  fxIsDemo: boolean;
+}
+
+/** S10 · Cobrado por semana (lunes–domingo) en moneda de reporte, fórmula de K02. */
+export function useWeeklyCollections(weeks = 12, reportingCurrency?: string) {
+  return useQuery({
+    queryKey: ['finance', 'weekly-collections', weeks, reportingCurrency ?? null],
+    placeholderData: keepPreviousData,
+    queryFn: async (): Promise<WeeklyCollectionPoint[]> => {
+      const { data, error } = await supabase.rpc('collections_by_week', {
+        p_weeks: weeks,
+        p_reporting_currency: reportingCurrency || undefined,
+      });
+      if (error) throw new Error(error.message);
+      return (data ?? []).map((r) => ({
+        weekStart: r.week_start,
+        weekEnd: r.week_end,
+        asOf: r.as_of,
+        isPartial: r.is_partial,
+        reportingCurrency: r.reporting_currency,
+        collected: toAmount(r.collected),
+        paymentCount: r.payment_count,
+        native: toNative(r.collected_native),
+        complete: r.complete,
+        missingCurrencies: r.missing_currencies ?? [],
+        fxIsDemo: r.fx_is_demo,
+      }));
+    },
+  });
+}
+
 /** Tarifas con su mercado. RLS de `plan_prices` decide qué filas ve cada rol. */
 export function usePlanPriceCatalog() {
   return useQuery({
