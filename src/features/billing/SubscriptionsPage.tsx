@@ -119,10 +119,8 @@ export function SubscriptionsPage() {
             columns={[
               'Contrato',
               'Facturado a',
-              { label: 'Recurrente (mensual)', align: 'right' },
+              { label: 'Recurrente / mes', align: 'right' },
               { label: 'Cargos únicos', align: 'right' },
-              { label: 'Margen canal', align: 'right' },
-              'Inicio',
               'Estado',
               { label: 'Acciones', srOnly: true },
             ]}
@@ -135,7 +133,7 @@ export function SubscriptionsPage() {
                 <tr key={s.id}>
                   <td className="ebim-td">
                     <Link
-                      className="ebim-link block max-w-[220px] truncate whitespace-nowrap font-mono text-compact font-semibold"
+                      className="ebim-link block max-w-[200px] truncate whitespace-nowrap font-mono text-compact font-semibold"
                       to={`/subscriptions/${s.id}`}
                       title={s.code}
                     >
@@ -148,8 +146,8 @@ export function SubscriptionsPage() {
                   <td className="ebim-td">
                     <div className="flex items-center gap-3">
                       <Avatar name={org} />
-                      <div className="min-w-0">
-                        <div className="truncate">{org}</div>
+                      <div className="min-w-0 max-w-[240px]">
+                        <div className="truncate" title={org}>{org}</div>
                         <div className="truncate text-compact text-fg-2">
                           {s.tenant_id ? (
                             <>
@@ -173,6 +171,12 @@ export function SubscriptionsPage() {
                         <CurrencyLines amounts={charges.monthly} />
                       </span>
                     )}
+                    {/* Margen del canal: parte del recurrente que retiene el partner. */}
+                    {s.channel_margin_rate !== null ? (
+                      <span className="block text-caption text-muted">
+                        Margen canal {formatPercent(Number(s.channel_margin_rate))}
+                      </span>
+                    ) : null}
                   </td>
                   <td className="ebim-td ebim-num whitespace-nowrap">
                     {charges.oneTimeCount === 0 ? (
@@ -182,18 +186,17 @@ export function SubscriptionsPage() {
                         {Object.entries(charges.oneTime)
                           .map(([currency, amount]) => formatMoney(amount, currency))
                           .join(' · ')}
-                        <span className="block text-compact text-muted">{formatNumber(charges.oneTimeCount)} cargo(s) único(s)</span>
+                        <span className="block text-compact text-muted">
+                          {formatNumber(charges.oneTimeCount)} {charges.oneTimeCount === 1 ? 'cargo' : 'cargos'}
+                        </span>
                       </span>
                     )}
                   </td>
-                  <td className="ebim-td ebim-num">
-                    {s.channel_margin_rate !== null ? formatPercent(Number(s.channel_margin_rate)) : '—'}
-                  </td>
-                  <td className="ebim-td whitespace-nowrap text-compact text-fg-2">{formatDate(s.started_on)}</td>
                   <td className="ebim-td">
                     <Badge tone={SUBSCRIPTION_STATUS_TONE[s.status] ?? 'neutral'} dot>
                       {SUBSCRIPTION_STATUS_LABEL[s.status] ?? s.status}
                     </Badge>
+                    <span className="mt-0.5 block whitespace-nowrap text-caption text-muted">desde {formatDate(s.started_on)}</span>
                   </td>
                   <td className="ebim-td w-12 text-right">
                     <ActionMenu

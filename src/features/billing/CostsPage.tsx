@@ -300,7 +300,7 @@ function CostEntriesSection() {
       header: 'Concepto',
       sortKey: 'description',
       cell: (r) => (
-        <span className="block min-w-[200px] max-w-[300px]">
+        <span className="block min-w-[160px] max-w-[220px]">
           <span className="block truncate font-medium" title={r.description ?? undefined}>
             {r.description ?? '—'}
           </span>
@@ -312,15 +312,17 @@ function CostEntriesSection() {
       id: 'category',
       header: 'Categoría',
       sortKey: 'category_text',
-      cell: (r) => <Badge tone="info">{categoryLabel(r.category)}</Badge>,
+      // Texto que puede partirse (no insignia): «Infraestructura dedicada» ensanchaba la tabla.
+      cell: (r) => <span className="block max-w-[120px] text-compact text-fg-2">{categoryLabel(r.category)}</span>,
     },
     {
       id: 'period',
       header: 'Período',
       sortKey: 'period_start',
       cell: (r) => (
-        <span className="whitespace-nowrap text-compact text-fg-2">
-          {formatDate(r.period_start)} → {formatDate(r.period_end)}
+        <span className="block whitespace-nowrap text-compact text-fg-2">
+          {formatDate(r.period_start)}
+          <span className="block">→ {formatDate(r.period_end)}</span>
           {r.is_recurring ? <span className="block text-caption text-muted">Recurrente</span> : null}
         </span>
       ),
@@ -332,25 +334,29 @@ function CostEntriesSection() {
       align: 'right',
       cell: (r) => <span className="whitespace-nowrap font-semibold">{formatMoney(num(r.amount), r.currency)}</span>,
     },
+    // Asignado / plataforma / sin asignar en una sola celda (sólo los no nulos):
+    // como tres columnas la tabla no cabía a 1280.
     {
-      id: 'allocated',
-      header: 'Asignado',
-      align: 'right',
-      cell: (r) => <span className="whitespace-nowrap">{formatMoney(num(r.allocated_amount), r.currency)}</span>,
-    },
-    {
-      id: 'platform',
-      header: 'Plataforma',
-      align: 'right',
-      cell: (r) => <span className="whitespace-nowrap text-fg-2">{formatMoney(num(r.platform_amount), r.currency)}</span>,
-    },
-    {
-      id: 'unallocated',
-      header: 'Sin asignar',
+      id: 'split',
+      header: 'Reparto',
       align: 'right',
       cell: (r) => {
-        const value = num(r.unallocated_amount);
-        return <span className={`whitespace-nowrap ${value ? 'font-semibold text-warn' : 'text-muted'}`}>{formatMoney(value, r.currency)}</span>;
+        const parts = [
+          { label: 'Asignado', value: num(r.allocated_amount), tone: 'text-fg' },
+          { label: 'Plataforma', value: num(r.platform_amount), tone: 'text-fg-2' },
+          { label: 'Sin asignar', value: num(r.unallocated_amount), tone: 'font-semibold text-warn' },
+        ].filter((p) => p.value);
+        if (!parts.length) return <span className="text-muted">—</span>;
+        return (
+          <span className="block space-y-0.5 text-compact">
+            {parts.map((p) => (
+              <span key={p.label} className={`block whitespace-nowrap ${p.tone}`}>
+                <span className="text-caption text-muted">{p.label} </span>
+                {formatMoney(p.value, r.currency)}
+              </span>
+            ))}
+          </span>
+        );
       },
     },
     {
@@ -368,7 +374,7 @@ function CostEntriesSection() {
                 {(() => {
                   const text = `${[a.product, a.tenant, a.target].filter(Boolean).join(' · ') || (a.scope === 'PLATFORM' ? 'no se reparte' : 'destino no visible')}${a.weight < 1 ? ` (${formatPercent(a.weight, 0)})` : ''}`;
                   return (
-                    <span className="block max-w-[200px] truncate text-fg-2" title={text}>
+                    <span className="block max-w-[140px] truncate text-fg-2" title={text}>
                       {text}
                     </span>
                   );

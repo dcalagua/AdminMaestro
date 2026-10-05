@@ -190,7 +190,7 @@ export function ReconciliationPage() {
                   <DataTable
                     maxHeight={640}
                     label="Hallazgos"
-                    columns={['Prioridad', 'Hallazgo', 'Sujeto', 'Organización', 'Detalle', R('Importe')]}
+                    columns={['Prioridad', 'Hallazgo', 'Sujeto · organización', 'Detalle', R('Importe')]}
                   >
                     {rows.map((f, idx) => (
                       <tr key={`${f.finding_type}-${f.subject}-${idx}`}>
@@ -220,9 +220,8 @@ export function ReconciliationPage() {
                               {f.subject}
                             </span>
                           )}
-                        </td>
-                        <td className="ebim-td">
-                          <span className="block max-w-[170px] truncate text-fg-2" title={f.organization_name ?? undefined}>
+                          {/* La organización va bajo el sujeto (en columna propia la tabla no cabía a 1280). */}
+                          <span className="block max-w-[180px] truncate text-compact text-fg-2" title={f.organization_name ?? undefined}>
                             {f.organization_name}
                           </span>
                         </td>

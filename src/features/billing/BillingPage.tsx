@@ -318,7 +318,7 @@ function InvoicesSection() {
       header: 'Número',
       sortKey: 'number',
       cell: (r) => (
-        <span className="block max-w-[220px] truncate whitespace-nowrap font-mono text-compact font-semibold" title={r.number ?? undefined}>
+        <span className="block max-w-[160px] truncate whitespace-nowrap font-mono text-compact font-semibold" title={r.number ?? undefined}>
           {r.number ?? '—'}
         </span>
       ),
@@ -330,30 +330,31 @@ function InvoicesSection() {
       cell: (r) =>
         r.customer_organization_id ? (
           <Link
-            className="ebim-link block max-w-[240px] truncate"
+            className="ebim-link block max-w-[160px] truncate"
             title={r.organization_name ?? undefined}
             to={`/organizations/${r.customer_organization_id}`}
           >
             {r.organization_name ?? 'Sin nombre'}
           </Link>
         ) : (
-          <span className="block max-w-[240px] truncate text-muted">{r.organization_name ?? '—'}</span>
+          <span className="block max-w-[160px] truncate text-muted">{r.organization_name ?? '—'}</span>
         ),
     },
     { id: 'issue', header: 'Emisión', sortKey: 'issue_date', cell: (r) => <span className="whitespace-nowrap text-compact text-fg-2">{formatDate(r.issue_date)}</span> },
-    { id: 'due', header: 'Vencimiento', sortKey: 'due_date', cell: (r) => <span className="whitespace-nowrap text-compact text-fg-2">{formatDate(r.due_date)}</span> },
+    { id: 'due', header: 'Vence', sortKey: 'due_date', cell: (r) => <span className="whitespace-nowrap text-compact text-fg-2">{formatDate(r.due_date)}</span> },
+    // Lo cobrado va bajo el total (saldo = total − cobrado): como columna propia
+    // la tabla no cabía a 1280.
     {
       id: 'total',
-      header: 'Total',
+      header: 'Total · cobrado',
       sortKey: 'total',
       align: 'right',
-      cell: (r) => <span className="whitespace-nowrap font-semibold">{formatMoney(num(r.total), r.currency)}</span>,
-    },
-    {
-      id: 'paid',
-      header: 'Cobrado',
-      align: 'right',
-      cell: (r) => <span className="whitespace-nowrap text-fg-2">{formatMoney(num(r.confirmed_paid), r.currency)}</span>,
+      cell: (r) => (
+        <span className="whitespace-nowrap">
+          <span className="block font-semibold">{formatMoney(num(r.total), r.currency)}</span>
+          <span className="block text-caption text-muted">cobrado {formatMoney(num(r.confirmed_paid), r.currency)}</span>
+        </span>
+      ),
     },
     {
       id: 'balance',
@@ -375,20 +376,21 @@ function InvoicesSection() {
       },
     },
     {
+      // Estado y antigüedad comparten celda: la antigüedad sólo existe para lo
+      // que se puede cobrar y como columna propia empujaba la tabla fuera de 1280.
       id: 'status',
-      header: 'Estado',
-      cell: (r) => <Badge tone={INVOICE_TONE[r.status ?? ''] ?? 'neutral'}>{invoiceStatusLabel(r.status)}</Badge>,
-    },
-    {
-      id: 'aging',
-      header: 'Antigüedad',
+      header: 'Estado · antigüedad',
       cell: (r) => {
-        if (!r.is_receivable || !r.aging_bucket) return <span className="text-compact text-muted">No aplica</span>;
-        const bucket = AGING_BUCKETS.find((b) => b.id === r.aging_bucket);
+        const bucket = r.is_receivable && r.aging_bucket ? AGING_BUCKETS.find((b) => b.id === r.aging_bucket) : null;
         return (
-          <span className={`whitespace-nowrap text-compact ${bucket?.overdue ? 'font-semibold text-warn' : 'text-fg-2'}`}>
-            {agingLabel(r.aging_bucket)}
-            {r.days_overdue && r.days_overdue > 0 ? ` · ${formatNumber(r.days_overdue)} d` : ''}
+          <span className="flex flex-col items-start gap-0.5">
+            <Badge tone={INVOICE_TONE[r.status ?? ''] ?? 'neutral'}>{invoiceStatusLabel(r.status)}</Badge>
+            {bucket && r.aging_bucket ? (
+              <span className={`whitespace-nowrap text-caption ${bucket.overdue ? 'font-semibold text-warn' : 'text-muted'}`}>
+                {agingLabel(r.aging_bucket)}
+                {r.days_overdue && r.days_overdue > 0 ? ` · ${formatNumber(r.days_overdue)} d` : ''}
+              </span>
+            ) : null}
           </span>
         );
       },
@@ -555,7 +557,7 @@ function CollectedPaymentsSection() {
       header: 'Factura',
       sortKey: 'invoice_number',
       cell: (r) => (
-        <span className="block max-w-[220px] truncate whitespace-nowrap font-mono text-compact font-semibold" title={r.invoice_number ?? undefined}>
+        <span className="block max-w-[160px] truncate whitespace-nowrap font-mono text-compact font-semibold" title={r.invoice_number ?? undefined}>
           {r.invoice_number ?? '—'}
         </span>
       ),
@@ -567,14 +569,14 @@ function CollectedPaymentsSection() {
       cell: (r) =>
         r.customer_organization_id ? (
           <Link
-            className="ebim-link block max-w-[240px] truncate"
+            className="ebim-link block max-w-[160px] truncate"
             title={r.organization_name ?? undefined}
             to={`/organizations/${r.customer_organization_id}`}
           >
             {r.organization_name ?? 'Sin nombre'}
           </Link>
         ) : (
-          <span className="block max-w-[240px] truncate text-muted">{r.organization_name ?? '—'}</span>
+          <span className="block max-w-[160px] truncate text-muted">{r.organization_name ?? '—'}</span>
         ),
     },
     { id: 'method', header: 'Método', cell: (r) => <span className="text-compact text-fg-2">{r.method ?? 'Sin método'}</span> },

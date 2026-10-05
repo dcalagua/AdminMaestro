@@ -66,9 +66,7 @@ export function BalancesTab({ tenantId }: { tenantId?: string } = {}) {
           maxHeight={560}
           label="Saldos de créditos"
           columns={[
-            'Tenant',
-            'Pool',
-            'Período',
+            'Tenant · pool y período',
             ...['Incluidos', 'Comprados', 'Bono', 'Reservados', 'Usados', 'Expirados', 'Ajuste', 'Saldo'].map((label) => ({
               label,
               align: 'right' as const,
@@ -79,13 +77,16 @@ export function BalancesTab({ tenantId }: { tenantId?: string } = {}) {
             const negative = Number(b.balance ?? 0) < 0;
             return (
               <tr key={`${b.tenant_id}:${b.pool_key}:${b.period_start}`}>
+                {/* Pool y período bajo el tenant: con ocho columnas de cantidades, como
+                    columnas propias el saldo quedaba fuera de la vista a 1280. */}
                 <td className="ebim-td">
                   <span className="block max-w-[240px] truncate font-semibold" title={lookups.tenantName(b.tenant_id)}>
                     {lookups.tenantName(b.tenant_id)}
                   </span>
+                  <span className="block whitespace-nowrap text-compact text-fg-2">
+                    {poolLabel(b.pool_key)} · {formatPeriod(b.period_start)}
+                  </span>
                 </td>
-                <td className="ebim-td whitespace-nowrap text-compact text-fg-2">{poolLabel(b.pool_key)}</td>
-                <td className="ebim-td whitespace-nowrap text-compact">{formatPeriod(b.period_start)}</td>
                 {[b.included, b.purchased, b.bonus, b.reserved, b.used, b.expired, b.adjusted].map((v, i) => (
                   <td key={i} className={`ebim-td ebim-num text-compact ${Number(v ?? 0) === 0 ? 'text-muted' : ''}`}>
                     {formatQuantity(v)}

@@ -166,7 +166,7 @@ export function ProvisioningPage() {
         ) : (
           <DataTable
             label="Solicitudes de infraestructura"
-            columns={['Acción', 'Tenant', 'Destino', 'Modo', 'Estado', { label: 'Intentos', align: 'right' }, 'Creada', { label: 'Acciones', srOnly: true }]}
+            columns={['Acción', 'Tenant · destino', 'Estado · modo', 'Creada · intentos', { label: 'Acciones', srOnly: true }]}
           >
             {rows.map((r) => {
               const id = r.id as string;
@@ -181,27 +181,35 @@ export function ProvisioningPage() {
                       <span className="font-medium">{ACTION_LABEL[r.action as string] ?? (r.action as string)}</span>
                       <p className="font-mono text-caption text-muted">{r.action as string}</p>
                     </td>
-                    <td className="ebim-td">{(r.tenants as { name: string } | null)?.name ?? '—'}</td>
-                    <td className="ebim-td font-mono text-caption text-muted">
-                      {(r.deployment_targets as { code: string } | null)?.code ?? '—'}
-                    </td>
+                    {/* Tenant y destino comparten celda, y los intentos van bajo la fecha:
+                        en columnas propias los botones de la fila quedaban fuera de la vista. */}
                     <td className="ebim-td">
-                      <ModeBadge mode={r.mode as string} />
+                      <span className="block max-w-[180px] truncate" title={(r.tenants as { name: string } | null)?.name}>
+                        {(r.tenants as { name: string } | null)?.name ?? '—'}
+                      </span>
+                      <span className="block max-w-[180px] truncate font-mono text-caption text-muted">
+                        {(r.deployment_targets as { code: string } | null)?.code ?? '—'}
+                      </span>
                     </td>
                     <td className="ebim-td">
                       <Badge tone={statusTone(r.status as string)} dot>
                         {statusLabel(r.status as string)}
                       </Badge>
                       {r.error_message ? (
-                        <p className="mt-1 max-w-[220px] truncate text-caption text-danger" title={r.error_message as string}>
+                        <p className="mt-1 max-w-[200px] truncate text-caption text-danger" title={r.error_message as string}>
                           {r.error_message as string}
                         </p>
                       ) : null}
+                      <div className="mt-1">
+                        <ModeBadge mode={r.mode as string} />
+                      </div>
                     </td>
-                    <td className="ebim-td ebim-num text-compact">
-                      {r.attempts as number}/{r.max_attempts as number}
+                    <td className="ebim-td whitespace-nowrap text-caption text-muted">
+                      {formatDateTime(r.created_at as string)}
+                      <span className="block tabular-nums">
+                        Intento {r.attempts as number} de {r.max_attempts as number}
+                      </span>
                     </td>
-                    <td className="ebim-td whitespace-nowrap text-caption text-muted">{formatDateTime(r.created_at as string)}</td>
                     <td className="ebim-td text-right">
                       <div className="flex items-center justify-end gap-1 whitespace-nowrap">
                         <button
@@ -226,7 +234,7 @@ export function ProvisioningPage() {
                   </tr>
                   {isExpanded ? (
                     <tr>
-                      <td colSpan={8} className="bg-sunken px-4 py-3">
+                      <td colSpan={5} className="bg-sunken px-4 py-3">
                         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
                           <div className="min-w-0 space-y-2 text-compact">
                             <p className="text-micro text-muted">Resultado</p>

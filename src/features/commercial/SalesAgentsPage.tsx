@@ -103,10 +103,8 @@ export function SalesAgentsPage() {
               'Comercial',
               'Tipo',
               'Contacto',
-              { label: 'Atribuciones', align: 'right' },
               'Cartera',
-              'Vigencia',
-              'Estado',
+              'Estado · vigencia',
               { label: 'Acciones', srOnly: true },
             ]}
           >
@@ -125,21 +123,30 @@ export function SalesAgentsPage() {
                   </td>
                   <td className="ebim-td">
                     <Badge tone="neutral">{AGENT_TYPE_LABEL[a.agent_type] ?? a.agent_type}</Badge>
-                    <div className="mt-1 truncate text-compact text-fg-2">
+                    <div className="mt-1 max-w-[140px] truncate text-compact text-fg-2">
                       {(a.organizations as { display_name: string } | null)?.display_name ?? 'Sin organización'}
                     </div>
                   </td>
-                  <td className="ebim-td text-fg-2">{a.contact_email ?? '—'}</td>
-                  <td className="ebim-td ebim-num">{countText(attributions, own?.active ?? 0)}</td>
+                  <td className="ebim-td text-fg-2">
+                    <span className="block max-w-[160px] truncate" title={a.contact_email ?? undefined}>
+                      {a.contact_email ?? '—'}
+                    </span>
+                  </td>
+                  {/* Cartera = clientes y productos; las atribuciones vigentes van en la misma
+                      línea (como columna propia la tabla no cabía a 1280). */}
                   <td className="ebim-td text-compact text-fg-2">
                     {attributions.error || attributions.isLoading ? (
                       countText(attributions, 0)
                     ) : own ? (
                       <>
-                        <span className="font-semibold text-fg">
-                          {own.customers.size} {own.customers.size === 1 ? 'cliente' : 'clientes'}
+                        <span className="whitespace-nowrap">
+                          <span className="font-semibold text-fg">
+                            {own.customers.size} {own.customers.size === 1 ? 'cliente' : 'clientes'}
+                          </span>
+                          {' · '}
+                          {countText(attributions, own.active)} {own.active === 1 ? 'atribución' : 'atribuciones'}
                         </span>
-                        <span className="block max-w-[260px] truncate" title={[...own.products].sort().join(', ')}>
+                        <span className="block max-w-[200px] truncate" title={[...own.products].sort().join(', ')}>
                           {own.products.size === 1
                             ? [...own.products][0]
                             : `${own.products.size} productos · ${[...own.products].sort().join(', ')}`}
@@ -149,11 +156,11 @@ export function SalesAgentsPage() {
                       'Sin cartera atribuida'
                     )}
                   </td>
-                  <td className="ebim-td whitespace-nowrap text-compact text-fg-2">
-                    {formatDate(a.valid_from)} → {a.valid_to ? formatDate(a.valid_to) : 'sin fin'}
-                  </td>
                   <td className="ebim-td">
                     <Badge tone={entityStatusTone(a.status)} dot>{entityStatusLabel(a.status)}</Badge>
+                    <span className="mt-0.5 block whitespace-nowrap text-caption text-muted">
+                      {formatDate(a.valid_from)} → {a.valid_to ? formatDate(a.valid_to) : 'sin fin'}
+                    </span>
                   </td>
                   <td className="ebim-td w-12 text-right">
                     <ActionMenu

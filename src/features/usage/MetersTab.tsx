@@ -78,7 +78,7 @@ export function MetersTab() {
         <SearchBar
           value={term}
           onChange={setTerm}
-          placeholder="Buscar medidor por código, nombre, unidad, producto o capacidad…"
+          placeholder="Buscar medidor, unidad, producto o capacidad…"
           right={
             <StatusTabs
               value={tab}
@@ -113,7 +113,7 @@ export function MetersTab() {
               </h3>
               <DataTable
                 label={`Medidores de ${g.label}`}
-                columns={['Medidor', 'Consumo mensual', 'Agregación', 'Capacidad', 'Estado', 'Facturable', { label: 'Acciones', srOnly: true }]}
+                columns={['Medidor · capacidad', 'Consumo mensual', 'Agregación', 'Estado', 'Facturable', { label: 'Acciones', srOnly: true }]}
               >
                 {g.rows.map((m) => {
                   const st = labelOf(METER_STATUS, m.status);
@@ -122,9 +122,17 @@ export function MetersTab() {
                     <tr key={m.id}>
                       <td className="ebim-td">
                         <div className="font-semibold">{m.name}</div>
-                        <div className="font-mono text-caption text-muted">
+                        <div className="max-w-[200px] truncate font-mono text-caption text-muted" title={m.code}>
                           {m.code}
                         </div>
+                        {/* La capacidad va bajo el código: como columna propia empujaba
+                            «Facturable…» fuera de la vista a 1280. */}
+                        {cap ? (
+                          <div className="max-w-[200px] truncate font-mono text-caption text-fg-2" title={`Capacidad que mide: ${cap.code}`}>
+                            <span aria-hidden>→ </span>
+                            <span>{cap.code}</span>
+                          </div>
+                        ) : null}
                       </td>
                       <td className="ebim-td">
                         <MeterTrend
@@ -139,9 +147,6 @@ export function MetersTab() {
                           {MEASUREMENT_LABEL[m.measurement] ?? m.measurement} · gracia {m.grace_hours} h
                         </div>
                         {m.allows_negative ? <div className="text-caption text-muted">Admite negativos</div> : null}
-                      </td>
-                      <td className="ebim-td text-compact">
-                        {cap ? <span className="font-mono text-caption">{cap.code}</span> : <span className="text-muted">—</span>}
                       </td>
                       <td className="ebim-td">
                         <Badge tone={st.tone}>{st.label}</Badge>
@@ -202,7 +207,7 @@ export function MetersTab() {
   );
 }
 
-/** «sep 2026»: mes corto para la celda (el largo va en el texto accesible). */
+/** «set 2026»: mes corto para la celda (el largo va en el texto accesible). */
 function shortPeriod(period: string): string {
   const [y, m] = period.split('-').map(Number);
   return new Intl.DateTimeFormat('es-PE', { month: 'short', year: 'numeric' }).format(new Date(y!, m! - 1, 1)).replace('.', '');

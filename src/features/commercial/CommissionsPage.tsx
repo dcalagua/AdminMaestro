@@ -316,20 +316,23 @@ function CommissionEventsSection() {
       cell: (r) => (
         <span className="block min-w-[140px]">
           <span className="block font-semibold">{r.agent_name ?? '—'}</span>
-          <span className="block max-w-[200px] truncate text-compact text-fg-2" title={r.tenant_name ?? undefined}>
+          <span className="block max-w-[160px] truncate text-compact text-fg-2" title={r.tenant_name ?? undefined}>
             {r.tenant_name ?? 'Sin tenant'}
           </span>
         </span>
       ),
     },
-    { id: 'product', header: 'Producto', sortKey: 'product_short_name', cell: (r) => <span className="whitespace-nowrap">{r.product_short_name ?? '—'}</span> },
+    // Producto y origen en una celda (el origen es la línea cobrada y su factura):
+    // como columnas separadas la tabla no cabía a 1280.
     {
-      id: 'origin',
-      header: 'Origen',
+      id: 'product',
+      header: 'Producto · origen',
+      sortKey: 'product_short_name',
       cell: (r) => (
-        <span className="block max-w-[220px] text-compact">
-          <span className="block truncate" title={r.rule_name ? `Regla: ${r.rule_name}` : undefined}>
-            {r.source_label ?? '—'}
+        <span className="block max-w-[200px] text-compact">
+          <span className="block truncate text-body" title={r.rule_name ? `Regla: ${r.rule_name}` : undefined}>
+            {r.product_short_name ?? '—'}
+            <span className="text-fg-2"> · {r.source_label ?? '—'}</span>
           </span>
           {r.invoice_number ? (
             <span className="block truncate font-mono text-caption text-muted" title={r.invoice_number}>
@@ -346,7 +349,7 @@ function CommissionEventsSection() {
       cell: (r) => (
         <span className="block whitespace-nowrap text-compact text-fg-2" title={r.rule_name ? `Regla: ${r.rule_name}` : undefined}>
           {calculation(r)}
-          <span className="block max-w-[220px] truncate text-caption text-muted">{r.rule_name ?? 'Sin regla'}</span>
+          <span className="block max-w-[180px] truncate text-caption text-muted">{r.rule_name ?? 'Sin regla'}</span>
         </span>
       ),
     },

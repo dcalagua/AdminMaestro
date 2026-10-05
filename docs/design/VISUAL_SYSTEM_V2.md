@@ -297,6 +297,10 @@ Si el tile navega al detalle, todo el tile es el enlace (U: continuidad resumen 
   primaria de la fila es el clic en la fila/nombre. Nada de «Archivar» rojo por fila (A12).
 - Pie: `text-caption --muted` con conteo «1–25 de 832» + paginación (fantasma `sm`).
 - Estados: skeleton de 6 filas; vacío (§5.14) dentro de la tarjeta; error (§5.14) dentro de la tarjeta.
+- **Cabe a 1280 (fase 15):** una tabla de listado no puede esconder columnas tras su propio scroll a 1280×800 ni a 1440×900
+  (lo verifica `e2e/visual/desbordes.spec.ts`, que informa el ancho de cada columna). Si no cabe, primero se **fusionan datos
+  emparentados en una celda de dos líneas** (total · cobrado, estado · antigüedad/vigencia, tenant · destino, producto · origen),
+  luego se truncan nombres con `title`; nunca se quita un dato ni una columna del CSV. Las filas de pestañas sí pueden desbordar.
 
 ### 5.8 Pestañas
 
@@ -473,6 +477,9 @@ Signo negativo: `−` (U+2212) en etiquetas de gráfico y deltas. Ninguna cifra 
   ya impide que compacta baje de 36 en móvil). Separación mínima entre objetivos 8 px.
 - **Contraste:** texto ≥ 4.5:1 (≥ 3:1 desde 24 px o 18.66 px 700), componentes y marcas ≥ 3:1 o canal de alivio (§6.2). Todos los pares
   de §3 calculados.
+  `node scripts/a11y/contrast-tokens.mjs` recalcula 116 pares de `tokens.css` en claro y oscuro y falla si alguno baja de AA (fase 15).
+- **Verificación de teclado (fase 15):** `e2e/a11y-teclado.spec.ts` recorre el shell con Tab (anillo visible en cada paso), la paleta
+  ⌘K, la trampa de foco de un diálogo (y la vuelta del foco al botón), pestañas con flechas/Inicio y `prefers-reduced-motion`.
 - **Semántica:** un `h1` por página; `aria-sort` en tablas; `aria-describedby` campo → ayuda/error; `role="status"`/`alert` en estados;
   gráficos con `role="img"` + `aria-label` que resume la conclusión, y tabla alternativa navegable.
 - **Idioma:** todo en español (U-13), incluidos `aria-label`, tooltips y errores.
