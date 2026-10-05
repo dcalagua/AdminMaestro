@@ -134,7 +134,10 @@ test.describe('responsive (fase 15)', () => {
     );
     for (const s of shots) {
       expect(s.overflow, `${s.file} desborda horizontalmente`).toBe(false);
-      expect(s.alerts, `${s.file} muestra un error`).toEqual([]);
+      // El enlace inválido muestra su error a propósito (estado esperado, U-14).
+      if (!s.file.startsWith('pagar-enlace-invalido')) {
+        expect(s.alerts, `${s.file} muestra un error`).toEqual([]);
+      }
     }
   });
 });
