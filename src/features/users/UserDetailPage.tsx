@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useAdminUser } from '@/services/queries';
 import { useUserAdminAction, type UserAdminResult } from '@/services/mutations';
 import { SectionTabs } from '@/components/ui/SectionTabs';
@@ -32,12 +32,11 @@ export function UserDetailPage() {
   const [reasonError, setReasonError] = useState<Error | null>(null);
   const [resent, setResent] = useState<UserAdminResult | null>(null);
 
-  const back = <Link className="text-xs text-muted hover:text-fg" to="/users">← Usuarios y accesos</Link>;
 
   if (user.isLoading) return <LoadingState variant="page" label="Cargando la ficha del usuario…" />;
   if (user.error || !user.data) {
     return (
-      <PageContainer title="Usuario no disponible" breadcrumbs={back}>
+      <PageContainer title="Usuario no disponible">
         <Card>
           {user.error && !isAuthorizationError(user.error) ? (
             <ErrorState error={user.error} onRetry={() => void user.refetch()} />
@@ -97,7 +96,6 @@ export function UserDetailPage() {
     <PageContainer
       title={u.fullName ?? u.email}
       description={`${u.email}${u.jobTitle ? ` · ${u.jobTitle}` : ''}`}
-      breadcrumbs={back}
       actions={
         <>
           <Badge tone={status.tone}>{status.label}</Badge>

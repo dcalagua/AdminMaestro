@@ -14,6 +14,7 @@ import {
 } from '@phosphor-icons/react';
 import { SearchField } from './fields';
 import { Sparkline } from './Sparkline';
+import { usePageTrail } from './pageTrail';
 import { formatDelta } from '@/lib/format';
 import { businessErrorMessage } from '@/lib/pgError';
 
@@ -72,22 +73,30 @@ export function PageContainer({
   title: string;
   description?: string;
   actions?: ReactNode;
-  /** Migas: lista declarativa o un nodo propio (compatibilidad). */
+  /**
+   * Migas: lista declarativa o un nodo propio (compatibilidad). Sin migas, se
+   * usan las del shell (grupo del menú → listado de origen) + el título.
+   */
   breadcrumbs?: Crumb[] | ReactNode;
   /** Metadatos bajo el título (fecha de corte, moneda de reporte). */
   meta?: ReactNode;
   children: ReactNode;
 }) {
+  const trail = usePageTrail();
+  const crumbs = breadcrumbs ?? (trail.length > 0 ? [...trail, { label: title }] : null);
   return (
     <div className="mx-auto w-full max-w-[1440px] px-6 py-6 2xl:px-8">
-      {breadcrumbs ? (
+      {crumbs ? (
         <div className="mb-2">
-          {Array.isArray(breadcrumbs) ? <Breadcrumbs items={breadcrumbs as Crumb[]} /> : breadcrumbs}
+          {Array.isArray(crumbs) ? <Breadcrumbs items={crumbs as Crumb[]} /> : crumbs}
         </div>
       ) : null}
       <header className="mb-6 flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
         <div className="min-w-0">
-          <h1 className="text-h1 text-fg">{title}</h1>
+          {/* tabIndex -1: el shell lleva el foco aquí al cambiar de ruta (§5.13). */}
+          <h1 tabIndex={-1} className="text-h1 text-fg focus:outline-none">
+            {title}
+          </h1>
           {description ? <p className="mt-1 max-w-[72ch] text-body text-fg-2">{description}</p> : null}
           {meta ? <div className="mt-2 text-caption text-muted">{meta}</div> : null}
         </div>

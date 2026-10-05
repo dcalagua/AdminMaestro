@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useOrganization, useOrganizationAgreements, usePartnerAgreements } from '@/services/queries';
 import { useEndProductAgreement } from '@/services/mutations';
 import { useAuth } from '@/hooks/useAuth';
@@ -123,9 +123,6 @@ export function OrganizationDetailPage() {
     <PageContainer
       title={o.display_name}
       description={`${o.legal_name} · ${o.country_code}${o.tax_id ? ` · ${o.tax_id}` : ''}`}
-      breadcrumbs={
-        <Link className="text-xs text-muted hover:text-fg" to="/organizations">← Directorio corporativo</Link>
-      }
       actions={
         <div className="flex flex-wrap gap-1">
           {capabilities.map((c) => (

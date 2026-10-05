@@ -180,9 +180,6 @@ export function SubscriptionDetailPage() {
       description={`${(s.saas_products as { lockup_name: string } | null)?.lockup_name} · ${
         (s.organizations as { display_name: string } | null)?.display_name
       }${(s.tenants as { name: string } | null)?.name ? ` · ${(s.tenants as { name: string }).name}` : ' · nivel partner'}`}
-      breadcrumbs={
-        <Link className="text-xs text-muted hover:text-fg" to="/subscriptions">← Suscripciones</Link>
-      }
       actions={
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone={SUBSCRIPTION_STATUS_TONE[s.status] ?? 'neutral'}>

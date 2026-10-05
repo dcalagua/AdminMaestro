@@ -130,7 +130,6 @@ export function TenantDetailPage() {
     <PageContainer
       title={t.name as string}
       description={`${t.product_lockup} · ${t.customer_name}${t.managing_name ? ` · administrado por ${t.managing_name}` : ' · venta directa EBIM'}`}
-      breadcrumbs={<Link className="text-xs text-muted hover:text-fg" to="/tenants">← Tenants</Link>}
       actions={
         <div className="flex flex-wrap items-center gap-1.5">
           <Badge tone={t.tenant_type === 'PRODUCTION' ? 'ok' : 'info'}>

@@ -85,7 +85,6 @@ export function ProductDetailPage() {
     return (
       <PageContainer
         title="Producto"
-        breadcrumbs={<Link className="text-xs text-muted hover:text-fg" to="/products">← Suite SaaS</Link>}
       >
         <Card>
           <ErrorState error={product.error} onRetry={() => void product.refetch()} />
@@ -131,9 +130,6 @@ export function ProductDetailPage() {
     <PageContainer
       title={p.lockup_name ?? p.name}
       description={p.description ?? undefined}
-      breadcrumbs={
-        <Link className="text-xs text-muted hover:text-fg" to="/products">← Suite SaaS</Link>
-      }
       actions={
         perms.canManagePlatform ? (
           <button type="button" className="ebim-btn-ghost" onClick={() => setEditing(true)}>
