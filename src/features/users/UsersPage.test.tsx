@@ -93,7 +93,12 @@ describe('UsersPage', () => {
     expect(within(table).getByText('Invitación pendiente')).toBeInTheDocument();
     expect(within(table).getByText('Desactivado')).toBeInTheDocument();
     expect(within(table).getByText('Super Admin EBIM')).toBeInTheDocument();
-    expect(within(table).getAllByRole('link', { name: 'Ver ficha' })[0]).toHaveAttribute('href', '/users/u1');
+    // La acción primaria de la fila es el nombre; el resto va al menú «Acciones de …».
+    expect(within(table).getByRole('link', { name: 'Dennis Calagua' })).toHaveAttribute('href', '/users/u1');
+    expect(within(table).getByRole('button', { name: 'Acciones de Dennis Calagua' })).toBeInTheDocument();
+    // Estado con punto de color y texto: desactivado en gris (decisión, no error).
+    const nora = within(table).getByRole('row', { name: /Nora Nueva/ });
+    expect(nora.querySelector('[data-user-status="warn"]')).toHaveTextContent('Invitación pendiente');
 
     const tabs = screen.getByRole('tablist', { name: 'Filtro de estado' });
     expect(within(tabs).getAllByRole('tab').map((t) => t.textContent)).toEqual([

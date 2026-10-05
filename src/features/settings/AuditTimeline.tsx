@@ -58,14 +58,23 @@ export function AuditTimeline<Row extends TimelineEvent>({
   label,
   renderDetail,
   showSummary = true,
+  actionLabel = auditActionLabel,
+  actorOf = (row) => row.actor_email ?? 'Sistema',
+  extraOf,
 }: {
   rows: readonly Row[];
   /** Nombre accesible de la línea de tiempo. */
   label: string;
-  /** Contenido del detalle desplegable de un evento. */
-  renderDetail: (row: Row) => ReactNode;
+  /** Contenido del detalle desplegable de un evento; sin él no hay botón «Ver detalle». */
+  renderDetail?: (row: Row) => ReactNode;
   /** Resumen de metadata y correlación bajo el evento. */
   showSummary?: boolean;
+  /** Frase del evento (por defecto, el diccionario general de la bitácora). */
+  actionLabel?: (action: string) => string | null;
+  /** Quién (por defecto, el correo del actor o «Sistema»). */
+  actorOf?: (row: Row) => string;
+  /** Dato breve propio de la pantalla (rol, motivo) junto a quién/cuándo. */
+  extraOf?: (row: Row) => string | null;
 }) {
   const [open, setOpen] = useState<Row['id'] | null>(null);
   return (
@@ -76,7 +85,9 @@ export function AuditTimeline<Row extends TimelineEvent>({
           <ol className="relative">
             {group.rows.map((row, i) => {
               const kind = KIND[auditActionKind(row.action)];
-              const human = auditActionLabel(row.action);
+              const label = actionLabel(row.action);
+              const human = label && label !== row.action ? label : null;
+              const extra = extraOf?.(row) ?? null;
               const expanded = open === row.id;
               const correlation = correlationOf(row.metadata);
               const detailId = `audit-event-${row.id}`;
@@ -111,7 +122,13 @@ export function AuditTimeline<Row extends TimelineEvent>({
                           {auditTime(row.occurred_at)}
                         </time>
                         <span aria-hidden>·</span>
-                        <span className="break-all">{row.actor_email ?? 'Sistema'}</span>
+                        <span className="break-all">{actorOf(row)}</span>
+                        {extra ? (
+                          <>
+                            <span aria-hidden>·</span>
+                            <span className="text-fg-2">{extra}</span>
+                          </>
+                        ) : null}
                         {human ? (
                           <>
                             <span aria-hidden>·</span>
@@ -134,6 +151,7 @@ export function AuditTimeline<Row extends TimelineEvent>({
                         ) : null}
                       </p>
                     </div>
+                    {renderDetail ? (
                     <button
                       type="button"
                       className="ebim-btn-ghost ebim-btn-sm"
@@ -149,10 +167,13 @@ export function AuditTimeline<Row extends TimelineEvent>({
                         className={`transition-transform duration-fast ${expanded ? 'rotate-180' : ''}`}
                       />
                     </button>
+                    ) : null}
                   </div>
-                  <div id={detailId} className="ml-11 mt-3 empty:hidden">
-                    {expanded ? renderDetail(row) : null}
-                  </div>
+                  {renderDetail ? (
+                    <div id={detailId} className="ml-11 mt-3 empty:hidden">
+                      {expanded ? renderDetail(row) : null}
+                    </div>
+                  ) : null}
                 </li>
               );
             })}
