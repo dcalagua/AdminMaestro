@@ -320,6 +320,273 @@ export function useFinanceConsolidated(params: FinanceConsolidatedParams) {
   });
 }
 
+/* ==========================================================================
+   Series ejecutivas (S01–S05, docs/finance/EXECUTIVE_KPI_DICTIONARY.md)
+
+   MRR contratado reconstruido desde la vigencia de los ítems, en moneda de
+   reporte. Un importe NULL significa «falta una tasa» (`complete=false`,
+   `missingCurrencies`), nunca cero: la UI lo rotula, no lo rellena.
+   ========================================================================== */
+
+/** Importes nativos por moneda (`{"PEN": 2000, "USD": 1650}`). */
+export type NativeAmounts = Record<string, number>;
+
+function toNative(value: unknown): NativeAmounts {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const out: NativeAmounts = {};
+  for (const [currency, amount] of Object.entries(value)) {
+    const n = Number(amount);
+    if (Number.isFinite(n)) out[currency] = n;
+  }
+  return out;
+}
+
+function toAmount(value: unknown): number | null {
+  return value === null || value === undefined ? null : Number(value);
+}
+
+export interface ExecutiveMrrPoint {
+  /** Primer día del mes (YYYY-MM-01). */
+  month: string;
+  /** Fecha medida: cierre del mes, u hoy en el mes en curso. */
+  asOf: string;
+  isPartial: boolean;
+  reportingCurrency: string;
+  mrr: number | null;
+  arr: number | null;
+  activeCustomers: number;
+  activeSubscriptions: number;
+  native: NativeAmounts;
+  complete: boolean;
+  missingCurrencies: string[];
+  fxIsDemo: boolean;
+}
+
+export interface ExecutiveMrrSeriesParams {
+  /** Inclusive, cualquier día del mes inicial. Sin valor: 18 meses hasta el actual. */
+  from?: string;
+  to?: string;
+  reportingCurrency?: string;
+}
+
+/** S01 · MRR, ARR, clientes y contratos por mes. */
+export function useExecutiveMrrSeries(params: ExecutiveMrrSeriesParams = {}) {
+  return useQuery({
+    queryKey: ['executive', 'mrr-series', params.from ?? null, params.to ?? null, params.reportingCurrency ?? null],
+    queryFn: async (): Promise<ExecutiveMrrPoint[]> => {
+      const { data, error } = await supabase.rpc('executive_mrr_series', {
+        p_from: params.from || undefined,
+        p_to: params.to || undefined,
+        p_reporting_currency: params.reportingCurrency || undefined,
+      });
+      if (error) throw new Error(error.message);
+      return (data ?? []).map((r) => ({
+        month: r.month,
+        asOf: r.as_of,
+        isPartial: r.is_partial,
+        reportingCurrency: r.reporting_currency,
+        mrr: toAmount(r.mrr),
+        arr: toAmount(r.arr),
+        activeCustomers: r.active_customers,
+        activeSubscriptions: r.active_subscriptions,
+        native: toNative(r.mrr_native),
+        complete: r.complete,
+        missingCurrencies: r.missing_currencies ?? [],
+        fxIsDemo: r.fx_is_demo,
+      }));
+    },
+  });
+}
+
+export interface ExecutiveMrrBridge {
+  month: string;
+  asOf: string;
+  reportingCurrency: string;
+  opening: number | null;
+  newMrr: number | null;
+  expansion: number | null;
+  contraction: number | null;
+  churn: number | null;
+  closing: number | null;
+  /** Punto de la serie del mes anterior, a su propia tasa. */
+  priorClosing: number | null;
+  /** opening − priorClosing: variación sólo por tipo de cambio. */
+  fxRevaluation: number | null;
+  newCustomers: number;
+  expansionCustomers: number;
+  contractionCustomers: number;
+  churnedCustomers: number;
+  complete: boolean;
+}
+
+export type MrrMovementKind = 'NEW' | 'EXPANSION' | 'CONTRACTION' | 'CHURN' | 'FLAT';
+
+export interface ExecutiveMrrMovementCustomer {
+  organizationId: string;
+  organizationName: string | null;
+  movement: MrrMovementKind;
+  opening: number | null;
+  closing: number | null;
+  delta: number | null;
+  complete: boolean;
+}
+
+/**
+ * S02 · Puente de MRR del mes (opening + new + expansion − contraction − churn =
+ * closing). `month` = cualquier día del mes; sin valor, el mes en curso.
+ */
+export function useExecutiveMrrMovements(month?: string, reportingCurrency?: string) {
+  return useQuery({
+    queryKey: ['executive', 'mrr-movements', month ?? null, reportingCurrency ?? null],
+    queryFn: async (): Promise<ExecutiveMrrBridge | null> => {
+      const { data, error } = await supabase.rpc('executive_mrr_movements', {
+        p_month: month || undefined,
+        p_reporting_currency: reportingCurrency || undefined,
+      });
+      if (error) throw new Error(error.message);
+      const r = (data ?? [])[0];
+      if (!r) return null;
+      return {
+        month: r.month,
+        asOf: r.as_of,
+        reportingCurrency: r.reporting_currency,
+        opening: toAmount(r.opening_mrr),
+        newMrr: toAmount(r.new_mrr),
+        expansion: toAmount(r.expansion_mrr),
+        contraction: toAmount(r.contraction_mrr),
+        churn: toAmount(r.churn_mrr),
+        closing: toAmount(r.closing_mrr),
+        priorClosing: toAmount(r.prior_closing_mrr),
+        fxRevaluation: toAmount(r.fx_revaluation),
+        newCustomers: r.new_customers,
+        expansionCustomers: r.expansion_customers,
+        contractionCustomers: r.contraction_customers,
+        churnedCustomers: r.churned_customers,
+        complete: r.complete,
+      };
+    },
+  });
+}
+
+/** S03 · Detalle del puente por organización facturada (drill-down del waterfall). */
+export function useExecutiveMrrMovementCustomers(
+  month: string | undefined,
+  reportingCurrency?: string,
+  { enabled = true }: LazyQueryOptions = {},
+) {
+  return useQuery({
+    queryKey: ['executive', 'mrr-movement-customers', month ?? null, reportingCurrency ?? null],
+    enabled,
+    queryFn: async (): Promise<ExecutiveMrrMovementCustomer[]> => {
+      const { data, error } = await supabase.rpc('executive_mrr_movement_customers', {
+        p_month: month || undefined,
+        p_reporting_currency: reportingCurrency || undefined,
+      });
+      if (error) throw new Error(error.message);
+      return (data ?? []).map((r) => ({
+        organizationId: r.billed_organization_id,
+        organizationName: r.organization_name ?? null,
+        movement: r.movement as MrrMovementKind,
+        opening: toAmount(r.opening_mrr),
+        closing: toAmount(r.closing_mrr),
+        delta: toAmount(r.delta_mrr),
+        complete: r.complete,
+      }));
+    },
+  });
+}
+
+export type MrrMixDimension = 'PRODUCT' | 'MARKET';
+
+export interface ExecutiveMrrMixRow {
+  key: string;
+  label: string;
+  mrr: number | null;
+  /** Razón 0–1 del total del mes; NULL si falta una tasa. */
+  share: number | null;
+  activeCustomers: number;
+  activeSubscriptions: number;
+  native: NativeAmounts;
+  complete: boolean;
+  missingCurrencies: string[];
+}
+
+/** S04 · Mix de MRR por producto o mercado al cierre del mes (orden: mayor MRR primero). */
+export function useExecutiveMrrMix(dimension: MrrMixDimension, month?: string, reportingCurrency?: string) {
+  return useQuery({
+    queryKey: ['executive', 'mrr-mix', dimension, month ?? null, reportingCurrency ?? null],
+    queryFn: async (): Promise<ExecutiveMrrMixRow[]> => {
+      const { data, error } = await supabase.rpc('executive_mrr_mix', {
+        p_dimension: dimension,
+        p_month: month || undefined,
+        p_reporting_currency: reportingCurrency || undefined,
+      });
+      if (error) throw new Error(error.message);
+      return (data ?? []).map((r) => ({
+        key: r.group_key,
+        label: r.group_label,
+        mrr: toAmount(r.mrr),
+        share: toAmount(r.share),
+        activeCustomers: r.active_customers,
+        activeSubscriptions: r.active_subscriptions,
+        native: toNative(r.mrr_native),
+        complete: r.complete,
+        missingCurrencies: r.missing_currencies ?? [],
+      }));
+    },
+  });
+}
+
+export type AgingBucket = 'VIGENTE' | 'D1_30' | 'D31_60' | 'D61_90' | 'D90_MAS' | 'SIN_FECHA';
+
+export interface ExecutiveAgingBucket {
+  bucket: AgingBucket;
+  invoiceCount: number;
+  balance: number | null;
+  native: NativeAmounts;
+  complete: boolean;
+  missingCurrencies: string[];
+}
+
+export interface ExecutiveAging {
+  asOf: string;
+  reportingCurrency: string;
+  /** Las 6 bandas, siempre presentes y en orden. */
+  buckets: ExecutiveAgingBucket[];
+  complete: boolean;
+  fxIsDemo: boolean;
+}
+
+/** S05 · Cartera por antigüedad a una fecha (por defecto hoy), en moneda de reporte. */
+export function useExecutiveAging(asOf?: string, reportingCurrency?: string) {
+  return useQuery({
+    queryKey: ['executive', 'aging', asOf ?? null, reportingCurrency ?? null],
+    queryFn: async (): Promise<ExecutiveAging | null> => {
+      const { data, error } = await supabase.rpc('executive_receivables_aging', {
+        p_as_of: asOf || undefined,
+        p_reporting_currency: reportingCurrency || undefined,
+      });
+      if (error) throw new Error(error.message);
+      const rows = [...(data ?? [])].sort((a, b) => a.bucket_order - b.bucket_order);
+      if (rows.length === 0) return null;
+      return {
+        asOf: rows[0]!.as_of,
+        reportingCurrency: rows[0]!.reporting_currency,
+        buckets: rows.map((r) => ({
+          bucket: r.aging_bucket as AgingBucket,
+          invoiceCount: r.invoice_count,
+          balance: toAmount(r.balance),
+          native: toNative(r.balance_native),
+          complete: r.complete,
+          missingCurrencies: r.missing_currencies ?? [],
+        })),
+        complete: rows.every((r) => r.complete),
+        fxIsDemo: rows.some((r) => r.fx_is_demo),
+      };
+    },
+  });
+}
+
 /** Tarifas con su mercado. RLS de `plan_prices` decide qué filas ve cada rol. */
 export function usePlanPriceCatalog() {
   return useQuery({

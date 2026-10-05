@@ -37,7 +37,7 @@ export const KPI_DICTIONARY: Record<KpiId, KpiDefinition> = {
       'Ítems recurrentes vigentes hoy de suscripciones ACTIVE (MONTHLY ×1, QUARTERLY ÷3, YEARLY ÷12); el DISCOUNT recurrente vigente resta',
     excludes: 'ONE_TIME, suscripciones no ACTIVE, ítems fuera de vigencia, tenants DEMO',
     precision: 'numeric(14,2) del backend; redondeo por ítem de la vista',
-    coverage: 'Foto al momento de consulta; no existe serie histórica de MRR',
+    coverage: 'Foto al momento de consulta; la serie mensual es executive_mrr_series (S01)',
     detailHref: '/subscriptions',
   },
   K02: {
