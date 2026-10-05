@@ -113,7 +113,7 @@ export function MetersTab() {
               </h3>
               <DataTable
                 label={`Medidores de ${g.label}`}
-                columns={['Medidor', 'Consumo mensual', 'Agregación', 'Capacidad', 'Gracia', 'Estado', 'Facturable', { label: 'Acciones', srOnly: true }]}
+                columns={['Medidor', 'Consumo mensual', 'Agregación', 'Capacidad', 'Estado', 'Facturable', { label: 'Acciones', srOnly: true }]}
               >
                 {g.rows.map((m) => {
                   const st = labelOf(METER_STATUS, m.status);
@@ -123,7 +123,7 @@ export function MetersTab() {
                       <td className="ebim-td">
                         <div className="font-semibold">{m.name}</div>
                         <div className="font-mono text-caption text-muted">
-                          {m.code} · {m.unit}
+                          {m.code}
                         </div>
                       </td>
                       <td className="ebim-td">
@@ -135,13 +135,14 @@ export function MetersTab() {
                       </td>
                       <td className="ebim-td text-compact">
                         {AGGREGATION_LABEL[m.aggregation] ?? m.aggregation}
-                        <div className="text-caption text-muted">{MEASUREMENT_LABEL[m.measurement] ?? m.measurement}</div>
+                        <div className="whitespace-nowrap text-caption text-muted">
+                          {MEASUREMENT_LABEL[m.measurement] ?? m.measurement} · gracia {m.grace_hours} h
+                        </div>
                         {m.allows_negative ? <div className="text-caption text-muted">Admite negativos</div> : null}
                       </td>
                       <td className="ebim-td text-compact">
                         {cap ? <span className="font-mono text-caption">{cap.code}</span> : <span className="text-muted">—</span>}
                       </td>
-                      <td className="ebim-td ebim-num text-compact">{m.grace_hours} h</td>
                       <td className="ebim-td">
                         <Badge tone={st.tone}>{st.label}</Badge>
                       </td>
@@ -201,6 +202,12 @@ export function MetersTab() {
   );
 }
 
+/** «sep 2026»: mes corto para la celda (el largo va en el texto accesible). */
+function shortPeriod(period: string): string {
+  const [y, m] = period.split('-').map(Number);
+  return new Intl.DateTimeFormat('es-PE', { month: 'short', year: 'numeric' }).format(new Date(y!, m! - 1, 1)).replace('.', '');
+}
+
 /**
  * Consumo mensual del medidor (suma de tenants, solo agregados FINALIZADOS):
  * sparkline de los últimos meses + la cifra del último mes cerrado. Es
@@ -208,19 +215,25 @@ export function MetersTab() {
  */
 function MeterTrend({ series, unit, loading }: { series: MeterSeries | undefined; unit: string; loading: boolean }) {
   if (loading) return <span className="ebim-skeleton inline-block h-7 w-28" aria-hidden />;
-  if (!series?.last) return <span className="text-caption text-muted">Sin períodos finalizados</span>;
+  if (!series?.last) {
+    return (
+      <span className="text-caption text-muted">
+        Sin períodos finalizados · <span className="font-mono">{unit}</span>
+      </span>
+    );
+  }
   const first = series.values.find((v) => v !== null);
   const description = `Consumo de ${formatPeriod(series.periods[series.values.indexOf(first ?? null)])} a ${formatPeriod(series.last.period)}: de ${formatQuantity(first)} a ${formatQuantity(series.last.value)} ${unit}`;
   return (
-    <div className="flex min-w-[180px] items-center gap-3" title={description} data-meter-trend>
-      <div className="w-24 shrink-0">
+    <div className="flex items-center gap-3" title={description} data-meter-trend>
+      <div className="w-20 shrink-0">
         <Sparkline data={series.values} description={description} height={28} />
       </div>
-      <div className="min-w-0 leading-tight">
+      <div className="min-w-0 whitespace-nowrap leading-tight">
         <div className="text-compact font-semibold tabular-nums text-fg">
           {formatQuantity(series.last.value)} <span className="font-mono text-caption font-normal text-muted">{unit}</span>
         </div>
-        <div className="text-caption text-muted">{formatPeriod(series.last.period)}</div>
+        <div className="text-caption text-muted">{shortPeriod(series.last.period)}</div>
       </div>
     </div>
   );

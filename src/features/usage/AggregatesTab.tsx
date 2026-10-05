@@ -178,7 +178,7 @@ export function AggregatesTab() {
                         </div>
                       </>
                     ) : (
-                      <span className="text-caption text-muted">Se calcula al finalizar</span>
+                      <span className="whitespace-nowrap text-caption text-muted">Se calcula al finalizar</span>
                     )}
                   </td>
                   <td className="ebim-td text-compact">

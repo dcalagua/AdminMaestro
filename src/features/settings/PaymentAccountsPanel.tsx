@@ -304,7 +304,7 @@ export function PaymentAccountsPanel() {
                   </div>
                 </div>
 
-                <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-compact sm:grid-cols-4">
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-compact sm:grid-cols-[1.4fr_1.4fr_0.7fr_1fr]">
                   <div className="min-w-0">
                     <dt className="text-caption text-muted">Tipo</dt>
                     <dd className="truncate text-fg">{KIND_LABEL[r.provider_kind as string] ?? r.provider_kind}</dd>
