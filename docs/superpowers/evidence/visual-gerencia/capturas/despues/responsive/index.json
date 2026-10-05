@@ -1,0 +1,110 @@
+{
+  "label": "despues",
+  "generatedAt": "2026-10-05T16:34:18.035Z",
+  "shots": [
+    {
+      "file": "login-390.png",
+      "width": 390,
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "pagar-enlace-invalido-390.png",
+      "width": 390,
+      "overflow": false,
+      "alerts": [
+        "No reconocemos este enlaceEste enlace de pago no es válido. Pide uno nuevo a tu contacto en EBIM.Tus facturas no se ven afectadasPor seguridad, cada enlace de pago tiene vigencia limitada. Tu contacto en EBIM puede enviarte uno nuevo en minutos."
+      ]
+    },
+    {
+      "file": "resumen-ejecutivo-390.png",
+      "width": 390,
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "login-768.png",
+      "width": 768,
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "pagar-enlace-invalido-768.png",
+      "width": 768,
+      "overflow": false,
+      "alerts": [
+        "No reconocemos este enlaceEste enlace de pago no es válido. Pide uno nuevo a tu contacto en EBIM.Tus facturas no se ven afectadasPor seguridad, cada enlace de pago tiene vigencia limitada. Tu contacto en EBIM puede enviarte uno nuevo en minutos."
+      ]
+    },
+    {
+      "file": "resumen-ejecutivo-768.png",
+      "width": 768,
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "login-1280.png",
+      "width": 1280,
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "pagar-enlace-invalido-1280.png",
+      "width": 1280,
+      "overflow": false,
+      "alerts": [
+        "No reconocemos este enlaceEste enlace de pago no es válido. Pide uno nuevo a tu contacto en EBIM.Tus facturas no se ven afectadasPor seguridad, cada enlace de pago tiene vigencia limitada. Tu contacto en EBIM puede enviarte uno nuevo en minutos."
+      ]
+    },
+    {
+      "file": "resumen-ejecutivo-1280.png",
+      "width": 1280,
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "login-1440.png",
+      "width": 1440,
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "pagar-enlace-invalido-1440.png",
+      "width": 1440,
+      "overflow": false,
+      "alerts": [
+        "No reconocemos este enlaceEste enlace de pago no es válido. Pide uno nuevo a tu contacto en EBIM.Tus facturas no se ven afectadasPor seguridad, cada enlace de pago tiene vigencia limitada. Tu contacto en EBIM puede enviarte uno nuevo en minutos."
+      ]
+    },
+    {
+      "file": "resumen-ejecutivo-1440.png",
+      "width": 1440,
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "pagar-estado-cuenta-390.png",
+      "width": 390,
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "pagar-estado-cuenta-768.png",
+      "width": 768,
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "pagar-estado-cuenta-1280.png",
+      "width": 1280,
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "pagar-estado-cuenta-1440.png",
+      "width": 1440,
+      "overflow": false,
+      "alerts": []
+    }
+  ]
+}
