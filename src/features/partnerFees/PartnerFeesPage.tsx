@@ -135,7 +135,6 @@ export function PartnerFeesPage() {
           ) : null}
         </>
       }
-      meta={`Período ${formatPeriod(period)}`}
     >
       <KpiStrip label="Indicadores de tarifas de partners">
         <NativeAmountTile

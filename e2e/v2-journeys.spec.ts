@@ -39,7 +39,10 @@ const SECTION_PATH: Record<string, string> = {
 };
 
 async function goToSection(page: Page, label: string) {
-  await page.getByRole('link', { name: label, exact: true }).click();
+  // El enlace puede llevar un contador en su nombre accesible
+  // («Renovaciones (28 alertas críticas abiertas)», fase 06).
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  await page.getByRole('link', { name: new RegExp(`^${escaped}( \\(.*\\))?$`) }).first().click();
   const path = SECTION_PATH[label];
   if (path) await page.waitForURL(`**${path}`);
 }

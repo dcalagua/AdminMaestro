@@ -57,7 +57,9 @@ export function ActionMenu({
   useLayoutEffect(() => {
     if (!open || !buttonRef.current) return;
     const place = () => {
-      const r = buttonRef.current!.getBoundingClientRect();
+      const button = buttonRef.current;
+      if (!button) return;
+      const r = button.getBoundingClientRect();
       const width = menuRef.current?.offsetWidth ?? 224;
       const height = menuRef.current?.offsetHeight ?? 0;
       const below = r.bottom + 4 + height <= window.innerHeight;
@@ -69,27 +71,25 @@ export function ActionMenu({
     place();
     // Segunda medida: el alto real del menú existe tras el primer pintado.
     const raf = requestAnimationFrame(place);
-    return () => cancelAnimationFrame(raf);
+    // Con scroll (página o tabla) el menú sigue al botón en vez de cerrarse.
+    window.addEventListener('scroll', place, true);
+    window.addEventListener('resize', place);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', place, true);
+      window.removeEventListener('resize', place);
+    };
   }, [open]);
 
   useEffect(() => {
     if (!open) return;
-    menuItems()[0]?.focus();
+    menuItems()[0]?.focus({ preventScroll: true });
     const onPointer = (e: MouseEvent) => {
       const target = e.target as Node;
       if (!menuRef.current?.contains(target) && !buttonRef.current?.contains(target)) setOpen(false);
     };
-    const onScroll = (e: Event) => {
-      if (!menuRef.current?.contains(e.target as Node)) setOpen(false);
-    };
     document.addEventListener('mousedown', onPointer);
-    window.addEventListener('scroll', onScroll, true);
-    window.addEventListener('resize', onScroll);
-    return () => {
-      document.removeEventListener('mousedown', onPointer);
-      window.removeEventListener('scroll', onScroll, true);
-      window.removeEventListener('resize', onScroll);
-    };
+    return () => document.removeEventListener('mousedown', onPointer);
   }, [open]);
 
   if (visible.length === 0) return null;
