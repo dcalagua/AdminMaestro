@@ -41,10 +41,10 @@ export function FxCoveragePanel() {
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-2">
         <section className="ebim-card p-4" aria-labelledby="fx-date-title">
-          <h3 id="fx-date-title" className="text-[11px] font-bold uppercase tracking-wider text-muted">
+          <h3 id="fx-date-title" className="text-micro text-muted">
             Fecha de valuación FX
           </h3>
-          <label className="mt-2 block text-sm">
+          <label className="mt-2 block text-body">
             <span className="text-muted">Fecha de las tasas</span>
             <input
               type="date"
@@ -55,16 +55,16 @@ export function FxCoveragePanel() {
               }}
             />
           </label>
-          <p className="mt-2 text-xs text-muted">
+          <p className="mt-2 text-compact text-muted">
             Sólo decide qué tasa se usa para convertir: la última publicada hasta esta fecha, dentro de la antigüedad máxima configurada.
           </p>
         </section>
         <section className="ebim-card p-4" aria-labelledby="fx-period-title">
-          <h3 id="fx-period-title" className="text-[11px] font-bold uppercase tracking-wider text-muted">
+          <h3 id="fx-period-title" className="text-micro text-muted">
             Período financiero
           </h3>
-          <p className="mt-2 text-sm text-fg">No se elige aquí.</p>
-          <p className="mt-1 text-xs text-muted">
+          <p className="mt-2 text-body text-fg">No se elige aquí.</p>
+          <p className="mt-1 text-compact text-muted">
             El período de cobros, costos y comisiones se elige en el inicio ejecutivo. Cambiar la fecha FX no mueve el
             período, y cambiar el período no cambia las tasas.
           </p>
@@ -90,24 +90,24 @@ export function FxCoveragePanel() {
           <EmptyState title="Sin datos de cobertura" />
         ) : (
           <>
-            <dl className="grid gap-3 border-b border-border px-4 py-3 text-sm sm:grid-cols-3">
+            <dl className="grid gap-3 border-b border-border px-4 py-3 text-body sm:grid-cols-3">
               <div>
-                <dt className="text-xs text-muted">Moneda de reporte</dt>
+                <dt className="text-compact text-muted">Moneda de reporte</dt>
                 <dd className="font-semibold">{data.reporting_currency ?? 'Sin configurar'}</dd>
               </div>
               <div>
-                <dt className="text-xs text-muted">Antigüedad máxima de una tasa</dt>
+                <dt className="text-compact text-muted">Antigüedad máxima de una tasa</dt>
                 <dd className="font-semibold">{maxAge === null ? 'Sin límite configurado' : `${formatNumber(maxAge)} días`}</dd>
               </div>
               <div>
-                <dt className="text-xs text-muted">Monedas sin tasa</dt>
+                <dt className="text-compact text-muted">Monedas sin tasa</dt>
                 <dd className={`font-semibold ${missing.length > 0 ? 'text-warn' : ''}`}>
                   {missing.length === 0 ? 'Ninguna' : missing.join(', ')}
                 </dd>
               </div>
             </dl>
             {missing.length > 0 ? (
-              <p className="mx-4 mt-3 rounded-md bg-warn-soft px-3 py-2 text-xs font-semibold text-warn" role="status">
+              <p className="mx-4 mt-3 rounded-md bg-warn-soft px-3 py-2 text-compact font-semibold text-warn" role="status">
                 FX incompleto a {formatDate(fxDate)}: falta tasa para {missing.join(', ')}. El consolidado en{' '}
                 {data.reporting_currency ?? 'moneda de reporte'} se marca como no calculable; los importes nativos siguen
                 siendo válidos. Publica la tasa en «Tipos de cambio».
@@ -128,9 +128,9 @@ export function FxCoveragePanel() {
                         1 {r.from} → {r.to}
                       </td>
                       <td className="ebim-td text-right tabular-nums">{formatRate(r.rate)}</td>
-                      <td className="ebim-td text-xs">{r.method === 'DIRECT' ? 'Directa' : 'Recíproca'}</td>
-                      <td className="ebim-td whitespace-nowrap text-xs text-muted">{formatDate(r.rate_date)}</td>
-                      <td className="ebim-td text-xs">
+                      <td className="ebim-td text-compact">{r.method === 'DIRECT' ? 'Directa' : 'Recíproca'}</td>
+                      <td className="ebim-td whitespace-nowrap text-compact text-muted">{formatDate(r.rate_date)}</td>
+                      <td className="ebim-td text-compact">
                         {age === null ? '—' : `${formatNumber(age)} días`}
                       </td>
                       <td className="ebim-td">

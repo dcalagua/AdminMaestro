@@ -242,3 +242,16 @@ export function countText(query: QueryLikeCount, count: number): string {
   if (query.isLoading || query.data === undefined) return '…';
   return formatNumber(count);
 }
+
+/** Unidad de cobro de un producto (A13: nada de `TENANT` / `WAREHOUSE` en pantalla). */
+export const BILLING_UNIT_LABEL: Record<string, string> = {
+  TENANT: 'Por tenant',
+  COMPANY: 'Por sociedad',
+  WAREHOUSE: 'Por almacén',
+  USER: 'Por usuario',
+};
+
+export function billingUnitLabel(unit: string | null | undefined): string {
+  if (!unit) return 'Sin unidad';
+  return BILLING_UNIT_LABEL[unit] ?? unit;
+}

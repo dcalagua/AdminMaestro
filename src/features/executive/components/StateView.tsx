@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { ProhibitIcon, WarningCircleIcon, InfoIcon, ClockCountdownIcon } from '@phosphor-icons/react';
+import { Skeleton } from '@/components/ui/primitives';
 import type { DataState } from '../dataState';
 import { formatCurrencyMap, formatDateTime } from '@/lib/format';
 import type { CurrencyAmounts } from '../reportContext';
@@ -24,9 +25,9 @@ export function StateMessage({
   switch (state.status) {
     case 'loading':
       return (
-        <div className={`${pad} animate-pulse`} role="status" aria-label="Cargando">
-          <div className="h-5 w-2/3 rounded bg-border" />
-          {compact ? null : <div className="mt-2 h-3 w-1/2 rounded bg-border" />}
+        <div className={pad} role="status" aria-label="Cargando" aria-busy="true">
+          <Skeleton className="block h-5 w-2/3" />
+          {compact ? null : <Skeleton className="mt-2 block h-3 w-1/2" />}
         </div>
       );
     case 'error':
@@ -69,7 +70,7 @@ export function StateMessage({
 /** Aviso de cobertura parcial: se muestra JUNTO al dato, nunca en su lugar. */
 export function PartialNote({ reasons }: { reasons: string[] }) {
   return (
-    <p className="mt-1 flex items-start gap-1.5 text-[11px] font-semibold text-warn">
+    <p className="mt-1 flex items-start gap-1.5 text-caption font-semibold text-warn">
       <ClockCountdownIcon size={14} aria-hidden className="mt-px shrink-0" />
       <span>Parcial: {reasons.join(' · ')}</span>
     </p>

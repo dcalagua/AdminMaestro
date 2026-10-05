@@ -1,8 +1,27 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ArrowClockwiseIcon,
+  ArrowsClockwiseIcon,
+  CalendarXIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  CreditCardIcon,
+  LinkBreakIcon,
+  LockKeyIcon,
+  LockSimpleIcon,
+  PrinterIcon,
+  ShieldCheckIcon,
+  ToggleLeftIcon,
+  WarningCircleIcon,
+  WifiSlashIcon,
+  type Icon,
+} from '@phosphor-icons/react';
 import { EbimMark } from '@/components/ui/EbimMark';
 import { FormDialog } from '@/components/ui/FormDialog';
+import { SuccessCheck } from '@/components/ui/SuccessCheck';
+import { Badge, Skeleton } from '@/components/ui/primitives';
 import { SelectField, TextField } from '@/components/ui/fields';
-import { formatDate, formatDateTime, formatMoney } from '@/lib/format';
+import { formatAmount, formatDate, formatDateTime, formatMoney, sumByCurrency } from '@/lib/format';
 import {
   callPortal,
   readLinkToken,
@@ -22,12 +41,18 @@ import { mockToken, openCulqiCheckout } from './culqiCheckout';
  *
  * Lo que la página NO muestra nunca: ids internos (factura, cuenta, enlace),
  * códigos técnicos ni el id completo del cargo. Los mensajes de error son los
- * que devuelve el portal, ya escritos para el cliente.
+ * que devuelve el portal, ya escritos para el cliente; el código solo elige
+ * el icono y el título de la tarjeta de error.
+ *
+ * Diseño (fase 07, PT-PUBLIC): cabecera de marca, estado de cuenta con el
+ * total pendiente destacado, facturas como tarjetas, pago automático con la
+ * explicación de confianza y comprobante con check animado. Los clientes
+ * pagan desde el celular: todo se apila en una columna bajo `sm`.
  */
 
 type Phase =
   | { kind: 'loading' }
-  | { kind: 'error'; message: string }
+  | { kind: 'error'; code: string; message: string }
   | { kind: 'ready'; statement: PortalStatement };
 
 const FIELD_LABEL: Record<string, string> = {
@@ -63,7 +88,13 @@ type TokenRequest = {
 export function PaymentPortalPage() {
   const [token] = useState(() => readLinkToken());
   const [phase, setPhase] = useState<Phase>(() =>
-    token ? { kind: 'loading' } : { kind: 'error', message: 'Este enlace de pago no es válido. Pide uno nuevo a tu contacto en EBIM.' },
+    token
+      ? { kind: 'loading' }
+      : {
+          kind: 'error',
+          code: 'ENLACE_INVALIDO',
+          message: 'Este enlace de pago no es válido. Pide uno nuevo a tu contacto en EBIM.',
+        },
   );
   const [busyInvoice, setBusyInvoice] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ tone: 'error' | 'ok'; text: string } | null>(null);
@@ -73,7 +104,7 @@ export function PaymentPortalPage() {
   const load = useCallback(async () => {
     if (!token) return;
     const res = await callPortal<PortalStatement>('statement', { token });
-    setPhase(res.ok ? { kind: 'ready', statement: res.data } : { kind: 'error', message: res.message });
+    setPhase(res.ok ? { kind: 'ready', statement: res.data } : { kind: 'error', code: res.error, message: res.message });
   }, [token]);
 
   useEffect(() => {
@@ -145,14 +176,20 @@ export function PaymentPortalPage() {
   return (
     <PortalShell>
       {phase.kind === 'loading' ? (
-        <p role="status" className="py-16 text-center text-sm text-muted">
-          Cargando tu estado de cuenta…
-        </p>
+        <PortalSkeleton />
       ) : phase.kind === 'error' ? (
-        <div role="alert" className="ebim-card px-6 py-12 text-center">
-          <p className="text-base font-bold text-fg">No podemos mostrar este estado de cuenta</p>
-          <p className="mx-auto mt-2 max-w-md text-sm text-muted">{phase.message}</p>
-        </div>
+        <LinkProblem
+          code={phase.code}
+          message={phase.message}
+          onRetry={
+            phase.code === 'RED' || phase.code === 'ERROR_INTERNO'
+              ? () => {
+                  setPhase({ kind: 'loading' });
+                  void load();
+                }
+              : undefined
+          }
+        />
       ) : (
         <Statement
           statement={phase.statement}
@@ -173,23 +210,101 @@ export function PaymentPortalPage() {
 
 /* ------------------------------------------------------------------ Layout */
 
+const TRUST_FOOTER =
+  'Pagos con tarjeta procesados por Culqi. EBIM nunca ve ni guarda el número ni el código de seguridad de tu tarjeta.';
+
 function PortalShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-bg">
-      <header className="border-b border-border bg-card">
-        <div className="mx-auto flex max-w-3xl items-center gap-2.5 px-4 py-4">
-          <EbimMark size={28} color="var(--brand-mark)" />
-          <div className="leading-none">
-            <div className="text-[17px] font-extrabold tracking-tight text-fg">Pagos</div>
-            <div className="mt-[3px] text-[9.5px] font-bold tracking-[0.22em] text-muted opacity-85">BY EBIM</div>
+    <div className="flex min-h-screen flex-col bg-auth">
+      {/* Cabecera de marca: la banda continúa detrás de la primera tarjeta. */}
+      <header className="ebim-on-brand bg-auth-panel text-[color:var(--on-brand)]">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 pb-20 pt-5 sm:px-6 sm:pb-24 sm:pt-6">
+          <div className="flex items-center gap-2.5">
+            <EbimMark size={30} color="var(--on-brand)" />
+            <div className="leading-none">
+              <div className="text-[17px] font-extrabold tracking-tight">Pagos</div>
+              <div className="mt-[3px] text-[9.5px] font-bold tracking-[0.22em] opacity-85">BY EBIM</div>
+            </div>
           </div>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[color:var(--on-brand-soft)] px-3 py-1 text-caption font-semibold">
+            <LockSimpleIcon size={14} weight="bold" aria-hidden />
+            Pago seguro
+          </span>
         </div>
       </header>
-      <main className="mx-auto max-w-3xl px-4 py-8">{children}</main>
-      <footer className="mx-auto max-w-3xl px-4 pb-10 text-center text-xs text-muted">
-        Pagos con tarjeta procesados por Culqi. EBIM nunca ve ni guarda el número ni el código de seguridad de tu
-        tarjeta.
+      <main className="relative mx-auto -mt-14 w-full max-w-3xl flex-1 px-4 pb-10 sm:-mt-16 sm:px-6">{children}</main>
+      <footer className="mx-auto w-full max-w-3xl px-4 pb-10 text-center sm:px-6">
+        <p className="mx-auto flex max-w-[60ch] items-start justify-center gap-2 text-caption text-muted">
+          <LockKeyIcon size={16} className="mt-px shrink-0" aria-hidden />
+          <span>{TRUST_FOOTER}</span>
+        </p>
+        <p className="mt-4 text-[9.5px] font-bold tracking-[0.22em] text-muted">BY EBIM</p>
       </footer>
+    </div>
+  );
+}
+
+function PortalSkeleton() {
+  return (
+    <div role="status" aria-busy="true" className="space-y-4">
+      <span className="sr-only">Cargando tu estado de cuenta…</span>
+      <div className="rounded-dialog border border-border bg-card p-6 shadow-brand sm:p-8">
+        <Skeleton className="block h-3 w-28" />
+        <Skeleton className="mt-3 block h-7 w-3/5" />
+        <Skeleton className="mt-2 block h-4 w-2/5" />
+        <Skeleton className="mt-8 block h-3 w-24" />
+        <Skeleton className="mt-3 block h-10 w-1/2" />
+      </div>
+      {[0, 1].map((i) => (
+        <div key={i} className="ebim-card p-5">
+          <Skeleton className="block h-4 w-1/3" />
+          <Skeleton className="mt-3 block h-3 w-1/2" />
+          <Skeleton className="mt-5 block h-9 w-full sm:ml-auto sm:w-40" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Enlace inválido, vencido, revocado o sin conexión: tarjeta pública amable (§5.14). */
+const LINK_PROBLEM: Record<string, { icon: Icon; title: string }> = {
+  ENLACE_VENCIDO: { icon: CalendarXIcon, title: 'Este enlace de pago venció' },
+  ENLACE_REVOCADO: { icon: LinkBreakIcon, title: 'Este enlace ya no está disponible' },
+  ENLACE_INVALIDO: { icon: LinkBreakIcon, title: 'No reconocemos este enlace' },
+  RED: { icon: WifiSlashIcon, title: 'No pudimos conectar' },
+};
+
+function LinkProblem({ code, message, onRetry }: { code: string; message: string; onRetry?: () => void }) {
+  const { icon: ProblemIcon, title } = LINK_PROBLEM[code] ?? {
+    icon: WarningCircleIcon,
+    title: 'No podemos mostrar este estado de cuenta',
+  };
+  const linkIssue = code.startsWith('ENLACE_');
+  return (
+    <div
+      role="alert"
+      className="mx-auto max-w-[480px] rounded-dialog border border-border bg-card px-6 py-9 text-center shadow-brand sm:px-9"
+    >
+      <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-accent-soft text-accent-deep">
+        <ProblemIcon size={32} weight="duotone" aria-hidden />
+      </span>
+      <h1 className="mt-5 text-h2 text-fg">{title}</h1>
+      <p className="mx-auto mt-2 max-w-[44ch] text-body text-fg-2">{message}</p>
+      {linkIssue ? (
+        <div className="mt-6 rounded-field bg-sunken px-4 py-3 text-left text-compact text-fg-2">
+          <p className="font-semibold text-fg">Tus facturas no se ven afectadas</p>
+          <p className="mt-1">
+            Por seguridad, cada enlace de pago tiene vigencia limitada. Tu contacto en EBIM puede enviarte uno nuevo en
+            minutos.
+          </p>
+        </div>
+      ) : null}
+      {onRetry ? (
+        <button type="button" className="ebim-btn-primary ebim-btn-lg mt-6 w-full" onClick={onRetry}>
+          <ArrowClockwiseIcon size={18} aria-hidden />
+          Reintentar
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -218,108 +333,119 @@ function Statement({
   const today = new Date().toISOString().slice(0, 10);
   const anyMock =
     statement.invoices.some((i) => i.checkout?.mode === 'MOCK') || statement.enrollment.checkout?.mode === 'MOCK';
+  // Total pendiente AGRUPADO por moneda: PEN + USD no se suman (R-7).
+  const totals = Object.entries(
+    sumByCurrency(
+      statement.invoices,
+      (i) => i.balance,
+      (i) => i.currency,
+    ),
+  );
+  const overdueCount = statement.invoices.filter((i) => i.due_date !== null && i.due_date < today).length;
+  const count = statement.invoices.length;
 
   return (
-    <div className="space-y-5">
-      <section>
-        <h1 className="text-[22px] font-bold tracking-tight text-fg">{statement.organization.name ?? 'Estado de cuenta'}</h1>
-        <p className="mt-1 text-sm text-muted">
-          Estado de cuenta
-          {statement.organization.billing_email_masked
-            ? ` · facturación a ${statement.organization.billing_email_masked}`
-            : ''}
-          {statement.expires_at ? ` · enlace válido hasta el ${formatDate(statement.expires_at)}` : ''}
+    <div className="space-y-4 sm:space-y-5">
+      {receipt ? <Receipt receipt={receipt} /> : null}
+
+      {/* Estado de cuenta: quién, hasta cuándo y cuánto falta pagar. */}
+      <section
+        aria-labelledby="portal-title"
+        className="rounded-dialog border border-border bg-card p-6 shadow-brand sm:p-8"
+      >
+        <p className="text-micro text-muted">Estado de cuenta</p>
+        <h1 id="portal-title" className="mt-1.5 text-h1 text-fg [overflow-wrap:anywhere]">
+          {statement.organization.name ?? 'Estado de cuenta'}
+        </h1>
+        <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-compact text-fg-2">
+          {statement.organization.billing_email_masked ? (
+            <span>Facturación a {statement.organization.billing_email_masked}</span>
+          ) : null}
+          {statement.expires_at ? (
+            <span className="inline-flex items-center gap-1.5">
+              <ClockIcon size={15} className="text-muted" aria-hidden />
+              Enlace válido hasta el {formatDate(statement.expires_at)}
+            </span>
+          ) : null}
         </p>
+
+        <div className="mt-6 border-t border-border pt-5">
+          {count === 0 ? (
+            <p className="flex items-center gap-3 text-h2 text-fg">
+              <CheckCircleIcon size={32} weight="fill" className="shrink-0 text-ok" aria-hidden />
+              Estás al día
+            </p>
+          ) : (
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="text-compact font-semibold text-fg-2">Total pendiente</p>
+                <div className="mt-1 space-y-1">
+                  {totals.map(([currency, amount]) => (
+                    <p key={currency} className="flex items-baseline gap-2 text-fg">
+                      <span className="text-h3 font-semibold text-muted">{currency}</span>
+                      <span className="text-display">{formatAmount(amount)}</span>
+                    </p>
+                  ))}
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Badge tone="neutral">
+                  {count} {count === 1 ? 'factura pendiente' : 'facturas pendientes'}
+                </Badge>
+                {overdueCount > 0 ? (
+                  <Badge tone="danger" dot>
+                    {overdueCount} {overdueCount === 1 ? 'vencida' : 'vencidas'}
+                  </Badge>
+                ) : null}
+              </div>
+            </div>
+          )}
+        </div>
       </section>
 
       {anyMock ? (
-        <p className="rounded-field bg-warn-soft px-4 py-3 text-sm font-semibold text-warn" role="note">
+        <p
+          className="flex items-start gap-2 rounded-field bg-warn-soft px-4 py-3 text-compact font-semibold text-warn"
+          role="note"
+        >
+          <WarningCircleIcon size={18} className="mt-px shrink-0" aria-hidden />
           Modo de prueba: este entorno no cobra tarjetas reales. Los pagos son simulados.
         </p>
-      ) : null}
-
-      {receipt ? (
-        <section className="ebim-card border-l-4 border-l-[color:var(--ok)] px-5 py-4" aria-live="polite">
-          <p className="text-sm font-bold text-ok">Pago recibido{receipt.simulated ? ' (simulado)' : ''}</p>
-          <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-            <dt className="text-muted">Factura</dt>
-            <dd className="font-medium">{receipt.invoice_number}</dd>
-            <dt className="text-muted">Importe</dt>
-            <dd className="font-medium tabular-nums">{formatMoney(receipt.amount, receipt.currency)}</dd>
-            <dt className="text-muted">Fecha</dt>
-            <dd className="font-medium">{formatDateTime(receipt.paid_at)}</dd>
-            <dt className="text-muted">Operación</dt>
-            <dd className="font-mono text-xs">{receipt.charge}</dd>
-          </dl>
-        </section>
       ) : null}
 
       {notice ? (
         <p
           role={notice.tone === 'error' ? 'alert' : 'status'}
-          className={`rounded-field px-4 py-3 text-sm ${notice.tone === 'error' ? 'bg-danger-soft text-danger' : 'bg-ok-soft text-ok'}`}
+          className={`flex items-start gap-2 rounded-field px-4 py-3 text-compact font-medium ${notice.tone === 'error' ? 'bg-danger-soft text-danger' : 'bg-ok-soft text-ok'}`}
         >
+          <WarningCircleIcon size={18} className="mt-px shrink-0" aria-hidden />
           {notice.text}
         </p>
       ) : null}
 
-      <section className="ebim-card">
-        <div className="border-b border-border px-5 py-3">
-          <h2 className="text-sm font-bold text-fg">Facturas pendientes</h2>
-        </div>
-        {statement.invoices.length === 0 ? (
-          <p className="px-5 py-10 text-center text-sm text-muted">No tienes facturas pendientes de pago. ¡Gracias!</p>
+      <section aria-labelledby="portal-invoices">
+        <h2 id="portal-invoices" className="mb-3 mt-2 px-1 text-h3 text-fg">
+          Facturas pendientes
+        </h2>
+        {count === 0 ? (
+          <div className="ebim-card px-5 py-10 text-center">
+            <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-ok-soft text-ok">
+              <CheckCircleIcon size={26} weight="duotone" aria-hidden />
+            </span>
+            <p className="mt-3 text-body text-fg-2">No tienes facturas pendientes de pago. ¡Gracias!</p>
+          </div>
         ) : (
-          <ul className="divide-y divide-border">
-            {statement.invoices.map((inv) => {
-              const overdue = inv.due_date !== null && inv.due_date < today;
-              return (
-                <li key={inv.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-                  <div className="min-w-[200px]">
-                    <p className="text-sm font-semibold text-fg">
-                      {inv.number}
-                      {inv.product ? <span className="font-normal text-muted"> · {inv.product}</span> : null}
-                    </p>
-                    <p className="mt-0.5 text-xs text-muted">
-                      {inv.period_start ? `Periodo ${formatDate(inv.period_start)} – ${formatDate(inv.period_end)} · ` : ''}
-                      {inv.due_date ? (
-                        <span className={overdue ? 'font-semibold text-danger' : undefined}>
-                          {overdue ? 'Vencida el ' : 'Vence el '}
-                          {formatDate(inv.due_date)}
-                        </span>
-                      ) : (
-                        'Sin vencimiento'
-                      )}
-                      {' · '}
-                      {STATUS_LABEL[inv.status] ?? 'Pendiente'}
-                    </p>
-                    {inv.paid > 0 ? (
-                      <p className="mt-0.5 text-xs text-muted">
-                        Total {formatMoney(inv.total, inv.currency)} · pagado {formatMoney(inv.paid, inv.currency)}
-                      </p>
-                    ) : null}
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-base font-bold tabular-nums text-fg">{formatMoney(inv.balance, inv.currency)}</span>
-                    {inv.payable_by_card ? (
-                      <button
-                        type="button"
-                        className="ebim-btn-primary"
-                        disabled={busyInvoice !== null}
-                        aria-busy={busyInvoice === inv.id || undefined}
-                        onClick={() => onPay(inv)}
-                      >
-                        {busyInvoice === inv.id ? 'Procesando…' : 'Pagar'}
-                      </button>
-                    ) : (
-                      <span className="max-w-[180px] text-right text-xs text-muted">
-                        No pagable con tarjeta. Puedes pagar por transferencia.
-                      </span>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
+          <ul className="space-y-3">
+            {statement.invoices.map((inv) => (
+              <InvoiceCard
+                key={inv.id}
+                invoice={inv}
+                overdue={inv.due_date !== null && inv.due_date < today}
+                busy={busyInvoice === inv.id}
+                disabled={busyInvoice !== null}
+                onPay={() => onPay(inv)}
+              />
+            ))}
           </ul>
         )}
       </section>
@@ -331,7 +457,144 @@ function Statement({
   );
 }
 
+function InvoiceCard({
+  invoice: inv,
+  overdue,
+  busy,
+  disabled,
+  onPay,
+}: {
+  invoice: PortalInvoice;
+  overdue: boolean;
+  busy: boolean;
+  disabled: boolean;
+  onPay: () => void;
+}) {
+  const numberId = `inv-${inv.number}`;
+  return (
+    <li className="ebim-card relative overflow-hidden">
+      {overdue ? <span className="absolute inset-y-0 left-0 w-1 bg-danger" aria-hidden /> : null}
+      <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-end sm:justify-between sm:p-5">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <p id={numberId} className="text-h3 text-fg">
+              {inv.number}
+            </p>
+            {overdue ? (
+              <Badge tone="danger">Vencida</Badge>
+            ) : (
+              <Badge tone={inv.status === 'PARTIALLY_PAID' ? 'warn' : 'neutral'}>
+                {STATUS_LABEL[inv.status] ?? 'Pendiente'}
+              </Badge>
+            )}
+          </div>
+          {inv.product ? <p className="mt-0.5 text-compact text-fg-2">{inv.product}</p> : null}
+          <dl className="mt-2 space-y-0.5 text-caption text-muted">
+            {inv.period_start ? (
+              <div>
+                <dt className="inline">Periodo </dt>
+                <dd className="inline">
+                  {formatDate(inv.period_start)} – {formatDate(inv.period_end)}
+                </dd>
+              </div>
+            ) : null}
+            <div>
+              {inv.due_date ? (
+                <>
+                  <dt className="inline">{overdue ? 'Vencida el ' : 'Vence el '}</dt>
+                  <dd className={`inline ${overdue ? 'font-semibold text-danger' : ''}`}>{formatDate(inv.due_date)}</dd>
+                </>
+              ) : (
+                <dd>Sin vencimiento</dd>
+              )}
+            </div>
+            {inv.paid > 0 ? (
+              <div>
+                <dt className="inline">Total </dt>
+                <dd className="inline">
+                  {formatMoney(inv.total, inv.currency)} · pagado {formatMoney(inv.paid, inv.currency)}
+                </dd>
+              </div>
+            ) : null}
+          </dl>
+        </div>
+
+        <div className="flex flex-col gap-3 sm:items-end">
+          <p className="flex items-baseline gap-1.5 text-fg sm:justify-end">
+            <span className="text-compact font-semibold text-muted">{inv.currency}</span>
+            <span className="text-h1 tabular-nums">{formatAmount(inv.balance)}</span>
+          </p>
+          {inv.payable_by_card ? (
+            <button
+              type="button"
+              className="ebim-btn-primary ebim-btn-lg w-full sm:w-auto sm:min-w-[148px]"
+              disabled={disabled}
+              aria-busy={busy || undefined}
+              aria-describedby={numberId}
+              onClick={onPay}
+            >
+              {busy ? <span className="ebim-spinner" aria-hidden /> : <CreditCardIcon size={18} aria-hidden />}
+              {busy ? 'Procesando…' : 'Pagar'}
+            </button>
+          ) : (
+            <span className="max-w-[220px] text-caption text-muted sm:text-right">
+              No pagable con tarjeta. Puedes pagar por transferencia.
+            </span>
+          )}
+        </div>
+      </div>
+    </li>
+  );
+}
+
+/** Comprobante: check dibujado, importe y datos para conservar. */
+function Receipt({ receipt }: { receipt: PortalReceipt & { simulated: boolean } }) {
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    titleRef.current?.focus({ preventScroll: true });
+    titleRef.current?.scrollIntoView?.({ block: 'center' });
+  }, [receipt]);
+
+  return (
+    <section
+      aria-live="polite"
+      aria-labelledby="receipt-title"
+      className="ebim-success-enter rounded-dialog border border-border bg-card p-6 text-center shadow-brand sm:p-8"
+    >
+      <SuccessCheck size={64} />
+      <h2 id="receipt-title" ref={titleRef} tabIndex={-1} className="mt-4 text-h2 text-fg focus:outline-none">
+        Pago recibido{receipt.simulated ? ' (simulado)' : ''}
+      </h2>
+      <p className="mt-2 flex items-baseline justify-center gap-2 text-fg">
+        <span className="text-h3 font-semibold text-muted">{receipt.currency}</span>
+        <span className="text-display">{formatAmount(receipt.amount)}</span>
+      </p>
+      <dl className="mx-auto mt-6 grid max-w-sm grid-cols-[auto_1fr] gap-x-6 gap-y-2 rounded-field bg-sunken px-5 py-4 text-left text-compact">
+        <dt className="text-muted">Factura</dt>
+        <dd className="text-right font-semibold text-fg">{receipt.invoice_number}</dd>
+        <dt className="text-muted">Importe</dt>
+        <dd className="text-right font-semibold tabular-nums text-fg">{formatMoney(receipt.amount, receipt.currency)}</dd>
+        <dt className="text-muted">Fecha</dt>
+        <dd className="text-right font-semibold text-fg">{formatDateTime(receipt.paid_at)}</dd>
+        <dt className="text-muted">Operación</dt>
+        <dd className="text-right font-mono text-caption text-fg">{receipt.charge}</dd>
+      </dl>
+      <p className="mt-4 text-caption text-muted">Guarda este comprobante: es tu constancia del pago.</p>
+      <button type="button" className="ebim-btn-ghost mt-3" onClick={() => window.print()}>
+        <PrinterIcon size={18} aria-hidden />
+        Imprimir comprobante
+      </button>
+    </section>
+  );
+}
+
 /* ----------------------------------------------------------- Pago automático */
+
+const AUTOPAY_TRUST: Array<{ icon: Icon; title: string; description: string }> = [
+  { icon: ShieldCheckIcon, title: 'Procesado por Culqi', description: 'Tu tarjeta se valida en la pasarela de pago.' },
+  { icon: LockKeyIcon, title: 'EBIM no guarda tu tarjeta', description: 'Ni el número ni el código de seguridad.' },
+  { icon: ToggleLeftIcon, title: 'Lo desactivas cuando quieras', description: 'Desde este mismo enlace, sin trámites.' },
+];
 
 function AutoPayBlock({
   statement,
@@ -416,22 +679,48 @@ function AutoPayBlock({
 
   return (
     <section className="ebim-card" aria-labelledby="autopay-title">
-      <div className="border-b border-border px-5 py-3">
-        <h2 id="autopay-title" className="text-sm font-bold text-fg">
-          Pago automático
-        </h2>
+      <div className="flex items-start gap-3.5 border-b border-border px-5 py-4 sm:px-6">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent-deep">
+          <ArrowsClockwiseIcon size={22} weight="duotone" aria-hidden />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 id="autopay-title" className="text-h3 text-fg">
+              Pago automático
+            </h2>
+            {card?.authorized ? (
+              <Badge tone="ok" dot>
+                Activo
+              </Badge>
+            ) : null}
+          </div>
+          <p className="mt-0.5 text-compact text-fg-2">Olvídate de las fechas de vencimiento: cada factura se paga sola.</p>
+        </div>
       </div>
-      <div className="space-y-4 px-5 py-4 text-sm">
+      <div className="space-y-4 px-5 py-5 text-body sm:px-6">
+        {card?.authorized || enrollment.available ? (
+          <ul className="grid gap-3 sm:grid-cols-3" aria-label="Cómo protegemos tu tarjeta">
+            {AUTOPAY_TRUST.map(({ icon: TrustIcon, title, description }) => (
+              <li key={title} className="flex gap-2.5 rounded-field bg-sunken p-3">
+                <TrustIcon size={20} weight="duotone" className="mt-px shrink-0 text-accent-deep" aria-hidden />
+                <span>
+                  <span className="block text-compact font-semibold text-fg">{title}</span>
+                  <span className="block text-caption text-fg-2">{description}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
         {card?.authorized ? (
           <>
-            <p>
-              Activo con <strong>{card.brand ?? 'tarjeta'} •••• {card.last4 ?? '····'}</strong>
+            <p className="text-fg-2">
+              Activo con <strong className="text-fg">{card.brand ?? 'tarjeta'} •••• {card.last4 ?? '····'}</strong>
               {card.authorized_at ? ` desde el ${formatDate(card.authorized_at)}` : ''}. Cobraremos cada factura
               emitida al vencer y, si falla, lo reintentaremos a los 3 y a los 7 días.
             </p>
             {confirmOff ? (
               <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Confirmar desactivación">
-                <span className="text-muted">¿Desactivar el pago automático?</span>
+                <span className="text-fg-2">¿Desactivar el pago automático?</span>
                 <button type="button" className="ebim-btn-danger" disabled={busy} onClick={() => void deactivate()}>
                   {busy ? 'Procesando…' : 'Sí, desactivar'}
                 </button>
@@ -447,13 +736,13 @@ function AutoPayBlock({
           </>
         ) : enrollment.available ? (
           <>
-            <p className="text-muted">
+            <p className="text-fg-2">
               Guarda tu tarjeta y cobraremos automáticamente cada factura de tus suscripciones cuando venza. Puedes
               desactivarlo cuando quieras desde este mismo enlace.
             </p>
             {missing.length > 0 ? (
               <div className="grid gap-3 sm:grid-cols-2">
-                <p className="text-xs text-muted sm:col-span-2">
+                <p className="text-caption text-muted sm:col-span-2">
                   La pasarela de pago necesita estos datos de facturación:
                 </p>
                 {missing.map((field) => (
@@ -468,10 +757,10 @@ function AutoPayBlock({
                 ))}
               </div>
             ) : null}
-            <label className="flex items-start gap-2">
+            <label className="flex cursor-pointer items-start gap-2.5 rounded-field border border-border p-3 text-compact text-fg-2">
               <input
                 type="checkbox"
-                className="mt-0.5"
+                className="ebim-checkbox mt-0.5"
                 checked={accepted}
                 onChange={(e) => setAccepted(e.target.checked)}
               />
@@ -483,10 +772,12 @@ function AutoPayBlock({
             </label>
             <button
               type="button"
-              className="ebim-btn-primary"
+              className="ebim-btn-primary ebim-btn-lg w-full sm:w-auto"
               disabled={!accepted || busy || missing.some((f) => !(contact[f] ?? '').trim())}
+              aria-busy={busy || undefined}
               onClick={() => void activate()}
             >
+              {busy ? <span className="ebim-spinner" aria-hidden /> : <LockKeyIcon size={18} aria-hidden />}
               {busy ? 'Procesando…' : 'Guardar tarjeta y activar'}
             </button>
           </>
@@ -496,7 +787,7 @@ function AutoPayBlock({
         {message ? (
           <p
             role={message.tone === 'error' ? 'alert' : 'status'}
-            className={`rounded-field px-3 py-2 ${message.tone === 'error' ? 'bg-danger-soft text-danger' : 'bg-ok-soft text-ok'}`}
+            className={`rounded-field px-3 py-2.5 text-compact font-medium ${message.tone === 'error' ? 'bg-danger-soft text-danger' : 'bg-ok-soft text-ok'}`}
           >
             {message.text}
           </p>

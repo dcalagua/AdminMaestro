@@ -10,9 +10,10 @@ test.describe('Login', () => {
     const bullets = page.locator('ul li');
     await expect(bullets).toHaveCount(3);
 
-    // Pie de confianza y lockup "by EBIM".
-    await expect(page.getByText(/Cifrado en tránsito/)).toBeVisible();
-    await expect(page.getByText('BY EBIM')).toBeVisible();
+    // Pie de confianza y lockup "by EBIM" al pie (en escritorio el lockup móvil
+    // de la cabecera del formulario está oculto: solo se ve el del pie).
+    await expect(page.getByText(/cifrado en tránsito/i)).toBeVisible();
+    await expect(page.getByText('BY EBIM').filter({ visible: true })).toHaveCount(1);
 
     // Subtítulo que dice de dónde sale la credencial (evita el ticket del día 1).
     await expect(page.getByText(/Tu acceso lo crea el equipo de plataforma/)).toBeVisible();
@@ -42,11 +43,13 @@ test.describe('Consola EBIM (super admin)', () => {
   });
 
   test('el dashboard muestra indicadores calculados del seed', async ({ page }) => {
-    // Spec 2026-09-25 §7: el inicio es el «Resumen ejecutivo» con seis KPI.
+    // V4 fase 09 (D-V05): el inicio es el «Resumen ejecutivo» con una franja de seis KPI.
     await expect(page.getByRole('heading', { name: 'Resumen ejecutivo', level: 1 })).toBeVisible();
-    await expect(page.locator('[data-kpi]')).toHaveCount(6);
-    await expect(page.locator('[data-kpi="K01"]')).toContainText('MRR vigente');
-    await expect(page.locator('[data-kpi="K02"]')).toContainText('Cobrado del período');
+    const hero = page.getByRole('region', { name: 'Indicadores clave' });
+    await expect(hero.locator(':scope > *')).toHaveCount(6);
+    await expect(hero).toContainText('MRR');
+    await expect(hero).toContainText('Cobrado del mes');
+    await expect(page.getByRole('heading', { name: '¿Cómo crece el ingreso recurrente?' })).toBeVisible();
     // Margen por producto con datos reales, ahora en la perspectiva Finanzas.
     await page.getByRole('tab', { name: 'Finanzas' }).click();
     await expect(page.getByText('¿Cómo se compone el margen de cada SaaS?')).toBeVisible();

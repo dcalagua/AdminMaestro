@@ -142,6 +142,8 @@ export function routeMeta(pathname: string): RouteMeta {
   }
   if (pathname === '/404') return { group: null, section: null, title: 'Página no encontrada', isDetail: false };
   if (pathname === '/login') return { group: null, section: null, title: 'Ingreso', isDetail: false };
+  // Herramienta interna (solo desarrollo o super admin): sin entrada de menú.
+  if (pathname === '/design') return { group: null, section: null, title: 'Galería de componentes', isDetail: false };
 
   // La entrada más específica que contiene la ruta: hay entradas de dos
   // segmentos (`/catalog/addons`) además de las de uno con fichas `/:id`.

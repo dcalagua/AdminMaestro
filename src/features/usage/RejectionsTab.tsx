@@ -55,18 +55,18 @@ export function RejectionsTab() {
               <tr>
                 <td className="ebim-td">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-xs font-semibold">{g.code}</span>
+                    <span className="font-mono text-caption font-semibold">{g.code}</span>
                     {g.code === 'CONFLICT' ? <Badge tone="danger">Integridad</Badge> : null}
                   </div>
-                  <div className="text-[11px] text-muted">{REJECTION_CODE[g.code] ?? 'Código del ingest'}</div>
+                  <div className="text-caption text-muted">{REJECTION_CODE[g.code] ?? 'Código del ingest'}</div>
                 </td>
-                <td className="ebim-td text-sm font-semibold tabular-nums">{g.rows.length}</td>
-                <td className="ebim-td text-xs">{Array.from(g.products).join(', ')}</td>
-                <td className="ebim-td whitespace-nowrap text-xs text-muted">{formatDateTime(g.last)}</td>
+                <td className="ebim-td text-body font-semibold tabular-nums">{g.rows.length}</td>
+                <td className="ebim-td text-caption">{Array.from(g.products).join(', ')}</td>
+                <td className="ebim-td whitespace-nowrap text-caption text-muted">{formatDateTime(g.last)}</td>
                 <td className="ebim-td text-right">
                   <button
                     type="button"
-                    className="ebim-link text-[13px]"
+                    className="ebim-link text-compact"
                     aria-expanded={open === g.code}
                     onClick={() => setOpen(open === g.code ? null : g.code)}
                   >
@@ -76,8 +76,8 @@ export function RejectionsTab() {
               </tr>
               {open === g.code ? (
                 <tr>
-                  <td colSpan={5} className="bg-[color:var(--bg)] px-4 py-2">
-                    <ul className="space-y-1 text-xs" aria-label={`Rechazos ${g.code}`}>
+                  <td colSpan={5} className="bg-sunken px-4 py-2">
+                    <ul className="space-y-1 text-caption" aria-label={`Rechazos ${g.code}`}>
                       {g.rows.slice(0, 50).map((r) => (
                         <li key={r.id} className="flex flex-wrap gap-x-3">
                           <span className="text-muted">{formatDateTime(r.created_at)}</span>

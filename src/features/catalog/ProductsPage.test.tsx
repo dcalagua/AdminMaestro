@@ -60,7 +60,8 @@ function renderPage() {
 }
 
 function statValue(label: string): string {
-  const card = screen.getByText(label).parentElement!;
+  // El KpiTile anida la etiqueta en su fila (icono, info, estado): se lee el tile entero.
+  const card = screen.getByText(label).closest('.ebim-card')!;
   return card.textContent ?? '';
 }
 
@@ -91,17 +92,38 @@ describe('ProductsPage', () => {
 
   it('separa estado comercial de integración técnica y no infiere certificación', () => {
     renderPage();
-    const ewm = screen.getByRole('row', { name: /EWM by EBIM/ });
+    const ewm = screen.getByRole('article', { name: /EWM by EBIM/ });
     expect(within(ewm).getByText('Activo')).toBeInTheDocument();
     expect(within(ewm).getByText('Sin integración registrada')).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/certificad/i);
   });
 
+  it('tarjeta por producto: tenants, MRR por moneda y unidad de cobro en español (A13)', () => {
+    tenantsHook.mockReturnValue({
+      data: [
+        { saas_product_id: 'esup', mrr: 100, currency: 'USD' },
+        { saas_product_id: 'esup', mrr: 200, currency: 'PEN' },
+      ],
+      isLoading: false,
+      error: null,
+    });
+    renderPage();
+    const card = screen.getByRole('article', { name: /eSupplier by EBIM/ });
+    expect(within(card).getByText('Por tenant')).toBeInTheDocument();
+    expect(within(card).queryByText('TENANT')).toBeNull();
+    expect(within(card).getByText('2')).toBeInTheDocument();
+    // Una línea por moneda: nunca un total que mezcle PEN y USD.
+    expect(card.textContent).toMatch(/PEN\s?200\.00/);
+    expect(card.textContent).toMatch(/USD\s?100\.00/);
+    expect(within(screen.getByRole('article', { name: /EWM by EBIM/ })).getByText('Sin recurrente')).toBeInTheDocument();
+  });
+
   it('si la lectura de tenants falla no pinta 0', () => {
     tenantsHook.mockReturnValue({ data: undefined, isLoading: false, error: new Error('timeout') });
     renderPage();
-    const row = screen.getByRole('row', { name: /TMS by EBIM/ });
-    expect(within(row).getByText('No se pudo leer')).toBeInTheDocument();
+    const card = screen.getByRole('article', { name: /TMS by EBIM/ });
+    expect(within(card).getAllByText('No se pudo leer').length).toBeGreaterThan(0);
+    expect(within(card).queryByText('0')).toBeNull();
   });
 
   it('un error de productos es un error, no una lista vacía', () => {

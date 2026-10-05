@@ -10,6 +10,10 @@ import {
 import { formatMoney, formatPercent, formatDate, formatNumber } from '@/lib/format';
 import { DEPLOYMENT_MODE_LABEL } from '@/types/domain';
 import { CurrencyLines } from '@/features/executive/components/StateView';
+import { ActionMenu } from '@/components/ui/ActionMenu';
+import { Avatar } from '@/components/ui/Avatar';
+import { FilterTotals } from './financeUi';
+import { fromQuery } from '@/features/executive/dataState';
 import {
   SubscriptionFormDialog, SubscriptionStatusDialog, SubscriptionItemDialog,
 } from './SubscriptionDialogs';
@@ -67,7 +71,7 @@ export function SubscriptionsPage() {
 
   return (
     <PageContainer
-      title="Suscripciones"
+      title="Contratos y suscripciones"
       description="La cartera contractual: licencias por tenant, licencias base de partner y fees de infraestructura dedicada. El estado es el del contrato, no el técnico."
       actions={
         perms.canManageCommercial ? (
@@ -82,14 +86,28 @@ export function SubscriptionsPage() {
           value={term}
           onChange={setTerm}
           placeholder="Buscar por código, organización, tenant o plan…"
+          right={
+            <StatusTabs
+              value={filter}
+              onChange={setFilter}
+              options={FILTERS.map((f) => ({ ...f, count: subs.data ? countOf(f.id) : undefined }))}
+            />
+          }
         />
-        <div className="border-b border-border px-4 py-2">
-          <StatusTabs
-            value={filter}
-            onChange={setFilter}
-            options={FILTERS.map((f) => ({ ...f, count: subs.data ? countOf(f.id) : undefined }))}
+        {subs.data && rows.length > 0 ? (
+          <FilterTotals
+            state={fromQuery(subs, { isEmpty: () => false })}
+            items={[
+              {
+                label: `Recurrente mensual · ${formatNumber(rows.length)} contratos`,
+                amounts: listedMonthly,
+                emptyLabel: 'Sin líneas recurrentes',
+                hint: 'Suma de líneas del contrato normalizada a mes (trimestral ÷ 3, anual ÷ 12); los cargos únicos no cuentan',
+              },
+            ]}
+            note="El MRR oficial del Resumen Ejecutivo además excluye descuentos, líneas fuera de vigencia, contratos no activos y tenants DEMO."
           />
-        </div>
+        ) : null}
         {subs.isLoading ? (
           <LoadingState />
         ) : subs.error ? (
@@ -99,93 +117,100 @@ export function SubscriptionsPage() {
         ) : (
           <DataTable
             columns={[
-              'Código', 'Facturado a', 'Producto', 'Tenant', 'Plan', 'Recurrente (mensual)', 'Cargos únicos',
-              'Despliegue', 'Margen canal', 'Inicio', 'Estado del contrato', 'Acciones',
+              'Contrato',
+              'Facturado a',
+              { label: 'Recurrente / mes', align: 'right' },
+              { label: 'Cargos únicos', align: 'right' },
+              'Estado',
+              { label: 'Acciones', srOnly: true },
             ]}
           >
             {rows.map((s) => {
               const charges = splitCharges((s.subscription_items ?? []) as Array<Record<string, unknown>>);
+              const org = (s.organizations as { display_name: string } | null)?.display_name ?? '—';
+              const tenant = s.tenants as { name: string; deployment_mode: string } | null;
               return (
                 <tr key={s.id}>
                   <td className="ebim-td">
-                    <Link className="ebim-link font-mono text-xs font-semibold" to={`/subscriptions/${s.id}`}>
+                    <Link
+                      className="ebim-link block max-w-[200px] truncate whitespace-nowrap font-mono text-compact font-semibold"
+                      to={`/subscriptions/${s.id}`}
+                      title={s.code}
+                    >
                       {s.code}
                     </Link>
+                    <div className="text-compact text-fg-2">
+                      {(s.plans as { name: string } | null)?.name ?? (s.saas_products as { short_name: string } | null)?.short_name}
+                    </div>
                   </td>
-                  <td className="ebim-td">{(s.organizations as { display_name: string } | null)?.display_name}</td>
-                  <td className="ebim-td">{(s.saas_products as { short_name: string } | null)?.short_name}</td>
                   <td className="ebim-td">
-                    {s.tenant_id ? (
-                      (s.tenants as { name: string } | null)?.name
-                    ) : (
-                      <Badge tone="accent">Nivel partner</Badge>
-                    )}
+                    <div className="flex items-center gap-3">
+                      <Avatar name={org} />
+                      <div className="min-w-0 max-w-[240px]">
+                        <div className="truncate" title={org}>{org}</div>
+                        <div className="truncate text-compact text-fg-2">
+                          {s.tenant_id ? (
+                            <>
+                              {tenant?.name}
+                              {tenant?.deployment_mode
+                                ? ` · ${DEPLOYMENT_MODE_LABEL[tenant.deployment_mode as keyof typeof DEPLOYMENT_MODE_LABEL]}`
+                                : ''}
+                            </>
+                          ) : (
+                            'Nivel partner (sin tenant)'
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </td>
-                  <td className="ebim-td text-muted">{(s.plans as { name: string } | null)?.name}</td>
-                  <td className="ebim-td text-right tabular-nums">
+                  <td className="ebim-td ebim-num whitespace-nowrap">
                     {Object.keys(charges.monthly).length === 0 ? (
-                      <span className="text-xs text-muted">Sin líneas recurrentes</span>
+                      <span className="text-compact text-muted">Sin líneas recurrentes</span>
                     ) : (
-                      <span className="text-sm font-semibold">
+                      <span className="font-semibold">
                         <CurrencyLines amounts={charges.monthly} />
                       </span>
                     )}
+                    {/* Margen del canal: parte del recurrente que retiene el partner. */}
+                    {s.channel_margin_rate !== null ? (
+                      <span className="block text-caption text-muted">
+                        Margen canal {formatPercent(Number(s.channel_margin_rate))}
+                      </span>
+                    ) : null}
                   </td>
-                  <td className="ebim-td text-right tabular-nums">
+                  <td className="ebim-td ebim-num whitespace-nowrap">
                     {charges.oneTimeCount === 0 ? (
-                      <span className="text-xs text-muted">Ninguno</span>
+                      <span className="text-compact text-muted">Ninguno</span>
                     ) : (
-                      <span className="text-xs">
+                      <span>
                         {Object.entries(charges.oneTime)
                           .map(([currency, amount]) => formatMoney(amount, currency))
                           .join(' · ')}
-                        <span className="block text-muted">{formatNumber(charges.oneTimeCount)} cargo(s) único(s)</span>
+                        <span className="block text-compact text-muted">
+                          {formatNumber(charges.oneTimeCount)} {charges.oneTimeCount === 1 ? 'cargo' : 'cargos'}
+                        </span>
                       </span>
                     )}
                   </td>
                   <td className="ebim-td">
-                    {s.tenants ? (
-                      <Badge tone="info">
-                        {DEPLOYMENT_MODE_LABEL[
-                          (s.tenants as { deployment_mode: string }).deployment_mode as keyof typeof DEPLOYMENT_MODE_LABEL
-                        ]}
-                      </Badge>
-                    ) : (
-                      <span className="text-muted">—</span>
-                    )}
-                  </td>
-                  <td className="ebim-td tabular-nums">
-                    {s.channel_margin_rate !== null ? formatPercent(Number(s.channel_margin_rate)) : '—'}
-                  </td>
-                  <td className="ebim-td whitespace-nowrap text-xs text-muted">{formatDate(s.started_on)}</td>
-                  <td className="ebim-td">
-                    <Badge tone={SUBSCRIPTION_STATUS_TONE[s.status] ?? 'neutral'}>
+                    <Badge tone={SUBSCRIPTION_STATUS_TONE[s.status] ?? 'neutral'} dot>
                       {SUBSCRIPTION_STATUS_LABEL[s.status] ?? s.status}
                     </Badge>
+                    <span className="mt-0.5 block whitespace-nowrap text-caption text-muted">desde {formatDate(s.started_on)}</span>
                   </td>
-                  <td className="ebim-td">
-                    {perms.canManageCommercial ? (
-                      <div className="flex items-center justify-end gap-3">
-                        <button
-                          type="button"
-                          className="ebim-link whitespace-nowrap text-[13px]"
-                          onClick={() => setItemTarget({ id: s.id, code: s.code })}
-                        >
-                          Añadir línea
-                        </button>
-                        <button
-                          type="button"
-                          className="ebim-link whitespace-nowrap text-[13px]"
-                          onClick={() => setStatusTarget({ id: s.id, code: s.code, status: s.status })}
-                        >
-                          Estado
-                        </button>
-                      </div>
-                    ) : (
-                      <Link className="ebim-link text-[13px]" to={`/subscriptions/${s.id}`}>
-                        Ver
-                      </Link>
-                    )}
+                  <td className="ebim-td w-12 text-right">
+                    <ActionMenu
+                      label={`Acciones de ${s.code}`}
+                      items={[
+                        { label: 'Abrir contrato', to: `/subscriptions/${s.id}` },
+                        perms.canManageCommercial
+                          ? { label: 'Añadir línea…', onSelect: () => setItemTarget({ id: s.id, code: s.code }) }
+                          : null,
+                        perms.canManageCommercial
+                          ? { label: 'Cambiar estado…', onSelect: () => setStatusTarget({ id: s.id, code: s.code, status: s.status }) }
+                          : null,
+                      ]}
+                    />
                   </td>
                 </tr>
               );
@@ -193,19 +218,6 @@ export function SubscriptionsPage() {
           </DataTable>
         )}
       </Card>
-      {rows.length > 0 ? (
-        <div className="mt-3 flex flex-wrap items-start gap-2 px-1 text-xs text-muted">
-          <span>Recurrente mensual de las {formatNumber(rows.length)} suscripciones listadas, por moneda:</span>
-          <span className="font-semibold text-fg">
-            <CurrencyLines amounts={listedMonthly} emptyLabel="Sin líneas recurrentes" />
-          </span>
-          <span className="basis-full">
-            Suma de líneas del contrato normalizada a mes (trimestral ÷ 3, anual ÷ 12). Los cargos únicos no cuentan. El MRR
-            oficial del inicio además excluye descuentos, líneas fuera de vigencia, contratos no activos y tenants DEMO.
-          </span>
-        </div>
-      ) : null}
-
       <SubscriptionFormDialog open={creating} onClose={() => setCreating(false)} />
 
       <SubscriptionStatusDialog

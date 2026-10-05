@@ -1,0 +1,162 @@
+{
+  "label": "fase12",
+  "generatedAt": "2026-10-05T13:20:03.120Z",
+  "shots": [
+    {
+      "file": "01-integrations-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "02-entitlement-sync-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "03-usage-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "04-usage-aggregates-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "05-usage-alerts-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "06-deployments-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "07-saas-provisioning-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "08-provisioning-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "09-users-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "10-audit-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "11-settings-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "12-settings-profile-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "13-settings-payment-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "14-not-found-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "15-integration-resumen-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "16-integration-eventos-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "17-user-detalle-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "18-integrations-1280-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "19-users-1280-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "20-audit-1280-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "21-usage-1280-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "22-integration-1280-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "23-integrations-1440-oscuro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "dark"
+    },
+    {
+      "file": "24-audit-1440-oscuro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "dark"
+    },
+    {
+      "file": "25-settings-payment-1440-oscuro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "dark"
+    },
+    {
+      "file": "26-users-1440-oscuro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "dark"
+    }
+  ]
+}

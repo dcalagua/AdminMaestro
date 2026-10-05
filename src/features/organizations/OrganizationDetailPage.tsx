@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useOrganization, useOrganizationAgreements, usePartnerAgreements } from '@/services/queries';
 import { useEndProductAgreement } from '@/services/mutations';
 import { useAuth } from '@/hooks/useAuth';
@@ -7,15 +7,22 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { isFinance } from '@/features/auth/session';
 import { SectionTabs } from '@/components/ui/SectionTabs';
 import {
-  PageContainer, Card, DataTable, StatCard, LoadingState, ErrorState, EmptyState, Badge,
+  PageContainer, Card, DataTable, LoadingState, ErrorState, EmptyState, Badge,
 } from '@/components/ui/primitives';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/toast-context';
 import { businessErrorMessage } from '@/lib/pgError';
-import { formatMoney, formatPercent, formatDate, formatNumber } from '@/lib/format';
-import { DEPLOYMENT_MODE_LABEL } from '@/types/domain';
+import { countryName, formatMoney, formatPercent, formatDate, formatNumber } from '@/lib/format';
+import { DEPLOYMENT_MODE_LABEL, TENANT_TYPE_LABEL } from '@/types/domain';
+import { AGENT_TYPE_LABEL } from '@/features/commercial/commercialLabels';
+
 import { AgreementFormDialog } from './AgreementFormDialog';
+import { ActionMenu } from '@/components/ui/ActionMenu';
+import { Avatar } from '@/components/ui/Avatar';
+import { entityStatusLabel, entityStatusTone } from '@/features/catalog/catalogLabels';
+import { BILLING_RESPONSIBILITY_TEXT, capabilityText } from './organizationLabels';
 import {
+  Org360KpiStrip,
   Org360Activity,
   Org360Billing,
   Org360Contracts,
@@ -81,7 +88,7 @@ export function OrganizationDetailPage() {
     }
   }
 
-  if (org.isLoading) return <LoadingState />;
+  if (org.isLoading) return <LoadingState variant="page" />;
   if (org.error) return <ErrorState error={org.error} />;
   if (!org.data) {
     return (
@@ -122,24 +129,39 @@ export function OrganizationDetailPage() {
   return (
     <PageContainer
       title={o.display_name}
-      description={`${o.legal_name} · ${o.country_code}${o.tax_id ? ` · ${o.tax_id}` : ''}`}
-      breadcrumbs={
-        <Link className="text-xs text-muted hover:text-fg" to="/organizations">← Directorio corporativo</Link>
-      }
-      actions={
-        <div className="flex flex-wrap gap-1">
+      leading={<Avatar name={o.display_name} size="lg" ringColor={o.accent_color} />}
+      titleAside={
+        <>
+          <Badge tone={entityStatusTone(o.status)} dot>
+            {entityStatusLabel(o.status)}
+          </Badge>
           {capabilities.map((c) => (
-            <Badge key={c} tone={c === 'CUSTOMER' ? 'info' : 'ok'}>{c}</Badge>
+            <Badge key={c} tone={c === 'CUSTOMER' ? 'info' : 'neutral'}>{capabilityText(c)}</Badge>
           ))}
-        </div>
+        </>
+      }
+      description={`${o.legal_name} · ${countryName(o.country_code)}${o.tax_id ? ` · ${o.tax_id}` : ''}`}
+      meta={o.billing_email ? `Facturación a ${o.billing_email}` : undefined}
+      actions={
+        perms.canManageOrganization(o.id) ? (
+          <ActionMenu
+            variant="page"
+            label={`Más acciones de ${o.display_name}`}
+            items={[
+              canManageCompanies ? { label: 'Nueva sociedad', onSelect: () => setCompanyDialog({ open: true, company: null }) } : null,
+              perms.canManagePlatform ? { label: 'Nuevo acuerdo de producto', onSelect: () => setAgreementDialog({ open: true, agreement: null }) } : null,
+            ]}
+          />
+        ) : null
       }
     >
+      <Org360KpiStrip organizationId={o.id} />
       <SectionTabs
         tabs={[
           {
             id: 'view360',
             label: 'Vista 360',
-            content: <Org360Summary organizationId={o.id} capabilities={capabilities} />,
+            content: <Org360Summary organizationId={o.id} organizationName={o.display_name} capabilities={capabilities} />,
           },
           {
             id: 'contracts',
@@ -187,7 +209,7 @@ export function OrganizationDetailPage() {
           },
           {
             id: 'overview',
-            label: 'Resumen y sociedades',
+            label: 'Identidad y sociedades',
             content: (
               <div className="grid gap-4 lg:grid-cols-2">
                 <Card title="Identidad y marca" description="Contrato §4.3: interfaz de branding homologada.">
@@ -199,7 +221,7 @@ export function OrganizationDetailPage() {
                       ['Marca blanca', o.white_label ? 'Sí' : 'No'],
                       ['Correo de facturación', o.billing_email ?? '—'],
                     ].map(([k, v]) => (
-                      <div key={k as string} className="flex justify-between gap-4 px-4 py-2.5 text-sm">
+                      <div key={k as string} className="flex justify-between gap-4 px-5 py-2.5 text-body">
                         <dt className="text-muted">{k}</dt>
                         <dd className="text-right font-medium">{v as string}</dd>
                       </div>
@@ -214,7 +236,7 @@ export function OrganizationDetailPage() {
                     canManageCompanies ? (
                       <button
                         type="button"
-                        className="ebim-btn-secondary h-8 px-3 text-xs"
+                        className="ebim-btn-secondary ebim-btn-sm"
                         onClick={() => setCompanyDialog({ open: true, company: null })}
                       >
                         Nueva sociedad
@@ -239,14 +261,14 @@ export function OrganizationDetailPage() {
                           </td>
                           <td className="ebim-td">{c.country_code as string}</td>
                           <td className="ebim-td">{c.currency as string}</td>
-                          <td className="ebim-td font-mono text-xs text-muted">
+                          <td className="ebim-td whitespace-nowrap font-mono text-compact text-fg-2">
                             {(c.erp_code as string) ?? '—'}
                           </td>
                           <td className="ebim-td text-right">
                             {canManageCompanies ? (
                               <button
                                 type="button"
-                                className="ebim-link text-xs"
+                                className="ebim-link text-compact"
                                 onClick={() =>
                                   setCompanyDialog({
                                     open: true,
@@ -316,16 +338,27 @@ export function OrganizationDetailPage() {
                 ) : (
                   <DataTable
                     columns={[
-                      'Producto', 'Revende', 'Administra', 'Margen', 'Modelos permitidos',
-                      'Tipos', 'Tenants', 'Factura', 'Tarifa plataforma', 'Vigencia', '',
+                      'Producto · permisos', { label: 'Margen', align: 'right' }, 'Modelos permitidos',
+                      'Tipos', { label: 'Tenants', align: 'right' }, 'Factura', 'Tarifa plataforma', 'Vigencia',
+                      { label: 'Acciones', srOnly: true },
                     ]}
                   >
                     {(agreements.data ?? []).map((a) => (
                       <tr key={a.agreement_id as string}>
-                        <td className="ebim-td font-semibold">{a.product_short_name}</td>
-                        <td className="ebim-td">{a.can_resell ? 'Sí' : 'No'}</td>
-                        <td className="ebim-td">{a.can_manage_tenants ? 'Sí' : 'No'}</td>
-                        <td className="ebim-td tabular-nums font-semibold">
+                        {/* Revende / administra bajo el producto: once columnas no cabían a 1280. */}
+                        <td className="ebim-td">
+                          <span className="block font-semibold">{a.product_short_name}</span>
+                          <span className="block whitespace-nowrap text-caption text-fg-2">
+                            {a.can_resell && a.can_manage_tenants
+                              ? 'Revende y administra'
+                              : a.can_resell
+                                ? 'Solo revende'
+                                : a.can_manage_tenants
+                                  ? 'Solo administra'
+                                  : 'Sin reventa ni administración'}
+                          </span>
+                        </td>
+                        <td className="ebim-td ebim-num font-semibold">
                           {formatPercent(Number(a.margin_rate))}
                         </td>
                         <td className="ebim-td">
@@ -340,98 +373,86 @@ export function OrganizationDetailPage() {
                             ))}
                           </div>
                         </td>
-                        <td className="ebim-td text-xs text-muted">
-                          {((a.allowed_tenant_types ?? []) as string[]).join(', ')}
+                        <td className="ebim-td text-compact text-fg-2">
+                          {((a.allowed_tenant_types ?? []) as string[]).map((t) => TENANT_TYPE_LABEL[t as keyof typeof TENANT_TYPE_LABEL] ?? t).join(', ')}
                         </td>
-                        <td className="ebim-td tabular-nums">
+                        <td className="ebim-td ebim-num">
                           {formatNumber(Number(a.managed_tenants))}
                           {a.max_tenants ? (
                             <span className="text-muted"> / {a.max_tenants}</span>
                           ) : null}
                           {Number(a.shared_tenants) > 0 ? (
-                            <div className="text-xs text-muted">
+                            <div className="text-caption text-muted">
                               {formatNumber(Number(a.shared_tenants))} en compartido
                             </div>
                           ) : null}
                         </td>
-                        <td className="ebim-td text-xs text-muted">{a.billing_responsibility}</td>
-                        <td className="ebim-td text-xs">{feeTermsText(feeById.get(a.agreement_id as string))}</td>
-                        <td className="ebim-td text-xs text-muted">
-                          {formatDate(a.valid_from as string)} →{' '}
-                          {a.valid_to ? formatDate(a.valid_to as string) : 'sin fin'}
+                        <td className="ebim-td text-compact text-fg-2">{BILLING_RESPONSIBILITY_TEXT[a.billing_responsibility as string] ?? a.billing_responsibility}</td>
+                        <td className="ebim-td text-compact">{feeTermsText(feeById.get(a.agreement_id as string))}</td>
+                        <td className="ebim-td whitespace-nowrap text-compact text-fg-2">
+                          {formatDate(a.valid_from as string)} →
+                          <span className="block">{a.valid_to ? formatDate(a.valid_to as string) : 'sin fin'}</span>
                         </td>
-                        <td className="ebim-td">
-                          {perms.canReadFinance && a.status === 'ACTIVE' ? (
-                            <div className="flex items-center justify-end">
-                              <button
-                                type="button"
-                                className="ebim-link text-[13px]"
-                                onClick={() =>
-                                  setFeeTarget({
-                                    agreementId: a.agreement_id as string,
-                                    productName: a.product_short_name as string,
-                                    partnerName: o.display_name,
-                                    billingResponsibility: a.billing_responsibility as string,
-                                    ...(feeById.get(a.agreement_id as string) ?? {
-                                      platform_fee_model: 'NONE',
-                                      platform_fee_rate: null,
-                                      platform_fee_fixed_amount: null,
-                                      platform_fee_currency: null,
-                                    }),
-                                  })
-                                }
-                              >
-                                Tarifa
-                              </button>
-                            </div>
-                          ) : null}
-                          {perms.canManagePlatform ? (
-                            <div className="flex items-center justify-end gap-3">
-                              <button
-                                type="button"
-                                className="ebim-link text-[13px]"
-                                onClick={() =>
-                                  setAgreementDialog({
-                                    open: true,
-                                    agreement: {
-                                      agreement_id: a.agreement_id as string,
-                                      saas_product_id: a.saas_product_id as string,
-                                      can_resell: a.can_resell as boolean,
-                                      can_manage_tenants: a.can_manage_tenants as boolean,
-                                      margin_rate: Number(a.margin_rate),
-                                      default_deployment_mode: a.default_deployment_mode as string,
-                                      allowed_deployment_modes:
-                                        (a.allowed_deployment_modes ?? []) as string[],
-                                      allowed_tenant_types:
-                                        (a.allowed_tenant_types ?? []) as string[],
-                                      billing_responsibility: a.billing_responsibility as string,
-                                      max_tenants: a.max_tenants as number | null,
-                                      valid_from: a.valid_from as string,
-                                      valid_to: a.valid_to as string | null,
-                                      status: a.status as string,
-                                      notes: a.notes as string | null,
-                                    },
-                                  })
-                                }
-                              >
-                                Editar
-                              </button>
-                              {a.status === 'ACTIVE' ? (
-                                <button
-                                  type="button"
-                                  className="text-[13px] text-danger hover:underline"
-                                  onClick={() =>
-                                    setEndingAgreement({
-                                      id: a.agreement_id as string,
-                                      product: a.product_short_name as string,
-                                    })
+                        <td className="ebim-td w-12 text-right">
+                          <ActionMenu
+                            label={`Acciones del acuerdo de ${a.product_short_name}`}
+                            items={[
+                              perms.canReadFinance && a.status === 'ACTIVE'
+                                ? {
+                                    label: 'Tarifa de plataforma',
+                                    onSelect: () =>
+                                      setFeeTarget({
+                                        agreementId: a.agreement_id as string,
+                                        productName: a.product_short_name as string,
+                                        partnerName: o.display_name,
+                                        billingResponsibility: a.billing_responsibility as string,
+                                        ...(feeById.get(a.agreement_id as string) ?? {
+                                          platform_fee_model: 'NONE',
+                                          platform_fee_rate: null,
+                                          platform_fee_fixed_amount: null,
+                                          platform_fee_currency: null,
+                                        }),
+                                      }),
                                   }
-                                >
-                                  Cerrar
-                                </button>
-                              ) : null}
-                            </div>
-                          ) : null}
+                                : null,
+                              perms.canManagePlatform
+                                ? {
+                                    label: 'Editar acuerdo',
+                                    onSelect: () =>
+                                      setAgreementDialog({
+                                        open: true,
+                                        agreement: {
+                                          agreement_id: a.agreement_id as string,
+                                          saas_product_id: a.saas_product_id as string,
+                                          can_resell: a.can_resell as boolean,
+                                          can_manage_tenants: a.can_manage_tenants as boolean,
+                                          margin_rate: Number(a.margin_rate),
+                                          default_deployment_mode: a.default_deployment_mode as string,
+                                          allowed_deployment_modes: (a.allowed_deployment_modes ?? []) as string[],
+                                          allowed_tenant_types: (a.allowed_tenant_types ?? []) as string[],
+                                          billing_responsibility: a.billing_responsibility as string,
+                                          max_tenants: a.max_tenants as number | null,
+                                          valid_from: a.valid_from as string,
+                                          valid_to: a.valid_to as string | null,
+                                          status: a.status as string,
+                                          notes: a.notes as string | null,
+                                        },
+                                      }),
+                                  }
+                                : null,
+                              perms.canManagePlatform && a.status === 'ACTIVE'
+                                ? {
+                                    label: 'Cerrar acuerdo…',
+                                    tone: 'danger' as const,
+                                    onSelect: () =>
+                                      setEndingAgreement({
+                                        id: a.agreement_id as string,
+                                        product: a.product_short_name as string,
+                                      }),
+                                  }
+                                : null,
+                            ]}
+                          />
                         </td>
                       </tr>
                     ))}
@@ -453,10 +474,17 @@ export function OrganizationDetailPage() {
                   <DataTable columns={['Comercial', 'Tipo', 'Contacto', 'Estado']}>
                     {orgAgents.map((a) => (
                       <tr key={a.id}>
-                        <td className="ebim-td font-semibold">{a.full_name}</td>
-                        <td className="ebim-td"><Badge tone="info">{a.agent_type}</Badge></td>
-                        <td className="ebim-td text-muted">{a.contact_email ?? '—'}</td>
-                        <td className="ebim-td">{a.status}</td>
+                        <td className="ebim-td">
+                          <div className="flex items-center gap-3">
+                            <Avatar name={a.full_name} mode="person" />
+                            <span className="font-semibold">{a.full_name}</span>
+                          </div>
+                        </td>
+                        <td className="ebim-td"><Badge tone="neutral">{AGENT_TYPE_LABEL[a.agent_type] ?? a.agent_type}</Badge></td>
+                        <td className="ebim-td text-fg-2">{a.contact_email ?? '—'}</td>
+                        <td className="ebim-td">
+                          <Badge tone={entityStatusTone(a.status)} dot>{entityStatusLabel(a.status)}</Badge>
+                        </td>
                       </tr>
                     ))}
                   </DataTable>
@@ -471,22 +499,32 @@ export function OrganizationDetailPage() {
             // Aunque forzara la pestaña, RLS no le devolvería las filas.
             hidden: !isFinance(roles) && roles?.platformRole !== 'EBIM_PRODUCT_ADMIN',
             content: (
-              <Card title="Margen de la organización">
+              <Card title="Margen de la organización" description="Una fila por moneda: el margen del canal nunca mezcla monedas.">
                 {margin.error ? (
                   <ErrorState error={margin.error} onRetry={() => void margin.refetch()} />
                 ) : orgMargins.length > 0 ? (
-                  orgMargins.map((orgMargin) => (
-                    <div key={orgMargin.currency} className="grid gap-3 p-4 sm:grid-cols-4">
-                      <StatCard label={`MRR · ${orgMargin.currency}`} value={formatMoney(Number(orgMargin.mrr), orgMargin.currency)} />
-                      <StatCard label="Cobrado" value={formatMoney(Number(orgMargin.collected_revenue), orgMargin.currency)} />
-                      <StatCard label="Costo directo" value={formatMoney(Number(orgMargin.direct_cost), orgMargin.currency)} tone="warn" />
-                      <StatCard
-                        label="Margen bruto"
-                        value={formatMoney(Number(orgMargin.gross_margin), orgMargin.currency)}
-                        tone={Number(orgMargin.gross_margin) >= 0 ? 'ok' : 'danger'}
-                      />
-                    </div>
-                  ))
+                  <DataTable
+                    label="Margen por moneda"
+                    columns={[
+                      'Moneda',
+                      { label: 'MRR', align: 'right' },
+                      { label: 'Cobrado', align: 'right' },
+                      { label: 'Costo directo', align: 'right' },
+                      { label: 'Margen bruto', align: 'right' },
+                    ]}
+                  >
+                    {orgMargins.map((m) => (
+                      <tr key={m.currency}>
+                        <td className="ebim-td font-semibold">{m.currency}</td>
+                        <td className="ebim-td ebim-num">{formatMoney(Number(m.mrr), m.currency)}</td>
+                        <td className="ebim-td ebim-num">{formatMoney(Number(m.collected_revenue), m.currency)}</td>
+                        <td className="ebim-td ebim-num">{formatMoney(Number(m.direct_cost), m.currency)}</td>
+                        <td className={`ebim-td ebim-num font-semibold ${Number(m.gross_margin) < 0 ? 'text-danger' : ''}`}>
+                          {formatMoney(Number(m.gross_margin), m.currency)}
+                        </td>
+                      </tr>
+                    ))}
+                  </DataTable>
                 ) : (
                   <EmptyState
                     title="Sin margen calculable"

@@ -8,7 +8,7 @@ import {
 } from '@/services/queries';
 import { fromQuery } from '@/features/executive/dataState';
 import { StateMessage } from '@/features/executive/components/StateView';
-import { Badge } from '@/components/ui/primitives';
+import { Badge, KpiTile } from '@/components/ui/primitives';
 import { formatDateTime, formatNumber } from '@/lib/format';
 
 /**
@@ -72,7 +72,7 @@ export function OperationsPerspective() {
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="Productos en catálogo" value={products.data ? formatNumber(products.data.length) : null} state={productState} note="Según el catálogo, no un total fijo" />
         <Stat label="Destinos habilitados" value={targets.data ? `${formatNumber(enabled.length)} de ${formatNumber(targets.data.length)}` : null} state={targetState} note="El resto: borrador o deshabilitado (no evaluado)" />
         <Stat label="Habilitados con última observación sana" value={targets.data ? `${formatNumber(enabledHealthy)} de ${formatNumber(enabled.length)}` : null} state={targetState} note="Observación persistida, no uptime" />
@@ -197,15 +197,14 @@ function Stat({
   state: ReturnType<typeof fromQuery>;
   note: string;
 }) {
+  const ready = state.status === 'ready' || state.status === 'empty';
   return (
-    <div className="ebim-card p-4">
-      <div className="text-[11px] font-bold uppercase tracking-wider text-muted">{label}</div>
-      {value !== null && (state.status === 'ready' || state.status === 'empty') ? (
-        <div className="mt-1.5 text-2xl font-bold tabular-nums text-fg">{value}</div>
-      ) : (
-        <StateMessage state={state} compact />
-      )}
-      <div className="mt-1 text-xs text-muted">{note}</div>
-    </div>
+    <KpiTile
+      label={label}
+      value={ready ? value : null}
+      footer={state.status === 'unavailable' || state.status === 'forbidden' ? <StateMessage state={state} compact /> : note}
+      loading={state.status === 'loading'}
+      error={state.status === 'error' ? state.message : undefined}
+    />
   );
 }

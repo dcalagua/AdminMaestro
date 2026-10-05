@@ -62,6 +62,14 @@ export type PortalResult<T> =
 const GENERIC_ERROR = 'No pudimos conectar con el portal de pago. Revisa tu conexión e inténtalo otra vez.';
 
 /**
+ * Plazo para LEER el estado de cuenta: con una red móvil colgada la página no
+ * debe quedarse cargando para siempre, sino ofrecer «Reintentar». Las rutas que
+ * cobran o guardan tarjeta NO tienen plazo en el cliente: cortar una petición
+ * que el servidor sigue procesando invitaría a pagar dos veces.
+ */
+export const STATEMENT_TIMEOUT_MS = 20_000;
+
+/**
  * Mensajes para el cliente por código estable, para cuando la respuesta no
  * trae el suyo (proxy, versión anterior de la función). Un código conocido
  * nunca se muestra crudo.
@@ -81,8 +89,10 @@ export async function callPortal<T>(
   body: Record<string, unknown>,
 ): Promise<PortalResult<T>> {
   let res: Response;
+  const timeout = route === 'statement' ? AbortSignal.timeout(STATEMENT_TIMEOUT_MS) : undefined;
   try {
     res = await fetch(`${env.supabaseUrl}/functions/v1/pay-portal/${route}`, {
+      signal: timeout,
       method: 'POST',
       headers: {
         'content-type': 'application/json',

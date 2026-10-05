@@ -112,8 +112,8 @@ detalle.
 
 `platform.settle_commissions(agent, desde, hasta, moneda)` agrupa los eventos
 `ELIGIBLE` del periodo en una liquidación `OPEN` y los pasa a `ACCRUED`. **No
-paga**: aprobar y pagar son pasos posteriores. Un CHECK exige que una
-liquidación `PAID` traiga fecha y referencia de pago.
+paga**: aprobar y pagar son pasos posteriores (ver «V4 · Liquidación y pago»).
+Un CHECK exige que una liquidación `PAID` traiga fecha, referencia y medio de pago.
 
 ## 8. Planes del seed
 
@@ -238,3 +238,54 @@ usar la plataforma cuando él factura al cliente final. Las **comisiones** (`com
   factura y en su moneda.
 - `generate_commission_events` se recreó en `20261011000100` copiando su última definición
   (`20261008000100`) con ese único cambio. Test: `supabase/tests/47_partner_platform_fee.test.sql` (49–50).
+
+---
+
+## V4 · Liquidación y pago de comisiones (fase 13)
+
+Migración `20261019000100_commission_settlement_payout.sql`, pgTAP
+`55_commission_settlement_payout.test.sql`. Cierra la brecha P0 del 2026-10-04: la
+liquidación quedaba `OPEN` para siempre.
+
+### Ciclo
+
+```
+OPEN ──approve──▶ APPROVED ──pay──▶ PAID
+  └───────cancel (motivo)───┴──▶ CANCELLED   (libera sus eventos)
+```
+
+| RPC (finanzas o super admin, `log_audit`) | Desde | Efecto |
+|---|---|---|
+| `settle_commissions(agente, desde, hasta, moneda)` | — / `OPEN` | Crea o amplía la `OPEN` del mes de inicio; eventos `ELIGIBLE` → `ACCRUED`. Ignora las anuladas (su código se reutiliza). |
+| `approve_commission_settlement(id, nota)` | `OPEN` | → `APPROVED` con `approved_at/by` y nota. Exige ≥ 1 evento y total ≥ 0 (`LIQUIDACION_VACIA`, `LIQUIDACION_NEGATIVA`). Repetirla sobre una aprobada no hace nada. |
+| `pay_commission_settlement(id, fecha, referencia, medio, nota)` | `APPROVED` | → `PAID`; sus eventos → `PAID`. Referencia y medio obligatorios (`BANK_TRANSFER`, `PAYROLL`, `CHECK`, `CASH`, `OTHER`); la fecha no puede ser futura ni anterior al período. Se guarda a las 12:00 UTC para que ningún huso la mueva de día. Repetir con la **misma** referencia no hace nada; con otra, `LIQUIDACION_YA_PAGADA`. |
+| `cancel_commission_settlement(id, motivo)` | `OPEN`, `APPROVED` | → `CANCELLED` con motivo y `cancelled_at/by`; sus eventos vuelven a `ELIGIBLE` sin liquidación. Una `PAID` no se anula. Repetirla no hace nada. |
+
+### Garantías en la base (no solo en las RPCs)
+
+- **Terminales:** una `PAID` o `CANCELLED` no cambia de estado, total, moneda, período ni datos de pago/anulación (trigger `settlements_terminal_guard`). No se paga dos veces.
+- **Congelada al aprobar:** un evento solo **entra** en una liquidación `OPEN` y solo **sale** si la suya está `OPEN` o anulada; nunca pasa directo de una liquidación a otra. Un evento de una `PAID` no cambia de importe, moneda ni estado (trigger `commission_events_settlement_state_guard`). Así un evento nunca está en dos liquidaciones vivas.
+- **Total fijo:** `recalc_settlement_total` ya no toca las `PAID` ni las `CANCELLED`: la pagada muestra lo pagado; la anulada, lo que tenía al anularse.
+- **Código:** `STL-<agente>-<YYYYMM>-<MON>` es único solo entre las no anuladas: tras anular, el mismo período se vuelve a liquidar con el mismo código y la anulada queda como historia.
+- **Moneda:** sin cambios (V3): la liquidación es mono-moneda y se paga en su moneda.
+
+### Reverso de un cobro después del pago
+
+No hay mecanismo nuevo: `reverse_payment` (V2) inserta el contra-evento negativo `ELIGIBLE`
+**sin liquidación** y con fecha de hoy. La liquidación pagada no se reescribe (mismo total,
+eventos `PAID`); el contra-evento entra en la próxima liquidación del comercial en esa moneda.
+Si esa liquidación queda negativa (los reversos superan lo devengado) no se aprueba: se anula
+o se espera a que el período tenga devengos que la compensen.
+
+### Pantalla `/commissions`
+
+- Pestañas **Devengado** (serie mensual S09 + eventos con su cálculo) y **Liquidaciones**
+  (buscador único + pestañas Todas/Abiertas/Aprobadas/Pagadas/Anuladas).
+- Finanzas: **Generar liquidación** (vista previa de lo elegible; sin comisiones no se llama a la RPC),
+  y desde el menú de la fila o el detalle: **Aprobar**, **Registrar pago**, **Anular** (motivo).
+- El detalle muestra el ciclo (Generada → Aprobada → Pagada), los datos de pago o el motivo de
+  anulación y las comisiones incluidas (monto sobre base, reversos marcados).
+- Franja: Devengado del mes · **Por liquidar** (solo `ELIGIBLE`) · **En liquidación** (abiertas y
+  aprobadas por pagar) · Pagado; por moneda, sin sumar monedas.
+- Un comercial ve sus liquidaciones y su estado (RLS existente), sin acciones.
+- E2E: `e2e/v4-commission-settlements.spec.ts` (pagar → aprobar → anular → regenerar sobre la demo).

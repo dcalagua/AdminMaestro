@@ -1,0 +1,207 @@
+{
+  "label": "fase14",
+  "generatedAt": "2026-10-05T14:24:39.218Z",
+  "shots": [
+    {
+      "file": "01-kpis-1440.png",
+      "slide": "kpis",
+      "overflowX": false,
+      "fits": true,
+      "alerts": [],
+      "theme": "light",
+      "fullscreen": true
+    },
+    {
+      "file": "02-mrr-1440.png",
+      "slide": "mrr",
+      "overflowX": false,
+      "fits": true,
+      "alerts": [],
+      "theme": "light",
+      "fullscreen": true
+    },
+    {
+      "file": "03-puente-1440.png",
+      "slide": "puente",
+      "overflowX": false,
+      "fits": true,
+      "alerts": [],
+      "theme": "light",
+      "fullscreen": true
+    },
+    {
+      "file": "04-cobranza-1440.png",
+      "slide": "cobranza",
+      "overflowX": false,
+      "fits": true,
+      "alerts": [],
+      "theme": "light",
+      "fullscreen": true
+    },
+    {
+      "file": "05-mix-1440.png",
+      "slide": "mix",
+      "overflowX": false,
+      "fits": true,
+      "alerts": [],
+      "theme": "light",
+      "fullscreen": true
+    },
+    {
+      "file": "06-tops-1440.png",
+      "slide": "tops",
+      "overflowX": false,
+      "fits": true,
+      "alerts": [],
+      "theme": "light",
+      "fullscreen": true
+    },
+    {
+      "file": "07-tops-nombres-ocultos-1440.png",
+      "slide": "tops",
+      "overflowX": false,
+      "fits": true,
+      "alerts": [],
+      "theme": "light",
+      "fullscreen": true
+    },
+    {
+      "file": "08-puente-detalle-nombres-ocultos-1440.png",
+      "slide": "puente",
+      "overflowX": false,
+      "fits": true,
+      "alerts": [],
+      "theme": "light",
+      "fullscreen": true
+    },
+    {
+      "file": "09-kpis-1280.png",
+      "slide": "kpis",
+      "overflowX": false,
+      "fits": true,
+      "alerts": [],
+      "theme": "light",
+      "fullscreen": false
+    },
+    {
+      "file": "10-mrr-1280.png",
+      "slide": "mrr",
+      "overflowX": false,
+      "fits": true,
+      "alerts": [],
+      "theme": "light",
+      "fullscreen": false
+    },
+    {
+      "file": "11-puente-1280.png",
+      "slide": "puente",
+      "overflowX": false,
+      "fits": true,
+      "alerts": [],
+      "theme": "light",
+      "fullscreen": false
+    },
+    {
+      "file": "12-cobranza-1280.png",
+      "slide": "cobranza",
+      "overflowX": false,
+      "fits": true,
+      "alerts": [],
+      "theme": "light",
+      "fullscreen": false
+    },
+    {
+      "file": "13-mix-1280.png",
+      "slide": "mix",
+      "overflowX": false,
+      "fits": true,
+      "alerts": [],
+      "theme": "light",
+      "fullscreen": false
+    },
+    {
+      "file": "14-tops-1280.png",
+      "slide": "tops",
+      "overflowX": false,
+      "fits": true,
+      "alerts": [],
+      "theme": "light",
+      "fullscreen": false
+    },
+    {
+      "file": "15-mrr-tema-claro-forzado.png",
+      "slide": "mrr",
+      "overflowX": false,
+      "fits": true,
+      "alerts": [],
+      "theme": "light",
+      "fullscreen": false
+    },
+    {
+      "file": "16-mrr-tema-propio-oscuro.png",
+      "slide": "mrr",
+      "overflowX": false,
+      "fits": true,
+      "alerts": [],
+      "theme": "dark",
+      "fullscreen": false
+    },
+    {
+      "file": "graficos-impresos",
+      "charts": [
+        "998×380",
+        "982×312",
+        "556×280"
+      ]
+    },
+    {
+      "file": "alturas-en-papel",
+      "slideHeights": {
+        "kpis": [
+          612,
+          58,
+          34,
+          480
+        ],
+        "mrr": [
+          653,
+          58,
+          34,
+          521
+        ],
+        "puente": [
+          663,
+          58,
+          34,
+          531
+        ],
+        "cobranza": [
+          643,
+          58,
+          34,
+          511
+        ],
+        "mix": [
+          621,
+          58,
+          34,
+          489
+        ],
+        "tops": [
+          611,
+          58,
+          34,
+          479
+        ]
+      }
+    },
+    {
+      "file": "presentacion.pdf",
+      "pages": 6
+    },
+    {
+      "file": "tablero.pdf",
+      "pages": 5
+    }
+  ]
+}

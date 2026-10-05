@@ -91,11 +91,11 @@ export function CreditCatalogTab() {
               <tr key={i.id}>
                 <td className="ebim-td">
                   <div className="font-semibold">{i.name}</div>
-                  <div className="font-mono text-[11px] text-muted">{i.code}</div>
+                  <div className="font-mono text-caption text-muted">{i.code}</div>
                 </td>
-                <td className="ebim-td text-xs">{i.saas_product_id ? lookups.productName(i.saas_product_id) : 'Transversal'}</td>
-                <td className="ebim-td text-xs">{billingModelLabel(i.billing_model)}</td>
-                <td className="ebim-td text-xs">
+                <td className="ebim-td text-compact">{i.saas_product_id ? lookups.productName(i.saas_product_id) : 'Transversal'}</td>
+                <td className="ebim-td text-compact">{billingModelLabel(i.billing_model)}</td>
+                <td className="ebim-td text-compact">
                   {isPerUnit(i) ? (
                     <span className="text-muted">No aplica</span>
                   ) : i.credit_pack_credits !== null ? (
@@ -104,7 +104,7 @@ export function CreditCatalogTab() {
                     <Undecided code="D-03" />
                   )}
                 </td>
-                <td className="ebim-td text-xs">
+                <td className="ebim-td text-compact">
                   {!isPerUnit(i) ? (
                     <span className="text-muted">No aplica</span>
                   ) : i.per_unit_source === 'METER' ? (
@@ -119,17 +119,17 @@ export function CreditCatalogTab() {
                   {perms.canReadFinance ? (
                     isPerUnit(i) ? (
                       <div className="flex items-center justify-end gap-3 whitespace-nowrap">
-                        <button type="button" className="ebim-link text-[13px]" onClick={() => setBindingFor(i)}>
+                        <button type="button" className="ebim-link text-compact" onClick={() => setBindingFor(i)}>
                           {i.per_unit_source ? 'Cambiar vínculo' : 'Vincular uso'}
                         </button>
                         {i.per_unit_source ? (
-                          <button type="button" className="ebim-link text-[13px]" onClick={() => setUnbinding(i)}>
+                          <button type="button" className="ebim-link text-compact" onClick={() => setUnbinding(i)}>
                             Quitar vínculo
                           </button>
                         ) : null}
                       </div>
                     ) : (
-                      <button type="button" className="ebim-link text-[13px]" onClick={() => setPackFor(i)}>
+                      <button type="button" className="ebim-link text-compact" onClick={() => setPackFor(i)}>
                         Créditos por paquete
                       </button>
                     )

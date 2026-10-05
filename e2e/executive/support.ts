@@ -113,7 +113,7 @@ export async function login(page: Page, email: string) {
   await page.getByLabel('Correo corporativo').fill(email);
   await page.getByLabel('Contraseña', { exact: true }).fill(DEMO_PASSWORD);
   await page.getByRole('button', { name: 'Ingresar' }).click();
-  await expect(page.getByRole('button', { name: 'Salir' }).first()).toBeAttached({
+  await expect(page.getByRole('button', { name: 'Menú de cuenta' }).first()).toBeAttached({
     timeout: 20_000,
   });
 }

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { CaretDownIcon, CaretLeftIcon, CaretRightIcon, CaretUpIcon } from '@phosphor-icons/react';
+import { CaretDownIcon, CaretLeftIcon, CaretRightIcon, CaretUpDownIcon, CaretUpIcon } from '@phosphor-icons/react';
 import { EmptyState, ErrorState, LoadingState } from './primitives';
 import { formatNumber } from '@/lib/format';
 import type { SortDir } from '@/services/financeRead';
@@ -69,15 +69,11 @@ export function PagedTable<Row>({
   if (error) return <ErrorState error={error} onRetry={onRetry} />;
   if (rows.length === 0) return <EmptyState title={emptyTitle} description={emptyDescription} />;
 
-  const pages = Math.max(1, Math.ceil(total / pageSize));
-  const from = page * pageSize + 1;
-  const to = Math.min(total, page * pageSize + rows.length);
-
   return (
     <div aria-busy={fetching || undefined}>
       <div className="relative overflow-x-auto" role="region" aria-label={label} tabIndex={0}>
         <table className="w-full border-collapse" aria-label={label}>
-          <thead className="border-b border-border bg-[color:var(--bg)]">
+          <thead className="sticky top-0 z-[1] border-b border-border bg-sunken">
             <tr>
               {columns.map((c) => {
                 const active = c.sortKey && c.sortKey === sortBy;
@@ -92,7 +88,7 @@ export function PagedTable<Row>({
                     {c.sortKey ? (
                       <button
                         type="button"
-                        className={`inline-flex items-center gap-1 uppercase tracking-wider hover:text-fg ${
+                        className={`inline-flex items-center gap-1 rounded-sm uppercase hover:text-fg ${
                           active ? 'text-fg' : ''
                         }`}
                         onClick={() =>
@@ -101,8 +97,10 @@ export function PagedTable<Row>({
                       >
                         {c.header}
                         {active ? (
-                          sortDir === 'asc' ? <CaretUpIcon size={12} aria-hidden /> : <CaretDownIcon size={12} aria-hidden />
-                        ) : null}
+                          sortDir === 'asc' ? <CaretUpIcon size={12} weight="bold" aria-hidden /> : <CaretDownIcon size={12} weight="bold" aria-hidden />
+                        ) : (
+                          <CaretUpDownIcon size={12} className="opacity-60" aria-hidden />
+                        )}
                       </button>
                     ) : (
                       c.header
@@ -112,13 +110,13 @@ export function PagedTable<Row>({
               })}
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody className="divide-y divide-border [&>tr]:transition-colors [&>tr]:duration-fast [&>tr:hover]:bg-hover">
             {rows.map((row) => (
               <tr key={rowKey(row)} className={rowClassName?.(row)}>
                 {columns.map((c) => (
                   <td
                     key={c.id}
-                    className={`ebim-td ${c.align === 'right' ? 'text-right tabular-nums' : ''} ${c.className ?? ''}`}
+                    className={`ebim-td ${c.align === 'right' ? 'ebim-num' : ''} ${c.className ?? ''}`}
                   >
                     {c.cell(row)}
                   </td>
@@ -129,48 +127,84 @@ export function PagedTable<Row>({
         </table>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 text-xs text-muted">
-        <p aria-live="polite">
-          Mostrando <span className="font-semibold text-fg tabular-nums">{formatNumber(from)}–{formatNumber(to)}</span> de{' '}
-          <span className="font-semibold text-fg tabular-nums">{formatNumber(total)}</span>
-        </p>
-        <div className="flex items-center gap-2">
-          <label className="flex items-center gap-1.5">
-            Filas
-            <select
-              className="rounded-field border border-border bg-card px-2 py-1 text-xs text-fg"
-              value={pageSize}
-              onChange={(e) => onPageSizeChange(Number(e.target.value))}
-            >
-              {PAGE_SIZES.map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            type="button"
-            className="ebim-btn-ghost h-8 w-8 px-0"
-            aria-label="Página anterior"
-            disabled={page === 0}
-            onClick={() => onPageChange(page - 1)}
+      <TablePager
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        shown={rows.length}
+        onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
+      />
+    </div>
+  );
+}
+
+/**
+ * Pie de un listado paginado en servidor: «Mostrando a–b de N», filas por
+ * página y anterior/siguiente. Lo usan `PagedTable` y las líneas de tiempo
+ * (PT-TIMELINE) que no son tablas.
+ */
+export function TablePager({
+  page,
+  pageSize,
+  total,
+  shown,
+  onPageChange,
+  onPageSizeChange,
+}: {
+  page: number;
+  pageSize: number;
+  total: number;
+  /** Filas presentes en la página actual. */
+  shown: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
+}) {
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  const from = page * pageSize + 1;
+  const to = Math.min(total, page * pageSize + shown);
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-3 text-caption text-muted">
+      <p aria-live="polite">
+        Mostrando <span className="font-semibold text-fg tabular-nums">{formatNumber(from)}–{formatNumber(to)}</span> de{' '}
+        <span className="font-semibold text-fg tabular-nums">{formatNumber(total)}</span>
+      </p>
+      <div className="flex items-center gap-2">
+        <label className="flex items-center gap-1.5">
+          Filas
+          <select
+            className="h-8 rounded-md border border-border-strong bg-card px-2 text-caption text-fg hover:border-fg-2"
+            value={pageSize}
+            onChange={(e) => onPageSizeChange(Number(e.target.value))}
           >
-            <CaretLeftIcon size={14} aria-hidden />
-          </button>
-          <span className="tabular-nums">
-            Página {page + 1} de {pages}
-          </span>
-          <button
-            type="button"
-            className="ebim-btn-ghost h-8 w-8 px-0"
-            aria-label="Página siguiente"
-            disabled={page + 1 >= pages}
-            onClick={() => onPageChange(page + 1)}
-          >
-            <CaretRightIcon size={14} aria-hidden />
-          </button>
-        </div>
+            {PAGE_SIZES.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          className="ebim-btn-ghost ebim-btn-sm w-8 px-0"
+          aria-label="Página anterior"
+          disabled={page === 0}
+          onClick={() => onPageChange(page - 1)}
+        >
+          <CaretLeftIcon size={14} aria-hidden />
+        </button>
+        <span className="tabular-nums">
+          Página {page + 1} de {pages}
+        </span>
+        <button
+          type="button"
+          className="ebim-btn-ghost ebim-btn-sm w-8 px-0"
+          aria-label="Página siguiente"
+          disabled={page + 1 >= pages}
+          onClick={() => onPageChange(page + 1)}
+        >
+          <CaretRightIcon size={14} aria-hidden />
+        </button>
       </div>
     </div>
   );

@@ -217,4 +217,53 @@ describe('PaymentPortalPage', () => {
     await waitFor(() => expect(api.callPortal).toHaveBeenCalledWith('unenroll', { token: TOKEN }));
     expect(await screen.findByText(/Pago automático desactivado/)).toBeInTheDocument();
   });
+
+  it('destaca el total pendiente agrupado por moneda y marca las vencidas', async () => {
+    const st = statement();
+    st.invoices.push(
+      { ...st.invoices[0]!, id: 'b', number: 'INV-202609-0007', balance: 300, total: 300, due_date: '2020-01-15' },
+      { ...st.invoices[0]!, id: 'c', number: 'INV-202610-0009', currency: 'PEN', balance: 450, total: 450 },
+    );
+    api.callPortal.mockResolvedValue(okStatement(st));
+    render(<PaymentPortalPage />);
+    const summary = (await screen.findByRole('heading', { level: 1, name: 'Empresa Alpha' })).closest('section')!;
+    expect(summary).toHaveTextContent('Total pendiente');
+    expect(summary).toHaveTextContent('USD1,500.00');
+    expect(summary).toHaveTextContent('PEN450.00');
+    expect(summary).toHaveTextContent('3 facturas pendientes');
+    expect(summary).toHaveTextContent('1 vencida');
+    expect(screen.getByText('INV-202609-0007').closest('li')).toHaveTextContent('Vencida');
+    expect(screen.getAllByRole('button', { name: 'Pagar' })).toHaveLength(3);
+  });
+
+  it.each([
+    ['ENLACE_VENCIDO', 410, 'Este enlace de pago venció'],
+    ['ENLACE_REVOCADO', 410, 'Este enlace ya no está disponible'],
+  ])('%s: tarjeta amable con título propio, sin el código y sin reintento', async (error, status, title) => {
+    api.callPortal.mockResolvedValue({ ok: false, status, error, message: 'Pide uno nuevo a tu contacto en EBIM.' });
+    render(<PaymentPortalPage />);
+    const alert = await screen.findByRole('alert');
+    expect(within(alert).getByRole('heading', { name: title })).toBeInTheDocument();
+    expect(alert).toHaveTextContent('Tus facturas no se ven afectadas');
+    expect(alert).not.toHaveTextContent(error);
+    expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument();
+  });
+
+  it('sin conexión ofrece reintentar y vuelve a pedir el estado de cuenta', async () => {
+    api.callPortal
+      .mockResolvedValueOnce({ ok: false, status: 0, error: 'RED', message: 'No pudimos conectar con el portal de pago.' })
+      .mockResolvedValueOnce(okStatement(statement()));
+    render(<PaymentPortalPage />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Reintentar' }));
+    expect(await screen.findByText('Empresa Alpha')).toBeInTheDocument();
+    expect(api.callPortal).toHaveBeenCalledTimes(2);
+  });
+
+  it('pago automático: explica la confianza (Culqi, sin guardar la tarjeta)', async () => {
+    api.callPortal.mockResolvedValue(okStatement(statement()));
+    render(<PaymentPortalPage />);
+    const trust = await screen.findByRole('list', { name: 'Cómo protegemos tu tarjeta' });
+    expect(trust).toHaveTextContent('Procesado por Culqi');
+    expect(trust).toHaveTextContent('EBIM no guarda tu tarjeta');
+  });
 });

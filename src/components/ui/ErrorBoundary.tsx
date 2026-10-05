@@ -30,7 +30,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
       <div className="flex min-h-screen items-center justify-center bg-bg p-6">
         <div className="ebim-card w-full max-w-lg p-8 text-center">
           <div className="mb-5 flex justify-center">
-            <EbimLockup appName="Control Plane" />
+            <EbimLockup />
           </div>
           <h1 className="text-lg font-bold text-fg">Algo salió mal</h1>
           <p className="mt-2 text-sm text-muted">

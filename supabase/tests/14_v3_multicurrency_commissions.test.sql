@@ -162,7 +162,8 @@ select throws_like(
 );
 
 update platform.commission_settlements
-   set status = 'PAID', approved_at = now(), paid_at = now(), payment_reference = 'TRF-QA-BOB'
+   set status = 'PAID', approved_at = now(), paid_at = now(), payment_reference = 'TRF-QA-BOB',
+       payment_method = 'BANK_TRANSFER'
  where code = 'STL-carla-independiente-203105-BOB';
 
 select pg_temp.act_as('10000000-0000-4000-a000-000000000003');  -- finance

@@ -85,3 +85,20 @@ export function passwordProblem(password: string, confirm: string): string | nul
   if (password !== confirm) return 'Las contraseñas no coinciden.';
   return null;
 }
+
+export type PasswordStrengthLevel = 0 | 1 | 2 | 3 | 4;
+
+/**
+ * Medidor de fortaleza (solo UX; la regla que bloquea es `passwordProblem`).
+ * 0 vacío · 1 débil (no cumple la regla) · 2 aceptable (cumple) · 3 buena
+ * (12+ caracteres o mezcla de mayúsculas/símbolos) · 4 fuerte (ambas).
+ */
+export function passwordStrength(password: string): { level: PasswordStrengthLevel; label: string } {
+  if (!password) return { level: 0, label: '' };
+  if (passwordProblem(password, password)) return { level: 1, label: 'Débil' };
+  const long = password.length >= 12;
+  const mixed = (/[a-z]/.test(password) && /[A-Z]/.test(password)) || /[^A-Za-z0-9]/.test(password);
+  if (long && mixed) return { level: 4, label: 'Fuerte' };
+  if (long || mixed) return { level: 3, label: 'Buena' };
+  return { level: 2, label: 'Aceptable' };
+}

@@ -49,7 +49,7 @@ test('perfiles: partner, técnico, comercial y tenant sólo ven lo suyo', async 
     if (c.name === 'tecnico-ewm') {
       await page.goto('/');
       await expect(page.getByRole('heading', { name: 'Resumen de operación SaaS' })).toBeVisible();
-      await expect(page.locator('[data-kpi]')).toHaveCount(0);
+      await expect(page.locator('[data-hero]')).toHaveCount(0);
       await page.goto('/billing');
       await expect(page.getByRole('heading', { name: 'Sin acceso a información financiera' })).toBeVisible();
     }
@@ -73,36 +73,45 @@ test('error, no disponible, carga y vacío son distintos de cero', async ({ brow
     route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ message: 'fallo simulado de lectura' }) }),
   );
   await page.goto('/billing');
-  await expect(page.getByText('No se pudo leer este dato').first()).toBeVisible();
+  // Los totales del filtro viven dentro de la tarjeta del listado (fase 10).
+  await expect(page.getByRole('alert').filter({ hasText: 'No se pudieron leer los totales del resultado.' })).toBeVisible();
   await shot(page, 'state-error-billing-summary', 'error de la agregación: error explícito, nunca 0');
-  await page.goto('/');
-  await expect(page.locator('[data-kpi="K03"]').getByRole('alert')).toBeVisible();
-  await shot(page, 'state-error-dashboard-k03-k04', 'error en K03/K04 sin afectar al resto');
   await page.unroute('**/rest/v1/rpc/invoice_summary');
+  // En el resumen V4 el cobrado y la vencida salen de executive_billing_series.
+  await page.route('**/rest/v1/rpc/executive_billing_series', (route) =>
+    route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ message: 'fallo simulado de lectura' }) }),
+  );
+  await page.goto('/');
+  const hero = page.getByRole('region', { name: 'Indicadores clave' });
+  await expect(hero.getByRole('alert').first()).toContainText('No disponible');
+  await expect(hero).toContainText('MRR');
+  await shot(page, 'state-error-dashboard-k03-k04', 'error en cobrado/vencida sin afectar al resto');
+  await page.unroute('**/rest/v1/rpc/executive_billing_series');
 
   // No disponible: entorno SIN la migración nueva (función inexistente).
-  await page.route('**/rest/v1/rpc/invoice_summary', (route) =>
+  await page.route('**/rest/v1/rpc/executive_billing_series', (route) =>
     route.fulfill({
       status: 404,
       contentType: 'application/json',
-      body: JSON.stringify({ code: 'PGRST202', message: 'Could not find the function platform.invoice_summary' }),
+      body: JSON.stringify({ code: 'PGRST202', message: 'Could not find the function platform.executive_billing_series' }),
     }),
   );
   await page.goto('/');
-  await expect(page.locator('[data-kpi="K03"]')).toContainText('No disponible');
+  await expect(page.locator('[data-panel="facturado-cobrado"]')).toContainText('No disponible');
   await shot(page, 'state-unavailable-without-migration', 'entorno sin migración: «No disponible», no totales inventados');
-  await page.unroute('**/rest/v1/rpc/invoice_summary');
+  await page.unroute('**/rest/v1/rpc/executive_billing_series');
 
-  // Carga: el consolidado tarda.
-  await page.route('**/rest/v1/rpc/finance_consolidated', async (route) => {
+  // Carga: la serie de MRR tarda (skeletons del resumen).
+  await page.route('**/rest/v1/rpc/executive_mrr_series', async (route) => {
     await new Promise((r) => setTimeout(r, 4000));
-    await route.continue();
+    // Si la página ya navegó, la petición se canceló: no hay nada que continuar.
+    await route.continue().catch(() => undefined);
   });
   await page.goto('/');
   await page.waitForTimeout(600);
   await page.screenshot({ path: resolve(OUT, 'state-loading-dashboard.jpg'), type: 'jpeg', quality: 70 });
-  shots.push({ file: 'state-loading-dashboard.jpg', case: 'carga del consolidado' });
-  await page.unroute('**/rest/v1/rpc/finance_consolidated');
+  shots.push({ file: 'state-loading-dashboard.jpg', case: 'carga de la serie de MRR' });
+  await page.unroute('**/rest/v1/rpc/executive_mrr_series');
 
   // Vacío: búsqueda sin resultados.
   await page.goto('/billing?q=zzz-no-existe');
@@ -141,7 +150,8 @@ test('E11 en navegador real: la sesión B no ve datos de A', async ({ browser })
   await login(page, USERS.superAdmin);
   await page.goto('/billing?q=DEMO-EXEC-0002');
   await expect(page.getByText('DEMO-EXEC-0002').first()).toBeVisible();
-  await page.getByRole('button', { name: 'Salir' }).first().click();
+  await page.getByRole('button', { name: 'Menú de cuenta' }).first().click();
+  await page.getByRole('menuitem', { name: 'Salir' }).click();
   await expect(page.getByLabel('Correo corporativo')).toBeVisible();
 
   // Mismo navegador, otra identidad (partner de otra organización).

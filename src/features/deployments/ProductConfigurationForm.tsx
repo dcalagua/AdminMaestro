@@ -111,7 +111,7 @@ function ConfigurationPanel({ request }: { request: Record<string, unknown> }) {
 
   return (
     <section className="mt-4" aria-label="Datos de alta en el producto">
-      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted">
+      <p className="mb-2 text-micro text-muted">
         Datos de alta en el producto
       </p>
 
@@ -132,7 +132,7 @@ function ConfigurationPanel({ request }: { request: Record<string, unknown> }) {
               />
             ),
           )}
-          <p className="text-xs text-muted">
+          <p className="text-caption text-muted">
             La moneda la toma el servidor de la sociedad del tenant. Estos datos se congelan al
             primer envío.
           </p>
@@ -141,7 +141,7 @@ function ConfigurationPanel({ request }: { request: Record<string, unknown> }) {
           </button>
         </form>
       ) : hasSaved ? (
-        <dl className="space-y-1 text-[13px]">
+        <dl className="space-y-1 text-compact">
           {descriptor.fields.map((field) => (
             <div key={field.name} className="flex justify-between gap-3">
               <dt className="text-muted">{field.label}</dt>
@@ -154,7 +154,7 @@ function ConfigurationPanel({ request }: { request: Record<string, unknown> }) {
           </div>
         </dl>
       ) : (
-        <p className="text-[13px] text-muted">
+        <p className="text-compact text-muted">
           Este producto necesita datos de alta que todavía no se han fijado.
         </p>
       )}

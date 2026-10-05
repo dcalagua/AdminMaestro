@@ -1525,14 +1525,21 @@ export type Database = {
       };
       commission_settlements: {
         Row: {
+          approval_note: string | null;
           approved_at: string | null;
           approved_by: string | null;
+          cancellation_reason: string | null;
+          cancelled_at: string | null;
+          cancelled_by: string | null;
           code: string;
           created_at: string;
           currency: string;
           id: string;
           notes: string | null;
           paid_at: string | null;
+          paid_by: string | null;
+          payment_method: string | null;
+          payment_note: string | null;
           payment_reference: string | null;
           period_end: string;
           period_start: string;
@@ -1542,14 +1549,21 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          approval_note?: string | null;
           approved_at?: string | null;
           approved_by?: string | null;
+          cancellation_reason?: string | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
           code: string;
           created_at?: string;
           currency: string;
           id?: string;
           notes?: string | null;
           paid_at?: string | null;
+          paid_by?: string | null;
+          payment_method?: string | null;
+          payment_note?: string | null;
           payment_reference?: string | null;
           period_end: string;
           period_start: string;
@@ -1559,14 +1573,21 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          approval_note?: string | null;
           approved_at?: string | null;
           approved_by?: string | null;
+          cancellation_reason?: string | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
           code?: string;
           created_at?: string;
           currency?: string;
           id?: string;
           notes?: string | null;
           paid_at?: string | null;
+          paid_by?: string | null;
+          payment_method?: string | null;
+          payment_note?: string | null;
           payment_reference?: string | null;
           period_end?: string;
           period_start?: string;
@@ -1584,11 +1605,25 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'commission_settlements_cancelled_by_fkey';
+            columns: ['cancelled_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
             foreignKeyName: 'commission_settlements_currency_fk';
             columns: ['currency'];
             isOneToOne: false;
             referencedRelation: 'currencies';
             referencedColumns: ['code'];
+          },
+          {
+            foreignKeyName: 'commission_settlements_paid_by_fkey';
+            columns: ['paid_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
           },
           {
             foreignKeyName: 'commission_settlements_sales_agent_id_fkey';
@@ -13376,6 +13411,10 @@ export type Database = {
         Args: { p_document_id: string; p_notes?: string; p_valid_to?: string };
         Returns: undefined;
       };
+      approve_commission_settlement: {
+        Args: { p_note?: string; p_settlement_id: string };
+        Returns: Json;
+      };
       approve_tenant_addon: {
         Args: { p_reason: string; p_tenant_addon_id: string };
         Returns: Json;
@@ -13473,6 +13512,10 @@ export type Database = {
       cancel_commercial_document: {
         Args: { p_document_id: string; p_reason?: string };
         Returns: undefined;
+      };
+      cancel_commission_settlement: {
+        Args: { p_reason: string; p_settlement_id: string };
+        Returns: Json;
       };
       cancel_saas_provisioning_request: {
         Args: { p_reason?: string; p_request_id: string };
@@ -13591,6 +13634,22 @@ export type Database = {
           currency: string;
           month: string;
           payment_count: number;
+        }[];
+      };
+      collections_by_week: {
+        Args: { p_reporting_currency?: string; p_weeks?: number };
+        Returns: {
+          as_of: string;
+          collected: number;
+          collected_native: Json;
+          complete: boolean;
+          fx_is_demo: boolean;
+          is_partial: boolean;
+          missing_currencies: string[];
+          payment_count: number;
+          reporting_currency: string;
+          week_end: string;
+          week_start: string;
         }[];
       };
       commercial_cutover_axes: {
@@ -13994,6 +14053,182 @@ export type Database = {
         };
         Returns: Json;
       };
+      executive_account_series: {
+        Args: {
+          p_from?: string;
+          p_organization_id?: string;
+          p_reporting_currency?: string;
+          p_tenant_id?: string;
+          p_to?: string;
+        };
+        Returns: {
+          as_of: string;
+          collected: number;
+          collected_native: Json;
+          complete: boolean;
+          fx_is_demo: boolean;
+          invoiced: number;
+          invoiced_native: Json;
+          is_partial: boolean;
+          missing_currencies: string[];
+          month: string;
+          mrr: number;
+          mrr_native: Json;
+          reporting_currency: string;
+        }[];
+      };
+      executive_billing_series: {
+        Args: { p_from?: string; p_reporting_currency?: string; p_to?: string };
+        Returns: {
+          as_of: string;
+          collected: number;
+          collected_native: Json;
+          collection_rate: number;
+          complete: boolean;
+          fx_is_demo: boolean;
+          invoice_count: number;
+          invoiced: number;
+          invoiced_native: Json;
+          is_partial: boolean;
+          missing_currencies: string[];
+          month: string;
+          overdue: number;
+          overdue_invoice_count: number;
+          payment_count: number;
+          reporting_currency: string;
+        }[];
+      };
+      executive_mrr_at: {
+        Args: { p_at: string; p_rate_date?: string; p_reporting_currency?: string };
+        Returns: {
+          billed_organization_id: string;
+          conversion_status: string;
+          fx_is_demo: boolean;
+          fx_rate_date: string;
+          market_id: string;
+          native_currency: string;
+          native_mrr: number;
+          reporting_currency: string;
+          reporting_mrr: number;
+          saas_product_id: string;
+          subscription_id: string;
+          tenant_id: string;
+        }[];
+      };
+      executive_mrr_mix: {
+        Args: { p_dimension?: string; p_month?: string; p_reporting_currency?: string };
+        Returns: {
+          active_customers: number;
+          active_subscriptions: number;
+          as_of: string;
+          complete: boolean;
+          dimension: string;
+          group_key: string;
+          group_label: string;
+          missing_currencies: string[];
+          month: string;
+          mrr: number;
+          mrr_native: Json;
+          reporting_currency: string;
+          share: number;
+        }[];
+      };
+      executive_mrr_movement_customers: {
+        Args: { p_month?: string; p_reporting_currency?: string };
+        Returns: {
+          as_of: string;
+          billed_organization_id: string;
+          closing_mrr: number;
+          complete: boolean;
+          delta_mrr: number;
+          month: string;
+          movement: string;
+          opening_mrr: number;
+          organization_name: string;
+          reporting_currency: string;
+        }[];
+      };
+      executive_mrr_movements: {
+        Args: { p_month?: string; p_reporting_currency?: string };
+        Returns: {
+          as_of: string;
+          churn_mrr: number;
+          churned_customers: number;
+          closing_mrr: number;
+          complete: boolean;
+          contraction_customers: number;
+          contraction_mrr: number;
+          expansion_customers: number;
+          expansion_mrr: number;
+          fx_revaluation: number;
+          month: string;
+          new_customers: number;
+          new_mrr: number;
+          opening_mrr: number;
+          prior_closing_mrr: number;
+          reporting_currency: string;
+        }[];
+      };
+      executive_mrr_movements_series: {
+        Args: { p_from?: string; p_reporting_currency?: string; p_to?: string };
+        Returns: {
+          as_of: string;
+          churn_mrr: number;
+          churned_customers: number;
+          closing_mrr: number;
+          complete: boolean;
+          contraction_customers: number;
+          contraction_mrr: number;
+          expansion_customers: number;
+          expansion_mrr: number;
+          fx_revaluation: number;
+          month: string;
+          new_customers: number;
+          new_mrr: number;
+          opening_mrr: number;
+          prior_closing_mrr: number;
+          reporting_currency: string;
+        }[];
+      };
+      executive_mrr_series: {
+        Args: { p_from?: string; p_reporting_currency?: string; p_to?: string };
+        Returns: {
+          active_customers: number;
+          active_subscriptions: number;
+          arr: number;
+          as_of: string;
+          complete: boolean;
+          fx_is_demo: boolean;
+          is_partial: boolean;
+          missing_currencies: string[];
+          month: string;
+          mrr: number;
+          mrr_native: Json;
+          reporting_currency: string;
+        }[];
+      };
+      executive_receivables_aging: {
+        Args: { p_as_of?: string; p_reporting_currency?: string };
+        Returns: {
+          aging_bucket: string;
+          as_of: string;
+          balance: number;
+          balance_native: Json;
+          bucket_order: number;
+          complete: boolean;
+          fx_is_demo: boolean;
+          invoice_count: number;
+          missing_currencies: string[];
+          reporting_currency: string;
+        }[];
+      };
+      executive_reporting_config: {
+        Args: { p_reporting_currency?: string };
+        Returns: {
+          fx_max_rate_age_days: number;
+          reporting_currency: string;
+        }[];
+      };
       expire_ai_credits: {
         Args: { p_period_start: string; p_pool_key: string; p_tenant_id: string };
         Returns: number;
@@ -14026,6 +14261,27 @@ export type Database = {
           p_saas_product_id?: string;
         };
         Returns: Json;
+      };
+      finance_monthly_series: {
+        Args: { p_from?: string; p_reporting_currency?: string; p_to?: string };
+        Returns: {
+          as_of: string;
+          collected: number;
+          collected_native: Json;
+          commission: number;
+          commission_native: Json;
+          commission_paid: number;
+          commission_pending: number;
+          complete: boolean;
+          cost: number;
+          cost_native: Json;
+          fx_is_demo: boolean;
+          is_partial: boolean;
+          margin: number;
+          missing_currencies: string[];
+          month: string;
+          reporting_currency: string;
+        }[];
       };
       finance_reporting_rows: {
         Args: {
@@ -14329,6 +14585,16 @@ export type Database = {
           subscription_id: string;
           tenant_id: string;
         }[];
+      };
+      pay_commission_settlement: {
+        Args: {
+          p_method: string;
+          p_note?: string;
+          p_paid_at: string;
+          p_payment_reference: string;
+          p_settlement_id: string;
+        };
+        Returns: Json;
       };
       payment_link_card_on_file: { Args: { p_organization_id: string }; Returns: Json };
       payment_link_charge_context: {

@@ -4,12 +4,16 @@ import { useAdminUsers } from '@/services/queries';
 import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { StatusTabs } from '@/components/ui/SectionTabs';
 import {
-  PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge,
+  PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge, KpiTile,
 } from '@/components/ui/primitives';
-import { formatDateTime } from '@/lib/format';
+import { Avatar } from '@/components/ui/Avatar';
+import { ActionMenu } from '@/components/ui/ActionMenu';
+import { KpiStrip } from '@/features/billing/financeUi';
+import { formatDateTime, formatNumber } from '@/lib/format';
 import { isAuthorizationError } from '@/lib/pgError';
 import { PLATFORM_ROLE_LABEL } from '@/types/domain';
-import { accessSummary, accountStatus, matchesUserTab, userTabs, type UserTab } from './userModel';
+import { accessSummary, accountStatus, isPendingInvitation, matchesUserTab, userTabs, type UserTab } from './userModel';
+import { UserStatus } from './UserStatus';
 import { useUserAdminScope } from './useUserAdminScope';
 import { InviteUserDialog } from './InviteUserDialog';
 
@@ -30,6 +34,14 @@ export function UsersPage() {
   ]);
   const visible = filtered.filter((u) => matchesUserTab(u, tab));
   const hasAny = (users.data ?? []).length > 0;
+  const everyone = users.data ?? [];
+  const since = Date.now() - 30 * 86_400_000;
+  const kpis = {
+    active: everyone.filter((u) => u.isActive && !u.banned && !isPendingInvitation(u)).length,
+    pending: everyone.filter((u) => u.isActive && isPendingInvitation(u)).length,
+    recent: everyone.filter((u) => u.lastSignInAt && new Date(u.lastSignInAt).getTime() >= since).length,
+    inactive: everyone.filter((u) => !u.isActive).length,
+  };
 
   const description = scope.managePlatform || scope.isSuperAdmin || (scope.canView && scope.adminOrgs.length === 0)
     ? 'Personal EBIM, usuarios de partners y de clientes: perfil, accesos, invitaciones y desactivación.'
@@ -60,6 +72,20 @@ export function UsersPage() {
         ) : null
       }
     >
+      {hasAny ? (
+        <KpiStrip label="Resumen de usuarios">
+          <KpiTile label="Usuarios activos" value={formatNumber(kpis.active)} />
+          <KpiTile
+            label="Invitaciones pendientes"
+            value={formatNumber(kpis.pending)}
+            tone={kpis.pending > 0 ? 'warn' : 'neutral'}
+            footer="Aún no aceptan su invitación."
+          />
+          <KpiTile label="Ingresaron en 30 días" value={formatNumber(kpis.recent)} footer="Último ingreso registrado en Auth." />
+          <KpiTile label="Desactivados" value={formatNumber(kpis.inactive)} footer="Conservan su historial; no ingresan." />
+        </KpiStrip>
+      ) : null}
+
       <Card>
         <SearchBar
           value={term}
@@ -88,38 +114,58 @@ export function UsersPage() {
             }
           />
         ) : (
-          <DataTable columns={['Usuario', 'Accesos', 'Último ingreso', 'Estado', '']}>
+          <DataTable
+            label="Usuarios"
+            columns={['Usuario', 'Roles y accesos', 'Último ingreso', 'Estado', { label: 'Acciones', srOnly: true }]}
+          >
             {visible.map((u) => {
               const status = accountStatus(u);
               const access = accessSummary(u);
+              const name = u.fullName ?? 'Sin nombre';
               return (
-                <tr key={u.id}>
+                <tr key={u.id} className={u.isActive ? undefined : 'opacity-80'}>
                   <td className="ebim-td">
-                    <div className="font-semibold">{u.fullName ?? 'Sin nombre'}</div>
-                    <div className="text-xs text-muted">{u.email}</div>
-                    {u.jobTitle ? <div className="text-[11px] text-muted">{u.jobTitle}</div> : null}
+                    <div className="flex min-w-0 items-center gap-3">
+                      <Avatar name={u.fullName ?? u.email} mode="person" />
+                      <div className="min-w-0">
+                        <Link
+                          to={`/users/${u.id}`}
+                          className="block truncate font-semibold text-fg hover:text-accent-deep hover:underline"
+                        >
+                          {name}
+                        </Link>
+                        <div className="truncate text-caption text-muted">
+                          {u.email}
+                          {u.jobTitle ? ` · ${u.jobTitle}` : ''}
+                        </div>
+                      </div>
+                    </div>
                   </td>
                   <td className="ebim-td">
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex max-w-[420px] flex-wrap gap-1">
                       {u.platformRole && u.platformRoleActive ? (
                         <Badge tone="accent">{PLATFORM_ROLE_LABEL[u.platformRole]}</Badge>
                       ) : null}
                       {access.filter((a) => a !== 'Consola').map((a) => (
-                        <Badge key={a} tone="info">{a}</Badge>
+                        <Badge key={a} tone="neutral">{a}</Badge>
                       ))}
-                      {access.length === 0 ? <span className="text-xs text-muted">Sin accesos activos</span> : null}
+                      {access.length === 0 ? <span className="text-caption text-muted">Sin accesos activos</span> : null}
                     </div>
                   </td>
-                  <td className="ebim-td whitespace-nowrap text-xs text-muted">
+                  <td className="ebim-td whitespace-nowrap text-compact text-muted">
                     {u.lastSignInAt ? formatDateTime(u.lastSignInAt) : 'Nunca'}
                   </td>
-                  <td className="ebim-td">
-                    <Badge tone={status.tone}>{status.label}</Badge>
+                  <td className="ebim-td whitespace-nowrap">
+                    <UserStatus label={status.label} tone={u.isActive ? status.tone : 'neutral'} />
                   </td>
                   <td className="ebim-td text-right">
-                    <Link className="ebim-link text-[13px]" to={`/users/${u.id}`}>
-                      Ver ficha
-                    </Link>
+                    <ActionMenu
+                      label={`Acciones de ${name}`}
+                      items={[
+                        { label: 'Ver ficha', to: `/users/${u.id}` },
+                        { label: 'Ver actividad', to: `/users/${u.id}#actividad` },
+                      ]}
+                    />
                   </td>
                 </tr>
               );

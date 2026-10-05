@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useAdminUser } from '@/services/queries';
 import { useUserAdminAction, type UserAdminResult } from '@/services/mutations';
 import { SectionTabs } from '@/components/ui/SectionTabs';
@@ -8,6 +8,10 @@ import { TextAreaField } from '@/components/ui/fields';
 import { useToast } from '@/components/ui/toast-context';
 import { PageContainer, Card, LoadingState, ErrorState, EmptyState, Badge } from '@/components/ui/primitives';
 import { isAuthorizationError } from '@/lib/pgError';
+import { formatDateTime } from '@/lib/format';
+import { PLATFORM_ROLE_LABEL } from '@/types/domain';
+import { Avatar } from '@/components/ui/Avatar';
+import { UserStatus } from './UserStatus';
 import { accountStatus, isPendingInvitation } from './userModel';
 import { useUserAdminScope } from './useUserAdminScope';
 import {
@@ -32,12 +36,11 @@ export function UserDetailPage() {
   const [reasonError, setReasonError] = useState<Error | null>(null);
   const [resent, setResent] = useState<UserAdminResult | null>(null);
 
-  const back = <Link className="text-xs text-muted hover:text-fg" to="/users">← Usuarios y accesos</Link>;
 
-  if (user.isLoading) return <LoadingState label="Cargando la ficha del usuario…" />;
+  if (user.isLoading) return <LoadingState variant="page" label="Cargando la ficha del usuario…" />;
   if (user.error || !user.data) {
     return (
-      <PageContainer title="Usuario no disponible" breadcrumbs={back}>
+      <PageContainer title="Usuario no disponible">
         <Card>
           {user.error && !isAuthorizationError(user.error) ? (
             <ErrorState error={user.error} onRetry={() => void user.refetch()} />
@@ -97,10 +100,16 @@ export function UserDetailPage() {
     <PageContainer
       title={u.fullName ?? u.email}
       description={`${u.email}${u.jobTitle ? ` · ${u.jobTitle}` : ''}`}
-      breadcrumbs={back}
+      leading={<Avatar name={u.fullName ?? u.email} mode="person" size="lg" />}
+      titleAside={
+        <>
+          <UserStatus label={status.label} tone={u.isActive ? status.tone : 'neutral'} />
+          {u.platformRole && u.platformRoleActive ? <Badge tone="accent">{PLATFORM_ROLE_LABEL[u.platformRole]}</Badge> : null}
+        </>
+      }
+      meta={u.lastSignInAt ? `Último ingreso: ${formatDateTime(u.lastSignInAt)}` : 'Aún no ha ingresado'}
       actions={
         <>
-          <Badge tone={status.tone}>{status.label}</Badge>
           {canResend ? (
             <button type="button" className="ebim-btn-ghost" disabled={action.isPending} onClick={() => void resend()}>
               Reenviar invitación
@@ -108,7 +117,7 @@ export function UserDetailPage() {
           ) : null}
           {scope.isSuperAdmin && !isSelf && !isTheSuperAdmin ? (
             u.isActive ? (
-              <button type="button" className="ebim-btn-danger" onClick={() => { setReason(''); setReasonError(null); action.reset(); setStatusDialog('ban'); }}>
+              <button type="button" className="ebim-btn-secondary text-danger" onClick={() => { setReason(''); setReasonError(null); action.reset(); setStatusDialog('ban'); }}>
                 Desactivar
               </button>
             ) : (
@@ -121,7 +130,7 @@ export function UserDetailPage() {
       }
     >
       {!u.isActive ? (
-        <p role="status" className="mb-4 rounded-field bg-danger-soft px-3 py-2.5 text-sm text-danger">
+        <p role="status" className="mb-4 rounded-card border border-border bg-sunken px-4 py-3 text-compact text-fg-2">
           Usuario desactivado: no puede ingresar y sus accesos quedaron inactivos. Reactivarlo solo reactiva el perfil;
           los accesos se otorgan de nuevo uno por uno.
         </p>
@@ -130,7 +139,7 @@ export function UserDetailPage() {
       {/* Base y Auth desalineados (p. ej. Auth no respondió al desactivar): se
           reintenta la misma acción; las RPC son idempotentes. */}
       {scope.isSuperAdmin && !isTheSuperAdmin && u.isActive === u.banned ? (
-        <div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-field bg-warn-soft px-3 py-2.5 text-sm text-warn">
+        <div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-card bg-warn-soft px-4 py-3 text-compact text-warn">
           <span>
             {u.banned
               ? 'El perfil está activo, pero el ingreso sigue bloqueado en el servicio de autenticación.'
@@ -149,11 +158,11 @@ export function UserDetailPage() {
       {resent?.delivery === 'LINK' && resent.action_link ? (
         <Card title="Enlace de invitación" className="mb-4">
           <div className="grid gap-2 p-4">
-            <p className="text-sm">
+            <p className="text-body">
               No hay envío de correo configurado. Comparte este enlace por un canal seguro: es de un solo uso y no se
               volverá a mostrar.
             </p>
-            <input className="ebim-input font-mono text-xs" readOnly aria-label="Enlace de invitación" value={resent.action_link}
+            <input className="ebim-input font-mono text-caption" readOnly aria-label="Enlace de invitación" value={resent.action_link}
               onFocus={(e) => e.currentTarget.select()} />
           </div>
         </Card>

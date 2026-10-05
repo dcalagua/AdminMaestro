@@ -39,7 +39,10 @@ const SECTION_PATH: Record<string, string> = {
 };
 
 async function goToSection(page: Page, label: string) {
-  await page.getByRole('link', { name: label, exact: true }).click();
+  // El enlace puede llevar un contador en su nombre accesible
+  // («Renovaciones (28 alertas críticas abiertas)», fase 06).
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  await page.getByRole('link', { name: new RegExp(`^${escaped}( \\(.*\\))?$`) }).first().click();
   const path = SECTION_PATH[label];
   if (path) await page.waitForURL(`**${path}`);
 }
@@ -63,7 +66,8 @@ test.describe('J1 · Canal: alta de partner y acuerdo por SaaS', () => {
 
     // Se busca el partner recién creado y se abre SU detalle, no el de otra fila.
     await page.getByRole('searchbox').fill(`partner-e2e-${RUN}`);
-    await page.getByRole('link', { name: 'Ver detalle' }).first().click();
+    // La acción primaria de la fila es su nombre (las secundarias van al menú, A12).
+    await page.locator('main tbody a[href^="/organizations/"]').first().click();
 
     await page.getByRole('tab', { name: 'Productos autorizados' }).click();
     await page.getByRole('button', { name: /Nuevo acuerdo|Crear el primer acuerdo/ }).first().click();
@@ -116,7 +120,8 @@ test.describe('J2 · Alta transaccional de cliente con fee de implementación', 
 
     await expect(page.getByText('Alta completada')).toBeVisible({ timeout: 20_000 });
     // Aterriza en el detalle del tenant recién creado.
-    await expect(page.getByRole('heading', { name: `Alpha E2E ${RUN}` })).toBeVisible({
+    // h1 de la ficha (los gráficos del resumen también nombran al tenant en su título).
+    await expect(page.getByRole('heading', { level: 1, name: `Alpha E2E ${RUN}` })).toBeVisible({
       timeout: 15_000,
     });
   });
@@ -185,13 +190,13 @@ test.describe('J7 · Un cliente, dos SaaS, dos métodos de cobro', () => {
   test('GRUPASA paga eSupplier con tarjeta y EWM con Orden de Servicio', async ({ page }) => {
     await login(page, USERS.finance);
     await goToSection(page, 'Directorio corporativo');
-    // En el listado el enlace es «Ver detalle»; se filtra primero para abrir el correcto.
+    // En el listado el enlace es el nombre de la organización; se filtra primero para abrir el correcto.
     await page.getByRole('searchbox').fill('grupasa');
-    await page.getByRole('link', { name: 'Ver detalle' }).first().click();
+    await page.getByRole('link', { name: 'GRUPASA', exact: true }).first().click();
 
     // La vista 360 es la demostración principal del Control Plane.
     await expect(page.getByRole('tab', { name: 'Vista 360' })).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText('Métodos de cobro distintos')).toBeVisible();
+    await expect(page.getByText('Métodos de cobro', { exact: true })).toBeVisible();
     // Spec 2026-09-25 §11.1: la 360 se organiza por secciones (pestañas).
     await page.getByRole('tab', { name: 'Productos y contratos' }).click();
     await expect(page.getByText('Cobranza por SaaS')).toBeVisible();
@@ -280,7 +285,7 @@ test.describe('J11 · Renovaciones y gracia', () => {
     await goToSection(page, 'Renovaciones');
 
     await expect(page.getByRole('heading', { name: 'Renovaciones y alertas' })).toBeVisible();
-    await expect(page.getByText('Renuevan en 45 días')).toBeVisible();
+    await expect(page.getByRole('tab', { name: /^45 días/ })).toBeVisible();
     await expect(page.getByText('En gracia').first()).toBeVisible();
 
     // El seed deja una factura vencida dentro de la gracia.
@@ -317,6 +322,8 @@ test.describe('J12 · Una mutación no autorizada se rechaza de verdad', () => {
     // La UI no ofrece la acción...
     await expect(page.getByRole('button', { name: 'Nuevo producto' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Editar' })).toHaveCount(0);
+    // Editar / Archivar viven en el menú de cada tarjeta: sin permiso no hay menú.
+    await expect(page.getByRole('button', { name: /^Acciones de / })).toHaveCount(0);
   });
 
   test('forzar la URL del alta de cliente no da acceso', async ({ page }) => {
@@ -334,7 +341,7 @@ test.describe('J13 · Vista 360 de organización', () => {
   test('reúne productos, tenants, cobranza, renovación, comisión y margen', async ({ page }) => {
     await login(page, USERS.superAdmin);
     await goToSection(page, 'Clientes');
-    await page.getByRole('link', { name: 'Ver detalle' }).first().click();
+    await page.locator('main tbody a[href^="/organizations/"]').first().click();
 
     await expect(page.getByRole('tab', { name: 'Vista 360' })).toBeVisible({ timeout: 15_000 });
     // Spec 2026-09-25 §11.1: mismas preguntas, repartidas en secciones con su
@@ -357,8 +364,8 @@ test.describe('J14 · Datos de facturación del titular (V2.1)', () => {
     await goToSection(page, 'Clientes');
     // Cliente EWM Norte llega sin contacto de facturación: es el estado en que
     // entra cualquier organización nueva.
-    await page.getByRole('row', { name: /Cliente EWM Norte/ }).getByRole('link', { name: 'Ver detalle' }).click();
-    await page.getByRole('tab', { name: 'Resumen' }).click();
+    await page.getByRole('row', { name: /Cliente EWM Norte/ }).getByRole('link', { name: 'Cliente EWM Norte' }).click();
+    await page.getByRole('tab', { name: 'Identidad y sociedades' }).click();
 
     await expect(page.getByText('Datos de facturación del titular')).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText('Faltan 5')).toBeVisible();
@@ -373,8 +380,8 @@ test.describe('J14 · Datos de facturación del titular (V2.1)', () => {
   test('el formulario llega con lo ya cargado y valida antes que la pasarela', async ({ page }) => {
     await login(page, USERS.superAdmin);
     await goToSection(page, 'Clientes');
-    await page.getByRole('row', { name: /GRUPASA/ }).getByRole('link', { name: 'Ver detalle' }).click();
-    await page.getByRole('tab', { name: 'Resumen' }).click();
+    await page.getByRole('row', { name: /GRUPASA/ }).getByRole('link', { name: 'GRUPASA', exact: true }).click();
+    await page.getByRole('tab', { name: 'Identidad y sociedades' }).click();
 
     await expect(page.getByText('Datos de facturación del titular')).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText('Completos')).toBeVisible();

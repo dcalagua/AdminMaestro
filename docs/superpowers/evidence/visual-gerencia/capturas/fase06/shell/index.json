@@ -1,0 +1,98 @@
+{
+  "label": "fase06",
+  "generatedAt": "2026-10-05T09:21:52.115Z",
+  "total": 15,
+  "blockedHosts": [],
+  "shots": [
+    {
+      "file": "01-resumen-ejecutivo-claro.png",
+      "route": "/",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "02-facturacion-claro.png",
+      "route": "/billing",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "03-tenant-360-claro.png",
+      "route": "/tenants/2faca72b-4f7b-a16f-e0ee-618e0692b887",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "04-configuracion-claro.png",
+      "route": "/settings",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "05-paleta-vacia-claro.png",
+      "route": "/",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "06-paleta-busqueda-claro.png",
+      "route": "/",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "07-menu-cuenta-claro.png",
+      "route": "/",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "08-sidebar-iconos-claro.png",
+      "route": "/",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "09-clientes-sidebar-iconos-claro.png",
+      "route": "/customers",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "10-resumen-ejecutivo-oscuro.png",
+      "route": "/",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "11-paleta-oscuro.png",
+      "route": "/",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "12-contratos-oscuro.png",
+      "route": "/subscriptions",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "13-facturacion-1280-claro.png",
+      "route": "/billing",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "14-movil-claro.png",
+      "route": "/",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "15-movil-menu-claro.png",
+      "route": "/",
+      "overflow": false,
+      "alerts": []
+    }
+  ]
+}

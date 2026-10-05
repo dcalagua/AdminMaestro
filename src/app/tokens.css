@@ -1,44 +1,76 @@
 /* ==========================================================================
-   EBIM Control Plane — tokens de diseño
-   Fuente: EBIM-DESIGN-BRIEF.md §2 · EBIM-CONTRATO-PLATAFORMA.md §4.4 / §4.6
+   EBIM Control Plane — tokens de diseño (sistema visual V2)
+   Fuente: docs/design/VISUAL_SYSTEM_V2.md §3–4, §6–7 · EBIM-DESIGN-BRIEF.md §2
+           · EBIM-CONTRATO-PLATAFORMA.md §4.4 / §4.6
    --------------------------------------------------------------------------
    Reglas no negociables implementadas aquí:
    · El accent es del TENANT/marca, nunca elegible por el usuario (§4.4).
      El usuario elige SOLO modo (light/dark) y densidad.
-   · `--accent`      -> fills, barras, fondos.
-   · `--accent-deep` -> TEXTO sobre fondo claro (~4.5:1, WCAG AA).
+   · `--accent`      -> fills, barras, fondos (2.83:1 sobre blanco: nunca texto).
+   · `--accent-deep` -> TEXTO de marca: teal #056769 (6.67:1 sobre card).
    · Densidad: control-h/row-h/pad-y/pad-x, valores 1:1 con el contrato.
+   · Los hex viven SOLO en este archivo; los componentes usan las variables.
    ========================================================================== */
 
 :root {
   /* --- Marca EBIM (default de la suite) -------------------------------- */
-  --accent: #5aa97f; /* verde EBIM */
-  --accent-deep: #2f7355; /* variante AA para texto sobre claro */
-  --accent-soft: #e8f4ee;
+  --accent: #5aa97f; /* verde EBIM: solo rellenos */
+  --accent-deep: #056769; /* teal de marca para texto, links y tab activa */
+  --accent-soft: #e3f1ee;
   --accent-fg: #ffffff;
   /* Anillo de foco: alfa fija. Tailwind no puede calcular opacidad sobre un
      color declarado como var(), así que el token trae su propia transparencia. */
-  --accent-ring: rgba(90, 169, 127, 0.3);
-  --accent2: #056769; /* teal secundario */
+  --accent-ring: rgba(5, 103, 105, 0.22);
+  --accent2: #056769; /* teal de marca */
   --brand-mark: #0a5a52; /* isotipo sobre fondo claro (§4.6) */
-  /* Variante FUNCIONAL para botones con texto (E08): blanco sobre #5AA97F da
-     2.83:1; sobre el verde profundo, 5.67:1. La marca sigue en rellenos/barras. */
-  --accent-action: #2f7355;
-  --accent-action-hover: #275f47;
+  /* Botón primario: teal de marca (blanco encima 6.67:1; hover 9.03:1). */
+  --accent-action: #056769;
+  --accent-action-hover: #04524f;
   --accent-action-fg: #ffffff;
 
-  /* Degradado del sidebar: mismo arranque de marca; el tramo final se oscurece
-     lo justo para que el texto blanco del menú supere 4.5:1 (antes 3.53:1). */
-  --sidebar: linear-gradient(168deg, #185d4a 0%, #22795f 78%, #22795f 100%);
-  --hero-grad: linear-gradient(155deg, #185d4a 0%, #2b997c 70%, #2b997c 100%);
+  /* Sidebar en gradiente teal profundo (D-V03, tratamiento B de U-11):
+     blanco ≥ 8.09:1, texto de grupo rgba(255,255,255,.72) ≥ 4.95:1. */
+  --sidebar: linear-gradient(180deg, #0a3d3a 0%, #0a5a52 100%);
+  --sidebar-base: #0a5a52; /* fin del gradiente: continúa el sidebar bajo el primer pantallazo */
+  --sidebar-indicator: #7fd3a6; /* barra del ítem activo: 4.53:1 sobre el tramo claro */
+  --hero-grad: linear-gradient(155deg, #0a3d3a 0%, #0a5a52 55%, #1f7a68 100%);
+  --on-brand: #ffffff; /* texto y foco sobre sidebar/hero */
 
-  /* --- Neutros (light) -------------------------------------------------- */
-  --bg: #f7f8f7;
-  --card: #ffffff;
-  --elevated: #ffffff;
-  --border: #e4e7e5;
-  --text: #16211d;
-  --muted: #5b6f67; /* 5.04:1 sobre --bg (antes #667a72, 4.30:1) */
+  /* --- Acceso y páginas públicas (login, bienvenida, portal de pago) -----
+     Panel de marca: el tramo final es más oscuro que --hero-grad para que el
+     texto blanco al 80 % siga ≥ 5.15:1 en la esquina más clara (pie de
+     confianza). Blanco puro ≥ 7.04:1; --brand-highlight ≥ 4.95:1. */
+  --auth-panel-from: #0a3d3a;
+  --auth-panel-mid: #0a5a52;
+  --auth-panel-to: #0f6458;
+  --auth-panel: linear-gradient(
+    155deg,
+    var(--auth-panel-from) 0%,
+    var(--auth-panel-mid) 55%,
+    var(--auth-panel-to) 100%
+  );
+  --brand-highlight: #a8e6c4; /* inicial del wordmark sobre el panel de marca */
+  --on-brand-2: rgba(255, 255, 255, 0.8); /* texto secundario sobre el panel */
+  --on-brand-soft: rgba(255, 255, 255, 0.14); /* pastillas de icono sobre el panel */
+  /* Fondo de las pantallas públicas: plano --bg con dos halos de marca muy tenues. */
+  --auth-bg:
+    radial-gradient(1100px 620px at 0% 0%, rgba(90, 169, 127, 0.13), transparent 62%),
+    radial-gradient(900px 560px at 100% 100%, rgba(5, 103, 105, 0.11), transparent 60%), var(--bg);
+  --shadow-brand: 0 30px 80px -40px rgba(24, 93, 74, 0.5), 0 2px 8px rgba(16, 24, 40, 0.05);
+
+  /* --- Neutros y superficies (slate frío, light) ------------------------ */
+  --bg: #f4f6f8; /* plano de la app, ligeramente tintado */
+  --card: #ffffff; /* tarjetas, tablas, topbar, inputs, gráficos */
+  --sunken: #f8fafc; /* cabecera de tabla, pozos, pista de skeleton */
+  --elevated: #ffffff; /* popovers, menús, tooltips, diálogos */
+  --hover: #f1f5f9;
+  --border: #e3e8ee; /* hairline */
+  --border-strong: #8592a2; /* controles de formulario: 3.17:1 sobre card */
+  --text: #101828;
+  --text-2: #475467; /* texto secundario: 7.69:1 sobre card */
+  --muted: #5d6b7e; /* 5.01:1 sobre --bg */
+  --disabled: #98a2b3; /* exento de AA: siempre con cursor-not-allowed */
+  --scrim: rgba(16, 24, 40, 0.48);
 
   /* --- Semánticos (texto ≥ 4.5:1 sobre card y sobre su -soft) ------------ */
   --ok: #177a47;
@@ -47,20 +79,65 @@
   --warn-soft: #fdf1de;
   --danger: #b42318;
   --danger-fill: #b42318; /* relleno de botón peligroso: blanco encima, 6.57:1 */
+  --danger-fill-hover: #9a1d14; /* 8.20:1 */
+  --danger-fill-fg: #ffffff;
   --danger-soft: #fdeceb;
+  --danger-ring: rgba(180, 35, 24, 0.18);
   --info: #0b6b8f;
   --info-soft: #e6f2f7;
 
-  /* --- Gráficos (spec §7.4). Serie única: verde funcional (AA). Categóricas
-     G04: las tres primeras del orden validado (dataviz validate_palette.js,
-     all-pairs, claro y oscuro): cobrado=aqua, costo=naranja, comisión=azul.
-     El aqua claro queda < 3:1: la regla de alivio exige etiquetas/tabla. ---- */
-  --chart-single: #2f7355;
-  --chart-collected: #1baf7a;
-  --chart-cost: #eb6834;
-  --chart-commission: #2a78d6;
-  --chart-grid: #e4e7e5;
-  --chart-axis: #5b6f67;
+  /* --- Foco (§3.4): borde/outline teal + halo --accent-ring -------------- */
+  --focus: #056769; /* 6.15:1 sobre --bg */
+
+  /* --- Elevación (§4.1): e1 tarjeta · e2 popover · e3 diálogo ------------ */
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
+  --shadow-pop: 0 2px 6px rgba(16, 24, 40, 0.06), 0 12px 32px -12px rgba(16, 24, 40, 0.22);
+  --shadow-modal: 0 24px 64px -16px rgba(16, 24, 40, 0.32);
+
+  /* --- Movimiento (§7) --------------------------------------------------- */
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --dur-fast: 150ms;
+  --dur-overlay: 200ms;
+
+  /* --- Gráficos (§6, paleta validada con dataviz, Anexo A) ---------------
+     Categórica: orden fijo, nunca se cicla, ≤ 6 series por gráfico. */
+  --chart-1: #008d7c; /* teal (marca) */
+  --chart-2: #de6e29; /* naranja (acento cálido) */
+  --chart-3: #724aab; /* violeta */
+  --chart-4: #47a34e; /* verde */
+  --chart-5: #3370c7; /* azul */
+  --chart-6: #c84c8b; /* magenta */
+  /* Secuencial teal de una tinta (magnitud). Claro: bajo→alto = 100→700. */
+  --chart-seq-100: #d9f6f1;
+  --chart-seq-200: #abe5dd;
+  --chart-seq-300: #6fcabf;
+  --chart-seq-400: #2baea1;
+  --chart-seq-500: #008c80;
+  --chart-seq-600: #006b61;
+  --chart-seq-700: #004b45;
+  /* Ordinal de antigüedad de cartera (0–30 · 31–60 · 61–90 · 90+). No es estado. */
+  --chart-age-1: #f49b72;
+  --chart-age-2: #df733e;
+  --chart-age-3: #bc541a;
+  --chart-age-4: #903a03;
+  /* Polaridad (puente de MRR): positivo teal, negativo naranja, total neutro. */
+  --chart-pos: var(--chart-1);
+  --chart-neg: var(--chart-2);
+  --chart-total: #334155;
+  /* Énfasis de dos tonos (facturado vs cobrado). El facturado claro queda en
+     2.74:1: la regla de alivio exige leyenda + tabla alternativa. */
+  --chart-billed: #2baea1;
+  --chart-collected-2: #004b45;
+  --chart-muted: #8a96a6; /* sparkline / referencia: 3.00:1 */
+  --chart-grid: #e8edf2;
+  --chart-baseline: #c3ccd6;
+  --chart-axis: var(--muted);
+  --chart-area-opacity: 0.1;
+  /* Alias de compatibilidad (gráficos V1). */
+  --chart-single: var(--chart-1);
+  --chart-collected: var(--chart-1);
+  --chart-cost: var(--chart-2);
+  --chart-commission: var(--chart-3);
 
   /* --- Densidad: default de suite = "equilibrada" (§4.4) ---------------- */
   --control-h: 36px;
@@ -71,42 +148,77 @@
   color-scheme: light;
 }
 
-/* Sólo `bg/card/border/text/muted` y semánticos cambian con el modo.
-   El accent y sus derivados NO se recalculan por modo (§4.4 mini-spec). */
+/* Modo oscuro: pasos propios de cada rampa validados contra --card #121a1f;
+   nada se invierte automáticamente. El verde/teal de marca no cambia. */
 :root[data-theme='dark'] {
-  --bg: #0e1613;
-  --card: #151f1b;
-  --elevated: #1b2723;
-  --border: #26332e;
-  --text: #e8efeb;
-  --muted: #93a79e;
+  --bg: #0b1215;
+  --card: #121a1f;
+  --sunken: #0f161a;
+  --elevated: #18232a;
+  --hover: #17222a;
+  --border: #24313a;
+  --border-strong: #5f6f7c; /* 3.40:1 sobre card */
+  --text: #e8eef2;
+  --text-2: #b6c2cc;
+  --muted: #8e9daa;
+  --disabled: #5b6873;
+  --scrim: rgba(0, 0, 0, 0.64);
 
-  --accent-soft: #1b3329;
-  --accent-deep: #7cc79c; /* sobre fondo oscuro el "deep" invierte para mantener AA */
-  --accent-ring: rgba(124, 199, 156, 0.35);
-  --accent-action: #7cc79c;
-  --accent-action-hover: #95d4ae;
-  --accent-action-fg: #0e1613;
+  --accent-soft: #11302c;
+  --accent-deep: #5ec4b0; /* sobre fondo oscuro el "deep" se aclara para mantener AA */
+  --accent-ring: rgba(94, 196, 176, 0.3);
+  --accent-action: #5ec4b0;
+  --accent-action-hover: #7dd3c2;
+  --accent-action-fg: #062420;
+  --sidebar: linear-gradient(180deg, #08201f 0%, #0c3532 100%);
+  --sidebar-base: #0c3532;
+  --brand-mark: #5ec4b0; /* isotipo sobre superficie oscura: 8.38:1 sobre card */
+  --auth-panel-from: #08201f;
+  --auth-panel-mid: #0c3532;
+  --auth-panel-to: #0f4a44;
+  --auth-bg:
+    radial-gradient(1100px 620px at 0% 0%, rgba(90, 169, 127, 0.09), transparent 62%),
+    radial-gradient(900px 560px at 100% 100%, rgba(94, 196, 176, 0.07), transparent 60%), var(--bg);
+  --shadow-brand: 0 30px 80px -30px rgba(0, 0, 0, 0.7);
 
-  /* En oscuro el texto semántico se aclara (antes 2.6–4.0:1); el relleno del
-     botón peligroso se queda oscuro para que el blanco siga siendo legible. */
+  /* En oscuro el texto semántico se aclara; el relleno del botón peligroso se
+     queda oscuro para que el blanco siga siendo legible. */
   --ok: #5fd08c;
   --warn: #f5b546;
   --danger: #ff8f85;
   --info: #5cc3e6;
   --danger-fill: #b42318;
-
-  --chart-single: #7cc79c;
-  --chart-collected: #199e70;
-  --chart-cost: #d95926;
-  --chart-commission: #3987e5;
-  --chart-grid: #26332e;
-  --chart-axis: #93a79e;
+  --danger-ring: rgba(255, 143, 133, 0.24);
 
   --ok-soft: #12291d;
   --warn-soft: #2c2110;
   --danger-soft: #2e1513;
   --info-soft: #10262f;
+
+  --focus: #5ec4b0; /* 8.38:1 sobre card */
+
+  --shadow-card: none;
+  --shadow-pop: 0 12px 32px -12px rgba(0, 0, 0, 0.6);
+  --shadow-modal: 0 24px 64px -16px rgba(0, 0, 0, 0.7);
+
+  --chart-1: #009b90;
+  --chart-2: #d76821;
+  --chart-3: #8e6ac7;
+  --chart-4: #4ea954;
+  --chart-5: #4d86d9;
+  --chart-6: #cb5790;
+  /* Ordinal oscuro: más antiguo = más intenso (más claro sobre la superficie). */
+  --chart-age-1: #8d481a;
+  --chart-age-2: #ba5d1d;
+  --chart-age-3: #dc7b40;
+  --chart-age-4: #f7a97c;
+  --chart-total: #cbd5e1;
+  --chart-billed: #008c80;
+  --chart-collected-2: #abe5dd;
+  --chart-muted: #66768a; /* 3.79:1 */
+  --chart-grid: #212c33;
+  --chart-baseline: #3a4852;
+  --chart-area-opacity: 0.16;
 
   color-scheme: dark;
 }

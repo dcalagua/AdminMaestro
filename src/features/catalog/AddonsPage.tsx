@@ -7,6 +7,7 @@ import {
   PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge,
 } from '@/components/ui/primitives';
 import { AddonPriceList } from './AddonPriceList';
+import { ActionMenu } from '@/components/ui/ActionMenu';
 import type { CatalogItemPriceRow } from './AddonPriceList';
 import { AddonLifecycleDialog, AddonPriceDialog } from './AddonDialogs';
 import type { AddonRef } from './AddonDialogs';
@@ -96,18 +97,20 @@ export function AddonsPage() {
         ) : (
           <>
             {prices.error ? (
-              <p className="border-b border-border px-4 py-2 text-xs font-semibold text-warn" role="status">
+              <p className="border-b border-border px-5 py-2 text-compact font-semibold text-warn" role="status">
                 No se pudieron leer las tarifas: la columna de tarifas puede estar incompleta.
               </p>
             ) : null}
-            <DataTable columns={['Add-on', 'Producto', 'Modelo de cobro', 'Ciclo de vida', 'Tarifas por mercado', '']}>
+            <DataTable
+              columns={['Add-on', 'Producto', 'Modelo de cobro', 'Ciclo de vida', 'Tarifas por mercado', { label: 'Acciones', srOnly: true }]}
+            >
               {visible.map((i) => {
                 const ref: AddonRef = { code: i.code, name: i.name, lifecycle_status: i.lifecycle_status };
                 return (
                   <tr key={i.id}>
                     <td className="ebim-td">
                       <div className="font-semibold">{i.name}</div>
-                      <div className="font-mono text-[11px] text-muted">{i.code}</div>
+                      <div className="whitespace-nowrap font-mono text-caption text-muted">{i.code}</div>
                     </td>
                     <td className="ebim-td">
                       {i.saas_product_id ? (productName.get(i.saas_product_id) ?? '—') : (
@@ -115,34 +118,31 @@ export function AddonsPage() {
                       )}
                     </td>
                     <td className="ebim-td">
-                      <Badge tone="accent">{billingModelLabel(i.billing_model)}</Badge>
+                      <span className="text-fg-2">{billingModelLabel(i.billing_model)}</span>
                     </td>
                     <td className="ebim-td">
-                      <Badge tone={lifecycleStatusTone(i.lifecycle_status)}>
+                      <Badge tone={lifecycleStatusTone(i.lifecycle_status)} dot>
                         {lifecycleStatusLabel(i.lifecycle_status)}
                       </Badge>
                     </td>
                     <td className="ebim-td">
                       {prices.isLoading ? (
-                        <span className="text-xs text-muted">…</span>
+                        <span className="text-compact text-muted">…</span>
                       ) : (
                         <AddonPriceList prices={pricesByItem.get(i.code)} />
                       )}
                     </td>
-                    <td className="ebim-td">
+                    <td className="ebim-td w-12 text-right">
                       {canAct ? (
-                        <div className="flex items-center justify-end gap-3 whitespace-nowrap">
-                          {perms.canReadFinance ? (
-                            <button type="button" className="ebim-link text-[13px]" onClick={() => setPriceFor(ref)}>
-                              Nueva tarifa
-                            </button>
-                          ) : null}
-                          {perms.canManagePlatform ? (
-                            <button type="button" className="ebim-link text-[13px]" onClick={() => setLifecycleFor(ref)}>
-                              Cambiar ciclo de vida
-                            </button>
-                          ) : null}
-                        </div>
+                        <ActionMenu
+                          label={`Acciones de ${i.name}`}
+                          items={[
+                            perms.canReadFinance ? { label: 'Nueva tarifa', onSelect: () => setPriceFor(ref) } : null,
+                            perms.canManagePlatform
+                              ? { label: 'Cambiar ciclo de vida', onSelect: () => setLifecycleFor(ref) }
+                              : null,
+                          ]}
+                        />
                       ) : null}
                     </td>
                   </tr>

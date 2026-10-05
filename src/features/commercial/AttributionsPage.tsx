@@ -17,14 +17,9 @@ import {
 } from '@/features/catalog/catalogLabels';
 import type { EntityStatusTab } from '@/features/catalog/catalogLabels';
 import { AttributionFormDialog } from './CommercialDialogs';
-
-const SOURCE_LABEL: Record<string, string> = {
-  DIRECT: 'Venta directa',
-  PARTNER: 'Vía partner',
-  REFERRAL: 'Referido',
-  INBOUND: 'Inbound',
-  CAMPAIGN: 'Campaña',
-};
+import { SOURCE_LABEL } from './commercialLabels';
+import { ActionMenu } from '@/components/ui/ActionMenu';
+import { Avatar } from '@/components/ui/Avatar';
 
 function pct(value: unknown): string {
   return `${(Number(value) * 100).toFixed(0)}%`;
@@ -111,7 +106,17 @@ export function AttributionsPage() {
             }
           />
         ) : (
-          <DataTable columns={['Atribución', 'Cliente', 'Tenant', 'Canal', 'Plan de comisión', 'Vigencia', '']}>
+          <DataTable
+            columns={[
+              'Comercial',
+              'Cliente',
+              { label: 'Participación', align: 'right' },
+              'Canal',
+              'Plan de comisión',
+              'Vigencia',
+              { label: 'Acciones', srOnly: true },
+            ]}
+          >
             {visible.map((a) => {
               const agent = (a.sales_agents as { full_name: string } | null)?.full_name ?? 'Comercial sin nombre';
               const product = (a.saas_products as { short_name: string } | null)?.short_name ?? 'producto';
@@ -120,12 +125,12 @@ export function AttributionsPage() {
               return (
                 <tr key={a.id}>
                   <td className="ebim-td">
-                    <div>
-                      <span className="font-semibold">{agent}</span>{' '}
-                      <span className="text-muted">recibe</span>{' '}
-                      <span className="font-semibold tabular-nums">{pct(a.attribution_pct)}</span>{' '}
-                      <span className="text-muted">del crédito de</span>{' '}
-                      <span className="font-semibold">{product}</span>
+                    <div className="flex items-center gap-3">
+                      <Avatar name={agent} mode="person" />
+                      <div className="min-w-0">
+                        <div className="font-semibold">{agent}</div>
+                        <div className="text-compact text-fg-2">crédito de {product}</div>
+                      </div>
                     </div>
                   </td>
                   <td className="ebim-td">
@@ -136,38 +141,44 @@ export function AttributionsPage() {
                     ) : (
                       <span className="text-muted">—</span>
                     )}
+                    <div className="text-compact text-fg-2">
+                      {a.tenant_id ? (
+                        <Link className="hover:underline" to={`/tenants/${a.tenant_id}`}>
+                          {(a.tenants as { name: string } | null)?.name ?? 'Ver tenant'}
+                        </Link>
+                      ) : (
+                        'Todo el cliente'
+                      )}
+                    </div>
                   </td>
+                  <td className="ebim-td ebim-num font-semibold">{pct(a.attribution_pct)}</td>
                   <td className="ebim-td">
-                    {a.tenant_id ? (
-                      <Link className="ebim-link" to={`/tenants/${a.tenant_id}`}>
-                        {(a.tenants as { name: string } | null)?.name ?? 'Ver tenant'}
-                      </Link>
-                    ) : (
-                      <span className="text-muted">Todo el cliente</span>
-                    )}
+                    <Badge tone="neutral">{SOURCE_LABEL[a.source] ?? a.source}</Badge>
                   </td>
-                  <td className="ebim-td">
-                    <Badge tone={a.channel_organization_id ? 'accent' : 'info'}>
-                      {SOURCE_LABEL[a.source] ?? a.source}
+                  <td className="ebim-td text-fg-2">{plan ?? 'Sin plan de comisión'}</td>
+                  <td className="ebim-td whitespace-nowrap">
+                    <Badge tone={a.status === 'ACTIVE' ? 'ok' : 'neutral'} dot>
+                      {a.status === 'ACTIVE' ? 'Vigente' : 'Cerrada'}
                     </Badge>
-                  </td>
-                  <td className="ebim-td text-muted">{plan ?? 'Sin plan de comisión'}</td>
-                  <td className="ebim-td whitespace-nowrap text-xs text-muted">
-                    <div>
+                    <div className="mt-1 text-compact text-fg-2">
                       {formatDate(a.valid_from)} → {a.valid_to ? formatDate(a.valid_to) : 'sin fin'}
                     </div>
-                    <div>{a.status === 'ACTIVE' ? 'Vigente' : 'Cerrada'}</div>
                   </td>
-                  <td className="ebim-td text-right">
-                    {perms.canManageCommercial && a.status === 'ACTIVE' ? (
-                      <button
-                        type="button"
-                        className="text-[13px] text-danger hover:underline"
-                        onClick={() => setEnding({ id: a.id, label: `${agent} · ${product}` })}
-                      >
-                        Cerrar
-                      </button>
-                    ) : null}
+                  <td className="ebim-td w-12 text-right">
+                    <ActionMenu
+                      label={`Acciones de la atribución de ${agent} · ${product}`}
+                      items={[
+                        customer ? { label: 'Ficha del cliente', to: `/organizations/${a.customer_organization_id}` } : null,
+                        a.tenant_id ? { label: 'Tenant 360', to: `/tenants/${a.tenant_id}` } : null,
+                        perms.canManageCommercial && a.status === 'ACTIVE'
+                          ? {
+                              label: 'Cerrar atribución…',
+                              tone: 'danger' as const,
+                              onSelect: () => setEnding({ id: a.id, label: `${agent} · ${product}` }),
+                            }
+                          : null,
+                      ]}
+                    />
                   </td>
                 </tr>
               );

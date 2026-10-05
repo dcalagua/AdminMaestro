@@ -1,0 +1,160 @@
+{
+  "label": "fase11",
+  "generatedAt": "2026-10-05T12:26:28.419Z",
+  "shots": [
+    {
+      "file": "01-customers-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "02-partners-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "03-organizations-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "04-sales-agents-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "05-attributions-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "06-products-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "07-plans-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "08-feature-flags-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "09-capabilities-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "10-addons-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "11-onboarding-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "12-tenants-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "13-subscriptions-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "14-onboarding-paso2-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "15-onboarding-validacion-1440-claro.png",
+      "overflow": false,
+      "alerts": [
+        "Faltan 2 datos para continuar: revisa los campos marcados.",
+        "Minúsculas, números y guiones",
+        "Correo inválido"
+      ],
+      "theme": "light"
+    },
+    {
+      "file": "16-org360-resumen-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "17-org360-productos-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "18-tenant360-resumen-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "19-product-detalle-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "20-customers-1280-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "21-org360-1280-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "22-tenant360-1280-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "23-customers-1440-oscuro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "dark"
+    },
+    {
+      "file": "24-org360-1440-oscuro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "dark"
+    },
+    {
+      "file": "25-tenant360-1440-oscuro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "dark"
+    }
+  ]
+}

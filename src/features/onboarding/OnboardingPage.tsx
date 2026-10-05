@@ -16,8 +16,9 @@ import { useOnboardCustomer } from '@/services/mutations';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/components/ui/toast-context';
 import {
-  PageContainer, Card, StatCard, EmptyState, Badge,
+  PageContainer, Card, EmptyState, Badge,
 } from '@/components/ui/primitives';
+import { ContractSummary, WizardStepper } from './OnboardingWizardParts';
 import {
   TextField, SelectField, NumberField, TextAreaField, CheckboxField, FieldRow,
 } from '@/components/ui/fields';
@@ -25,6 +26,7 @@ import { businessErrorMessage } from '@/lib/pgError';
 import { isOperatorDomain } from '@/features/auth/session';
 import { formatMoney } from '@/lib/format';
 import { DEPLOYMENT_MODE_LABEL } from '@/types/domain';
+import { STEPS } from './onboardingSteps';
 
 /**
  * Wizard «Nueva venta / alta de cliente» (Fase 05).
@@ -97,13 +99,6 @@ const schema = z
 
 type FormValues = z.input<typeof schema>;
 
-const STEPS = [
-  { id: 1, label: 'Cliente, mercado y producto' },
-  { id: 2, label: 'Canal y modelo' },
-  { id: 3, label: 'Plan y precio regional' },
-  { id: 4, label: 'Implementación y comercial' },
-  { id: 5, label: 'Resumen' },
-] as const;
 
 const MODES = [
   { value: 'SHARED', label: 'Compartido' },
@@ -160,6 +155,8 @@ export function OnboardingPage() {
   const marketList = useMemo(() => markets.data ?? [], [markets.data]);
 
   const [step, setStep] = useState(1);
+  /** Aviso del paso: cuántos campos faltan cuando «Continuar» no deja avanzar. */
+  const [stepIssue, setStepIssue] = useState<number | null>(null);
   // Cerrojo síncrono contra el doble clic: `isPending` sólo se activa cuando la
   // mutación arranca, DESPUÉS de la validación asíncrona del formulario.
   const submitting = useRef(false);
@@ -287,7 +284,12 @@ export function OnboardingPage() {
   async function nextStep() {
     const fields = STEP_FIELDS[step] ?? [];
     const ok = await form.trigger(fields as never);
-    if (!ok) return;
+    if (!ok) {
+      const errors = form.formState.errors as Record<string, unknown>;
+      setStepIssue(fields.filter((f) => errors[f as string]).length || 1);
+      return;
+    }
+    setStepIssue(null);
     // Sin tarifa regional no hay venta recurrente: la base lo rechazaría con
     // TARIFA_REGIONAL_NO_DEFINIDA. Se corta aquí para no llegar al resumen.
     if (step === 3 && regionalPriceMissing) {
@@ -380,34 +382,27 @@ export function OnboardingPage() {
     <PageContainer
       title="Nueva venta / alta de cliente"
       description="Un solo envío crea tenant, suscripción, líneas, atribución y solicitud de provisioning dentro de la misma transacción de base de datos."
-      actions={<Badge tone="info">Provisioning en DRY_RUN</Badge>}
+      actions={<Badge tone="info" dot>Infraestructura en simulación (DRY_RUN)</Badge>}
     >
-      {/* Progreso */}
-      <ol className="mb-5 flex flex-wrap gap-2" aria-label="Pasos del alta">
-        {STEPS.map((s) => (
-          <li key={s.id}>
-            <button
-              type="button"
-              // Solo se puede volver atrás: avanzar exige pasar la validación del paso.
-              disabled={s.id > step}
-              onClick={() => setStep(s.id)}
-              className={`rounded-field px-3 py-1.5 text-[13px] font-semibold transition-colors ${
-                s.id === step
-                  ? 'bg-[color:var(--accent-action)] text-[color:var(--accent-action-fg)]'
-                  : s.id < step
-                    ? 'bg-accent-soft text-accent-deep'
-                    : 'text-muted'
-              }`}
-              aria-current={s.id === step ? 'step' : undefined}
-            >
-              {s.id}. {s.label}
-            </button>
-          </li>
-        ))}
-      </ol>
+      <WizardStepper
+        step={step}
+        onBack={(id) => {
+          setStepIssue(null);
+          setStep(id);
+        }}
+      />
 
+      <div className="grid items-start gap-6 lg:grid-cols-12">
+      <div className="min-w-0 lg:col-span-8">
       <Card>
         <div className="p-5">
+          {stepIssue ? (
+            <p className="mb-4 rounded-lg bg-danger-soft px-3 py-2 text-compact font-semibold text-danger" role="alert">
+              {stepIssue === 1
+                ? 'Falta 1 dato para continuar: revisa el campo marcado.'
+                : `Faltan ${stepIssue} datos para continuar: revisa los campos marcados.`}
+            </p>
+          ) : null}
           {step === 1 ? (
             <div className="grid gap-4">
               <SelectField
@@ -462,7 +457,7 @@ export function OnboardingPage() {
               </FieldRow>
 
               {values.managing_organization_id && !agreement ? (
-                <p className="rounded-lg bg-warn-soft px-3 py-2 text-xs text-warn">
+                <p className="rounded-lg bg-warn-soft px-3 py-2 text-compact text-warn">
                   Esta organización no tiene un acuerdo activo para {values.saas_product_code}. La
                   base rechazará el alta con PARTNER_SIN_ACUERDO.
                 </p>
@@ -573,7 +568,7 @@ export function OnboardingPage() {
               />
 
               {regionalPriceMissing ? (
-                <p className="rounded-lg bg-warn-soft px-3 py-2 text-xs text-warn" role="alert">
+                <p className="rounded-lg bg-warn-soft px-3 py-2 text-compact text-warn" role="alert">
                   {plan?.name} no tiene tarifa vigente en {values.market_code}/{values.currency} (
                   {values.billing_interval}). No se puede continuar: la base rechazaría la venta con
                   TARIFA_REGIONAL_NO_DEFINIDA.
@@ -581,7 +576,7 @@ export function OnboardingPage() {
               ) : null}
 
               {isDemo ? (
-                <p className="rounded-lg bg-info-soft px-3 py-2 text-xs text-info">
+                <p className="rounded-lg bg-info-soft px-3 py-2 text-compact text-info">
                   El tenant es DEMO: no se creará ninguna línea de licencia recurrente. Solo se
                   generará contrato si añades cargos únicos en el paso siguiente.
                 </p>
@@ -658,7 +653,7 @@ export function OnboardingPage() {
                 />
               </FieldRow>
 
-              <p className="rounded-lg bg-info-soft px-3 py-2 text-xs text-info">
+              <p className="rounded-lg bg-info-soft px-3 py-2 text-compact text-info">
                 <strong>Cobranza:</strong> el método de cobro se configura por suscripción en la
                 pestaña «Cobranza» del detalle. Hasta entonces la suscripción queda sin perfil, que
                 equivale a cobro manual: no se presupone tarjeta.
@@ -668,31 +663,12 @@ export function OnboardingPage() {
 
           {step === 5 ? (
             <div className="grid gap-4">
-              <div className="grid gap-3 sm:grid-cols-4">
-                <StatCard label="Cliente" value={customer?.display_name ?? '—'} />
-                <StatCard label="Producto" value={product?.short_name ?? '—'} />
-                <StatCard
-                  label="Modelo"
-                  value={DEPLOYMENT_MODE_LABEL[values.deployment_mode] ?? '—'}
-                />
-                <StatCard
-                  label={isDemo ? 'MRR (demo)' : 'MRR estimado'}
-                  value={
-                    isDemo || !effectiveLicense
-                      ? formatMoney(0, values.currency)
-                      : formatMoney(effectiveLicense * Number(values.quantity), values.currency)
-                  }
-                  tone={isDemo ? 'neutral' : 'ok'}
-                  hint={isDemo ? 'Un DEMO no genera recurrente' : 'Sin contar cargos únicos'}
-                />
-              </div>
-
               <Card title="Lo que se creará en una sola transacción">
                 <dl className="divide-y divide-border">
                   {[
                     ['Tenant', `${values.tenant_name} (${values.tenant_slug})`],
                     ['Administrador del cliente', values.admin_email],
-                    ['Tipo', values.tenant_type],
+                    ['Tipo', TENANT_TYPES.find((t) => t.value === values.tenant_type)?.label ?? values.tenant_type],
                     ['Canal', manager?.display_name ?? 'Venta directa EBIM'],
                     ['Mercado', market ? `${market.name} (${market.code})` : '—'],
                     ['Moneda contractual', values.currency || '—'],
@@ -702,7 +678,7 @@ export function OnboardingPage() {
                       isDemo
                         ? 'No aplica (tenant DEMO)'
                         : effectiveLicense
-                          ? `${formatMoney(effectiveLicense, values.currency)} / ${values.billing_interval}`
+                          ? `${formatMoney(effectiveLicense, values.currency)} · ${INTERVALS.find((i) => i.value === values.billing_interval)?.label.toLowerCase() ?? values.billing_interval}`
                           : 'Sin importe',
                     ],
                     [
@@ -735,7 +711,7 @@ export function OnboardingPage() {
                       'No se realiza aquí (política por defecto: manual)',
                     ],
                   ].map(([k, v]) => (
-                    <div key={k} className="flex justify-between gap-4 px-4 py-2.5 text-sm">
+                    <div key={k} className="flex justify-between gap-4 px-5 py-2.5 text-body">
                       <dt className="text-muted">{k}</dt>
                       <dd className="text-right font-medium">{v}</dd>
                     </div>
@@ -751,7 +727,7 @@ export function OnboardingPage() {
                 Provisionar al cotizar sería regalar el producto.
               */}
               <Card title="Qué NO hace este alta">
-                <div className="px-4 py-3 text-sm text-muted">
+                <div className="px-5 py-4 text-body text-fg-2">
                   <p>
                     Este formulario crea el <strong>contrato comercial</strong>: tenant,
                     suscripción, líneas y atribución. <strong>No</strong> da de alta al cliente
@@ -783,7 +759,7 @@ export function OnboardingPage() {
           ) : null}
 
           {onboard.error ? (
-            <p className="mt-4 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger" role="alert">
+            <p className="mt-4 rounded-lg bg-danger-soft px-3 py-2 text-compact text-danger" role="alert">
               {businessErrorMessage(onboard.error)}
             </p>
           ) : null}
@@ -792,7 +768,11 @@ export function OnboardingPage() {
         <div className="flex items-center justify-between gap-3 border-t border-border px-5 py-3">
           <button
             type="button" className="ebim-btn-ghost"
-            onClick={() => (step === 1 ? navigate(-1) : setStep((s) => s - 1))}
+            onClick={() => {
+              setStepIssue(null);
+              if (step === 1) navigate(-1);
+              else setStep((s) => s - 1);
+            }}
             disabled={onboard.isPending}
           >
             {step === 1 ? 'Cancelar' : 'Atrás'}
@@ -813,6 +793,29 @@ export function OnboardingPage() {
           )}
         </div>
       </Card>
+      </div>
+
+      <ContractSummary
+        className="lg:col-span-4"
+        customerName={customer?.display_name}
+        productName={product?.lockup_name ?? product?.short_name}
+        marketText={market ? `${market.name} (${market.code})` : undefined}
+        currency={values.currency}
+        modeText={DEPLOYMENT_MODE_LABEL[values.deployment_mode]}
+        channelText={manager?.display_name ?? 'Venta directa EBIM'}
+        tenantText={values.tenant_name || undefined}
+        planName={plan?.name}
+        intervalText={INTERVALS.find((i) => i.value === values.billing_interval)?.label}
+        quantity={Number(values.quantity) || 1}
+        license={isDemo ? null : effectiveLicense ?? null}
+        licenseIsListed={!values.license_amount}
+        isDemo={isDemo}
+        implementationFee={values.implementation_fee ? Number(values.implementation_fee) : null}
+        infrastructureFee={values.infrastructure_fee ? Number(values.infrastructure_fee) : null}
+        supportFee={values.support_fee ? Number(values.support_fee) : null}
+        regionalPriceMissing={regionalPriceMissing}
+      />
+      </div>
     </PageContainer>
   );
 }

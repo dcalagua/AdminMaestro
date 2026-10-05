@@ -87,20 +87,20 @@ export function LedgerTab() {
             const t = labelOf(LEDGER_ENTRY, e.entry_type);
             return (
               <tr key={e.id}>
-                <td className="ebim-td whitespace-nowrap text-xs text-muted">{formatDateTime(e.created_at)}</td>
-                <td className="ebim-td text-xs font-semibold">{lookups.tenantName(e.tenant_id)}</td>
+                <td className="ebim-td whitespace-nowrap text-compact text-muted">{formatDateTime(e.created_at)}</td>
+                <td className="ebim-td text-compact font-semibold">{lookups.tenantName(e.tenant_id)}</td>
                 <td className="ebim-td">
                   <Badge tone={t.tone}>{t.label}</Badge>
-                  {reversed.has(e.id) ? <div className="mt-0.5 text-[11px] text-muted">Revertida</div> : null}
+                  {reversed.has(e.id) ? <div className="mt-0.5 text-caption text-muted">Revertida</div> : null}
                 </td>
-                <td className="ebim-td text-xs">{poolLabel(e.pool_key)}</td>
-                <td className="ebim-td whitespace-nowrap text-xs">{formatPeriod(e.period_start)}</td>
-                <td className={`ebim-td text-sm font-semibold tabular-nums ${e.credits < 0 ? 'text-danger' : 'text-ok'}`}>
+                <td className="ebim-td text-compact">{poolLabel(e.pool_key)}</td>
+                <td className="ebim-td whitespace-nowrap text-compact">{formatPeriod(e.period_start)}</td>
+                <td className={`ebim-td text-body font-semibold tabular-nums ${e.credits < 0 ? 'text-danger' : 'text-ok'}`}>
                   {e.credits > 0 ? '+' : ''}
                   {formatQuantity(e.credits)}
                 </td>
                 <td className="ebim-td text-right">
-                  <button type="button" className="ebim-link text-[13px]" onClick={() => setSelected(e)}>
+                  <button type="button" className="ebim-link text-compact" onClick={() => setSelected(e)}>
                     Ver detalle
                   </button>
                 </td>
@@ -134,7 +134,7 @@ export function LedgerTab() {
         {selected ? (
           <DetailList
             items={[
-              ['Movimiento', <span key="id" className="font-mono text-xs">{selected.id}</span>],
+              ['Movimiento', <span key="id" className="font-mono text-compact">{selected.id}</span>],
               ['Tipo', selected.entry_type],
               ['Créditos', formatQuantity(selected.credits)],
               ['Tenant', lookups.tenantName(selected.tenant_id)],
@@ -146,14 +146,14 @@ export function LedgerTab() {
               ['Agregado de uso', selected.usage_aggregate_id ?? '—'],
               ['Política', selected.policy_id ?? '—'],
               ['Revierte a', selected.reverses_entry_id ?? '—'],
-              ['Clave de idempotencia', <span key="k" className="font-mono text-xs">{selected.entry_idempotency_key}</span>],
+              ['Clave de idempotencia', <span key="k" className="font-mono text-compact">{selected.entry_idempotency_key}</span>],
               ['Motivo', selected.reason ?? '—'],
               ['Registrado', formatDateTime(selected.created_at)],
             ]}
           />
         ) : null}
         {selected && reversed.has(selected.id) ? (
-          <p className="mt-3 text-xs text-muted">Esta entrada ya tiene su reversión: una entrada se revierte una sola vez.</p>
+          <p className="mt-3 text-compact text-muted">Esta entrada ya tiene su reversión: una entrada se revierte una sola vez.</p>
         ) : null}
       </DetailDrawer>
 

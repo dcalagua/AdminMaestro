@@ -121,14 +121,14 @@ export function CulqiCardPanel({
       activeAuth ? (
         <span key="auth">
           <Badge tone="ok">Vigente</Badge>{' '}
-          <span className="text-xs text-muted">
+          <span className="text-compact text-muted">
             desde {formatDateTime(activeAuth.accepted_at as string)} · {activeAuth.terms_version}
           </span>
         </span>
       ) : lastAuth ? (
         <span key="auth">
           <Badge tone="neutral">Revocada</Badge>{' '}
-          <span className="text-xs text-muted">
+          <span className="text-compact text-muted">
             por {REVOKE_SOURCE_LABEL[lastAuth.revoke_source as string] ?? lastAuth.revoke_source} ·{' '}
             {formatDateTime(lastAuth.revoked_at as string)}
           </span>
@@ -152,7 +152,7 @@ export function CulqiCardPanel({
           {String(link.provider_status)}
         </Badge>,
       ],
-      ['Suscripción del proveedor', <span key="id" className="font-mono text-xs">{String(link.external_subscription_id)}</span>],
+      ['Suscripción del proveedor', <span key="id" className="font-mono text-compact">{String(link.external_subscription_id)}</span>],
       ['Próximo cobro', link.next_billing_at ? formatDateTime(link.next_billing_at) : '—'],
       ['Última sincronización', formatDateTime(link.synced_at)],
       [
@@ -187,8 +187,8 @@ export function CulqiCardPanel({
           {credentialsMissing ? (
             <div className="px-4 pt-4">
               <div className="rounded-lg bg-warn-soft px-4 py-3">
-                <p className="text-sm font-semibold text-warn">Culqi pendiente de configurar</p>
-                <p className="mt-1 text-sm text-muted">
+                <p className="text-body font-semibold text-warn">Culqi pendiente de configurar</p>
+                <p className="mt-1 text-body text-muted">
                   La cuenta <span className="font-mono">{accountCode ?? '—'}</span> no tiene{' '}
                   {!account?.public_key && !hasSecret
                     ? 'ni llave pública ni llave secreta'
@@ -197,11 +197,11 @@ export function CulqiCardPanel({
                       : 'llave secreta configurada'}
                   {' '}y el adapter opera en modo <strong>MOCK</strong>. No se ejecuta ningún cobro real.
                 </p>
-                <button type="button" className="ebim-link mt-2 text-[13px]" onClick={() => setShowHelp((v) => !v)}>
+                <button type="button" className="ebim-link mt-2 text-compact" onClick={() => setShowHelp((v) => !v)}>
                   {showHelp ? 'Ocultar pasos' : '¿Qué falta para activarlo?'}
                 </button>
                 {showHelp ? (
-                  <ol className="mt-3 list-decimal space-y-1 pl-5 text-xs text-muted">
+                  <ol className="mt-3 list-decimal space-y-1 pl-5 text-compact text-muted">
                     <li>
                       Cargar la llave pública <span className="font-mono">pk_test_…</span> en la cuenta desde
                       Configuración → Cuentas de pago.
@@ -231,7 +231,7 @@ export function CulqiCardPanel({
 
           <dl className="divide-y divide-border">
             {rows.map(([k, v]) => (
-              <div key={k} className="flex items-center justify-between gap-4 px-4 py-2.5 text-sm">
+              <div key={k} className="flex items-center justify-between gap-4 px-4 py-2.5 text-body">
                 <dt className="text-muted">{k}</dt>
                 <dd className="text-right font-medium">{v}</dd>
               </div>
@@ -239,7 +239,7 @@ export function CulqiCardPanel({
           </dl>
 
           {!activeAuth && !link ? (
-            <p className="border-t border-border px-4 py-2.5 text-xs text-muted">
+            <p className="border-t border-border px-4 py-2.5 text-compact text-muted">
               Sin método de pago registrado. El cliente guarda su tarjeta desde un enlace de pago
               {organizationId ? (
                 <>
@@ -255,7 +255,7 @@ export function CulqiCardPanel({
             <div className="flex justify-end border-t border-border px-4 py-2.5">
               <button
                 type="button"
-                className="text-[13px] text-danger hover:underline"
+                className="text-compact text-danger hover:underline"
                 onClick={() =>
                   setRevoking({
                     id: activeAuth.id as string,
@@ -270,7 +270,7 @@ export function CulqiCardPanel({
 
           {String(link?.external_subscription_id ?? '').includes('_mock_') ||
           String(activeAuth?.external_payment_method_id ?? '').includes('_mock_') ? (
-            <p className="border-t border-border px-4 py-2.5 text-xs text-muted">
+            <p className="border-t border-border px-4 py-2.5 text-compact text-muted">
               Los identificadores con <span className="font-mono">_mock_</span> son simulados: no corresponden a
               ningún objeto real en el proveedor.
             </p>

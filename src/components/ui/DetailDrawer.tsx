@@ -1,5 +1,6 @@
 import { useId, useRef } from 'react';
 import type { ReactNode } from 'react';
+import { XIcon } from '@phosphor-icons/react';
 import { useModalFocus } from './useModalFocus';
 
 /**
@@ -15,6 +16,7 @@ export function DetailDrawer({
   title,
   subtitle,
   actions,
+  size = 'md',
   onClose,
   children,
 }: {
@@ -22,6 +24,8 @@ export function DetailDrawer({
   title: string;
   subtitle?: string;
   actions?: ReactNode;
+  /** `md` 480 px · `lg` 640 px (§5.10). */
+  size?: 'md' | 'lg';
   onClose: () => void;
   children: ReactNode;
 }) {
@@ -37,40 +41,40 @@ export function DetailDrawer({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-40 flex justify-end bg-black/30">
+    <div className="ebim-scrim fixed inset-0 z-40 flex justify-end">
       <aside
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="ebim-card flex h-full w-full max-w-xl flex-col rounded-none shadow-pop"
+        className={`ebim-drawer flex h-full w-full flex-col ${size === 'lg' ? 'max-w-[640px]' : 'max-w-[480px]'}`}
       >
-        <header className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
-          <div>
-            <h2 id={titleId} className="text-base font-bold text-fg">
+        <header className="flex items-start justify-between gap-3 border-b border-border px-6 py-4">
+          <div className="min-w-0">
+            <h2 id={titleId} className="text-h3 text-fg">
               {title}
             </h2>
-            {subtitle ? <p className="mt-0.5 text-xs text-muted">{subtitle}</p> : null}
+            {subtitle ? <p className="mt-0.5 break-words text-caption text-muted">{subtitle}</p> : null}
           </div>
-          <button ref={closeRef} type="button" className="ebim-btn-ghost h-8 px-3 text-xs" onClick={onClose}>
-            Cerrar
+          <button ref={closeRef} type="button" className="ebim-icon-btn -mr-2" aria-label="Cerrar" title="Cerrar" onClick={onClose}>
+            <XIcon size={18} aria-hidden />
           </button>
         </header>
-        <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
-        {actions ? <footer className="flex justify-end gap-2 border-t border-border px-5 py-3">{actions}</footer> : null}
+        <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
+        {actions ? <footer className="flex justify-end gap-2 border-t border-border px-6 py-4">{actions}</footer> : null}
       </aside>
     </div>
   );
 }
 
-/** Lista clave → valor para el cuerpo de un `DetailDrawer`. */
-export function DetailList({ items }: { items: Array<[string, ReactNode]> }) {
+/** Lista clave → valor para el cuerpo de un `DetailDrawer`: etiqueta caption encima del valor, en 2 columnas. */
+export function DetailList({ items, columns = 2 }: { items: Array<[string, ReactNode]>; columns?: 1 | 2 }) {
   return (
-    <dl className="divide-y divide-border">
+    <dl className={`grid gap-x-6 gap-y-4 ${columns === 2 ? 'sm:grid-cols-2' : ''}`}>
       {items.map(([k, v]) => (
-        <div key={k} className="flex justify-between gap-4 py-2 text-sm">
-          <dt className="text-muted">{k}</dt>
-          <dd className="max-w-[60%] break-all text-right font-medium">{v ?? '—'}</dd>
+        <div key={k} className="min-w-0">
+          <dt className="text-caption text-muted">{k}</dt>
+          <dd className="mt-0.5 break-words text-body font-medium text-fg">{v ?? '—'}</dd>
         </div>
       ))}
     </dl>

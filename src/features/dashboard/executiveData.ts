@@ -63,7 +63,7 @@ export function collectedInMonth(rows: readonly CollectionsMonthRow[], month: st
   return out;
 }
 
-export const MONTH_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+export const MONTH_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'set', 'oct', 'nov', 'dic'];
 
 export function monthShortLabel(month: string): string {
   const [y, m] = month.split('-').map(Number) as [number, number];

@@ -4,8 +4,12 @@ import { useSyncEntitlements, useVerifyEntitlements, type EntitlementSyncSummary
 import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { StatusTabs } from '@/components/ui/SectionTabs';
 import {
-  PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge,
+  PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge, KpiTile,
 } from '@/components/ui/primitives';
+import { Avatar } from '@/components/ui/Avatar';
+import { KpiStrip } from '@/features/billing/financeUi';
+import { cutoverStepLabel } from '@/features/platform/cutover';
+import { formatNumber } from '@/lib/format';
 
 /**
  * Sincronización de entitlements (CCP fase 08).
@@ -65,6 +69,8 @@ export function EntitlementSyncPage() {
   ]);
 
   const count = (group: string) => filtered.filter((r) => GROUPS[group].includes(r.state ?? '')).length;
+  const all = status.data ?? [];
+  const totalOf = (group: string) => all.filter((r) => GROUPS[group].includes(r.state ?? '')).length;
   const tabs = [
     { id: 'ALL', label: 'Todos', count: filtered.length },
     { id: 'IN_SYNC', label: 'En sincronía', count: count('IN_SYNC') },
@@ -81,13 +87,26 @@ export function EntitlementSyncPage() {
       title="Sincronización de entitlements"
       description="Lo que MasterAdmin emitió frente a lo que cada SaaS confirma por GET. Solo el GET cuenta como sincronizado; los incidentes (checksum distinto, SaaS por delante) no se corrigen solos."
     >
+      {all.length > 0 ? (
+        <KpiStrip label="Estado de la sincronización">
+          <KpiTile label="En sincronía" value={formatNumber(totalOf('IN_SYNC'))} footer="Confirmado por GET del SaaS." tone="ok" />
+          <KpiTile label="En curso" value={formatNumber(totalOf('PENDING'))} footer="Envío o verificación pendiente." />
+          <KpiTile
+            label="Incidentes"
+            value={formatNumber(totalOf('INCIDENTS'))}
+            footer="Requieren a una persona: no se corrigen solos."
+            tone={totalOf('INCIDENTS') > 0 ? 'danger' : 'neutral'}
+          />
+          <KpiTile label="Fuera del programa" value={formatNumber(totalOf('OUT'))} footer="Sin aprovisionar o sin enrolar." />
+        </KpiStrip>
+      ) : null}
       {lastResult ? (
-        <div role="status" className="mb-4 rounded-lg border border-border px-4 py-3 text-sm">
-          Última acción: {summaryText(lastResult)}
+        <div role="status" className="mb-4 rounded-card border border-border bg-card px-4 py-3 text-compact text-fg">
+          <span className="font-semibold">Última acción:</span> {summaryText(lastResult)}
         </div>
       ) : null}
       {lastError ? (
-        <div role="alert" className="mb-4 rounded-lg border border-danger px-4 py-3 text-sm text-danger">
+        <div role="alert" className="mb-4 rounded-card border border-danger bg-danger-soft px-4 py-3 text-compact text-danger">
           {lastError instanceof Error ? lastError.message : String(lastError)}
         </div>
       ) : null}
@@ -113,7 +132,10 @@ export function EntitlementSyncPage() {
             }
           />
         ) : (
-          <DataTable columns={['Tenant', 'Estado', 'Deseado', 'Aplicado', 'Último envío / verificación', 'Integración', '']}>
+          <DataTable
+            label="Sincronización por tenant y producto"
+            columns={['Tenant', 'Estado', 'Deseado', 'Aplicado', 'Último envío / verificación', 'Integración', { label: 'Acciones', srOnly: true }]}
+          >
             {visible.map((r) => {
               const st = STATE[r.state ?? ''] ?? { label: r.state ?? '—', tone: 'neutral' as Tone };
               const busy =
@@ -121,19 +143,24 @@ export function EntitlementSyncPage() {
               return (
                 <tr key={`${r.tenant_id}:${r.saas_product_id}`}>
                   <td className="ebim-td">
-                    <div className="font-semibold">{r.tenant_name}</div>
-                    <div className="text-[11px] text-muted">{r.product_name}</div>
+                    <div className="flex min-w-0 items-center gap-3">
+                      <Avatar name={r.tenant_name ?? '—'} />
+                      <div className="min-w-0">
+                        <div className="truncate font-semibold text-fg">{r.tenant_name}</div>
+                        <div className="truncate text-caption text-muted">{r.product_name}</div>
+                      </div>
+                    </div>
                   </td>
                   <td className="ebim-td">
-                    <Badge tone={st.tone}>{st.label}</Badge>
+                    <Badge tone={st.tone} dot>{st.label}</Badge>
                     {r.state_reason && r.state_reason !== r.state ? (
-                      <div className="mt-1 font-mono text-[11px] text-muted">{r.state_reason}</div>
+                      <div className="mt-1 font-mono text-caption text-muted">{r.state_reason}</div>
                     ) : null}
                     {(r.consecutive_failures ?? 0) > 0 ? (
-                      <div className="mt-1 text-[11px] text-warn">{r.consecutive_failures} fallo(s) seguidos</div>
+                      <div className="mt-1 text-caption font-semibold text-warn">{r.consecutive_failures} fallo(s) seguidos</div>
                     ) : null}
                   </td>
-                  <td className="ebim-td text-xs">
+                  <td className="ebim-td text-compact">
                     <span className="font-mono">{version(r.desired_version)}</span>
                     {r.desired_dirty ? (
                       <div className="mt-1">
@@ -141,7 +168,7 @@ export function EntitlementSyncPage() {
                       </div>
                     ) : null}
                   </td>
-                  <td className="ebim-td text-xs">
+                  <td className="ebim-td text-compact">
                     <span className="font-mono">{version(r.applied_version)}</span>
                     {(r.unknown_capabilities ?? []).length > 0 ? (
                       <ul className="mt-1 flex flex-wrap gap-1" aria-label="Capacidades desconocidas para el SaaS">
@@ -153,21 +180,25 @@ export function EntitlementSyncPage() {
                       </ul>
                     ) : null}
                   </td>
-                  <td className="ebim-td text-xs">
-                    <div>Envío: {when(r.last_push_at)}{r.last_push_result ? ` · ${r.last_push_result}` : ''}</div>
-                    <div className="text-muted">GET: {when(r.last_verified_at)}</div>
+                  <td className="ebim-td text-compact">
+                    <div className="whitespace-nowrap">Envío: {when(r.last_push_at)}{r.last_push_result ? ` · ${r.last_push_result}` : ''}</div>
+                    <div className="whitespace-nowrap text-caption text-muted">GET: {when(r.last_verified_at)}</div>
                   </td>
-                  <td className="ebim-td text-xs">
-                    <div className="font-mono">{r.integration_code ?? '—'}</div>
+                  <td className="ebim-td text-compact">
+                    <div className="font-mono text-caption">{r.integration_code ?? '—'}</div>
                     <div className="mt-1 flex flex-wrap gap-1">
-                      {r.cutover_state_entitlements ? <Badge tone="accent">{r.cohort_state ?? r.cutover_state_entitlements}</Badge> : null}
+                      {r.cutover_state_entitlements ? (
+                        <Badge tone="accent" title={r.cohort_state ?? r.cutover_state_entitlements}>
+                          Cutover: {cutoverStepLabel(r.cohort_state ?? r.cutover_state_entitlements)}
+                        </Badge>
+                      ) : null}
                       {r.push_enabled === false ? <Badge tone="danger">Envío apagado</Badge> : null}
                     </div>
                   </td>
                   <td className="ebim-td whitespace-nowrap text-right">
                     <button
                       type="button"
-                      className="ebim-btn-primary"
+                      className="ebim-btn-secondary ebim-btn-sm"
                       disabled={busy}
                       onClick={() => sync.mutate(r.tenant_id!)}
                     >
@@ -175,7 +206,7 @@ export function EntitlementSyncPage() {
                     </button>
                     <button
                       type="button"
-                      className="ebim-btn-ghost ml-2"
+                      className="ebim-btn-ghost ebim-btn-sm ml-1"
                       disabled={busy}
                       onClick={() => verify.mutate(r.tenant_id!)}
                     >

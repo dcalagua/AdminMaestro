@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
-  formatMoney, formatMoneyCompact, formatNumber, formatPercent,
-  formatDate, formatDateTime, formatCurrencyMap, sumByCurrency, subtractByCurrency,
+  formatMoney, formatMoneyCompact, formatCompactAmount, formatAmount, formatNumber, formatPercent,
+  formatDate, formatDateTime, formatCurrencyMap, sumByCurrency, subtractByCurrency, formatDelta,
 } from './format';
 
 describe('formateo de dinero', () => {
@@ -9,6 +9,9 @@ describe('formateo de dinero', () => {
     expect(formatMoney(1234.5, 'USD')).toMatch(/^USD\s1,234\.50$/);
     expect(formatMoney(1250, 'PEN')).toMatch(/^PEN\s1,250\.00$/);
     expect(formatMoney(890, 'BOB')).toMatch(/^BOB\s890\.00$/);
+    // Sin moneda, para cifras con el código como prefijo aparte.
+    expect(formatAmount(1234.5)).toBe('1,234.50');
+    expect(formatAmount(null)).toBe('—');
   });
 
   it('no usa símbolos ambiguos: PEN no se pinta como «S/» ni USD como «$»', () => {
@@ -106,5 +109,38 @@ describe('formatCurrencyMap', () => {
   it('devuelve marcador con un mapa vacío', () => {
     expect(formatCurrencyMap({})).toBe('—');
     expect(formatCurrencyMap(null)).toBe('—');
+  });
+});
+
+describe('formatDelta (VISUAL_SYSTEM_V2 §6.5)', () => {
+  it('lleva signo siempre y usa el menos tipográfico', () => {
+    expect(formatDelta(0.041)).toBe('+4.1%');
+    expect(formatDelta(-0.023)).toBe('−2.3%');
+    expect(formatDelta(0)).toBe('0.0%');
+  });
+
+  it('formatea puntos porcentuales y conteos', () => {
+    expect(formatDelta(1.2, 'pp')).toBe('+1.2 pp');
+    expect(formatDelta(-3, 'number')).toBe('−3');
+  });
+
+  it('sin dato devuelve el marcador, nunca un 0 que parezca dato', () => {
+    expect(formatDelta(null)).toBe('—');
+    expect(formatDelta(Number.NaN)).toBe('—');
+  });
+});
+
+describe('formatCompactAmount (§6.5: cifra sin moneda para KPI y ejes)', () => {
+  it('compacta desde 1 000 con un decimal y mayúsculas; por debajo, entero', () => {
+    expect(formatCompactAmount(50082)).toMatch(/^50\.1\sK$/);
+    expect(formatCompactAmount(1_240_000)).toMatch(/^1\.2\sM$/);
+    expect(formatCompactAmount(980)).toBe('980');
+    expect(formatCompactAmount(0)).toBe('0');
+  });
+  it('negativos con signo tipográfico y sin dato → «—»', () => {
+    expect(formatCompactAmount(-1310)).toMatch(/^−1\.3\sK$/);
+    expect(formatCompactAmount(-560)).toBe('−560');
+    expect(formatCompactAmount(null)).toBe('—');
+    expect(formatCompactAmount(Number.NaN)).toBe('—');
   });
 });

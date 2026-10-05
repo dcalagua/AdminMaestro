@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/primitives';
 import { DEPLOYMENT_MODE_LABEL } from '@/types/domain';
 import { RegionalPriceList } from './RegionalPriceList';
+import { ActionMenu } from '@/components/ui/ActionMenu';
 import { PlanFormDialog, PlanPriceDialog } from './PlanDialogs';
 import type { PlanDraft } from './PlanDialogs';
 import {
@@ -87,77 +88,75 @@ export function PlansPage() {
           />
         ) : (
           <DataTable
-            columns={['Plan', 'Producto', 'Modelo', 'Sociedades', 'Precio recurrente', 'Cargos únicos', 'Estado', '']}
+            columns={[
+              'Plan', 'Producto', 'Modelo', { label: 'Sociedades', align: 'right' }, 'Precio recurrente', 'Cargos únicos', 'Estado',
+              { label: 'Acciones', srOnly: true },
+            ]}
           >
             {visible.map((p) => {
               const prices = p.plan_prices as PriceRow[] | null;
               return (
                 <tr key={p.id}>
                   <td className="ebim-td">
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex max-w-[160px] flex-wrap items-center gap-x-2 gap-y-1">
                       <span className="font-semibold">{p.name}</span>
                       {p.is_partner_base ? <Badge tone="accent">Licencia base partner</Badge> : null}
                       {p.multi_country ? <Badge tone="info">Multi-país</Badge> : null}
                     </div>
-                    <div className="font-mono text-[11px] text-muted">{p.code}</div>
+                    <div className="max-w-[150px] truncate whitespace-nowrap font-mono text-caption text-muted" title={p.code}>{p.code}</div>
                   </td>
                   <td className="ebim-td">
                     {(p.saas_products as { short_name: string } | null)?.short_name ?? '—'}
                   </td>
                   <td className="ebim-td">
                     {p.deployment_mode ? (
-                      <Badge tone="accent">
+                      <span className="text-fg-2">
                         {DEPLOYMENT_MODE_LABEL[p.deployment_mode as keyof typeof DEPLOYMENT_MODE_LABEL]}
-                      </Badge>
+                      </span>
                     ) : (
                       <span className="text-muted">Cualquiera</span>
                     )}
                   </td>
-                  <td className="ebim-td tabular-nums">{p.included_companies}</td>
-                  <td className="ebim-td">
+                  <td className="ebim-td ebim-num">{p.included_companies}</td>
+                  <td className="ebim-td py-2.5">
                     <RegionalPriceList prices={prices} kind="recurring" />
                   </td>
-                  <td className="ebim-td">
+                  <td className="ebim-td py-2.5">
                     <RegionalPriceList prices={prices} kind="one-time" />
                   </td>
                   <td className="ebim-td">
-                    <Badge tone={entityStatusTone(p.status)}>{entityStatusLabel(p.status)}</Badge>
+                    <Badge tone={entityStatusTone(p.status)} dot>
+                      {entityStatusLabel(p.status)}
+                    </Badge>
                   </td>
-                  <td className="ebim-td">
+                  <td className="ebim-td w-12 text-right">
                     {perms.canManagePlatform ? (
-                      <div className="flex items-center justify-end gap-3 whitespace-nowrap">
-                        <button
-                          type="button"
-                          className="ebim-link text-[13px]"
-                          onClick={() =>
-                            setPlanDialog({
-                              open: true,
-                              plan: {
-                                id: p.id,
-                                code: p.code,
-                                name: p.name,
-                                saas_product_id: p.saas_product_id,
-                                deployment_mode: p.deployment_mode,
-                                included_companies: p.included_companies,
-                                multi_country: p.multi_country,
-                                is_partner_base: p.is_partner_base,
-                                description: p.description,
-                                status: p.status,
-                                sort_order: p.sort_order,
-                              },
-                            })
-                          }
-                        >
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          className="ebim-link text-[13px]"
-                          onClick={() => setPriceDialog({ id: p.id, name: p.name })}
-                        >
-                          Fijar precio
-                        </button>
-                      </div>
+                      <ActionMenu
+                        label={`Acciones del plan ${p.name}`}
+                        items={[
+                          { label: 'Fijar precio…', onSelect: () => setPriceDialog({ id: p.id, name: p.name }) },
+                          {
+                            label: 'Editar plan',
+                            onSelect: () =>
+                              setPlanDialog({
+                                open: true,
+                                plan: {
+                                  id: p.id,
+                                  code: p.code,
+                                  name: p.name,
+                                  saas_product_id: p.saas_product_id,
+                                  deployment_mode: p.deployment_mode,
+                                  included_companies: p.included_companies,
+                                  multi_country: p.multi_country,
+                                  is_partner_base: p.is_partner_base,
+                                  description: p.description,
+                                  status: p.status,
+                                  sort_order: p.sort_order,
+                                },
+                              }),
+                          },
+                        ]}
+                      />
                     ) : null}
                   </td>
                 </tr>

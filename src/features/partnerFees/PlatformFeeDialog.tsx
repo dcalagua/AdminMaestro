@@ -107,7 +107,7 @@ export function PlatformFeeDialog({ target, onClose }: { target: PlatformFeeTarg
       onCancel={onClose}
     >
       {ebimBills ? (
-        <p role="note" className="rounded-lg border border-warn bg-warn-soft px-3 py-2 text-sm text-fg">
+        <p role="note" className="rounded-lg border border-warn bg-warn-soft px-3 py-2 text-body text-fg">
           Este acuerdo lo factura <strong>EBIM</strong> al cliente final: el partner no le debe una tarifa a EBIM. Solo se
           admite «Sin tarifa». Para cobrarle una tarifa, el acuerdo debe pasar a facturación del partner.
         </p>

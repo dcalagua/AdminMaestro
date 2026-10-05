@@ -1,4 +1,7 @@
-import { useSettlements } from '@/services/queries';
+import { useState } from 'react';
+import { PlusIcon } from '@phosphor-icons/react';
+import { useFinanceMonthlySeries, useSettlements } from '@/services/queries';
+import { usePermissions } from '@/hooks/usePermissions';
 import {
   fetchCommissionPage,
   useCommissionPage,
@@ -9,21 +12,26 @@ import {
 } from '@/services/financeRead';
 import { useListState } from '@/hooks/useListState';
 import { SectionTabs, StatusTabs } from '@/components/ui/SectionTabs';
-import {
-  PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge,
-} from '@/components/ui/primitives';
+import { PageContainer, Card, SearchBar, Badge, KpiTile } from '@/components/ui/primitives';
 import { PagedTable, type TableColumn } from '@/components/ui/PagedTable';
 import { ExportMenu } from '@/components/ui/ExportMenu';
 import type { ExportColumn } from '@/lib/export';
-import { formatMoney, formatPercent, formatDate, formatNumber } from '@/lib/format';
-import { KpiCard, CurrencyLines } from '@/features/executive/components/StateView';
+import { formatCompactAmount, formatMoney, formatPercent, formatDate, formatNumber, sumByCurrency } from '@/lib/format';
+import { SettlementsSection } from './SettlementsSection';
+import { ChartLegend, ChartPanel } from '@/features/executive/components/ChartPanel';
 import { fromQuery } from '@/features/executive/dataState';
-import { toCurrencyAmounts } from '@/features/executive/reportContext';
-import { ConsistencyNote, InfoNote } from '@/features/billing/listing';
+import { currentMonth, lastMonths, toCurrencyAmounts } from '@/features/executive/reportContext';
+import { monthLongLabel } from '@/features/dashboard/executiveModel';
+import { monthShortLabel } from '@/features/dashboard/executiveData';
+import { ConsistencyNote } from '@/features/billing/listing';
 import { useDebouncedSearch } from '@/features/billing/listingState';
+import { FilterTotals, KpiStrip, NativeAmountTile } from '@/features/billing/financeUi';
+import { analyzedMonth, closedWindow, longMonthName, relChange, shortMonthName } from '@/features/billing/financeModel';
+import { PeriodBars } from '@/features/billing/lazyFinanceCharts';
+import { COMMISSION_STATUS_LABEL, COMMISSION_STATUS_TONE } from './commissionLabels';
 
 /**
- * Comisiones y liquidaciones (P14).
+ * Comisiones y liquidaciones (P14; liquidación y pago en la fase 13).
  *
  * El resumen lo agrega la base (`commission_summary`) con los MISMOS filtros
  * que la tabla (`v_commission_detail`). «Pendiente» es lo que ya se debe
@@ -32,6 +40,10 @@ import { useDebouncedSearch } from '@/features/billing/listingState';
  *
  * Cada evento muestra CÓMO se calculó (base × tasa × participación): una
  * comisión que no se puede explicar es una comisión que se discute.
+ *
+ * Pestañas: «Devengado» (lo que generan los cobros) y «Liquidaciones» (el
+ * ciclo Generar → Aprobar → Registrar pago, o Anular con motivo). Un comercial
+ * ve lo suyo por RLS y sin acciones.
  */
 
 const FILTERS = ['ALL', 'PENDING', 'PAID', 'WAITING', 'VOID'] as const satisfies readonly CommissionFilter[];
@@ -45,27 +57,8 @@ const LIST = {
 };
 
 /** Etiquetas de esta pantalla: «Pendiente» aquí es ELEGIBLE + DEVENGADA, no PENDING. */
-const STATUS_LABEL: Record<string, string> = {
-  PENDING: 'En espera',
-  ELIGIBLE: 'Elegible',
-  ACCRUED: 'Devengada',
-  PAID: 'Pagada',
-  VOID: 'Anulada',
-};
-const STATUS_TONE: Record<string, 'ok' | 'warn' | 'danger' | 'neutral' | 'info'> = {
-  PENDING: 'neutral',
-  ELIGIBLE: 'warn',
-  ACCRUED: 'warn',
-  PAID: 'ok',
-  VOID: 'danger',
-};
-
-const SETTLEMENT_LABEL: Record<string, string> = {
-  OPEN: 'Abierta',
-  APPROVED: 'Aprobada',
-  PAID: 'Pagada',
-  CANCELLED: 'Anulada',
-};
+const STATUS_LABEL = COMMISSION_STATUS_LABEL;
+const STATUS_TONE = COMMISSION_STATUS_TONE;
 
 function num(value: number | string | null | undefined): number | null {
   return value === null || value === undefined ? null : Number(value);
@@ -82,24 +75,210 @@ function calculation(r: CommissionRow): string {
 
 export function CommissionsPage() {
   const settlements = useSettlements();
+  const { canReadFinance } = usePermissions();
+  const [generating, setGenerating] = useState(false);
+  const awaiting = (settlements.data ?? []).filter((x) => x.status === 'OPEN' || x.status === 'APPROVED').length;
   return (
     <PageContainer
       title="Comisiones y liquidaciones"
-      description="Cada comisión nace de un cobro confirmado. Una factura emitida pero impaga no devenga nada. Importes por moneda: no se suman monedas distintas."
+      description={
+        canReadFinance
+          ? 'Cada comisión nace de un cobro confirmado: una factura emitida pero impaga no devenga nada. Finanzas agrupa lo elegible en liquidaciones por comercial, período y moneda, las aprueba y registra su pago. No se suman monedas distintas.'
+          : 'Tus comisiones nacen de cobros confirmados. Finanzas las agrupa en liquidaciones, las aprueba y registra el pago; aquí ves en qué estado está cada una.'
+      }
+      actions={
+        canReadFinance ? (
+          <button type="button" className="ebim-btn-primary" onClick={() => setGenerating(true)}>
+            <PlusIcon size={16} weight="bold" aria-hidden />
+            Generar liquidación
+          </button>
+        ) : undefined
+      }
     >
+      <CommissionKpis settlements={settlements} />
       <SectionTabs
         tabs={[
-          { id: 'events', label: 'Eventos de comisión', content: <CommissionEventsSection /> },
           {
-            id: 'settlements',
-            label: `Liquidaciones${settlements.data ? ` (${formatNumber(settlements.data.length)})` : ''}`,
-            content: <SettlementsSection query={settlements} />,
+            id: 'devengado',
+            label: 'Devengado',
+            content: (
+              <div className="space-y-6">
+                <CommissionsByMonthPanel />
+                <CommissionEventsSection />
+              </div>
+            ),
+          },
+          {
+            id: 'liquidaciones',
+            label: 'Liquidaciones',
+            count: settlements.data ? awaiting : undefined,
+            content: (
+              <SettlementsSection
+                query={settlements}
+                canManage={canReadFinance}
+                generateOpen={generating}
+                onGenerateClose={() => setGenerating(false)}
+              />
+            ),
           },
         ]}
       />
     </PageContainer>
   );
 }
+
+/* ==========================================================================
+   Franja: devengado (S09) · por liquidar · en liquidación · pagado
+   ========================================================================== */
+
+const OPEN_SETTLEMENT = ['OPEN', 'APPROVED'];
+
+function plural(n: number, one: string, many: string): string {
+  return `${formatNumber(n)} ${n === 1 ? one : many}`;
+}
+
+function CommissionKpis({ settlements }: { settlements: ReturnType<typeof useSettlements> }) {
+  const month = analyzedMonth();
+  const series = useFinanceMonthlySeries({ from: `${lastMonths(currentMonth(), 14)[0]}-01` });
+  const summary = useCommissionSummary({ search: '', filter: 'ALL' });
+  const { current, previous, trend } = closedWindow(series.data, month);
+  const rc = series.data?.[0]?.reportingCurrency;
+  const summaryState = fromQuery(summary, { isEmpty: () => false });
+  const settlementState = fromQuery(settlements, { isEmpty: () => false });
+  const all = settlements.data ?? [];
+  const inProgress = all.filter((x) => OPEN_SETTLEMENT.includes(x.status));
+  const approvedCount = inProgress.filter((x) => x.status === 'APPROVED').length;
+  const paidCount = all.filter((x) => x.status === 'PAID').length;
+  const rate = current?.commission != null && current.collected ? current.commission / current.collected : null;
+
+  return (
+    <KpiStrip label="Indicadores de comisiones">
+      <KpiTile
+        label={`Devengado · ${shortMonthName(month)}`}
+        info="Comisión devengada en el mes sobre cobros confirmados (sin anuladas), en moneda de reporte (S09)."
+        currency={current?.commission != null ? rc : undefined}
+        value={current?.commission == null ? null : formatCompactAmount(current.commission)}
+        delta={{
+          value: relChange(current?.commission, previous?.commission),
+          comparison: previous ? `vs ${longMonthName(previous.month.slice(0, 7))}` : undefined,
+          goodWhen: 'none',
+        }}
+        trend={trend.map((p) => p.commission)}
+        trendDescription="Comisión devengada de los últimos meses cerrados"
+        footer={
+          current && !current.complete
+            ? `Falta tasa ${current.missingCurrencies.join(', ')}: no se consolida`
+            : rate != null
+              ? `${formatPercent(rate)} de lo cobrado en ${shortMonthName(month)}`
+              : monthLongLabel(month)
+        }
+        loading={series.isLoading}
+        error={series.error}
+        onRetry={() => void series.refetch()}
+      />
+      <NativeAmountTile
+        label="Por liquidar"
+        info="Comisiones elegibles que todavía no están en ninguna liquidación. Por moneda."
+        amounts={toCurrencyAmounts(summary.data?.by_status?.ELIGIBLE)}
+        state={summaryState}
+        onRetry={() => void summary.refetch()}
+        emptyLabel="Nada por liquidar"
+        footer="Elegibles, fuera de una liquidación"
+      />
+      <NativeAmountTile
+        label="En liquidación"
+        info="Liquidaciones abiertas (en revisión) o aprobadas (por pagar). Cada liquidación es de una sola moneda."
+        amounts={sumByCurrency(inProgress, (x) => x.total_amount, (x) => x.currency)}
+        state={settlementState}
+        onRetry={() => void settlements.refetch()}
+        emptyLabel="Ninguna liquidación abierta"
+        footer={`${plural(inProgress.length - approvedCount, 'abierta', 'abiertas')} · ${plural(approvedCount, 'aprobada por pagar', 'aprobadas por pagar')}`}
+      />
+      <NativeAmountTile
+        label="Pagado"
+        info="Comisión ya pagada (histórico), por moneda."
+        amounts={toCurrencyAmounts(summary.data?.paid)}
+        state={summaryState}
+        onRetry={() => void summary.refetch()}
+        emptyLabel="Nada pagado todavía"
+        footer={`Histórico · ${plural(paidCount, 'liquidación pagada', 'liquidaciones pagadas')}`}
+      />
+    </KpiStrip>
+  );
+}
+
+const COMMISSION_SERIES = [
+  { key: 'paid', label: 'Pagada', color: 'var(--chart-1)' },
+  { key: 'owed', label: 'Por pagar', color: 'var(--chart-2)' },
+];
+
+function CommissionsByMonthPanel() {
+  const month = analyzedMonth();
+  const query = useFinanceMonthlySeries({ from: `${lastMonths(currentMonth(), 14)[0]}-01` });
+  const { trend } = closedWindow(query.data, month);
+  const rc = query.data?.[0]?.reportingCurrency ?? '';
+  const owed = (p: (typeof trend)[number]) =>
+    p.commission == null || p.commissionPaid == null ? null : Math.round((p.commission - p.commissionPaid) * 100) / 100;
+  const total = trend.every((p) => p.commission != null) ? trend.reduce((t, p) => t + (p.commission ?? 0), 0) : null;
+  const state = fromQuery(query, { isEmpty: (rows) => rows.every((p) => !p.commission) });
+  return (
+    <ChartPanel
+      id="comisiones-mes"
+      title="¿Cuánta comisión generan los cobros cada mes?"
+      unit={`Comisión devengada por mes en ${rc || 'moneda de reporte'}, según su estado de hoy`}
+      period={`${trend[0] ? monthShortLabel(trend[0].month.slice(0, 7)) : ''} – ${monthShortLabel(month)}${total != null ? ` · ${formatMoney(total, rc)} en el período` : ''}`}
+      source="finance_monthly_series"
+      coverage="Por fecha de devengo; «por pagar» incluye lo pendiente y lo que está en espera"
+      state={state}
+      onRetry={() => void query.refetch()}
+      emptyText="Sin comisiones devengadas en el período"
+      refreshing={query.isPlaceholderData}
+      legend={<ChartLegend items={COMMISSION_SERIES.map((c) => ({ label: c.label, color: c.color }))} />}
+      chart={() => (
+        <PeriodBars
+          stacked
+          data={trend.map((p) => ({
+            key: p.month,
+            label: monthShortLabel(p.month.slice(0, 7)),
+            title: monthLongLabel(p.month.slice(0, 7)),
+            values: { paid: p.commissionPaid, owed: owed(p) },
+          }))}
+          series={COMMISSION_SERIES}
+          unit={{ currency: rc }}
+          height={220}
+          ariaLabel={`Comisión devengada por mes en ${rc}, separada en pagada y por pagar${total != null ? `; ${formatMoney(total, rc)} en total` : ''}. Use la vista Tabla para leer cada mes.`}
+        />
+      )}
+      table={() => (
+        <table className="w-full text-compact">
+          <caption className="sr-only">Comisión devengada por mes</caption>
+          <thead>
+            <tr>
+              <th scope="col" className="ebim-th">Mes</th>
+              <th scope="col" className="ebim-th text-right">Devengada ({rc})</th>
+              <th scope="col" className="ebim-th text-right">Pagada</th>
+              <th scope="col" className="ebim-th text-right">Por pagar</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {[...trend].reverse().map((p) => (
+              <tr key={p.month}>
+                <th scope="row" className="ebim-td text-left font-medium">{monthLongLabel(p.month.slice(0, 7))}</th>
+                <td className="ebim-td ebim-num">{p.commission == null ? 'Sin tasa' : formatMoney(p.commission, rc)}</td>
+                <td className="ebim-td ebim-num">{p.commissionPaid == null ? 'Sin tasa' : formatMoney(p.commissionPaid, rc)}</td>
+                <td className="ebim-td ebim-num">{owed(p) == null ? 'Sin tasa' : formatMoney(owed(p), rc)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    />
+  );
+}
+
+/* ==========================================================================
+   Eventos de comisión
+   ========================================================================== */
 
 function CommissionEventsSection() {
   const list = useListState(LIST);
@@ -118,46 +297,76 @@ function CommissionEventsSection() {
   const retry = () => void summary.refetch();
 
   const columns: TableColumn<CommissionRow>[] = [
-    { id: 'date', header: 'Fecha', sortKey: 'earned_on', cell: (r) => <span className="whitespace-nowrap text-xs text-muted">{formatDate(r.earned_on)}</span> },
-    { id: 'agent', header: 'Comercial', sortKey: 'agent_name', cell: (r) => <span className="font-semibold">{r.agent_name ?? '—'}</span> },
-    { id: 'product', header: 'Producto', sortKey: 'product_short_name', cell: (r) => r.product_short_name ?? '—' },
-    { id: 'tenant', header: 'Tenant', cell: (r) => <span className="text-muted">{r.tenant_name ?? '—'}</span> },
+    { id: 'date', header: 'Fecha', sortKey: 'earned_on', cell: (r) => <span className="whitespace-nowrap text-compact text-fg-2">{formatDate(r.earned_on)}</span> },
     {
-      id: 'origin',
-      header: 'Origen',
+      id: 'agent',
+      header: 'Comercial',
+      sortKey: 'agent_name',
       cell: (r) => (
-        <span className="text-xs">
-          {r.source_label ?? '—'}
-          {r.invoice_number ? <span className="block font-mono text-muted">{r.invoice_number}</span> : null}
-          {r.is_reversal ? (
-            <span className="mt-1 block">
-              <Badge tone="danger">Reverso</Badge>
+        <span className="block min-w-[140px]">
+          <span className="block font-semibold">{r.agent_name ?? '—'}</span>
+          <span className="block max-w-[160px] truncate text-compact text-fg-2" title={r.tenant_name ?? undefined}>
+            {r.tenant_name ?? 'Sin tenant'}
+          </span>
+        </span>
+      ),
+    },
+    // Producto y origen en una celda (el origen es la línea cobrada y su factura):
+    // como columnas separadas la tabla no cabía a 1280.
+    {
+      id: 'product',
+      header: 'Producto · origen',
+      sortKey: 'product_short_name',
+      cell: (r) => (
+        <span className="block max-w-[200px] text-compact">
+          <span className="block truncate text-body" title={r.rule_name ? `Regla: ${r.rule_name}` : undefined}>
+            {r.product_short_name ?? '—'}
+            <span className="text-fg-2"> · {r.source_label ?? '—'}</span>
+          </span>
+          {r.invoice_number ? (
+            <span className="block truncate font-mono text-caption text-muted" title={r.invoice_number}>
+              {r.invoice_number}
             </span>
           ) : null}
         </span>
       ),
     },
-    { id: 'rule', header: 'Regla', cell: (r) => <span className="text-xs">{r.rule_name ?? '—'}</span> },
-    // Trazabilidad del cálculo: base × tasa × participación.
-    { id: 'calc', header: 'Cálculo', cell: (r) => <span className="whitespace-nowrap text-xs text-muted">{calculation(r)}</span> },
+    // Trazabilidad del cálculo: base × tasa × participación (la regla, al pasar el cursor).
+    {
+      id: 'calc',
+      header: 'Cálculo',
+      cell: (r) => (
+        <span className="block whitespace-nowrap text-compact text-fg-2" title={r.rule_name ? `Regla: ${r.rule_name}` : undefined}>
+          {calculation(r)}
+          <span className="block max-w-[180px] truncate text-caption text-muted">{r.rule_name ?? 'Sin regla'}</span>
+        </span>
+      ),
+    },
     {
       id: 'amount',
       header: 'Monto',
       sortKey: 'amount',
       align: 'right',
       cell: (r) => (
-        <span className={`font-semibold ${Number(r.amount ?? 0) < 0 ? 'text-danger' : ''}`}>{formatMoney(num(r.amount), r.currency)}</span>
+        <span className={`whitespace-nowrap font-semibold ${Number(r.amount ?? 0) < 0 ? 'text-danger' : ''}`}>{formatMoney(num(r.amount), r.currency)}</span>
       ),
     },
     {
       id: 'status',
-      header: 'Estado',
-      cell: (r) => <Badge tone={STATUS_TONE[r.status ?? ''] ?? 'neutral'}>{STATUS_LABEL[r.status ?? ''] ?? r.status ?? '—'}</Badge>,
-    },
-    {
-      id: 'settlement',
-      header: 'Liquidación',
-      cell: (r) => <span className="font-mono text-xs text-muted">{r.settlement_code ?? '—'}</span>,
+      header: 'Estado / liquidación',
+      cell: (r) => (
+        <span className="block">
+          <span className="flex gap-1">
+            <Badge tone={STATUS_TONE[r.status ?? ''] ?? 'neutral'}>{STATUS_LABEL[r.status ?? ''] ?? r.status ?? '—'}</Badge>
+            {r.is_reversal ? <Badge tone="danger">Reverso</Badge> : null}
+          </span>
+          {r.settlement_code ? (
+            <span className="mt-0.5 block max-w-[128px] truncate whitespace-nowrap font-mono text-caption text-muted" title={`Liquidación ${r.settlement_code}`}>
+              {r.settlement_code}
+            </span>
+          ) : null}
+        </span>
+      ),
     },
   ];
 
@@ -183,42 +392,6 @@ function CommissionEventsSection() {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-3">
-        <KpiCard
-          id="commission-pending"
-          label="Comisión pendiente"
-          temporality="Según filtros"
-          state={summaryState}
-          onRetry={retry}
-          hint="Elegible + devengada: lo que ya se debe y falta liquidar."
-          render={() => <CurrencyLines amounts={toCurrencyAmounts(summary.data?.pending)} emptyLabel="Nada pendiente" />}
-        />
-        <KpiCard
-          id="commission-paid"
-          label="Comisión pagada"
-          temporality="Según filtros"
-          state={summaryState}
-          onRetry={retry}
-          hint="Cada liquidación es de una sola moneda."
-          render={() => <CurrencyLines amounts={toCurrencyAmounts(summary.data?.paid)} emptyLabel="Nada pagado" />}
-        />
-        <KpiCard
-          id="commission-waiting"
-          label="En espera"
-          temporality="Según filtros"
-          state={summaryState}
-          onRetry={retry}
-          hint="Estado PENDING: aún no es elegible; no suma al pendiente."
-          render={() => <CurrencyLines amounts={waiting} emptyLabel="Nada en espera" />}
-        />
-      </div>
-
-      <ConsistencyNote
-        summaryCount={summary.data && !summary.isFetching ? summary.data.row_count : undefined}
-        tableTotal={page.data && !page.isFetching ? page.data.total : undefined}
-        noun="comisiones"
-      />
-
       <Card>
         <SearchBar
           value={draft}
@@ -235,7 +408,7 @@ function CommissionEventsSection() {
             />
           }
         />
-        <div className="border-b border-border px-4 py-2">
+        <div className="border-b border-border px-5 py-2.5">
           <StatusTabs
             value={list.filter}
             onChange={list.setFilter}
@@ -251,6 +424,37 @@ function CommissionEventsSection() {
             }))}
           />
         </div>
+        <FilterTotals
+          state={summaryState}
+          onRetry={retry}
+          items={[
+            {
+              label: 'Comisión pendiente',
+              amounts: toCurrencyAmounts(summary.data?.pending),
+              emptyLabel: 'Nada pendiente',
+              hint: 'Elegible + devengada: lo que ya se debe y falta liquidar.',
+            },
+            {
+              label: 'Comisión pagada',
+              amounts: toCurrencyAmounts(summary.data?.paid),
+              emptyLabel: 'Nada pagado',
+              hint: 'Cada liquidación es de una sola moneda.',
+            },
+            {
+              label: 'En espera',
+              amounts: waiting,
+              emptyLabel: 'Nada en espera',
+              hint: 'Estado PENDING: aún no es elegible; no suma al pendiente.',
+            },
+          ]}
+          note={
+            <ConsistencyNote
+              summaryCount={summary.data && !summary.isFetching ? summary.data.row_count : undefined}
+              tableTotal={page.data && !page.isFetching ? page.data.total : undefined}
+              noun="comisiones"
+            />
+          }
+        />
         <PagedTable
           label="Eventos de comisión"
           columns={columns}
@@ -275,43 +479,3 @@ function CommissionEventsSection() {
     </div>
   );
 }
-
-function SettlementsSection({ query }: { query: ReturnType<typeof useSettlements> }) {
-  return (
-    <Card
-      title="Liquidaciones"
-      description="Una liquidación agrupa eventos de un período y de una sola moneda. Marcarla pagada exige fecha y referencia de pago."
-    >
-      <div className="px-4 pt-3">
-        <InfoNote>Consulta de liquidaciones existentes. Esta pantalla no crea, paga ni revierte liquidaciones.</InfoNote>
-      </div>
-      {query.isLoading ? (
-        <LoadingState />
-      ) : query.error ? (
-        <ErrorState error={query.error} onRetry={() => void query.refetch()} />
-      ) : (query.data ?? []).length === 0 ? (
-        <EmptyState title="Sin liquidaciones" description="Todavía no se ha liquidado ninguna comisión visible para tu rol." />
-      ) : (
-        <DataTable columns={['Código', 'Comercial', 'Período', 'Total', 'Estado', 'Referencia de pago']}>
-          {(query.data ?? []).map((s) => (
-            <tr key={s.id}>
-              <td className="ebim-td font-mono text-xs font-semibold">{s.code}</td>
-              <td className="ebim-td">{(s.sales_agents as { full_name: string } | null)?.full_name ?? '—'}</td>
-              <td className="ebim-td whitespace-nowrap text-xs text-muted">
-                {formatDate(s.period_start)} → {formatDate(s.period_end)}
-              </td>
-              <td className="ebim-td text-right font-semibold tabular-nums">{formatMoney(Number(s.total_amount), s.currency)}</td>
-              <td className="ebim-td">
-                <Badge tone={s.status === 'PAID' ? 'ok' : s.status === 'CANCELLED' ? 'danger' : 'warn'}>
-                  {SETTLEMENT_LABEL[s.status] ?? s.status}
-                </Badge>
-              </td>
-              <td className="ebim-td font-mono text-xs text-muted">{s.payment_reference ?? '—'}</td>
-            </tr>
-          ))}
-        </DataTable>
-      )}
-    </Card>
-  );
-}
-

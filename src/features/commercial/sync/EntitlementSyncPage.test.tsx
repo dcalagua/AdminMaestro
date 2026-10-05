@@ -92,7 +92,7 @@ describe('EntitlementSyncPage', () => {
     const alpha = screen.getByRole('row', { name: /Alpha Retail/ });
     expect(within(alpha).getByText('En sincronía')).toBeInTheDocument();
     expect(within(alpha).getAllByText('v3')).toHaveLength(2);
-    expect(within(alpha).getByText('SHADOW')).toBeInTheDocument();
+    expect(within(alpha).getByText('Cutover: Shadow')).toBeInTheDocument();
     const beta = screen.getByRole('row', { name: /Beta Foods/ });
     expect(within(beta).getByText('Esperando verificación')).toBeInTheDocument();
     expect(within(beta).getByText('v4')).toBeInTheDocument();

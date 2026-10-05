@@ -6,14 +6,17 @@ import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { usePermissions } from '@/hooks/usePermissions';
 import { StatusTabs } from '@/components/ui/SectionTabs';
 import {
-  PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge, StatCard,
+  PageContainer, Card, SearchBar, LoadingState, ErrorState, EmptyState, Badge, KpiTile,
 } from '@/components/ui/primitives';
+import { ActionMenu } from '@/components/ui/ActionMenu';
+import { KpiStrip } from '@/features/billing/financeUi';
+import { formatMoney, sumByCurrency } from '@/lib/format';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/toast-context';
 import { businessErrorMessage } from '@/lib/pgError';
 import { ProductFormDialog } from './ProductFormDialog';
 import {
-  countText, entityStatusLabel, entityStatusTabs, entityStatusTone, isForbiddenError,
+  billingUnitLabel, countText, entityStatusLabel, entityStatusTabs, entityStatusTone, isForbiddenError,
   matchesEntityStatusTab, summarizeIntegration,
 } from './catalogLabels';
 import type { EntityStatusTab } from './catalogLabels';
@@ -59,6 +62,13 @@ export function ProductsPage() {
     const key = t.saas_product_id as string;
     tenantsByProduct.set(key, (tenantsByProduct.get(key) ?? 0) + 1);
   }
+  // MRR vigente por producto y moneda (foto de v_tenant_overview, R-7: nunca se mezclan monedas).
+  const mrrByProduct = (productId: string) =>
+    sumByCurrency(
+      (tenants.data ?? []).filter((t) => t.saas_product_id === productId),
+      (t) => t.mrr,
+      (t) => t.currency,
+    );
 
   const integrationsByProduct = new Map<string, Array<Record<string, unknown>>>();
   for (const i of (integrations.data ?? []) as Array<Record<string, unknown>>) {
@@ -76,18 +86,40 @@ export function ProductsPage() {
   function integrationCell(productId: string) {
     if (integrations.error) {
       return (
-        <span className="text-xs text-muted">
+        <span className="text-compact text-muted">
           {isForbiddenError(integrations.error) ? 'Sin acceso' : 'No se pudo leer'}
         </span>
       );
     }
-    if (integrations.isLoading) return <span className="text-xs text-muted">…</span>;
+    if (integrations.isLoading) return <span className="text-compact text-muted">…</span>;
     const summary = summarizeIntegration(integrationsByProduct.get(productId));
     return (
-      <div>
-        <Badge tone={summary.tone}>{summary.label}</Badge>
-        {summary.detail ? <div className="mt-0.5 font-mono text-[11px] text-muted">{summary.detail}</div> : null}
+      <div className="min-w-0">
+        <Badge tone={summary.tone} dot>
+          {summary.label}
+        </Badge>
+        {summary.detail ? (
+          <div className="mt-1 truncate font-mono text-caption text-muted" title={summary.detail}>
+            {summary.detail}
+          </div>
+        ) : null}
       </div>
+    );
+  }
+
+  function mrrCell(productId: string) {
+    if (tenants.error) return <span className="text-compact text-muted">No se pudo leer</span>;
+    if (tenants.isLoading) return <span className="text-compact text-muted">…</span>;
+    const entries = Object.entries(mrrByProduct(productId)).filter(([, v]) => v !== 0).sort(([a], [b]) => a.localeCompare(b));
+    if (entries.length === 0) return <span className="text-compact text-muted">Sin recurrente</span>;
+    return (
+      <span className="flex flex-col">
+        {entries.map(([currency, amount]) => (
+          <span key={currency} className="tabular-nums">
+            {formatMoney(amount, currency)}
+          </span>
+        ))}
+      </span>
     );
   }
 
@@ -125,19 +157,24 @@ export function ProductsPage() {
         ) : null
       }
     >
-      <div className="mb-4 grid gap-3 sm:grid-cols-3" aria-label="Resumen del catálogo">
-        <StatCard label="Productos en catálogo" value={productsCount} hint="Visibles para tu perfil" />
-        <StatCard
+      <KpiStrip label="Resumen del catálogo">
+        <KpiTile label="Productos en catálogo" value={productsCount} footer="Visibles para tu perfil" />
+        <KpiTile
           label="Activos en catálogo"
           value={countText(products, activeCount)}
-          hint={products.data ? `de ${productsCount} · estado comercial` : 'Estado comercial'}
+          footer={products.data ? `de ${productsCount} · estado comercial` : 'Estado comercial'}
         />
-        <StatCard
+        <KpiTile
           label="Integración lista y habilitada"
           value={products.error ? 'No se pudo leer' : countText(integrations, readyCount)}
-          hint="Configuración registrada; no es certificación"
+          footer="Configuración registrada; no es certificación"
         />
-      </div>
+        <KpiTile
+          label="Tenants en la suite"
+          value={countText(tenants, (tenants.data ?? []).length)}
+          footer="Todos los productos, visibles para tu perfil"
+        />
+      </KpiStrip>
 
       <Card>
         <SearchBar
@@ -171,61 +208,68 @@ export function ProductsPage() {
             }
           />
         ) : (
-          <DataTable
-            columns={['Producto', 'Estado comercial', 'Integración técnica', 'Tenants', 'Unidad de cobro', '']}
-          >
+          <ul className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3" aria-label="Productos de la suite">
             {visible.map((p) => (
-              <tr key={p.id}>
-                <td className="ebim-td">
-                  <div className="flex items-center gap-2.5">
-                    <span
-                      className="h-6 w-1.5 shrink-0 rounded-full"
-                      style={{ background: p.accent_color ?? 'var(--accent)' }}
-                      aria-hidden
-                    />
-                    <div className="min-w-0">
-                      <Link className="font-semibold text-fg hover:underline" to={`/products/${p.id}`}>
-                        {p.lockup_name ?? p.name}
-                      </Link>
-                      {p.description ? <div className="text-xs text-muted">{p.description}</div> : null}
-                      <div className="font-mono text-[11px] text-muted">{p.code}</div>
+              <li key={p.id}>
+                <article
+                  aria-labelledby={`product-${p.id}`}
+                  className="flex h-full flex-col overflow-hidden rounded-card border border-border bg-card transition-colors hover:border-border-strong"
+                >
+                  {/* Color de marca del producto (dato del catálogo): una franja, nunca fondo de texto. */}
+                  <span aria-hidden className="h-1 w-full bg-accent" style={p.accent_color ? { background: p.accent_color } : undefined} />
+                  <div className="flex flex-1 flex-col p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h2 id={`product-${p.id}`} className="text-h3 text-fg">
+                          <Link className="hover:underline" to={`/products/${p.id}`}>
+                            {p.lockup_name ?? p.name}
+                          </Link>
+                        </h2>
+                        <p className="font-mono text-caption text-muted">{p.code}</p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <Badge tone={entityStatusTone(p.status)} dot>
+                          {entityStatusLabel(p.status)}
+                        </Badge>
+                        {perms.canManagePlatform ? (
+                          <ActionMenu
+                            variant="icon"
+                            label={`Acciones de ${p.short_name}`}
+                            items={[
+                              { label: 'Abrir ficha', to: `/products/${p.id}` },
+                              { label: 'Editar producto', onSelect: () => setDialog({ open: true, product: p }) },
+                              p.status !== 'ARCHIVED'
+                                ? { label: 'Archivar…', tone: 'danger' as const, onSelect: () => setArchiving(p) }
+                                : null,
+                            ]}
+                          />
+                        ) : null}
+                      </div>
+                    </div>
+                    {p.description ? <p className="mt-2 line-clamp-2 text-compact text-fg-2">{p.description}</p> : null}
+                    <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-border pt-4">
+                      <div className="min-w-0">
+                        <dt className="text-micro text-muted">MRR vigente</dt>
+                        <dd className="mt-1 text-compact font-semibold text-fg">{mrrCell(p.id)}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-micro text-muted">Tenants</dt>
+                        <dd className="mt-1 text-h3 tabular-nums text-fg">{tenantCell(p.id)}</dd>
+                      </div>
+                      <div className="min-w-0">
+                        <dt className="text-micro text-muted">Cobro</dt>
+                        <dd className="mt-1 text-compact text-fg-2">{billingUnitLabel(p.billing_unit)}</dd>
+                      </div>
+                    </dl>
+                    <div className="mt-auto pt-4">
+                      <p className="text-micro text-muted">Integración técnica</p>
+                      <div className="mt-1">{integrationCell(p.id)}</div>
                     </div>
                   </div>
-                </td>
-                <td className="ebim-td">
-                  <Badge tone={entityStatusTone(p.status)}>{entityStatusLabel(p.status)}</Badge>
-                </td>
-                <td className="ebim-td">{integrationCell(p.id)}</td>
-                <td className="ebim-td tabular-nums">{tenantCell(p.id)}</td>
-                <td className="ebim-td text-muted">{p.billing_unit}</td>
-                <td className="ebim-td">
-                  <div className="flex items-center justify-end gap-3 whitespace-nowrap">
-                    {perms.canManagePlatform ? (
-                      <>
-                        <button
-                          type="button"
-                          className="ebim-link text-[13px]"
-                          onClick={() => setDialog({ open: true, product: p })}
-                        >
-                          Editar
-                        </button>
-                        {p.status !== 'ARCHIVED' ? (
-                          <button
-                            type="button"
-                            className="text-[13px] text-danger hover:underline"
-                            onClick={() => setArchiving(p)}
-                          >
-                            Archivar
-                          </button>
-                        ) : null}
-                      </>
-                    ) : null}
-                    <Link className="ebim-link text-[13px]" to={`/products/${p.id}`}>Ver detalle</Link>
-                  </div>
-                </td>
-              </tr>
+                </article>
+              </li>
             ))}
-          </DataTable>
+          </ul>
         )}
       </Card>
 

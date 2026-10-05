@@ -1,3 +1,4 @@
+/* DM Sans variable: eje óptico 9..40 y pesos 400–800 (VISUAL_SYSTEM_V2 §2). */
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&display=swap');
 @import './tokens.css';
 
@@ -12,22 +13,45 @@
       system-ui,
       -apple-system,
       sans-serif;
+    font-optical-sizing: auto;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   body {
     @apply bg-bg text-fg;
+    /* text-body 14/22 como alto de línea relativo: lo heredan los tamaños
+       arbitrarios (11–13 px) sin quedar con 22 px fijos. */
+    font-size: 0.875rem;
+    line-height: 1.5715;
     margin: 0;
     min-height: 100vh;
   }
 
-  *:focus-visible {
-    outline: 2px solid var(--accent-deep);
-    outline-offset: 2px;
-    border-radius: 4px;
+  /* Números que se alinean en columna o cambian en sitio (§2): tablas, campos,
+     ejes y tooltips de gráficos. Las cifras display/KPI quedan proporcionales. */
+  table,
+  input,
+  select,
+  output,
+  time,
+  .recharts-wrapper {
+    font-variant-numeric: tabular-nums;
   }
 
-  /* §4.6 — respetar prefers-reduced-motion en la animación del isotipo */
+  /* Foco visible global (§7). Nunca `outline: none` sin reemplazo. */
+  *:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  /* Sobre sidebar y paneles de marca el foco va en blanco (§3.4). */
+  .ebim-on-brand :focus-visible {
+    outline-color: var(--on-brand);
+  }
+
+  /* §4.6 / §7 — respetar prefers-reduced-motion (isotipo, skeleton, overlays) */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -35,6 +59,7 @@
       animation-duration: 0.001ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
     }
   }
 
@@ -45,31 +70,52 @@
 }
 
 @layer components {
+  /* Tarjeta e1 (§5.5): superficie card, hairline, sombra suave (sin sombra en oscuro). */
   .ebim-card {
     @apply rounded-card border border-border bg-card shadow-card;
   }
 
+  /* Campo (§5.1): borde --border-strong (≥ 3:1, WCAG 1.4.11), hover --text-2,
+     foco = borde --focus + halo 3 px --accent-ring, error/disabled/read-only. */
   .ebim-input {
-    @apply h-control w-full rounded-field border border-border bg-card px-3 text-sm text-fg
-           placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2
-           focus:ring-[color:var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-60
-           aria-[invalid=true]:border-danger;
+    @apply h-control w-full rounded-field border border-border-strong bg-card px-3 text-body text-fg
+           transition-[border-color,box-shadow] duration-fast ease-out
+           placeholder:text-muted hover:border-fg-2
+           focus:border-focus focus:outline-none focus:ring-[3px] focus:ring-[color:var(--accent-ring)]
+           focus-visible:outline-none
+           disabled:cursor-not-allowed disabled:border-border disabled:bg-sunken disabled:text-disabled
+           [&[readonly]]:border-border [&[readonly]]:bg-sunken
+           aria-[invalid=true]:border-danger aria-[invalid=true]:focus:ring-[color:var(--danger-ring)];
+  }
+
+  /* Textarea y select reutilizan la anatomía del input. */
+  textarea.ebim-input {
+    @apply h-auto min-h-[88px] resize-y py-2.5;
   }
 
   .ebim-label {
-    @apply mb-1.5 block text-[13px] font-semibold text-fg;
+    @apply mb-1.5 block text-compact font-semibold text-fg;
   }
 
-  /* Sistema de botones ÚNICO (E07). Cuatro variantes; ninguna pantalla define
-     la suya. Estados: hover, focus-visible (anillo global), disabled y busy
-     (`aria-busy="true"` mientras una mutación está en curso). */
+  /* Ayuda y error de campo: text-caption, debajo del control (§5.1). */
+  .ebim-help {
+    @apply mt-1.5 text-caption text-muted;
+  }
+
+  .ebim-field-error {
+    @apply mt-1.5 text-caption font-medium text-danger;
+  }
+
+  /* Sistema de botones ÚNICO (E07). Cuatro variantes + tamaños sm/lg; ninguna
+     pantalla define la suya. Estados: hover, focus-visible (anillo global),
+     disabled y busy (`aria-busy="true"` mientras una mutación está en curso). */
   .ebim-btn {
     @apply inline-flex h-control items-center justify-center gap-2 whitespace-nowrap rounded-field
-           px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed
-           disabled:opacity-55 aria-busy:cursor-progress;
+           px-4 text-body font-semibold transition-colors duration-fast ease-out
+           disabled:cursor-not-allowed disabled:opacity-55 aria-busy:cursor-progress;
   }
 
-  /* Acción principal: verde profundo funcional (AA), no el verde de marca. */
+  /* Acción principal: teal de marca sólido (blanco encima 6.67:1). */
   .ebim-btn-primary {
     @apply ebim-btn bg-[color:var(--accent-action)] text-[color:var(--accent-action-fg)]
            [&:not(:disabled):hover]:bg-[color:var(--accent-action-hover)];
@@ -77,30 +123,382 @@
 
   /* Acción secundaria destacada: contorno de marca sobre la tarjeta. */
   .ebim-btn-secondary {
-    @apply ebim-btn border border-[color:var(--accent-action)] bg-card text-accent-deep
+    @apply ebim-btn border border-accent-deep bg-card text-accent-deep
            [&:not(:disabled):hover]:bg-accent-soft;
   }
 
   /* Acción terciaria / cancelar. */
   .ebim-btn-ghost {
-    @apply ebim-btn border border-border bg-card text-fg [&:not(:disabled):hover]:bg-accent-soft;
+    @apply ebim-btn border border-border bg-card text-fg [&:not(:disabled):hover]:bg-hover;
   }
 
   /* Acción destructiva: nunca es la dominante ni recibe el foco por defecto. */
   .ebim-btn-danger {
-    @apply ebim-btn bg-[color:var(--danger-fill)] text-white [&:not(:disabled):hover]:brightness-110;
+    @apply ebim-btn bg-[color:var(--danger-fill)] text-[color:var(--danger-fill-fg)]
+           [&:not(:disabled):hover]:bg-[color:var(--danger-fill-hover)];
   }
 
+  /* Tamaños (§5.3): van DESPUÉS de las variantes para ganarles el alto y el
+     padding a igual especificidad (`ebim-btn-ghost ebim-btn-sm`). */
+  .ebim-btn-sm {
+    @apply h-8 px-3 text-compact;
+  }
+
+  .ebim-btn-lg {
+    @apply h-11 px-5;
+  }
+
+  /* Tabla (§5.7): cabecera micro sobre --sunken, celdas text-body con padding de densidad. */
   .ebim-th {
-    @apply whitespace-nowrap px-3 py-2.5 text-left text-[11px] font-bold uppercase
-           tracking-wider text-muted;
+    @apply h-10 whitespace-nowrap bg-sunken px-pad-x text-left align-middle text-micro text-muted;
   }
 
   .ebim-td {
-    @apply h-row px-3 align-middle text-sm text-fg;
+    @apply h-row px-pad-x align-middle text-body text-fg;
+  }
+
+  /* Número en celda: derecha + dígitos tabulares. */
+  .ebim-num {
+    @apply text-right tabular-nums;
+  }
+
+  /* Acciones de fila (§5.7): en escritorio el botón DotsThree aparece al pasar
+     por la fila o al enfocarla; con puntero táctil se ve siempre. */
+  @media (hover: hover) and (pointer: fine) {
+    .ebim-row-actions {
+      @apply opacity-0 transition-opacity duration-fast ease-out;
+    }
+
+    tr:hover .ebim-row-actions,
+    .ebim-hover-row:hover .ebim-row-actions,
+    .ebim-row-actions:focus-within,
+    .ebim-row-actions[data-open] {
+      @apply opacity-100;
+    }
   }
 
   .ebim-link {
-    @apply font-semibold text-accent-deep hover:underline;
+    @apply font-semibold text-accent-deep underline-offset-2 hover:underline;
+  }
+
+  /* Campo con icono, prefijo o sufijo (§5.1): el adorno vive dentro del borde
+     del control. El input interno no lleva borde propio; el foco lo pinta el
+     contenedor con :focus-within para que prefijo y cifra lean como un solo control. */
+  .ebim-input-group {
+    @apply flex h-control w-full items-stretch overflow-hidden rounded-field border border-border-strong bg-card
+           transition-[border-color,box-shadow] duration-fast ease-out hover:border-fg-2
+           focus-within:border-focus focus-within:ring-[3px] focus-within:ring-[color:var(--accent-ring)]
+           has-[:disabled]:cursor-not-allowed has-[:disabled]:border-border has-[:disabled]:bg-sunken
+           has-[[readonly]]:border-border has-[[readonly]]:bg-sunken
+           has-[[aria-invalid=true]]:border-danger has-[[aria-invalid=true]]:focus-within:ring-[color:var(--danger-ring)];
+  }
+
+  .ebim-input-group > input {
+    @apply h-full min-w-0 flex-1 border-0 bg-transparent px-3 text-body text-fg outline-none
+           placeholder:text-muted focus-visible:outline-none disabled:cursor-not-allowed disabled:text-disabled;
+  }
+
+  .ebim-input-addon {
+    @apply flex shrink-0 items-center gap-1.5 px-3 text-compact font-semibold text-muted;
+  }
+
+  /* Select (§5.1): chevron propio (CaretDown) en lugar del nativo. */
+  select.ebim-input-select {
+    @apply appearance-none pr-9;
+  }
+
+  /* Checkbox (§5.2): el control nativo con el color de acción de marca. */
+  .ebim-checkbox {
+    @apply mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded-sm border-border-strong accent-[color:var(--accent-action)]
+           disabled:cursor-not-allowed disabled:opacity-55;
+  }
+
+  /* Switch (§5.2): pista 36×20, perilla 16 px. */
+  .ebim-switch {
+    @apply relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border border-border-strong
+           bg-sunken transition-colors duration-fast ease-out
+           aria-checked:border-transparent aria-checked:bg-[color:var(--accent-action)]
+           disabled:cursor-not-allowed disabled:opacity-55;
+  }
+
+  .ebim-switch-knob {
+    @apply pointer-events-none absolute left-0.5 h-3.5 w-3.5 rounded-full bg-card shadow-card ring-1 ring-border
+           transition-transform duration-fast ease-out;
+  }
+
+  .ebim-switch[aria-checked='true'] .ebim-switch-knob {
+    @apply translate-x-4 ring-0;
+  }
+
+  /* Spinner de botón ocupado (§5.3): 16 px, borde 2 px, currentColor 30 % + tramo sólido. */
+  .ebim-spinner {
+    @apply inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current border-r-transparent opacity-80;
+  }
+
+  /* Skeleton (§5.12): brillo lineal de 1.6 s, estático con prefers-reduced-motion.
+     En claro la pista es --hover con brillo --sunken (--sunken sobre la tarjeta
+     blanca casi no se distingue); en oscuro sube a --elevated. */
+  .ebim-skeleton {
+    @apply block rounded-md;
+    background: linear-gradient(90deg, var(--hover) 0%, var(--sunken) 50%, var(--hover) 100%);
+    background-size: 200% 100%;
+    animation: ebim-shimmer 1.6s linear infinite;
+  }
+
+  :root[data-theme='dark'] .ebim-skeleton {
+    background-image: linear-gradient(90deg, var(--elevated) 0%, var(--hover) 50%, var(--elevated) 100%);
+  }
+
+  /* Entrada de overlays (§5.9–5.11, §7): 200 ms ease-out, sin rebote. */
+  .ebim-scrim {
+    @apply bg-scrim;
+    animation: ebim-fade-in var(--dur-overlay) var(--ease-out);
+  }
+
+  .ebim-dialog {
+    @apply rounded-dialog border border-border bg-elevated text-fg shadow-modal;
+    animation: ebim-rise-in var(--dur-overlay) var(--ease-out);
+  }
+
+  .ebim-drawer {
+    @apply border-l border-border bg-elevated text-fg shadow-modal;
+    animation: ebim-slide-in var(--dur-overlay) var(--ease-out);
+  }
+
+  .ebim-toast {
+    animation: ebim-rise-in var(--dur-overlay) var(--ease-out);
+  }
+
+  /* Botón solo-icono (§5.3): cuadrado del alto del tamaño, fantasma sin borde. */
+  .ebim-icon-btn {
+    @apply inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted
+           transition-colors duration-fast ease-out hover:bg-hover hover:text-fg
+           disabled:cursor-not-allowed disabled:opacity-55;
+  }
+
+  /* Menú y tooltip (§5.15). */
+  .ebim-menu {
+    @apply rounded-card border border-border bg-elevated p-1 text-fg shadow-pop;
+    animation: ebim-rise-in var(--dur-overlay) var(--ease-out);
+  }
+
+  .ebim-menu-item {
+    @apply flex h-9 w-full items-center gap-2.5 rounded-md px-2.5 text-left text-compact text-fg
+           transition-colors duration-fast ease-out hover:bg-hover focus-visible:bg-hover;
+  }
+
+  .ebim-tooltip {
+    @apply pointer-events-none fixed z-50 max-w-[280px] rounded-md border border-border bg-elevated px-2.5 py-2
+           text-caption font-medium text-fg shadow-pop;
+    animation: ebim-fade-in var(--dur-fast) var(--ease-out);
+  }
+
+  /* Tecla de atajo (⌘K, Esc, ↑↓). */
+  .ebim-kbd {
+    @apply inline-flex h-5 min-w-5 items-center justify-center rounded border border-border bg-sunken px-1
+           text-caption font-semibold leading-none text-muted;
+    font-family: inherit;
+  }
+
+  /* Transición de ruta (§7): solo opacidad, 120 ms, no bloquea la interacción. */
+  .ebim-route-enter {
+    animation: ebim-fade-in 120ms var(--ease-out);
+  }
+
+  /* Éxito con check dibujado (comprobante del portal, bienvenida): el círculo
+     y el trazo se dibujan una vez; con prefers-reduced-motion aparecen ya
+     dibujados (abajo). La tarjeta que lo contiene entra con ebim-rise-in. */
+  .ebim-success-enter {
+    animation: ebim-rise-in var(--dur-overlay) var(--ease-out);
+  }
+
+  .ebim-check-draw circle {
+    stroke-dasharray: 160;
+    stroke-dashoffset: 160;
+    animation: ebim-draw 480ms var(--ease-out) forwards;
+  }
+
+  .ebim-check-draw path {
+    stroke-dasharray: 48;
+    stroke-dashoffset: 48;
+    animation: ebim-draw 320ms var(--ease-out) 380ms forwards;
+  }
+}
+
+@keyframes ebim-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes ebim-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@keyframes ebim-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes ebim-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes ebim-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ebim-skeleton {
+    animation: none;
+  }
+
+  .ebim-check-draw circle,
+  .ebim-check-draw path {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+
+@layer utilities {
+  /* Escala V2 (§2): los niveles grandes usan el corte óptico de titular. */
+  .text-hero,
+  .text-display,
+  .text-kpi,
+  .text-h1,
+  .text-h2 {
+    font-variation-settings: 'opsz' 40;
+  }
+
+  .text-micro {
+    text-transform: uppercase;
+  }
+}
+
+/* ---- Modo presentación (fase 14) ---------------------------------------------------- */
+
+/* Proyectando, todo el texto de la diapositiva sube UN escalón de la escala V2 (§2):
+   micro→caption, caption→compact, compact→body, body→16, h3→h2, h2→h1, h1→kpi, kpi→display, display→hero. */
+.ebim-present-scale .text-display {
+  font-size: 56px;
+  line-height: 60px;
+  letter-spacing: -0.025em;
+}
+.ebim-present-scale .text-kpi {
+  font-size: 40px;
+  line-height: 44px;
+}
+.ebim-present-scale .text-h1 {
+  font-size: 32px;
+  line-height: 38px;
+}
+.ebim-present-scale .text-h2 {
+  font-size: 28px;
+  line-height: 34px;
+}
+.ebim-present-scale .text-h3 {
+  font-size: 20px;
+  line-height: 28px;
+}
+.ebim-present-scale .text-body {
+  font-size: 16px;
+  line-height: 24px;
+}
+.ebim-present-scale .text-compact {
+  font-size: 14px;
+  line-height: 22px;
+}
+.ebim-present-scale .text-caption {
+  font-size: 13px;
+  line-height: 20px;
+}
+.ebim-present-scale .text-micro {
+  font-size: 12px;
+  line-height: 16px;
+}
+
+/* Impresión / PDF: A4 apaisado, sin menús, una sección por página. Los colores de
+   los gráficos se imprimen tal cual (el tema claro se fuerza al imprimir). */
+@page {
+  size: A4 landscape;
+  margin: 10mm;
+}
+
+@media print {
+  html,
+  body {
+    background: var(--card) !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  [data-print-hide] {
+    display: none !important;
+  }
+
+  .ebim-card {
+    box-shadow: none;
+    break-inside: avoid;
+  }
+
+  /* Los gráficos se midieron con el ancho de la pantalla: en papel escalan por su viewBox
+     en lugar de salirse de la tarjeta. Los tooltips no se imprimen. */
+  .recharts-responsive-container > div,
+  .recharts-wrapper {
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  .recharts-surface {
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  .recharts-tooltip-wrapper {
+    display: none !important;
+  }
+
+  /* En modo presentación solo se imprime la presentación, en flujo normal. */
+  html.ebim-presenting #root {
+    display: none !important;
+  }
+
+  html.ebim-presenting body {
+    overflow: visible !important;
+  }
+
+  .ebim-presentation {
+    position: static !important;
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .ebim-presentation-stage {
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  .ebim-slide {
+    break-after: page;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  .ebim-slide:last-child {
+    break-after: auto;
   }
 }

@@ -8,6 +8,7 @@ import { TextField, FieldRow } from '@/components/ui/fields';
 import { businessErrorMessage } from '@/lib/pgError';
 import { supabase } from '@/lib/supabase';
 import { passwordProblem } from '@/features/auth/welcomeSession';
+import { Avatar } from '@/components/ui/Avatar';
 
 /**
  * M5 · Configuración → «Mi perfil».
@@ -51,12 +52,19 @@ export function MyProfilePanel() {
     }
   }
 
-  if (profile.isLoading) return <LoadingState label="Cargando tu perfil…" />;
+  if (profile.isLoading) return <LoadingState variant="card" label="Cargando tu perfil…" />;
   if (profile.error) return <ErrorState error={profile.error} onRetry={() => void profile.refetch()} />;
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <Card title="Mis datos" description="Tu correo y tus roles los administra el equipo de plataforma.">
+        <div className="flex items-center gap-4 border-b border-border px-4 py-4">
+          <Avatar name={fullName || (profile.data?.email ?? roles?.email ?? '—')} mode="person" size="lg" />
+          <div className="min-w-0">
+            <p className="truncate text-h3 text-fg">{fullName || 'Sin nombre'}</p>
+            <p className="truncate text-compact text-muted">{profile.data?.email ?? roles?.email ?? ''}</p>
+          </div>
+        </div>
         <form className="grid gap-4 p-4" onSubmit={(e) => void saveProfile(e)} aria-label="Mis datos">
           <TextField label="Correo" value={profile.data?.email ?? roles?.email ?? ''} disabled readOnly />
           <TextField label="Nombre completo" required value={fullName} onChange={(e) => setFullName(e.target.value)} />
@@ -67,7 +75,7 @@ export function MyProfilePanel() {
               onChange={(e) => setJobTitle(e.target.value)} />
           </FieldRow>
           {update.error ? (
-            <p role="alert" className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">
+            <p role="alert" className="rounded-field bg-danger-soft px-3 py-2 text-compact text-danger">
               {businessErrorMessage(update.error)}
             </p>
           ) : null}
@@ -132,7 +140,7 @@ function ChangePasswordCard({ email }: { email: string }) {
         <TextField label="Repite la nueva contraseña" type="password" autoComplete="new-password" value={confirm}
           onChange={(e) => setConfirm(e.target.value)} />
         {error ? (
-          <p role="alert" className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">
+          <p role="alert" className="rounded-field bg-danger-soft px-3 py-2 text-compact text-danger">
             {error}
           </p>
         ) : null}

@@ -12,9 +12,11 @@ export function NotFoundPage() {
     <PageContainer title="Página no encontrada">
       <Card>
         <div className="flex flex-col items-center px-4 py-14 text-center">
-          <CompassIcon size={36} aria-hidden className="text-muted" />
-          <p className="mt-3 text-sm font-semibold text-fg">404 · Esta ruta no existe en la consola</p>
-          <p className="mx-auto mt-1 max-w-md text-sm text-muted">
+          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-accent-soft text-accent-deep">
+            <CompassIcon size={32} aria-hidden />
+          </span>
+          <p className="mt-4 text-h2 text-fg">404 · Esta ruta no existe en la consola</p>
+          <p className="mx-auto mt-1 max-w-md text-body text-fg-2">
             Puede que el enlace esté desactualizado o que la sección haya cambiado de nombre. Usa el
             menú lateral o vuelve al inicio.
           </p>

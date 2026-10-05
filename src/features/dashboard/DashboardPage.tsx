@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { hasFinanceView } from '@/app/navigation';
 import { useAttributions, usePartnerMargin, useTenantOverview } from '@/services/queries';
@@ -19,6 +19,9 @@ import { ExecutivePerspective } from './ExecutivePerspective';
 import { FinancePerspective } from './FinancePerspective';
 import { OperationsPerspective } from './OperationsPerspective';
 import { collectedInMonth, monthRange, periodLabel, renewalsInWindow, useReportContextParams } from './executiveData';
+import { ExecutivePresentation } from './presentation/ExecutivePresentation';
+import { isPresentationParam, PRESENTATION_PARAM } from './presentation/presentationModel';
+import { usePrintInLightTheme } from './presentation/theme';
 
 /**
  * Inicio adaptado al perfil.
@@ -30,6 +33,7 @@ import { collectedInMonth, monthRange, periodLabel, renewalsInWindow, useReportC
  */
 export function DashboardPage() {
   const { persona, roles } = useAuth();
+  const [params] = useSearchParams();
 
   if (persona === 'SALES_AGENT') return <CommercialDashboard />;
   if (persona === 'PARTNER') return <PartnerDashboard orgName={roles?.organizations[0]?.displayName} />;
@@ -41,7 +45,10 @@ export function DashboardPage() {
       </PageContainer>
     );
   }
-  return <ExecutiveHome />;
+  // Modo presentación (fase 14): solo personal EBIM con vista financiera; para el resto el parámetro no hace nada.
+  const canPresent = persona === 'EBIM';
+  if (canPresent && isPresentationParam(params.get(PRESENTATION_PARAM))) return <ExecutivePresentation />;
+  return <ExecutiveHome canPresent={canPresent} />;
 }
 
 function ReportContextBar({ ctx, months, setMonth, setFxDate }: ReturnType<typeof useReportContextParams>) {
@@ -83,25 +90,32 @@ function ReportContextBar({ ctx, months, setMonth, setFxDate }: ReturnType<typeo
   );
 }
 
-function ExecutiveHome() {
-  const report = useReportContextParams();
-  const openOperations = () => {
-    window.location.hash = 'operacion';
-  };
+function ExecutiveHome({ canPresent }: { canPresent: boolean }) {
+  usePrintInLightTheme();
   return (
     <PageContainer
       title="Resumen ejecutivo"
-      description="Cartera, cobros, riesgos y operación de la suite. Cada cifra abre el detalle que la compone."
+      description="Cuánto factura el negocio, si crece, de dónde viene el crecimiento, si se cobra y qué requiere atención. Cada cifra abre el detalle que la compone."
     >
-      <ReportContextBar {...report} />
       <SectionTabs
         tabs={[
-          { id: 'ejecutivo', label: 'Ejecutivo', content: <ExecutivePerspective ctx={report.ctx} onOpenOperations={openOperations} /> },
-          { id: 'finanzas', label: 'Finanzas', content: <FinancePerspective ctx={report.ctx} /> },
+          { id: 'ejecutivo', label: 'Ejecutivo', content: <ExecutivePerspective canPresent={canPresent} /> },
+          { id: 'finanzas', label: 'Finanzas', content: <FinanceTab /> },
           { id: 'operacion', label: 'Operación SaaS', content: <OperationsPerspective /> },
         ]}
       />
     </PageContainer>
+  );
+}
+
+/** Finanzas conserva su contexto de período y fecha FX (movimientos en moneda nativa). */
+function FinanceTab() {
+  const report = useReportContextParams();
+  return (
+    <>
+      <ReportContextBar {...report} />
+      <FinancePerspective ctx={report.ctx} />
+    </>
   );
 }
 

@@ -62,18 +62,42 @@ function renderPage() {
 }
 
 describe('AuditPage', () => {
-  it('la tabla no muestra JSON como celda principal', () => {
+  it('la línea de tiempo no muestra JSON como contenido principal', () => {
     renderPage();
-    const table = screen.getByRole('table', { name: 'Eventos de auditoría' });
-    expect(table.textContent).not.toMatch(/[{}]/);
-    expect(within(table).getByText('1 campo modificado')).toBeInTheDocument();
-    expect(within(table).getByText('corr-abc')).toBeInTheDocument();
+    const timeline = screen.getByRole('list', { name: 'Eventos de auditoría' });
+    expect(timeline.textContent).not.toMatch(/[{}]/);
+    expect(within(timeline).getByText('1 campo modificado')).toBeInTheDocument();
+    expect(within(timeline).getByText('corr-abc')).toBeInTheDocument();
     expect(screen.queryByText(/Metadata técnica/)).not.toBeInTheDocument();
+  });
+
+  it('agrupa por día y dice quién, qué y cuándo con un icono por tipo', () => {
+    renderPage();
+    const timeline = screen.getByRole('list', { name: 'Eventos de auditoría' });
+    const days = within(timeline).getAllByRole('listitem').filter((el) => el.tagName === 'SECTION');
+    expect(days).toHaveLength(2);
+    expect(within(timeline).getByText('ops@ebim.test')).toBeInTheDocument();
+    // Sin actor = la base o un proceso: «Sistema», nunca vacío.
+    expect(within(timeline).getByText('Sistema')).toBeInTheDocument();
+    expect(timeline.querySelectorAll('time[datetime]')).toHaveLength(2);
+    expect(timeline.querySelectorAll('[data-audit-kind]')).toHaveLength(2);
+  });
+
+  it('el detalle se despliega bajo su evento y se vuelve a plegar', () => {
+    renderPage();
+    const button = screen.getAllByRole('button', { name: /Ver detalle/ })[0]!;
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(button);
+    expect(button).toHaveAttribute('aria-expanded', 'true');
+    const panel = document.getElementById(button.getAttribute('aria-controls')!)!;
+    expect(within(panel).getByRole('table', { name: 'Diferencias antes y después' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Ocultar/ }));
+    expect(screen.queryByRole('table', { name: 'Diferencias antes y después' })).not.toBeInTheDocument();
   });
 
   it('con antes y después muestra el diff; el JSON queda en un detalle plegado', () => {
     renderPage();
-    fireEvent.click(screen.getAllByRole('button', { name: 'Ver detalle' })[0]!);
+    fireEvent.click(screen.getAllByRole('button', { name: /Ver detalle/ })[0]!);
     const diff = screen.getByRole('table', { name: 'Diferencias antes y después' });
     expect(within(diff).getByText('old.aud')).toBeInTheDocument();
     expect(within(diff).getByText('new.aud')).toBeInTheDocument();
@@ -83,7 +107,7 @@ describe('AuditPage', () => {
 
   it('sin «antes» no fabrica un diff y oculta la referencia de secreto', () => {
     renderPage();
-    fireEvent.click(screen.getAllByRole('button', { name: 'Ver detalle' })[1]!);
+    fireEvent.click(screen.getAllByRole('button', { name: /Ver detalle/ })[1]!);
     expect(screen.queryByRole('table', { name: 'Diferencias antes y después' })).not.toBeInTheDocument();
     expect(screen.getByTestId('audit-no-diff')).toBeInTheDocument();
     expect(document.body.textContent).not.toContain('VAULT_NAME');

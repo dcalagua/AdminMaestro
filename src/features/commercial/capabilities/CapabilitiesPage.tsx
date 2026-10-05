@@ -121,22 +121,22 @@ export function CapabilitiesPage() {
               ['Alias', lastImport.aliases],
             ].map(([k, v]) => (
               <div key={k as string}>
-                <dt className="text-[11px] font-bold uppercase tracking-wider text-muted">{k as string}</dt>
+                <dt className="text-micro text-muted">{k as string}</dt>
                 <dd className="mt-1 text-xl font-bold tabular-nums">{v === undefined || v === null ? '—' : String(v)}</dd>
               </div>
             ))}
           </dl>
           <div className="border-t border-border px-4 py-3">
             {(lastImport.missing ?? []).length === 0 ? (
-              <p className="text-sm text-ok">Sin drift: el registro y el manifiesto coinciden.</p>
+              <p className="text-compact text-ok">Sin drift: el registro y el manifiesto coinciden.</p>
             ) : (
               <div role="status">
-                <p className="text-sm font-semibold text-warn">
+                <p className="text-compact font-semibold text-warn">
                   Drift de registro: {(lastImport.missing ?? []).length} capacidad(es) registradas que el manifiesto ya no declara
                 </p>
                 <ul className="mt-1 flex flex-wrap gap-1.5">
                   {(lastImport.missing ?? []).map((m) => (
-                    <li key={missingCode(m)} className="font-mono text-xs">
+                    <li key={missingCode(m)} className="font-mono text-compact">
                       <Badge tone="warn">{missingCode(m)}</Badge>
                     </li>
                   ))}
@@ -176,7 +176,7 @@ export function CapabilitiesPage() {
         ) : (
           groups.map((g) => (
             <section key={g.id} aria-label={g.label}>
-              <h2 className="border-b border-border bg-[color:var(--bg)] px-4 py-2 text-sm font-bold text-fg">
+              <h2 className="border-b border-border bg-sunken px-5 py-2.5 text-h3 text-fg">
                 {g.label} <span className="ml-1 font-normal text-muted tabular-nums">{g.rows.length}</span>
               </h2>
               <DataTable columns={['Capacidad', 'Tipo', 'Estado', 'Alcance', 'Combinación', 'Unidad / medidor', 'Alias']}>
@@ -187,27 +187,27 @@ export function CapabilitiesPage() {
                         <span className="font-semibold">{c.name}</span>
                         {c.is_baseline ? <Badge tone="info">Incluida en base</Badge> : null}
                       </div>
-                      <div className="font-mono text-[11px] text-muted">{c.code}</div>
+                      <div className="whitespace-nowrap font-mono text-caption text-muted">{c.code}</div>
                     </td>
                     <td className="ebim-td">
-                      <Badge tone="accent">{label(KIND_LABEL, c.kind)}</Badge>
+                      <Badge tone="neutral">{label(KIND_LABEL, c.kind)}</Badge>
                     </td>
                     <td className="ebim-td">
-                      <Badge tone={statusTone(c.status)}>{label(STATUS_LABEL, c.status)}</Badge>
+                      <Badge tone={statusTone(c.status)} dot>{label(STATUS_LABEL, c.status)}</Badge>
                     </td>
-                    <td className="ebim-td text-xs">{label(SCOPE_LABEL, c.scope_level)}</td>
-                    <td className="ebim-td text-xs">{label(COMBINE_LABEL, c.combine_rule)}</td>
-                    <td className="ebim-td text-xs">
+                    <td className="ebim-td text-compact">{label(SCOPE_LABEL, c.scope_level)}</td>
+                    <td className="ebim-td text-compact">{label(COMBINE_LABEL, c.combine_rule)}</td>
+                    <td className="ebim-td text-compact">
                       {c.unit ?? '—'}
-                      {c.meter_code ? <div className="font-mono text-[11px] text-muted">{c.meter_code}</div> : null}
+                      {c.meter_code ? <div className="whitespace-nowrap font-mono text-caption text-muted">{c.meter_code}</div> : null}
                     </td>
                     <td className="ebim-td">
                       {c.aliases.length === 0 ? (
-                        <span className="text-xs text-muted">—</span>
+                        <span className="text-compact text-muted">—</span>
                       ) : (
                         <ul className="space-y-0.5">
                           {c.aliases.map((a) => (
-                            <li key={a.id} className="text-xs">
+                            <li key={a.id} className="text-compact">
                               <span className="font-mono">{a.alias_code}</span>
                               <span className="text-muted"> · {a.alias_source}</span>
                             </li>

@@ -1,5 +1,6 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { CheckCircleIcon, InfoIcon, WarningCircleIcon, XIcon } from '@phosphor-icons/react';
 import { ToastContext } from './toast-context';
 import type { ToastApi, ToastTone } from './toast-context';
 
@@ -11,7 +12,9 @@ import type { ToastApi, ToastTone } from './toast-context';
  * así que no había ningún canal para el "éxito" ni para el error de negocio.
  *
  * Deliberadamente minimalista: sin librería de notificaciones, sin portales
- * anidados, tokens de color del tema.
+ * anidados, tokens de color del tema. Anatomía en VISUAL_SYSTEM_V2 §5.11:
+ * abajo a la derecha, máximo 3 visibles, barra e icono del rol, autocierre a
+ * los 6 s que se pausa mientras el puntero o el foco están encima.
  */
 
 interface Toast {
@@ -22,6 +25,58 @@ interface Toast {
 }
 
 const AUTO_DISMISS_MS = 6000;
+const MAX_VISIBLE = 3;
+
+const TONES: Record<ToastTone, { bar: string; icon: string; Icon: typeof CheckCircleIcon }> = {
+  success: { bar: 'bg-ok', icon: 'text-ok', Icon: CheckCircleIcon },
+  error: { bar: 'bg-danger', icon: 'text-danger', Icon: WarningCircleIcon },
+  info: { bar: 'bg-info', icon: 'text-info', Icon: InfoIcon },
+};
+
+function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number) => void }) {
+  const [paused, setPaused] = useState(false);
+  const remaining = useRef(AUTO_DISMISS_MS);
+
+  // Los errores también se auto-cierran: quedarse pegados obliga a limpiar la
+  // pantalla a mano y acaba entrenando a la gente para ignorarlos. Pero nunca
+  // mientras alguien los está leyendo (puntero o foco encima).
+  useEffect(() => {
+    if (paused) return;
+    const started = Date.now();
+    const timer = window.setTimeout(() => onDismiss(toast.id), remaining.current);
+    return () => {
+      window.clearTimeout(timer);
+      remaining.current = Math.max(1000, remaining.current - (Date.now() - started));
+    };
+  }, [paused, toast.id, onDismiss]);
+
+  const t = TONES[toast.tone];
+  return (
+    <div
+      role={toast.tone === 'error' ? 'alert' : 'status'}
+      className="ebim-toast pointer-events-auto relative flex items-start gap-3 overflow-hidden rounded-card border border-border bg-elevated py-3 pl-4 pr-2 shadow-pop"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={() => setPaused(false)}
+    >
+      <span className={`absolute inset-y-0 left-0 w-[3px] ${t.bar}`} aria-hidden />
+      <t.Icon size={20} weight="fill" className={`mt-px shrink-0 ${t.icon}`} aria-hidden />
+      <div className="min-w-0 flex-1">
+        <p className="text-compact font-semibold text-fg">{toast.title}</p>
+        {toast.detail ? <p className="mt-0.5 break-words text-caption text-fg-2">{toast.detail}</p> : null}
+      </div>
+      <button
+        type="button"
+        className="ebim-icon-btn h-7 w-7"
+        aria-label="Cerrar aviso"
+        onClick={() => onDismiss(toast.id)}
+      >
+        <XIcon size={14} weight="bold" aria-hidden />
+      </button>
+    </div>
+  );
+}
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -31,16 +86,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((current) => current.filter((t) => t.id !== id));
   }, []);
 
-  const push = useCallback(
-    (tone: ToastTone, title: string, detail?: string) => {
-      const id = nextId.current++;
-      setToasts((current) => [...current, { id, tone, title, detail }]);
-      // Los errores también se auto-cierran: quedarse pegados obliga a limpiar la
-      // pantalla a mano y acaba entrenando a la gente para ignorarlos.
-      window.setTimeout(() => dismiss(id), AUTO_DISMISS_MS);
-    },
-    [dismiss],
-  );
+  const push = useCallback((tone: ToastTone, title: string, detail?: string) => {
+    const id = nextId.current++;
+    setToasts((current) => [...current, { id, tone, title, detail }]);
+  }, []);
 
   const api = useMemo<ToastApi>(
     () => ({
@@ -55,37 +104,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={api}>
       {children}
       <div
-        className="pointer-events-none fixed bottom-4 right-4 z-[60] flex w-full max-w-sm flex-col gap-2"
+        className="pointer-events-none fixed bottom-6 right-6 z-[60] flex w-[360px] max-w-[calc(100vw-3rem)] flex-col gap-2"
         aria-live="polite"
         aria-atomic="false"
       >
-        {toasts.map((t) => (
-          <div
-            key={t.id}
-            role={t.tone === 'error' ? 'alert' : 'status'}
-            className={`ebim-card pointer-events-auto flex items-start gap-3 p-3 shadow-pop ${
-              t.tone === 'error'
-                ? 'border-l-4 border-l-danger'
-                : t.tone === 'success'
-                  ? 'border-l-4 border-l-ok'
-                  : 'border-l-4 border-l-info'
-            }`}
-          >
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-fg">{t.title}</p>
-              {t.detail ? <p className="mt-0.5 break-words text-xs text-muted">{t.detail}</p> : null}
-            </div>
-            <button
-              type="button"
-              className="shrink-0 rounded p-1 text-muted hover:bg-accent-soft"
-              aria-label="Cerrar aviso"
-              onClick={() => dismiss(t.id)}
-            >
-              <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-                <path d="m3 3 10 10M13 3 3 13" strokeLinecap="round" />
-              </svg>
-            </button>
-          </div>
+        {toasts.slice(-MAX_VISIBLE).map((t) => (
+          <ToastItem key={t.id} toast={t} onDismiss={dismiss} />
         ))}
       </div>
     </ToastContext.Provider>

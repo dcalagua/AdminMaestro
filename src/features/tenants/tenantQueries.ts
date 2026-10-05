@@ -68,3 +68,12 @@ export function useTenantAudit(tenantId: string | undefined) {
       ),
   });
 }
+
+/** Contratos del tenant en el pipeline de renovación (banderas de deuda y suspensión). */
+export function useTenantRenewals(tenantId: string | undefined) {
+  return useQuery({
+    queryKey: ['tenant360', tenantId, 'renewals'],
+    enabled: Boolean(tenantId),
+    queryFn: async () => unwrap(await supabase.from('v_renewal_pipeline').select('*').eq('tenant_id', tenantId!)),
+  });
+}

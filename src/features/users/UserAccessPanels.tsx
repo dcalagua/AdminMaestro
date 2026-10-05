@@ -21,6 +21,7 @@ import {
 } from './userModel';
 import { useAccessOptions } from './accessOptions';
 import type { useUserAdminScope } from './useUserAdminScope';
+import { AuditTimeline } from '@/features/settings/AuditTimeline';
 
 type Scope = ReturnType<typeof useUserAdminScope>;
 
@@ -80,7 +81,7 @@ export function ProfilePanel({ user, scope }: { user: AdminUser; scope: Scope })
               <TextField label="Cargo" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} />
             </FieldRow>
             {update.error ? (
-              <p role="alert" className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">
+              <p role="alert" className="rounded-lg bg-danger-soft px-3 py-2 text-body text-danger">
                 {businessErrorMessage(update.error)}
               </p>
             ) : null}
@@ -93,7 +94,7 @@ export function ProfilePanel({ user, scope }: { user: AdminUser; scope: Scope })
         ) : (
           <dl className="divide-y divide-border">
             {[['Nombre', user.fullName ?? '—'], ['Teléfono', user.phone ?? '—'], ['Cargo', user.jobTitle ?? '—']].map(([k, v]) => (
-              <div key={k} className="flex justify-between gap-4 px-4 py-2.5 text-sm">
+              <div key={k} className="flex justify-between gap-4 px-4 py-2.5 text-body">
                 <dt className="text-muted">{k}</dt>
                 <dd className="text-right font-medium">{v}</dd>
               </div>
@@ -104,14 +105,14 @@ export function ProfilePanel({ user, scope }: { user: AdminUser; scope: Scope })
       <Card title="Cuenta" description="El correo es la identidad: no se edita desde la consola.">
         <dl className="divide-y divide-border">
           {facts.map(([k, v]) => (
-            <div key={k} className="flex justify-between gap-4 px-4 py-2.5 text-sm">
+            <div key={k} className="flex justify-between gap-4 px-4 py-2.5 text-body">
               <dt className="text-muted">{k}</dt>
               <dd className="text-right font-medium">{v}</dd>
             </div>
           ))}
         </dl>
         {(invitations.data ?? []).length > 0 ? (
-          <div className="border-t border-border px-4 py-3 text-xs text-muted">
+          <div className="border-t border-border px-4 py-3 text-caption text-muted">
             {(invitations.data ?? []).map((i) => (
               <div key={i.id}>
                 {formatDateTime(i.created_at)} · {i.delivery === 'EMAIL' ? 'por correo' : 'enlace copiado'} ·{' '}
@@ -157,7 +158,7 @@ export function ConsoleRolePanel({ user }: { user: AdminUser }) {
       description="Da acceso a la consola EBIM entera según el rol. Invisible y no asignable desde la UI de un tenant (S-03)."
     >
       <div className="grid gap-4 p-4">
-        <p className="text-sm">
+        <p className="text-body">
           Rol actual:{' '}
           {active && user.platformRole ? (
             <Badge tone="accent">{PLATFORM_ROLE_LABEL[user.platformRole]}</Badge>
@@ -188,7 +189,7 @@ export function ConsoleRolePanel({ user }: { user: AdminUser }) {
             </button>
           ) : null}
         </form>
-        {grant.error ? <p role="alert" className="text-sm text-danger">{businessErrorMessage(grant.error)}</p> : null}
+        {grant.error ? <p role="alert" className="text-body text-danger">{businessErrorMessage(grant.error)}</p> : null}
       </div>
       <RevokeWithReasonDialog
         open={revoking}
@@ -255,13 +256,13 @@ export function OrganizationsPanel({ user, scope }: { user: AdminUser; scope: Sc
               <td className="ebim-td text-right">
                 {canManage(m.organization_id, m.role) ? (
                   m.is_active ? (
-                    <button type="button" className="ebim-link text-[13px]" onClick={() => setDeactivating(m.id)}>
+                    <button type="button" className="ebim-link text-compact" onClick={() => setDeactivating(m.id)}>
                       Desactivar
                     </button>
                   ) : user.isActive ? (
                     <button
                       type="button"
-                      className="ebim-link text-[13px]"
+                      className="ebim-link text-compact"
                       onClick={() =>
                         void setActive
                           .mutateAsync({ p_membership_id: m.id, p_active: true, p_reason: 'Reactivada desde la ficha' })
@@ -365,13 +366,13 @@ export function TenantsPanel({ user, scope }: { user: AdminUser; scope: Scope })
               <td className="ebim-td text-right">
                 {canManage(t.tenant_id) ? (
                   t.is_active ? (
-                    <button type="button" className="ebim-link text-[13px]" onClick={() => setDeactivating(t.id)}>
+                    <button type="button" className="ebim-link text-compact" onClick={() => setDeactivating(t.id)}>
                       Desactivar
                     </button>
                   ) : user.isActive ? (
                     <button
                       type="button"
-                      className="ebim-link text-[13px]"
+                      className="ebim-link text-compact"
                       onClick={() =>
                         void setActive
                           .mutateAsync({ p_membership_id: t.id, p_active: true, p_reason: 'Reactivada desde la ficha' })
@@ -458,13 +459,13 @@ export function ProvisioningPanel({ user, scope }: { user: AdminUser; scope: Sco
             {user.provisioningRoles.map((r) => (
               <tr key={r.id}>
                 <td className="ebim-td font-semibold">{PROVISIONING_ROLE_LABEL[r.role] ?? r.role}</td>
-                <td className="ebim-td text-xs text-muted">{formatDate(r.granted_at)}</td>
+                <td className="ebim-td text-caption text-muted">{formatDate(r.granted_at)}</td>
                 <td className="ebim-td"><ActiveBadge active={r.is_active} /></td>
                 <td className="ebim-td text-right">
                   {scope.isSuperAdmin && r.is_active ? (
                     <button
                       type="button"
-                      className="ebim-link text-[13px]"
+                      className="ebim-link text-compact"
                       onClick={() =>
                         void revoke
                           .mutateAsync({ p_id: r.id })
@@ -496,7 +497,7 @@ export function ProvisioningPanel({ user, scope }: { user: AdminUser; scope: Sco
               options={GRANTABLE_PROVISIONING.map((r) => ({ value: r, label: PROVISIONING_ROLE_LABEL[r] }))}
               onChange={(e) => setRole(e.target.value as ProvisioningRole)} />
             <button type="submit" className="ebim-btn-primary" disabled={grant.isPending}>Otorgar</button>
-            {grant.error ? <p role="alert" className="w-full text-sm text-danger">{businessErrorMessage(grant.error)}</p> : null}
+            {grant.error ? <p role="alert" className="w-full text-body text-danger">{businessErrorMessage(grant.error)}</p> : null}
           </form>
         ) : null}
       </Card>
@@ -537,10 +538,10 @@ export function SalesAgentPanel({ user }: { user: AdminUser }) {
     >
       <div className="grid gap-4 p-4">
         {user.salesAgent ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3 text-body">
             <span>
               Vinculado a <strong>{user.salesAgent.full_name}</strong>{' '}
-              <span className="font-mono text-xs text-muted">({user.salesAgent.code})</span>
+              <span className="font-mono text-caption text-muted">({user.salesAgent.code})</span>
             </span>
             <button
               type="button"
@@ -581,7 +582,7 @@ export function SalesAgentPanel({ user }: { user: AdminUser }) {
             </button>
           </form>
         )}
-        {link.error ? <p role="alert" className="text-sm text-danger">{businessErrorMessage(link.error)}</p> : null}
+        {link.error ? <p role="alert" className="text-body text-danger">{businessErrorMessage(link.error)}</p> : null}
       </div>
     </Card>
   );
@@ -602,22 +603,17 @@ export function ActivityPanel({ userId }: { userId: string }) {
       ) : (activity.data ?? []).length === 0 ? (
         <EmptyState title="Sin actividad registrada" />
       ) : (
-        <DataTable columns={['Fecha', 'Acción', 'Por', 'Detalle']}>
-          {(activity.data ?? []).map((a) => {
+        <AuditTimeline
+          label="Actividad del usuario"
+          rows={(activity.data ?? []).map((a) => ({ ...a, entity_type: a.entity_type ?? null }))}
+          showSummary={false}
+          actionLabel={activityLabel}
+          actorOf={(a) => (a.actor_user_id === userId ? 'La propia persona' : (a.actor_email ?? 'Sistema'))}
+          extraOf={(a) => {
             const meta = (a.metadata ?? {}) as Record<string, unknown>;
-            const detail = [meta.role, meta.reason].filter((x) => typeof x === 'string' && x !== '').join(' · ');
-            return (
-              <tr key={a.id}>
-                <td className="ebim-td whitespace-nowrap text-xs text-muted">{formatDateTime(a.occurred_at)}</td>
-                <td className="ebim-td font-semibold">{activityLabel(a.action)}</td>
-                <td className="ebim-td text-xs text-muted">
-                  {a.actor_user_id === userId ? 'La propia persona' : (a.actor_email ?? 'Sistema')}
-                </td>
-                <td className="ebim-td text-xs text-muted">{detail || '—'}</td>
-              </tr>
-            );
-          })}
-        </DataTable>
+            return [meta.role, meta.reason].filter((x) => typeof x === 'string' && x !== '').join(' · ') || null;
+          }}
+        />
       )}
     </Card>
   );

@@ -3,6 +3,8 @@ import {
   Card, Badge, DataTable, EmptyState, LoadingState, ErrorState, SearchBar,
 } from '@/components/ui/primitives';
 import { FormDialog } from '@/components/ui/FormDialog';
+import { ActionMenu } from '@/components/ui/ActionMenu';
+import { StatusTabs } from '@/components/ui/SectionTabs';
 import { SelectField, NumberField, TextField, TextAreaField, FieldRow } from '@/components/ui/fields';
 import { useToast } from '@/components/ui/toast-context';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -54,7 +56,7 @@ export function ExchangeRatesPanel() {
 
   return (
     <div className="space-y-4">
-      <p className="rounded-lg bg-info-soft px-3 py-2 text-xs text-info">
+      <p className="rounded-card bg-info-soft px-4 py-2.5 text-compact text-info">
         <strong>Solo reporting.</strong> Un tipo de cambio da equivalentes gerenciales en la moneda de
         reporte; nunca convierte ni reescribe un documento. Fuente inicial: MANUAL. Sin una tasa, el
         consolidado marca la conversión como faltante en vez de inventarla.
@@ -76,20 +78,15 @@ export function ExchangeRatesPanel() {
           onChange={setTerm}
           placeholder="Buscar por moneda, fecha o nota…"
           right={
-            <div role="tablist" aria-label="Estado de las tasas" className="flex gap-1">
-              {(['ACTIVE', 'ALL'] as const).map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  role="tab"
-                  aria-selected={tab === t}
-                  className={tab === t ? 'ebim-btn-primary' : 'ebim-btn-ghost'}
-                  onClick={() => setTab(t)}
-                >
-                  {t === 'ACTIVE' ? 'Vigentes' : 'Historial completo'}
-                </button>
-              ))}
-            </div>
+            <StatusTabs
+              label="Estado de las tasas"
+              value={tab}
+              onChange={setTab}
+              options={[
+                { id: 'ACTIVE' as const, label: 'Vigentes', count: filtered.filter((r) => r.status === 'ACTIVE').length },
+                { id: 'ALL' as const, label: 'Historial completo', count: filtered.length },
+              ]}
+            />
           }
         />
         {rates.isLoading ? (
@@ -102,13 +99,13 @@ export function ExchangeRatesPanel() {
             description="Mientras no haya tasas, el consolidado muestra los importes por moneda y advierte las conversiones faltantes."
           />
         ) : (
-          <DataTable columns={['Fecha', 'Tasa', 'Fuente', 'Estado', 'Notas', '']}>
+          <DataTable label="Tipos de cambio" columns={['Fecha', 'Tasa', 'Fuente', 'Estado', 'Notas', { label: 'Acciones', srOnly: true }]}>
             {rows.map((r) => {
               const status = r.status as RateStatus;
               return (
                 <tr key={r.id}>
                   <td className="ebim-td whitespace-nowrap">{formatDate(r.rate_date)}</td>
-                  <td className="ebim-td whitespace-nowrap font-mono text-sm">
+                  <td className="ebim-td whitespace-nowrap font-mono text-compact tabular-nums">
                     1 {r.base_currency} = {formatRate(r.rate)} {r.quote_currency}
                   </td>
                   <td className="ebim-td">
@@ -119,20 +116,26 @@ export function ExchangeRatesPanel() {
                   </td>
                   <td className="ebim-td">
                     <Badge tone={STATUS_TONE[status]}>{STATUS_LABEL[status]}</Badge>
-                    {r.status_reason ? <div className="mt-0.5 text-xs text-muted">{r.status_reason}</div> : null}
+                    {r.status_reason ? <div className="mt-0.5 text-caption text-muted">{r.status_reason}</div> : null}
                   </td>
-                  <td className="ebim-td text-xs text-muted">{r.notes ?? '—'}</td>
-                  <td className="ebim-td text-right">
+                  <td className="ebim-td">
+                    <span className="block max-w-[280px] truncate text-compact text-fg-2" title={r.notes ?? undefined}>
+                      {r.notes ?? '—'}
+                    </span>
+                  </td>
+                  <td className="ebim-td w-12 text-right">
                     {canWrite && status === 'ACTIVE' ? (
-                      <button
-                        type="button"
-                        className="ebim-link text-[13px]"
-                        onClick={() =>
-                          setVoiding({ id: r.id, label: `1 ${r.base_currency} = ${formatRate(r.rate)} ${r.quote_currency} (${r.rate_date})` })
-                        }
-                      >
-                        Anular
-                      </button>
+                      <ActionMenu
+                        label={`Acciones de la tasa 1 ${r.base_currency} = ${formatRate(r.rate)} ${r.quote_currency} del ${formatDate(r.rate_date)}`}
+                        items={[
+                          {
+                            label: 'Anular tasa…',
+                            tone: 'danger',
+                            onSelect: () =>
+                              setVoiding({ id: r.id, label: `1 ${r.base_currency} = ${formatRate(r.rate)} ${r.quote_currency} (${r.rate_date})` }),
+                          },
+                        ]}
+                      />
                     ) : null}
                   </td>
                 </tr>
@@ -219,7 +222,7 @@ function PublishRateDialog({
         />
       </FieldRow>
       {base && quote && Number(rate) > 0 && base !== quote ? (
-        <p className="rounded-lg bg-accent-soft px-3 py-2 text-sm text-accent-deep">
+        <p className="rounded-lg bg-accent-soft px-3 py-2 text-body text-accent-deep">
           1 {base} = {rate} {quote}
         </p>
       ) : null}
@@ -295,7 +298,7 @@ function ConversionTester({ currencies }: { currencies: string[] }) {
         <NumberField label="Antigüedad máx. (días)" min={0} max={366} value={maxAge} onChange={(e) => setMaxAge(e.target.value)} />
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
-        <div className="text-sm" aria-live="polite" data-testid="fx-test-result">
+        <div className="text-body" aria-live="polite" data-testid="fx-test-result">
           {error ? (
             <span className="text-danger">{businessErrorMessage(error)}</span>
           ) : result ? (

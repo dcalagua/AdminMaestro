@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { CheckCircleIcon, MinusCircleIcon } from '@phosphor-icons/react';
 import { useAllFeatureFlags } from '@/services/queries';
 import { useSearchFilter } from '@/hooks/useSearchFilter';
@@ -90,7 +91,7 @@ export function FeatureFlagsPage() {
             }
           />
         ) : (
-          <DataTable columns={['Capacidad', 'Tenant', 'Producto', 'Origen', 'Estado', 'Actualizado']}>
+          <DataTable columns={['Capacidad', 'Tenant', 'Origen', 'Estado', 'Actualizado']}>
             {visible.map((f) => {
               const tenant = f.tenants as { name: string; slug: string; saas_products: { short_name: string } | null } | null;
               const src = sourceOf(f.source);
@@ -98,25 +99,33 @@ export function FeatureFlagsPage() {
                 <tr key={`${f.tenant_id}-${f.feature_key}`}>
                   <td className="ebim-td">
                     <div className="font-semibold">{humanize(f.feature_key)}</div>
-                    <div className="font-mono text-[11px] text-muted">{f.feature_key}</div>
+                    <div className="whitespace-nowrap font-mono text-caption text-muted">{f.feature_key}</div>
                   </td>
-                  <td className="ebim-td">{tenant?.name ?? '—'}</td>
-                  <td className="ebim-td text-muted">{tenant?.saas_products?.short_name ?? '—'}</td>
+                  <td className="ebim-td">
+                    {f.tenant_id ? (
+                      <Link className="hover:underline" to={`/tenants/${f.tenant_id}#features`}>
+                        {tenant?.name ?? '—'}
+                      </Link>
+                    ) : (
+                      tenant?.name ?? '—'
+                    )}
+                    <div className="text-compact text-fg-2">{tenant?.saas_products?.short_name ?? '—'}</div>
+                  </td>
                   <td className="ebim-td">
                     <Badge tone={src.tone}>{src.label}</Badge>
                   </td>
                   <td className="ebim-td">
                     {f.enabled ? (
-                      <span className="inline-flex items-center gap-1 text-sm font-semibold text-ok">
-                        <CheckCircleIcon size={16} aria-hidden /> Encendida
+                      <span className="inline-flex items-center gap-1.5 text-compact font-semibold text-fg">
+                        <CheckCircleIcon size={16} weight="fill" className="text-ok" aria-hidden /> Encendida
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-sm text-muted">
+                      <span className="inline-flex items-center gap-1.5 text-compact text-muted">
                         <MinusCircleIcon size={16} aria-hidden /> Apagada
                       </span>
                     )}
                   </td>
-                  <td className="ebim-td whitespace-nowrap text-xs text-muted">{formatDateTime(f.updated_at)}</td>
+                  <td className="ebim-td whitespace-nowrap text-compact text-fg-2">{formatDateTime(f.updated_at)}</td>
                 </tr>
               );
             })}

@@ -67,7 +67,7 @@ export function ShadowHistoryTab() {
         perms.canReadFinance ? (
           <button
             type="button"
-            className="ebim-btn-primary h-8 px-3 text-xs"
+            className="ebim-btn-primary ebim-btn-sm"
             disabled={!canRegister}
             title={canRegister ? undefined : 'Ningún producto tiene el eje de facturación en BILLING_SHADOW'}
             onClick={() => setRegistering(true)}
@@ -110,10 +110,10 @@ export function ShadowHistoryTab() {
         <DataTable columns={['Fecha', 'Producto', 'Tenant', 'Período', 'Resultado', 'Checksum', '']}>
           {visible.map((c) => (
             <tr key={c.id}>
-              <td className="ebim-td whitespace-nowrap text-xs text-muted">{formatDateTime(c.created_at)}</td>
-              <td className="ebim-td text-xs font-semibold">{lookups.productName(c.saas_product_id)}</td>
-              <td className="ebim-td text-xs">{lookups.tenantName(c.tenant_id)}</td>
-              <td className="ebim-td whitespace-nowrap text-xs">{formatPeriod(c.period_start)}</td>
+              <td className="ebim-td whitespace-nowrap text-compact text-muted">{formatDateTime(c.created_at)}</td>
+              <td className="ebim-td text-compact font-semibold">{lookups.productName(c.saas_product_id)}</td>
+              <td className="ebim-td text-compact">{lookups.tenantName(c.tenant_id)}</td>
+              <td className="ebim-td whitespace-nowrap text-compact">{formatPeriod(c.period_start)}</td>
               <td className="ebim-td">
                 {c.mismatches === 0 ? (
                   <Badge tone="ok">Verde · sin diferencias</Badge>
@@ -121,11 +121,11 @@ export function ShadowHistoryTab() {
                   <Badge tone="danger">Rojo · {c.mismatches} diferencia(s)</Badge>
                 )}
               </td>
-              <td className="ebim-td font-mono text-[11px] text-muted" title={c.report_checksum}>
+              <td className="ebim-td font-mono text-caption text-muted" title={c.report_checksum}>
                 {c.report_checksum.slice(0, 19)}…
               </td>
               <td className="ebim-td text-right">
-                <button type="button" className="ebim-link text-[13px]" onClick={() => setSelected(c)}>
+                <button type="button" className="ebim-link text-compact" onClick={() => setSelected(c)}>
                   Ver diferencias
                 </button>
               </td>
@@ -187,7 +187,7 @@ function ComparisonDrawer({
           </div>
           <DetailList
             items={[
-              ['Checksum del reporte', <span key="c" className="font-mono text-xs">{comparison.report_checksum}</span>],
+              ['Checksum del reporte', <span key="c" className="font-mono text-compact">{comparison.report_checksum}</span>],
               ['Origen', comparison.source],
               ['Registrado por', comparison.actor],
               ['Fecha', formatDateTime(comparison.created_at)],
@@ -196,21 +196,21 @@ function ComparisonDrawer({
             ]}
           />
           <section aria-label="Diferencias línea a línea">
-            <h3 className="mb-2 text-sm font-bold text-fg">Diferencias línea a línea</h3>
+            <h3 className="mb-2 text-body font-bold text-fg">Diferencias línea a línea</h3>
             {diffs.length === 0 ? (
-              <p className="text-sm text-ok">Todas las líneas coinciden.</p>
+              <p className="text-body text-ok">Todas las líneas coinciden.</p>
             ) : (
               <DataTable columns={['Línea', 'Diferencia', 'MasterAdmin', 'Biller local']}>
                 {diffs.map((d) => {
                   const t = labelOf(DIFF_TYPE, d.type);
                   return (
                     <tr key={`${d.itemCode}:${d.type}`}>
-                      <td className="ebim-td font-mono text-xs">{d.itemCode}</td>
+                      <td className="ebim-td font-mono text-compact">{d.itemCode}</td>
                       <td className="ebim-td">
                         <Badge tone={t.tone}>{t.label}</Badge>
                       </td>
-                      <td className="ebim-td text-xs">{side(d.masteradmin, currency)}</td>
-                      <td className="ebim-td text-xs">{side(d.local, local?.currency ?? currency)}</td>
+                      <td className="ebim-td text-compact">{side(d.masteradmin, currency)}</td>
+                      <td className="ebim-td text-compact">{side(d.local, local?.currency ?? currency)}</td>
                     </tr>
                   );
                 })}

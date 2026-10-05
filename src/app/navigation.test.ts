@@ -230,6 +230,10 @@ describe('migas y títulos humanos', () => {
     expect(routeMeta('/').title).toBe('Resumen ejecutivo');
     expect(routeMeta('/nada').title).toBe('Página no encontrada');
   });
+  it('la galería de componentes tiene título propio aunque no esté en el menú', () => {
+    expect(routeMeta('/design')).toMatchObject({ group: null, title: 'Galería de componentes' });
+    expect(NAV_ITEMS.map((i) => i.to)).not.toContain('/design');
+  });
 
   it('«Usuarios y accesos» es Gobierno para EBIM y admins de partner/cliente (M5)', () => {
     expect(navItemsFor('EBIM').map((i) => i.to)).toContain('/users');

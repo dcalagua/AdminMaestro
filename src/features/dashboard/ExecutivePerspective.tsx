@@ -1,346 +1,547 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ClockCountdownIcon, FlaskIcon, PresentationChartIcon } from '@phosphor-icons/react';
 import {
-  ArrowDownRightIcon,
-  ArrowUpRightIcon,
-  BellRingingIcon,
-  FileTextIcon,
-  ReceiptIcon,
-  StackIcon,
-  HardDrivesIcon,
-  CalendarCheckIcon,
-} from '@phosphor-icons/react';
-import {
-  useBillingAlerts,
-  useDashboardSummary,
-  useFinanceConsolidated,
-  useProducts,
-  useSaasProvisioningRequests,
-  useSubscriptionDocumentStatus,
+  useCurrencies,
+  type useExecutiveBillingSeries,
+  type useExecutiveMrrMovementCustomers,
+  type useExecutiveMrrMovementsSeries,
+  type useExecutiveMrrSeries,
+  type ExecutiveBillingPoint,
+  type ExecutiveMrrBridge,
+  type ExecutiveMrrPoint,
 } from '@/services/queries';
-import {
-  useCollectionsByMonth,
-  useInvoiceSummary,
-  useReceivablesAging,
-  useRenewalPipeline,
-} from '@/services/financeRead';
+import { KpiTile } from '@/components/ui/primitives';
 import { fromQuery, type DataState } from '@/features/executive/dataState';
-import { compareToPrevious, lastMonths, previousMonth, toCurrencyAmounts, type CurrencyAmounts, type ReportContext } from '@/features/executive/reportContext';
-import { KPI_DICTIONARY, RENEWAL_WINDOWS, AGING_BUCKETS, type RenewalWindow } from '@/features/executive/kpis';
-import { KpiCard, CurrencyLines, StateMessage } from '@/features/executive/components/StateView';
-import { ChartPanel, CurrencyPicker } from '@/features/executive/components/ChartPanel';
-import { SingleBars, type BarDatum } from '@/features/executive/components/charts';
-import { formatMoney, formatNumber, formatPercent } from '@/lib/format';
+import { ChartLegend, ChartPanel, CurrencyPicker } from '@/features/executive/components/ChartPanel';
+import { StateMessage } from '@/features/executive/components/StateView';
 import {
-  collectedInMonth,
-  collectionsSeries,
-  monthRange,
-  monthShortLabel,
-  nativeMetric,
-  periodLabel,
-  renewalsInWindow,
-  totalGroup,
-} from './executiveData';
+  BilledCollectedChart,
+  BridgeWaterfall,
+  MrrEvolutionChart,
+  type BilledCollectedDatum,
+  type MrrPointDatum,
+} from '@/features/executive/components/executiveCharts';
+import { longMonthName } from '@/features/billing/financeModel';
+import { formatCompactAmount, formatDate, formatDelta, formatMoney, formatNumber, formatPercent } from '@/lib/format';
+import { monthShortLabel } from './executiveData';
+import {
+  bridgeSteps,
+  changeSteps,
+  customersFor,
+  HORIZONS,
+  monthBounds,
+  monthLongLabel,
+  mrrChurnRate,
+  netRevenueRetention,
+  pctChange,
+  pointAt,
+  stepLabel,
+  trailing,
+  type BridgeStep,
+  type Horizon,
+} from './executiveModel';
+import { AgingPanel, AttentionPanel, MixPanel, PanelBoundary, TopCustomersPanel, TopPartnersPanel } from './executivePanels';
+import { usePresentationView } from './presentation/presentationContext';
+import { useExecutiveDashboard, type ExecutiveDashboardData, type useExecutiveFilters } from './executiveDashboardData';
 
 /**
- * Perspectiva EJECUTIVA (spec §7.1): contexto → seis KPI → cobros por mes y MRR
- * vigente por producto → requiere atención → resumen SaaS.
- * Cada cifra abre el mismo detalle autorizado que la compone.
+ * Perspectiva EJECUTIVA — Resumen Ejecutivo V4 (fase 09, D-V05).
+ *
+ * Orden de lectura: (1) franja hero de 6 KPI con tendencia de 12 meses,
+ * (2) evolución del MRR y su puente del mes, (3) facturado vs cobrado y
+ * cartera vencida, (4) mix por producto y mercado, (5) tops y lo que requiere
+ * atención. Todo en UNA moneda de reporte convertida en la base (S01–S08):
+ * si falta una tasa, la cifra se rotula «sin tasa», nunca se rellena.
+ *
+ * Una sola fila de filtros (moneda, horizonte, mes analizado) acota todo lo de
+ * abajo y vive en la URL (`?moneda=USD&horizonte=18&cierre=2026-09`). El mes
+ * analizado por defecto es el último CERRADO: el mes en curso es parcial.
+ * Cada panel lee su propia fuente y falla solo. El modo presentación (fase 14)
+ * proyecta estos mismos paneles, uno o dos por diapositiva.
  */
-export function ExecutivePerspective({ ctx, onOpenOperations }: { ctx: ReportContext; onOpenOperations: () => void }) {
-  const navigate = useNavigate();
-  const month = ctx.period.start.slice(0, 7);
-  const seriesMonths = lastMonths(month, 12);
-  const seriesFrom = `${seriesMonths[0]}-01`;
-
-  const total = useFinanceConsolidated({
-    asOf: ctx.fxDate,
-    groupBy: 'TOTAL',
-    periodStart: ctx.period.start,
-    periodEnd: ctx.period.end,
-  });
-  const byProduct = useFinanceConsolidated({
-    asOf: ctx.fxDate,
-    groupBy: 'PRODUCT',
-    periodStart: ctx.period.start,
-    periodEnd: ctx.period.end,
-  });
-  const collections = useCollectionsByMonth(seriesFrom, ctx.period.end);
-  const invoices = useInvoiceSummary({ search: '', filter: 'ALL' });
-  const renewals = useRenewalPipeline();
-  const [windowDays, setWindowDays] = useState<RenewalWindow>(30);
-
-  const totalState = fromQuery(total, { isEmpty: (d) => d.groups.length === 0 });
-  const group = totalGroup(total.data);
-  const rc = total.data?.reporting_currency ?? null;
-
-  // ---- K01 MRR vigente (foto actual) ----
-  const mrrState: DataState<CurrencyAmounts> =
-    totalState.status === 'ready' ? { status: 'ready', data: nativeMetric(group, 'MRR'), observedAt: totalState.observedAt } : (totalState as DataState<CurrencyAmounts>);
-
-  // ---- K02 Cobrado del período (serie G01) ----
-  const collectionsState = fromQuery(collections, { isEmpty: () => false });
-  const collected = collections.data ? collectedInMonth(collections.data, month) : {};
-  const previous = collections.data ? collectedInMonth(collections.data, previousMonth(month)) : {};
-
-  // ---- K03/K04 (foto actual, universo completo) ----
-  const invoiceState = fromQuery(invoices, { isEmpty: () => false });
-
-  // ---- K05 margen gerencial del período ----
-  const marginState: DataState<CurrencyAmounts> =
-    totalState.status === 'ready'
-      ? { status: 'ready', data: toCurrencyAmounts(group?.native_margin ?? {}), observedAt: totalState.observedAt }
-      : totalState.status === 'empty'
-        ? { status: 'empty' }
-        : (totalState as DataState<CurrencyAmounts>);
-
-  // ---- K06 renovaciones ----
-  const renewalState = fromQuery(renewals, { isEmpty: () => false });
-  const win = renewals.data ? renewalsInWindow(renewals.data, windowDays) : null;
-
-  const consolidatedHint = (key: 'MRR' | 'COLLECTED') => {
-    const m = group?.metrics[key];
-    if (!m || !rc) return undefined;
-    if (!m.complete || m.reporting_amount === null) {
-      return `Consolidado no disponible: falta tipo de cambio para ${m.missing_currencies.join(', ') || 'una moneda'}`;
-    }
-    return `≈ ${formatMoney(Number(m.reporting_amount), rc)} al tipo del ${ctx.fxDate}`;
-  };
+export function ExecutivePerspective({ today = new Date(), canPresent = false }: { today?: Date; canPresent?: boolean }) {
+  const d = useExecutiveDashboard(today);
 
   return (
-    <div className="space-y-5">
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        <KpiCard
-          id="K01"
-          label={KPI_DICTIONARY.K01.name}
-          temporality="Foto actual"
-          state={mrrState}
-          onRetry={() => void total.refetch()}
-          render={() => <CurrencyLines amounts={mrrState.status === 'ready' ? mrrState.data : {}} emptyLabel="Sin recurrente vigente" />}
-          hint={
-            mrrState.status === 'ready' && Object.keys(mrrState.data).length > 0
-              ? `ARR estimado (proyección MRR × 12): ${Object.entries(nativeMetric(group, 'ARR')).map(([c, v]) => formatMoney(v, c)).join(' · ')}`
-              : consolidatedHint('MRR')
-          }
-          detailHref={KPI_DICTIONARY.K01.detailHref}
-          detailLabel="Ver contratos"
-        />
-        <KpiCard
-          id="K02"
-          label={KPI_DICTIONARY.K02.name}
-          temporality={periodLabel(ctx)}
-          state={collectionsState}
-          onRetry={() => void collections.refetch()}
-          render={() => (
-            <div>
-              <CurrencyLines amounts={collected} emptyLabel="Sin cobros confirmados" />
-              <DeltaLine current={collected} previous={previous} partial={ctx.period.partial} />
-            </div>
-          )}
-          hint={consolidatedHint('COLLECTED') ?? 'Pagos confirmados; excluye pendientes y revertidos'}
-          detailHref={`/billing?desde=${monthRange(month).from}&hasta=${monthRange(month).to}#cobros`}
-          detailLabel="Ver cobros del mes"
-        />
-        <KpiCard
-          id="K03"
-          label={KPI_DICTIONARY.K03.name}
-          temporality="Foto actual"
-          state={invoiceState}
-          onRetry={() => void invoices.refetch()}
-          render={() => <CurrencyLines amounts={toCurrencyAmounts(invoices.data?.receivable)} emptyLabel="Sin saldo pendiente" />}
-          hint="Facturas emitidas menos pagos confirmados, por moneda"
-          detailHref={KPI_DICTIONARY.K03.detailHref}
-          detailLabel="Ver facturas por cobrar"
-        />
-        <KpiCard
-          id="K04"
-          label={KPI_DICTIONARY.K04.name}
-          temporality="Foto actual"
-          state={invoiceState}
-          onRetry={() => void invoices.refetch()}
-          render={() => <CurrencyLines amounts={toCurrencyAmounts(invoices.data?.overdue)} emptyLabel="Sin cartera vencida" />}
-          hint="Vencida a hoy (1–30 a más de 90 días); «Sin fecha» no cuenta"
-          detailHref="/billing?estado=OPEN&antiguedad=VENCIDA"
-          detailLabel="Ver vencidas"
-        />
-        <KpiCard
-          id="K05"
-          label={KPI_DICTIONARY.K05.name}
-          temporality={periodLabel(ctx)}
-          state={marginState}
-          onRetry={() => void total.refetch()}
-          render={() => <CurrencyLines amounts={marginState.status === 'ready' ? marginState.data : {}} />}
-          footer={
-            marginState.status === 'ready' ? (
-              <dl className="mt-2 grid grid-cols-3 gap-2 border-t border-border pt-2 text-[11px] text-muted">
-                <div><dt>Cobrado</dt><dd className="font-semibold text-fg"><CurrencyLines amounts={nativeMetric(group, 'COLLECTED')} emptyLabel="—" /></dd></div>
-                <div><dt>Costo directo</dt><dd className="font-semibold text-fg"><CurrencyLines amounts={nativeMetric(group, 'COST')} emptyLabel="—" /></dd></div>
-                <div><dt>Comisión</dt><dd className="font-semibold text-fg"><CurrencyLines amounts={nativeMetric(group, 'COMMISSION')} emptyLabel="—" /></dd></div>
-              </dl>
-            ) : null
-          }
-          hint="Cobrado − costo − comisión. Gestión, no utilidad contable"
-          detailHref={KPI_DICTIONARY.K05.detailHref}
-          detailLabel="Ver componentes"
-        />
-        <KpiCard
-          id="K06"
-          label={KPI_DICTIONARY.K06.name}
-          temporality={`Próximos ${windowDays} días`}
-          state={renewalState}
-          onRetry={() => void renewals.refetch()}
-          render={() =>
-            win ? (
-              <div>
-                <p className="tabular-nums">
-                  {formatNumber(win.count)} {win.count === 1 ? 'contrato' : 'contratos'}
-                </p>
-                <div className="mt-1 text-sm font-semibold text-muted">
-                  <CurrencyLines amounts={win.mrr} emptyLabel="Sin MRR vigente en la ventana" />
-                </div>
-              </div>
-            ) : null
-          }
-          footer={
-            <div role="group" aria-label="Ventana de renovación" className="mt-2 flex flex-wrap gap-1">
-              {RENEWAL_WINDOWS.map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  aria-pressed={windowDays === d}
-                  className={`rounded-md px-2 py-0.5 text-[11px] font-semibold ${
-                    windowDays === d ? 'bg-accent-soft text-accent-deep' : 'text-muted hover:text-fg'
-                  }`}
-                  onClick={() => setWindowDays(d)}
-                >
-                  {d} d
-                </button>
-              ))}
-            </div>
-          }
-          hint="No es pronóstico de churn; nada se renueva ni suspende desde aquí"
-          detailHref={KPI_DICTIONARY.K06.detailHref}
-          detailLabel="Ver renovaciones"
-        />
-      </div>
+    <div className="space-y-6">
+      <FilterRow
+        {...d.filters}
+        currency={d.rc}
+        missing={d.missing}
+        fxIsDemo={d.fxIsDemo}
+        isCurrent={d.isCurrent}
+        canPresent={canPresent}
+      />
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <CollectionsChart ctx={ctx} months={seriesMonths} query={collections} onSelect={(m) => {
-          const r = monthRange(m);
-          navigate(`/billing?desde=${r.from}&hasta=${r.to}#cobros`);
-        }} />
-        <MrrByProductChart query={byProduct} onSelect={(id) => navigate(`/products/${id}`)} />
-      </div>
+      <HeroKpis d={d} />
 
-      <AttentionList />
-      <SaasSummary onOpen={onOpenOperations} />
+      {/* Cada fila es una sección: al imprimir, una por página (A4 apaisado). */}
+      <div className="space-y-4">
+        <div className="grid gap-4 xl:grid-cols-12 print:break-before-page print:grid-cols-12" data-print-section="evolucion">
+          <div className="min-w-0 xl:col-span-8 print:col-span-8">
+            <ExecutivePanel d={d} panel="evolucion-mrr" />
+          </div>
+          <div className="min-w-0 xl:col-span-4 print:col-span-4">
+            <ExecutivePanel d={d} panel="puente" />
+          </div>
+        </div>
+        <div className="grid gap-4 xl:grid-cols-12 print:break-before-page print:grid-cols-12" data-print-section="cobranza">
+          <div className="min-w-0 xl:col-span-7 print:col-span-7">
+            <ExecutivePanel d={d} panel="facturado-cobrado" />
+          </div>
+          <div className="min-w-0 xl:col-span-5 print:col-span-5">
+            <ExecutivePanel d={d} panel="antiguedad" />
+          </div>
+        </div>
+        <div className="grid gap-4 xl:grid-cols-12 print:break-before-page print:grid-cols-12" data-print-section="mix">
+          <div className="min-w-0 xl:col-span-6 print:col-span-6">
+            <ExecutivePanel d={d} panel="mix-producto" />
+          </div>
+          <div className="min-w-0 xl:col-span-6 print:col-span-6">
+            <ExecutivePanel d={d} panel="mix-mercado" />
+          </div>
+        </div>
+        <div className="grid gap-4 xl:grid-cols-12 print:break-before-page print:grid-cols-12" data-print-section="tops">
+          <div className="min-w-0 xl:col-span-4 print:col-span-4">
+            <ExecutivePanel d={d} panel="top-clientes" />
+          </div>
+          <div className="min-w-0 xl:col-span-4 print:col-span-4">
+            <ExecutivePanel d={d} panel="top-partners" />
+          </div>
+          <div className="min-w-0 xl:col-span-4 print:col-span-4">
+            <ExecutivePanel d={d} panel="atencion" />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
-function DeltaLine({ current, previous, partial }: { current: CurrencyAmounts; previous: CurrencyAmounts; partial: boolean }) {
-  const currencies = Object.keys({ ...current, ...previous }).sort();
-  if (currencies.length === 0) return null;
-  if (partial) {
-    return <p className="mt-1 text-[11px] font-semibold text-muted">Mes en curso: sin comparación con un mes completo.</p>;
-  }
-  return (
-    <ul className="mt-1 space-y-0.5 text-[11px] font-semibold">
-      {currencies.map((c) => {
-        const cmp = compareToPrevious(current[c] ?? 0, previous[c] ?? 0, { currentPartial: partial });
-        if (cmp.kind !== 'delta') {
-          return (
-            <li key={c} className="text-muted">
-              {c}: {cmp.reason}
-            </li>
-          );
-        }
-        const up = cmp.ratio >= 0;
+export type ExecutivePanelId =
+  | 'evolucion-mrr'
+  | 'puente'
+  | 'facturado-cobrado'
+  | 'antiguedad'
+  | 'mix-producto'
+  | 'mix-mercado'
+  | 'top-clientes'
+  | 'top-partners'
+  | 'atencion';
+
+const PANEL_TITLE: Record<ExecutivePanelId, string> = {
+  'evolucion-mrr': 'Evolución del MRR',
+  puente: 'Puente de MRR',
+  'facturado-cobrado': 'Facturado vs cobrado',
+  antiguedad: 'Cartera por antigüedad',
+  'mix-producto': 'Mix por producto',
+  'mix-mercado': 'Mix por mercado',
+  'top-clientes': 'Top clientes',
+  'top-partners': 'Top partners',
+  atencion: 'Requiere atención',
+};
+
+/** Un panel del tablero, aislado: si falla al dibujarse, solo él muestra su aviso. */
+export function ExecutivePanel({ d, panel }: { d: ExecutiveDashboardData; panel: ExecutivePanelId }) {
+  const navigate = useNavigate();
+  const view = usePresentationView();
+  const { month, horizon, rc } = d;
+  return <PanelBoundary title={PANEL_TITLE[panel]}>{renderPanel()}</PanelBoundary>;
+
+  function renderPanel() {
+    switch (panel) {
+      case 'evolucion-mrr':
+        return <MrrEvolutionPanel query={d.series} currency={rc} horizon={horizon} month={month} onSelect={(m) => d.filters.setMonth(m)} />;
+      case 'puente':
+        return <BridgePanel key={month} query={d.movements} bridge={d.bridge} customers={d.customers} currency={rc} month={month} />;
+      case 'facturado-cobrado':
         return (
-          <li key={c} className={up ? 'text-ok' : 'text-danger'}>
-            {up ? <ArrowUpRightIcon size={12} className="inline" aria-hidden /> : <ArrowDownRightIcon size={12} className="inline" aria-hidden />}{' '}
-            {c} {up ? '+' : ''}
-            {formatPercent(cmp.ratio)} vs. mes anterior
-          </li>
+          <BilledCollectedPanel
+            query={d.billing}
+            currency={rc}
+            horizon={horizon}
+            month={month}
+            // Proyectando, un clic analiza ese mes (no saca de la presentación hacia Facturación).
+            onSelect={(m) => {
+              if (view.active) return d.filters.setMonth(m);
+              const r = monthBounds(m);
+              navigate(`/billing?desde=${r.from}&hasta=${r.to}#cobros`);
+            }}
+          />
         );
-      })}
-    </ul>
+      case 'antiguedad':
+        return (
+          <AgingPanel
+            query={d.aging}
+            currency={rc}
+            asOfLabel={d.isCurrent ? `A hoy, ${formatDate(d.asOf)}` : `Al cierre de ${d.monthLabel}`}
+            refreshing={d.aging.isPlaceholderData}
+          />
+        );
+      case 'mix-producto':
+        return <MixPanel dimension="PRODUCT" query={d.mixProduct} currency={rc} monthLabel={d.monthLabel} refreshing={d.mixProduct.isPlaceholderData} />;
+      case 'mix-mercado':
+        return <MixPanel dimension="MARKET" query={d.mixMarket} currency={rc} monthLabel={d.monthLabel} refreshing={d.mixMarket.isPlaceholderData} />;
+      case 'top-clientes':
+        return (
+          <TopCustomersPanel
+            rows={d.customers.data}
+            state={fromQuery(d.customers)}
+            currency={rc}
+            monthLabel={d.monthLabel}
+            onRetry={() => void d.customers.refetch()}
+          />
+        );
+      case 'top-partners':
+        return <TopPartnersPanel current={d.mixPartner} previous={d.mixPartnerPrev} currency={rc} monthLabel={d.monthLabel} />;
+      case 'atencion':
+        return <AttentionPanel />;
+    }
+  }
+}
+
+/** Alto de los gráficos al proyectar: lo que deja libre la diapositiva (al imprimir, alturas fijas que caben en A4). */
+const PRESENTATION_CHART_HEIGHT = 'clamp(260px, calc(100vh - 400px), 520px)';
+const PRESENTATION_BARS_HEIGHT = 'clamp(240px, calc(100vh - 490px), 420px)';
+
+/* ---- Filtros (URL) ------------------------------------------------------------------ */
+
+function FilterRow({
+  month,
+  horizon,
+  options,
+  setMonth,
+  setHorizon,
+  setCurrency,
+  currency,
+  missing,
+  fxIsDemo,
+  isCurrent,
+  present,
+  canPresent,
+}: ReturnType<typeof useExecutiveFilters> & {
+  currency: string;
+  missing: string[];
+  fxIsDemo: boolean;
+  isCurrent: boolean;
+  canPresent: boolean;
+}) {
+  const currencies = useCurrencies();
+  const codes = [...new Set([...(currencies.data ?? []).filter((c) => c.status === 'ACTIVE').map((c) => c.code), currency].filter(Boolean))].sort();
+  const presentRef = useRef<HTMLButtonElement>(null);
+  const location = useLocation();
+  const backFromPresentation = (location.state as { fromPresentation?: boolean } | null)?.fromPresentation === true;
+  // Al salir del modo presentación el foco vuelve al botón que lo abrió.
+  useEffect(() => {
+    if (backFromPresentation) presentRef.current?.focus();
+  }, [backFromPresentation]);
+  return (
+    <section aria-label="Filtros del resumen" className="flex flex-wrap items-end gap-x-6 gap-y-3">
+      {/* Al imprimir, los controles se reemplazan por la línea de contexto. */}
+      <p className="hidden text-compact text-fg-2 print:block">
+        Moneda de reporte <strong className="text-fg">{currency}</strong> · Mes analizado{' '}
+        <strong className="text-fg">{monthLongLabel(month)}</strong> · Horizonte {horizon} meses
+      </p>
+      <div className="print:hidden">
+        <CurrencyPicker currencies={codes} value={currency} onChange={setCurrency} label="Moneda de reporte" showLabel />
+      </div>
+      <label className="flex flex-col gap-1.5 print:hidden">
+        <span className="text-micro text-muted">Mes analizado</span>
+        <select className="ebim-input h-9 min-w-[210px]" value={month} onChange={(e) => setMonth(e.target.value)}>
+          {options.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div className="flex flex-col gap-1.5 print:hidden">
+        <span className="text-micro text-muted" id="horizonte-label">
+          Horizonte
+        </span>
+        <div role="group" aria-labelledby="horizonte-label" className="inline-flex h-9 items-center rounded-field border border-border-strong p-0.5">
+          {HORIZONS.map((h) => (
+            <button
+              key={h}
+              type="button"
+              aria-pressed={horizon === h}
+              className={`h-full rounded-md px-3 text-compact font-semibold transition-colors duration-fast ${
+                horizon === h ? 'bg-accent-soft text-accent-deep' : 'text-muted hover:text-fg'
+              }`}
+              onClick={() => setHorizon(h)}
+            >
+              {h} meses
+            </button>
+          ))}
+        </div>
+      </div>
+      <ul className="flex flex-wrap items-center gap-2 pb-1 text-caption" aria-label="Notas del reporte">
+        {isCurrent ? (
+          <li className="inline-flex items-center gap-1 rounded-full bg-warn-soft px-2.5 py-1 font-semibold text-warn">
+            <ClockCountdownIcon size={14} aria-hidden /> Mes en curso: cifras parciales
+          </li>
+        ) : null}
+        {missing.length ? (
+          <li className="inline-flex items-center gap-1 rounded-full bg-warn-soft px-2.5 py-1 font-semibold text-warn">
+            Parcial: falta tasa {missing.join(', ')} → {currency}
+          </li>
+        ) : null}
+        {fxIsDemo ? (
+          <li className="inline-flex items-center gap-1 rounded-full border border-border bg-sunken px-2.5 py-1 text-fg-2">
+            <FlaskIcon size={14} aria-hidden /> Tipos de cambio de demostración
+          </li>
+        ) : null}
+      </ul>
+      {canPresent ? (
+        <button
+          ref={presentRef}
+          type="button"
+          className="ebim-btn ebim-btn-secondary ml-auto print:hidden"
+          onClick={present}
+          aria-keyshortcuts="Escape"
+          title="Proyectar el resumen a pantalla completa, sin menús (Esc para salir)"
+        >
+          <PresentationChartIcon size={18} aria-hidden /> Presentar
+        </button>
+      ) : null}
+    </section>
   );
 }
 
-function CollectionsChart({
-  ctx,
-  months,
-  query,
-  onSelect,
-}: {
-  ctx: ReportContext;
-  months: string[];
-  query: ReturnType<typeof useCollectionsByMonth>;
-  onSelect: (month: string) => void;
-}) {
-  const state = fromQuery(query, { isEmpty: (rows) => rows.length === 0 });
-  const series = query.data ? collectionsSeries(query.data, months) : {};
-  // Por defecto, la moneda con más volumen en la ventana (no la primera del abecedario).
-  const currencies = Object.keys(series).sort(
-    (a, b) => series[b]!.reduce((t, p) => t + p.amount, 0) - series[a]!.reduce((t, p) => t + p.amount, 0),
-  );
-  const [picked, setPicked] = useState('');
-  const currency = currencies.includes(picked) ? picked : (currencies[0] ?? '');
-  const currentMonthKey = ctx.snapshotDate.slice(0, 7);
-  const data: BarDatum[] = (series[currency] ?? []).map((p) => ({
-    key: p.month,
-    label: monthShortLabel(p.month),
-    value: p.amount,
-    note: p.month === currentMonthKey ? 'mes en curso, parcial' : undefined,
-  }));
+/* ---- Franja hero -------------------------------------------------------------------- */
+
+export function HeroKpis({ d }: { d: ExecutiveDashboardData }) {
+  const { month, isCurrent, rc: currency, series, billing, movements } = d;
+  const view = usePresentationView();
+  const prev = d.prev;
+  // Mes completo («vs agosto»): «vs ago» se leería como inglés.
+  const vs = `vs ${longMonthName(prev)}`;
+  const s = pointAt<ExecutiveMrrPoint>(series.data, month);
+  const sp = pointAt<ExecutiveMrrPoint>(series.data, prev);
+  const b = pointAt<ExecutiveBillingPoint>(billing.data, month);
+  const bp = pointAt<ExecutiveBillingPoint>(billing.data, prev);
+  const sTrend = trailing(series.data, month, 12);
+  const bTrend = trailing(billing.data, month, 12);
+  const mTrend = trailing<ExecutiveMrrBridge>(movements.data, month, 12);
+  const bridge = pointAt<ExecutiveMrrBridge>(movements.data, month);
+  const bridgePrev = pointAt<ExecutiveMrrBridge>(movements.data, prev);
+  const nrr = netRevenueRetention(bridge);
+  const nrrPrev = netRevenueRetention(bridgePrev);
+  const churn = mrrChurnRate(bridge);
+  const bounds = monthBounds(month);
+  const range = (v: number | null | undefined, fmt: (n: number) => string) => (v == null ? '—' : fmt(v));
+  const money = (v: number) => `${currency} ${formatCompactAmount(v)}`;
+  const describe = (values: Array<number | null>, fmt: (n: number) => string) => {
+    const valid = values.filter((v): v is number => v != null);
+    return valid.length >= 2 ? `Tendencia ${valid.length} meses: de ${fmt(valid[0]!)} a ${fmt(valid[valid.length - 1]!)}` : undefined;
+  };
+  const native = s ? Object.entries(s.native).map(([c, v]) => `${c} ${formatCompactAmount(v)}`).join(' · ') : '';
+  const missingNote = (p?: { complete: boolean; missingCurrencies: string[] }) =>
+    p && !p.complete ? `Sin tasa para ${p.missingCurrencies.join(', ')}: no se consolida` : null;
+  const partialNote = isCurrent ? 'Mes en curso, a hoy' : null;
 
   return (
+    <section
+      aria-label="Indicadores clave"
+      className={`grid gap-4 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-3 ${view.active ? 'xl:gap-6' : '2xl:grid-cols-6'}`}
+      data-hero
+    >
+      <KpiTile
+        size="display"
+        label="MRR"
+        info="Ingreso recurrente mensual contratado al cierre del mes, en moneda de reporte (S01)."
+        currency={s?.mrr != null ? currency : undefined}
+        value={s?.mrr == null ? null : formatCompactAmount(s.mrr)}
+        delta={{ value: pctChange(s?.mrr, sp?.mrr), comparison: vs, goodWhen: 'up' }}
+        trend={sTrend.map((p) => p.mrr)}
+        trendPartial={isCurrent}
+        trendDescription={describe(sTrend.map((p) => p.mrr), money)}
+        footer={missingNote(s) ?? partialNote ?? native}
+        loading={series.isLoading}
+        error={series.error}
+        onRetry={() => void series.refetch()}
+        to="/subscriptions"
+      />
+      <KpiTile
+        size="display"
+        label="ARR"
+        info="MRR × 12: proyección anual del recurrente vigente, no contratos anuales firmados."
+        currency={s?.arr != null ? currency : undefined}
+        value={s?.arr == null ? null : formatCompactAmount(s.arr)}
+        delta={{ value: pctChange(s?.arr, sp?.arr), comparison: vs, goodWhen: 'up' }}
+        trend={sTrend.map((p) => p.arr)}
+        trendPartial={isCurrent}
+        trendDescription={describe(sTrend.map((p) => p.arr), money)}
+        footer={missingNote(s) ?? 'MRR × 12 · proyección'}
+        loading={series.isLoading}
+        error={series.error}
+        onRetry={() => void series.refetch()}
+        to="/subscriptions"
+      />
+      <KpiTile
+        size="display"
+        label={isCurrent ? 'Cobrado en el mes' : 'Cobrado del mes'}
+        info="Pagos confirmados en el mes (fórmula de K02), convertidos a la moneda de reporte (S06)."
+        currency={b?.collected != null ? currency : undefined}
+        value={b?.collected == null ? null : formatCompactAmount(b.collected)}
+        // Un mes parcial contra uno completo no es comparación: sin variación.
+        delta={isCurrent ? undefined : { value: pctChange(b?.collected, bp?.collected), comparison: vs, goodWhen: 'up' }}
+        trend={bTrend.map((p) => p.collected)}
+        trendPartial={isCurrent}
+        trendDescription={describe(bTrend.map((p) => p.collected), money)}
+        footer={
+          missingNote(b) ??
+          (b
+            ? `${b.collectionRate == null ? '—' : formatPercent(b.collectionRate, 0)} de lo facturado · ${formatNumber(b.paymentCount)} pagos${isCurrent ? ' · parcial' : ''}`
+            : null)
+        }
+        loading={billing.isLoading}
+        error={billing.error}
+        onRetry={() => void billing.refetch()}
+        to={`/billing?desde=${bounds.from}&hasta=${bounds.to}#cobros`}
+      />
+      <KpiTile
+        size="display"
+        label="Cartera vencida"
+        info="Saldo con 1 día o más de atraso al cierre del mes (bandas 1–30 a más de 90 días, S05/S06)."
+        currency={b?.overdue != null ? currency : undefined}
+        value={b?.overdue == null ? null : formatCompactAmount(b.overdue)}
+        delta={{ value: pctChange(b?.overdue, bp?.overdue), comparison: vs, goodWhen: 'down' }}
+        trend={bTrend.map((p) => p.overdue)}
+        trendPartial={isCurrent}
+        trendDescription={describe(bTrend.map((p) => p.overdue), money)}
+        footer={missingNote(b) ?? (b ? `${formatNumber(b.overdueInvoiceCount)} facturas vencidas${isCurrent ? ' a hoy' : ' al cierre'}` : null)}
+        loading={billing.isLoading}
+        error={billing.error}
+        onRetry={() => void billing.refetch()}
+        to="/billing?estado=OPEN&antiguedad=VENCIDA"
+      />
+      <KpiTile
+        size="display"
+        label="Clientes activos"
+        info="Organizaciones facturadas con MRR al cierre del mes (S01)."
+        value={s ? formatNumber(s.activeCustomers) : null}
+        delta={{ value: s && sp ? s.activeCustomers - sp.activeCustomers : null, kind: 'number', comparison: vs, goodWhen: 'up' }}
+        trend={sTrend.map((p) => p.activeCustomers)}
+        trendPartial={isCurrent}
+        trendDescription={describe(sTrend.map((p) => p.activeCustomers), (n) => formatNumber(n))}
+        footer={s ? `${formatNumber(s.activeSubscriptions)} contratos con MRR` : null}
+        loading={series.isLoading}
+        error={series.error}
+        onRetry={() => void series.refetch()}
+        to="/customers"
+      />
+      <KpiTile
+        size="display"
+        label="Retención neta (NRR)"
+        info="(Inicio + expansión − contracción − churn) / inicio del mes, sobre el MRR de los clientes que ya estaban (S02/S07)."
+        value={nrr == null ? null : formatPercent(nrr)}
+        delta={{ value: nrr != null && nrrPrev != null ? (nrr - nrrPrev) * 100 : null, kind: 'pp', comparison: vs, goodWhen: 'up' }}
+        trend={mTrend.map((m) => netRevenueRetention(m))}
+        trendPartial={isCurrent}
+        trendDescription={describe(mTrend.map((m) => netRevenueRetention(m)), (n) => formatPercent(n))}
+        footer={
+          bridge && !bridge.complete
+            ? 'Sin tasa para alguna moneda: no se calcula'
+            : bridge
+              ? `Churn de MRR ${range(churn, (n) => formatPercent(n))} · ${formatNumber(bridge.churnedCustomers)} ${bridge.churnedCustomers === 1 ? 'baja' : 'bajas'}`
+              : null
+        }
+        loading={movements.isLoading}
+        error={movements.error}
+        onRetry={() => void movements.refetch()}
+      />
+    </section>
+  );
+}
+
+/* ---- Evolución del MRR -------------------------------------------------------------- */
+
+function MrrEvolutionPanel({
+  query,
+  currency,
+  horizon,
+  month,
+  onSelect,
+}: {
+  query: ReturnType<typeof useExecutiveMrrSeries>;
+  currency: string;
+  horizon: Horizon;
+  month: string;
+  onSelect: (month: string) => void;
+}) {
+  const view = usePresentationView();
+  const points = (query.data ?? []).slice(-horizon);
+  const data: MrrPointDatum[] = points.map((p) => ({
+    month: p.month.slice(0, 7),
+    label: monthShortLabel(p.month.slice(0, 7)),
+    mrr: p.mrr,
+    customers: p.activeCustomers,
+    partial: p.isPartial,
+  }));
+  const first = data.find((d) => d.mrr != null);
+  const closed = [...data].reverse().find((d) => !d.partial && d.mrr != null);
+  const growth = first && closed ? pctChange(closed.mrr, first.mrr) : null;
+  const state = fromQuery(query, { isEmpty: (rows) => rows.every((r) => r.mrr === 0) });
+  const missing = [...new Set(points.flatMap((p) => p.missingCurrencies))];
+  return (
     <ChartPanel
-      title="¿Cuánto cobramos cada mes?"
-      unit={`Cobros confirmados en ${currency || 'moneda nativa'}`}
-      period={`Últimos 12 meses hasta ${ctx.period.label}`}
-      source="collections_by_month"
-      coverage="Una moneda por gráfico; el mes en curso es parcial"
-      state={state}
+      id="evolucion-mrr"
+      className="h-full"
+      title="¿Cómo crece el ingreso recurrente?"
+      unit={`MRR contratado en ${currency}`}
+      period={
+        first && closed && growth != null
+          ? `Últimos ${horizon} meses · ${first.label} → ${closed.label}: ${growth >= 0 ? '+' : '−'}${formatPercent(Math.abs(growth), 0)}`
+          : `Últimos ${horizon} meses`
+      }
+      source="executive_mrr_series"
+      coverage={missing.length ? `Meses sin tasa para ${missing.join(', ')} quedan sin dibujar` : 'Clic en un mes para analizarlo; el punto hueco es el mes en curso'}
+      state={state.status === 'ready' && missing.length ? { status: 'partial', data: points, reasons: [`falta tasa ${missing.join(', ')}`] } : state}
       onRetry={() => void query.refetch()}
-      emptyText="Sin cobros confirmados en los últimos 12 meses"
-      controls={<CurrencyPicker currencies={currencies} value={currency} onChange={setPicked} />}
-      detailHref="/billing#cobros"
-      detailLabel="Ver cobros"
+      emptyText="Aún no hay contratos con MRR en el período"
+      refreshing={query.isPlaceholderData}
+      detailHref="/subscriptions"
+      detailLabel="Ver contratos"
       chart={() => (
-        <SingleBars
+        <MrrEvolutionChart
           data={data}
           currency={currency}
-          ariaLabel={`Cobros confirmados por mes en ${currency}. Use la vista Tabla para leer cada valor.`}
-          onSelect={(d) => onSelect(d.key)}
+          analyzed={month}
+          onSelect={onSelect}
+          // Proyectando: el gráfico ocupa el alto disponible de la diapositiva y el texto sube un escalón.
+          height={view.printing ? 380 : view.active ? PRESENTATION_CHART_HEIGHT : 340}
+          fontSize={view.active ? 14 : 12}
+          ariaLabel={`MRR en ${currency} de ${data[0]?.label ?? ''} a ${data[data.length - 1]?.label ?? ''}${
+            growth != null ? `, crecimiento de ${formatPercent(growth, 0)} en meses cerrados` : ''
+          }. Use la vista Tabla para leer cada mes.`}
         />
       )}
       table={() => (
-        <table className="w-full text-sm">
-          <caption className="sr-only">Cobros confirmados por mes</caption>
+        <table className="w-full text-compact">
+          <caption className="sr-only">MRR por mes</caption>
           <thead>
             <tr>
               <th scope="col" className="ebim-th">Mes</th>
-              {currencies.map((c) => (
-                <th key={c} scope="col" className="ebim-th text-right">{c}</th>
-              ))}
+              <th scope="col" className="ebim-th text-right">MRR ({currency})</th>
+              <th scope="col" className="ebim-th text-right">ARR ({currency})</th>
+              <th scope="col" className="ebim-th text-right">Clientes</th>
+              <th scope="col" className="ebim-th text-right">Contratos</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {months.map((m, i) => (
-              <tr key={m}>
+            {[...points].reverse().map((p) => (
+              <tr key={p.month}>
                 <th scope="row" className="ebim-td text-left font-medium">
-                  <button type="button" className="ebim-link" onClick={() => onSelect(m)}>
-                    {monthShortLabel(m)}
+                  <button type="button" className="ebim-link" onClick={() => onSelect(p.month.slice(0, 7))}>
+                    {monthShortLabel(p.month.slice(0, 7))}
                   </button>
-                  {m === currentMonthKey ? <span className="ml-1 text-xs text-muted">(parcial)</span> : null}
+                  {p.isPartial ? <span className="ml-1 text-caption text-muted">(parcial)</span> : null}
                 </th>
-                {currencies.map((c) => (
-                  <td key={c} className="ebim-td text-right tabular-nums">
-                    {formatMoney(series[c]![i]!.amount, c)}
-                  </td>
-                ))}
+                <td className="ebim-td text-right tabular-nums">{p.mrr == null ? 'Sin tasa' : formatMoney(p.mrr, currency)}</td>
+                <td className="ebim-td text-right tabular-nums">{p.arr == null ? 'Sin tasa' : formatMoney(p.arr, currency)}</td>
+                <td className="ebim-td text-right tabular-nums">{formatNumber(p.activeCustomers)}</td>
+                <td className="ebim-td text-right tabular-nums">{formatNumber(p.activeSubscriptions)}</td>
               </tr>
             ))}
           </tbody>
@@ -350,210 +551,273 @@ function CollectionsChart({
   );
 }
 
-function MrrByProductChart({
+/* ---- Puente de MRR ------------------------------------------------------------------ */
+
+function BridgePanel({
   query,
-  onSelect,
+  bridge,
+  customers,
+  currency,
+  month,
 }: {
-  query: ReturnType<typeof useFinanceConsolidated>;
-  onSelect: (productId: string) => void;
+  query: ReturnType<typeof useExecutiveMrrMovementsSeries>;
+  bridge: ExecutiveMrrBridge | null;
+  customers: ReturnType<typeof useExecutiveMrrMovementCustomers>;
+  currency: string;
+  month: string;
 }) {
-  const products = useProducts();
-  const state = fromQuery(query, { isEmpty: (d) => d.groups.length === 0 });
-  const groups = (query.data?.groups ?? []).filter((g) => g.key !== 'SIN_PRODUCTO');
-  const mrrTotal = (c: string) => groups.reduce((t, g) => t + Number(g.metrics.MRR?.native?.[c] ?? 0), 0);
-  const currencies = [...new Set(groups.flatMap((g) => Object.keys(g.metrics.MRR?.native ?? {})))].sort(
-    (a, b) => mrrTotal(b) - mrrTotal(a),
-  );
-  const [picked, setPicked] = useState('');
-  const currency = currencies.includes(picked) ? picked : (currencies[0] ?? '');
-  const data: BarDatum[] = groups
-    .map((g) => ({ key: g.key, label: g.label, value: Number(g.metrics.MRR?.native?.[currency] ?? 0) }))
-    .filter((d) => d.value !== 0)
-    .sort((a, b) => b.value - a.value);
-  const withoutMrr = (products.data ?? []).filter(
-    (p) => !groups.some((g) => g.key === p.id && Object.keys(g.metrics.MRR?.native ?? {}).length > 0),
-  );
+  const view = usePresentationView();
+  const [selected, setSelected] = useState<BridgeStep | null>(null); // se reinicia con el mes (key)
+  const steps = bridgeSteps(bridge);
+  const base = fromQuery(query, { isEmpty: () => bridge === null });
+  const state: DataState<unknown> =
+    base.status === 'ready' && !steps ? { status: 'unavailable', reason: 'Falta un tipo de cambio para consolidar el puente de este mes.' } : base;
+  const active = steps?.find((s) => s.key === selected?.key) ?? null;
+  const pick = (s: BridgeStep) => setSelected((cur) => (cur?.key === s.key ? null : s));
+  const movers = steps?.filter((s) => s.movement) ?? [];
+  const cascade = changeSteps(steps);
+  const net = cascade?.find((s) => s.key === 'NET');
 
   return (
     <ChartPanel
-      title="¿De qué productos viene el recurrente vigente?"
-      unit={`MRR vigente en ${currency || 'moneda nativa'}`}
-      period="Foto actual (no es evolución histórica)"
-      source="finance_consolidated · v_subscription_mrr"
-      coverage={withoutMrr.length ? `${withoutMrr.length} productos sin MRR vigente` : undefined}
-      state={currencies.length === 0 && state.status === 'ready' ? { status: 'empty' } : state}
+      id="puente"
+      className="h-full"
+      title="¿De dónde viene el cambio del MRR?"
+      unit={`Puente de MRR en ${currency}`}
+      period={monthLongLabel(month)}
+      source="executive_mrr_movements_series"
+      coverage={
+        bridge?.fxRevaluation
+          ? `Inicio a la tasa del mes; el tipo de cambio movió ${bridge.fxRevaluation > 0 ? '+' : '−'}${currency} ${formatCompactAmount(Math.abs(bridge.fxRevaluation))} aparte`
+          : 'Clic en un movimiento para ver sus clientes'
+      }
+      state={state}
       onRetry={() => void query.refetch()}
-      emptyText="Ningún producto tiene recurrente vigente"
-      controls={<CurrencyPicker currencies={currencies} value={currency} onChange={setPicked} />}
-      detailHref="/products"
-      detailLabel="Ver productos"
+      emptyText="Sin puente para este mes"
+      refreshing={query.isPlaceholderData}
+      chart={() =>
+        steps && cascade ? (
+          <div key={month}>
+            <p className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-compact text-muted">
+              <span>Inicio</span>
+              <span className="font-semibold text-fg">{currency} {formatCompactAmount(bridge?.opening)}</span>
+              <span aria-hidden>→</span>
+              <span>cierre</span>
+              <span className="text-h3 text-fg">{currency} {formatCompactAmount(bridge?.closing)}</span>
+              {net && bridge?.opening ? (
+                <span className={`font-semibold tabular-nums ${net.value >= 0 ? 'text-ok' : 'text-danger'}`}>
+                  {formatDelta(net.value / bridge.opening)}
+                </span>
+              ) : null}
+            </p>
+            <BridgeWaterfall
+              steps={cascade}
+              currency={currency}
+              selected={active?.key ?? null}
+              onSelect={pick}
+              rowHeight={view.active ? 60 : 44}
+              fontSize={view.active ? 14 : 12}
+              ariaLabel={`Puente de MRR de ${monthLongLabel(month)}: ${steps.concat(net ? [net] : []).map((s) => `${s.label} ${stepLabel(s, currency)}`).join(', ')}`}
+            />
+            <div role="group" aria-label="Ver clientes por movimiento" className="mt-2 flex flex-wrap gap-1.5">
+              {movers.map((s) => (
+                <button
+                  key={s.key}
+                  type="button"
+                  aria-pressed={active?.key === s.key}
+                  disabled={(s.customers ?? 0) === 0}
+                  onClick={() => pick(s)}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-caption font-semibold transition-colors duration-fast disabled:cursor-default disabled:opacity-50 ${
+                    active?.key === s.key ? 'border-focus bg-accent-soft text-accent-deep' : 'border-border text-fg-2 hover:bg-hover'
+                  }`}
+                >
+                  <span aria-hidden className="h-2 w-2 rounded-sm" style={{ background: s.kind === 'pos' ? 'var(--chart-pos)' : 'var(--chart-neg)' }} />
+                  {s.label} <span className="tabular-nums text-muted">{formatNumber(s.customers ?? 0)}</span>
+                </button>
+              ))}
+            </div>
+            {active?.movement ? <MovementCustomers step={active} query={customers} currency={currency} /> : null}
+          </div>
+        ) : null
+      }
+      table={() =>
+        steps ? (
+          <table className="w-full text-compact">
+            <caption className="sr-only">Puente de MRR</caption>
+            <thead>
+              <tr>
+                <th scope="col" className="ebim-th">Paso</th>
+                <th scope="col" className="ebim-th text-right">Importe ({currency})</th>
+                <th scope="col" className="ebim-th text-right">Clientes</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {steps.map((s) => (
+                <tr key={s.key}>
+                  <th scope="row" className="ebim-td text-left">
+                    {s.movement && (s.customers ?? 0) > 0 ? (
+                      <button type="button" className="ebim-link" onClick={() => pick(s)}>
+                        {s.label}
+                      </button>
+                    ) : (
+                      s.label
+                    )}
+                  </th>
+                  <td className="ebim-td text-right tabular-nums">
+                    {s.kind === 'neg' ? '−' : s.kind === 'pos' ? '+' : ''}
+                    {formatMoney(s.value, currency)}
+                  </td>
+                  <td className="ebim-td text-right tabular-nums">{s.customers === undefined ? '—' : formatNumber(s.customers)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : null
+      }
+    />
+  );
+}
+
+function MovementCustomers({
+  step,
+  query,
+  currency,
+}: {
+  step: BridgeStep;
+  query: ReturnType<typeof useExecutiveMrrMovementCustomers>;
+  currency: string;
+}) {
+  const view = usePresentationView();
+  const state = fromQuery(query, { isEmpty: () => false });
+  const rows = step.movement ? customersFor(query.data, step.movement) : [];
+  return (
+    <div className="mt-3 rounded-md border border-border bg-sunken px-3 py-2" aria-live="polite" data-testid="bridge-customers">
+      <p className="text-micro text-muted">
+        {step.label}: {formatNumber(rows.length)} {rows.length === 1 ? 'cliente' : 'clientes'}
+      </p>
+      {state.status === 'ready' ? (
+        <ul className="mt-1 max-h-48 divide-y divide-border overflow-auto">
+          {rows.map((r) => (
+            <li key={r.organizationId} className="flex items-center justify-between gap-3 py-1.5">
+              {view.masked ? (
+                // Nombres ocultos: alias sin enlace (la ficha mostraría el nombre real).
+                <span className="truncate text-compact text-fg">{view.customerName(r.organizationId, r.organizationName ?? '')}</span>
+              ) : (
+                <Link className="ebim-link truncate text-compact" to={`/organizations/${r.organizationId}`} title={r.organizationName ?? undefined}>
+                  {r.organizationName ?? 'Organización sin nombre'}
+                </Link>
+              )}
+              <span className="whitespace-nowrap text-compact font-semibold tabular-nums text-fg">
+                {r.delta == null ? 'Sin tasa' : `${r.delta >= 0 ? '+' : '−'}${formatMoney(Math.abs(r.delta), currency)}`}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <StateMessage state={state} compact onRetry={() => void query.refetch()} />
+      )}
+    </div>
+  );
+}
+
+/* ---- Facturado vs cobrado ----------------------------------------------------------- */
+
+function BilledCollectedPanel({
+  query,
+  currency,
+  horizon,
+  month,
+  onSelect,
+}: {
+  query: ReturnType<typeof useExecutiveBillingSeries>;
+  currency: string;
+  horizon: Horizon;
+  month: string;
+  onSelect: (month: string) => void;
+}) {
+  const view = usePresentationView();
+  // Barras legibles: como máximo 12 meses, terminando en el mes analizado (o el actual si el horizonte lo incluye).
+  const all = query.data ?? [];
+  const end = all.findIndex((p) => p.month.slice(0, 7) === month);
+  const points = (end >= 0 ? all.slice(0, end + 1) : all).slice(-Math.min(horizon, 12));
+  const data: BilledCollectedDatum[] = points.map((p) => ({
+    month: p.month.slice(0, 7),
+    label: monthShortLabel(p.month.slice(0, 7)),
+    invoiced: p.invoiced,
+    collected: p.collected,
+    rate: p.collectionRate,
+    invoices: p.invoiceCount,
+    payments: p.paymentCount,
+    partial: p.isPartial,
+  }));
+  const closed = points.filter((p) => !p.isPartial && p.invoiced != null && p.collected != null);
+  const inv = closed.reduce((t, p) => t + (p.invoiced ?? 0), 0);
+  const col = closed.reduce((t, p) => t + (p.collected ?? 0), 0);
+  const rate = inv > 0 ? col / inv : null;
+  const state = fromQuery(query, { isEmpty: (rows) => rows.every((r) => r.invoiceCount === 0 && r.paymentCount === 0) });
+  return (
+    <ChartPanel
+      id="facturado-cobrado"
+      className="h-full"
+      title="¿Cobramos lo que facturamos?"
+      unit={`Facturado y cobrado por mes en ${currency}`}
+      period={`${data[0]?.label ?? ''} – ${data[data.length - 1]?.label ?? ''}${rate != null ? ` · ${formatPercent(rate)} cobrado en meses cerrados` : ''}`}
+      source="executive_billing_series"
+      coverage="Bajo cada mes: % cobrado de lo facturado ese mes (caja; puede superar 100 % si se cobró atraso)"
+      state={state}
+      onRetry={() => void query.refetch()}
+      emptyText="Sin facturas ni cobros en el período"
+      refreshing={query.isPlaceholderData}
+      detailHref="/billing#cobros"
+      detailLabel="Ver cobros"
+      legend={
+        <ChartLegend
+          items={[
+            { label: 'Facturado', color: 'var(--chart-billed)' },
+            { label: 'Cobrado', color: 'var(--chart-collected-2)' },
+          ]}
+        />
+      }
       chart={() => (
-        <SingleBars
+        <BilledCollectedChart
           data={data}
           currency={currency}
-          layout="horizontal-bars"
-          ariaLabel={`MRR vigente por producto en ${currency}`}
-          onSelect={(d) => onSelect(d.key)}
+          onSelect={onSelect}
+          height={view.printing ? 280 : view.active ? PRESENTATION_BARS_HEIGHT : 292}
+          fontSize={view.active ? 14 : 12}
+          ariaLabel={`Facturado y cobrado por mes en ${currency}${rate != null ? `; en meses cerrados se cobró ${formatPercent(rate)} de lo facturado` : ''}. Use la vista Tabla para leer cada mes.`}
         />
       )}
       table={() => (
-        <table className="w-full text-sm">
-          <caption className="sr-only">MRR vigente por producto</caption>
+        <table className="w-full text-compact">
+          <caption className="sr-only">Facturado vs cobrado por mes</caption>
           <thead>
             <tr>
-              <th scope="col" className="ebim-th">Producto</th>
-              {currencies.map((c) => (
-                <th key={c} scope="col" className="ebim-th text-right">{c}</th>
-              ))}
+              <th scope="col" className="ebim-th">Mes</th>
+              <th scope="col" className="ebim-th text-right">Facturado ({currency})</th>
+              <th scope="col" className="ebim-th text-right">Cobrado ({currency})</th>
+              <th scope="col" className="ebim-th text-right">% cobrado</th>
+              <th scope="col" className="ebim-th text-right">Vencida al cierre</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {groups.map((g) => (
-              <tr key={g.key}>
-                <th scope="row" className="ebim-td text-left">
-                  <Link className="ebim-link" to={`/products/${g.key}`}>{g.label}</Link>
+            {[...points].reverse().map((p) => (
+              <tr key={p.month}>
+                <th scope="row" className="ebim-td text-left font-medium">
+                  <button type="button" className="ebim-link" onClick={() => onSelect(p.month.slice(0, 7))}>
+                    {monthShortLabel(p.month.slice(0, 7))}
+                  </button>
+                  {p.isPartial ? <span className="ml-1 text-caption text-muted">(parcial)</span> : null}
                 </th>
-                {currencies.map((c) => (
-                  <td key={c} className="ebim-td text-right tabular-nums">
-                    {g.metrics.MRR?.native?.[c] !== undefined ? formatMoney(Number(g.metrics.MRR.native[c]), c) : '—'}
-                  </td>
-                ))}
+                <td className="ebim-td text-right tabular-nums">{p.invoiced == null ? 'Sin tasa' : formatMoney(p.invoiced, currency)}</td>
+                <td className="ebim-td text-right tabular-nums">{p.collected == null ? 'Sin tasa' : formatMoney(p.collected, currency)}</td>
+                <td className="ebim-td text-right tabular-nums">{p.collectionRate == null ? '—' : formatPercent(p.collectionRate)}</td>
+                <td className="ebim-td text-right tabular-nums">{p.overdue == null ? 'Sin tasa' : formatMoney(p.overdue, currency)}</td>
               </tr>
             ))}
           </tbody>
         </table>
       )}
     />
-  );
-}
-
-interface AttentionItem {
-  id: string;
-  icon: typeof ReceiptIcon;
-  title: string;
-  detail: string;
-  href: string;
-  tone: 'warn' | 'danger' | 'info';
-}
-
-/** Requiere atención (spec §7.1.4): cartera, documentos, renovaciones y fallas reales. */
-function AttentionList() {
-  const aging = useReceivablesAging();
-  const alerts = useBillingAlerts('OPEN');
-  const documents = useSubscriptionDocumentStatus();
-  const renewals = useRenewalPipeline();
-  const saas = useSaasProvisioningRequests();
-  const summary = useDashboardSummary();
-
-  const sources = [aging, alerts, documents, renewals, saas, summary];
-  const failed = sources.filter((q) => q.error).length;
-  const loading = sources.some((q) => q.isLoading);
-
-  const items: AttentionItem[] = [];
-  const overdueBuckets = new Set(AGING_BUCKETS.filter((b) => b.overdue).map((b) => b.id as string));
-  const overdueCount = (aging.data ?? []).filter((r) => overdueBuckets.has(r.aging_bucket)).reduce((a, r) => a + Number(r.invoice_count), 0);
-  if (overdueCount > 0) {
-    items.push({ id: 'overdue', icon: ReceiptIcon, tone: 'danger', title: `${formatNumber(overdueCount)} facturas vencidas`, detail: 'Saldo con vencimiento anterior a hoy', href: '/billing?estado=OPEN&antiguedad=VENCIDA' });
-  }
-  const noDue = (aging.data ?? []).filter((r) => r.aging_bucket === 'SIN_FECHA').reduce((a, r) => a + Number(r.invoice_count), 0);
-  if (noDue > 0) {
-    items.push({ id: 'nodue', icon: ReceiptIcon, tone: 'info', title: `${formatNumber(noDue)} facturas por cobrar sin vencimiento`, detail: 'No se pueden clasificar por antigüedad', href: '/billing?estado=OPEN&antiguedad=SIN_FECHA' });
-  }
-  const docsPending = (documents.data ?? []).filter((d) => d.document_required && !d.document_ok).length;
-  if (docsPending > 0) {
-    items.push({ id: 'docs', icon: FileTextIcon, tone: 'warn', title: `${formatNumber(docsPending)} contratos sin OS/OC vigente`, detail: 'El método de cobro exige un documento aprobado', href: '/subscriptions' });
-  }
-  const soon = (renewals.data ?? []).filter((r) => r.days_to_renewal !== null && Number(r.days_to_renewal) >= 0 && Number(r.days_to_renewal) <= 7).length;
-  if (soon > 0) {
-    items.push({ id: 'renew', icon: CalendarCheckIcon, tone: 'warn', title: `${formatNumber(soon)} renovaciones en 7 días`, detail: 'Revisar contrato y cobro', href: '/renewals' });
-  }
-  if ((alerts.data ?? []).length > 0) {
-    items.push({ id: 'alerts', icon: BellRingingIcon, tone: 'warn', title: `${formatNumber(alerts.data!.length)} alertas de cobranza abiertas`, detail: 'Vencimientos, gracia y suspensiones pendientes', href: '/renewals' });
-  }
-  const saasFailed = (saas.data ?? []).filter((r) => r.status === 'FAILED').length;
-  if (saasFailed > 0) {
-    items.push({ id: 'saas', icon: StackIcon, tone: 'danger', title: `${formatNumber(saasFailed)} altas SaaS fallidas`, detail: 'Solicitudes de alta en un producto con error', href: '/saas-provisioning' });
-  }
-  const infraFailed = summary.data?.provisioning_failures ?? 0;
-  if (infraFailed > 0) {
-    items.push({ id: 'infra', icon: HardDrivesIcon, tone: 'danger', title: `${formatNumber(infraFailed)} solicitudes de infraestructura fallidas`, detail: 'Cola de infraestructura (distinta de las altas SaaS)', href: '/provisioning' });
-  }
-
-  return (
-    <section className="ebim-card" aria-labelledby="attention-title">
-      <header className="border-b border-border px-4 py-3">
-        <h3 id="attention-title" className="text-sm font-bold text-fg">Requiere atención</h3>
-        <p className="text-xs text-muted">Cartera, documentos, renovaciones y fallas reales. Cada elemento abre su operación actual.</p>
-      </header>
-      <div className="px-4 py-2">
-        {loading ? (
-          <StateMessage state={{ status: 'loading' }} />
-        ) : (
-          <>
-            {items.length === 0 && failed === 0 ? (
-              <p className="py-4 text-sm text-muted">Nada pendiente en las fuentes consultadas.</p>
-            ) : null}
-            <ul className="divide-y divide-border">
-              {items.map((item) => (
-                <li key={item.id}>
-                  <Link to={item.href} className="flex items-center gap-3 py-2.5 hover:bg-[color:var(--bg)]">
-                    <span
-                      className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-                        item.tone === 'danger' ? 'bg-danger-soft text-danger' : item.tone === 'warn' ? 'bg-warn-soft text-warn' : 'bg-info-soft text-info'
-                      }`}
-                    >
-                      <item.icon size={16} aria-hidden />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-semibold text-fg">{item.title}</span>
-                      <span className="block text-xs text-muted">{item.detail}</span>
-                    </span>
-                    <span aria-hidden className="text-muted">→</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            {failed > 0 ? (
-              <p className="py-2 text-xs font-semibold text-warn" role="status">
-                {failed} {failed === 1 ? 'fuente no se pudo leer' : 'fuentes no se pudieron leer'}: esta lista puede estar incompleta.
-              </p>
-            ) : null}
-          </>
-        )}
-      </div>
-    </section>
-  );
-}
-
-/** Resumen compacto de operación SaaS: datos del control plane, sin llamadas a proveedores. */
-function SaasSummary({ onOpen }: { onOpen: () => void }) {
-  const saas = useSaasProvisioningRequests();
-  const state = fromQuery(saas, { isEmpty: () => false });
-  const byStatus: Record<string, number> = {};
-  for (const r of saas.data ?? []) byStatus[r.status ?? 'SIN_ESTADO'] = (byStatus[r.status ?? 'SIN_ESTADO'] ?? 0) + 1;
-  const mappingsActive = (saas.data ?? []).filter((r) => r.mapping_status === 'ACTIVE').length;
-  return (
-    <section className="ebim-card p-4" aria-labelledby="saas-summary-title">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <h3 id="saas-summary-title" className="text-sm font-bold text-fg">Operación SaaS</h3>
-          <p className="text-xs text-muted">Altas SaaS registradas en el control plane. No consulta a los proveedores.</p>
-        </div>
-        <button type="button" className="ebim-btn-secondary h-8 px-3 text-xs" onClick={onOpen}>
-          Ver matriz por producto y entorno
-        </button>
-      </div>
-      {state.status === 'ready' ? (
-        <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">
-          <div><dt className="text-xs text-muted">Solicitudes de alta</dt><dd className="font-bold tabular-nums">{formatNumber(saas.data!.length)}</dd></div>
-          {Object.entries(byStatus).map(([s, n]) => (
-            <div key={s}><dt className="text-xs text-muted">{s}</dt><dd className="font-bold tabular-nums">{formatNumber(n)}</dd></div>
-          ))}
-          <div><dt className="text-xs text-muted">Mappings activos</dt><dd className="font-bold tabular-nums">{formatNumber(mappingsActive)}</dd></div>
-        </dl>
-      ) : (
-        <StateMessage state={state} compact onRetry={() => void saas.refetch()} />
-      )}
-    </section>
   );
 }

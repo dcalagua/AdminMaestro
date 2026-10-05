@@ -62,7 +62,7 @@ export function IngestTab() {
 
   return (
     <div className="space-y-4">
-      <div role="note" className="rounded-lg border border-warn bg-warn-soft px-4 py-3 text-sm text-fg">
+      <div role="note" className="rounded-lg border border-warn bg-warn-soft px-4 py-3 text-body text-fg">
         <strong>Interruptor global fuera de la consola.</strong> <code className="font-mono">USAGE_INGEST_ENABLED</code> es
         una variable de entorno de la Edge Function <code className="font-mono">usage-ingest</code> y está apagada hasta
         que se apruebe <strong>D-12</strong> (credencial por producto + validación del alta del tenant). Encender un
@@ -88,15 +88,15 @@ export function IngestTab() {
               <tr key={s.productId}>
                 <td className="ebim-td">
                   <div className="font-semibold">{s.productName}</div>
-                  <div className="font-mono text-[11px] text-muted">{s.productCode}</div>
+                  <div className="font-mono text-caption text-muted">{s.productCode}</div>
                 </td>
-                <td className="ebim-td font-mono text-xs">{s.integrations.join(', ')}</td>
+                <td className="ebim-td font-mono text-caption">{s.integrations.join(', ')}</td>
                 <td className="ebim-td">
                   <Badge tone={s.enabled ? 'ok' : 'neutral'}>{s.enabled ? 'Encendido' : 'Apagado'}</Badge>
                 </td>
                 <td className="ebim-td text-right">
                   {canSwitch && s.productCode ? (
-                    <button type="button" className="ebim-link text-[13px]" onClick={() => setSwitching(s)}>
+                    <button type="button" className="ebim-link text-compact" onClick={() => setSwitching(s)}>
                       {s.enabled ? 'Apagar ingest' : 'Encender ingest'}
                     </button>
                   ) : null}
@@ -112,7 +112,7 @@ export function IngestTab() {
         description="Clave PÚBLICA ES256 con la que MasterAdmin verifica el JWT de cada SaaS, por producto × ambiente × emisor. Solo se guarda el nombre de la variable de entorno; la clave privada vive en el SaaS."
         actions={
           perms.canManagePlatform ? (
-            <button type="button" className="ebim-btn-primary h-8 px-3 text-xs" onClick={() => setConfiguring('new')}>
+            <button type="button" className="ebim-btn-primary h-8 px-3 text-caption" onClick={() => setConfiguring('new')}>
               Configurar credencial
             </button>
           ) : null
@@ -132,19 +132,19 @@ export function IngestTab() {
             {(credentials.data ?? []).map((c) => (
               <tr key={c.id}>
                 <td className="ebim-td font-semibold">{lookups.productName(c.saas_product_id)}</td>
-                <td className="ebim-td text-xs">
+                <td className="ebim-td text-caption">
                   {PROVISIONING_ENVIRONMENT_LABEL[c.environment as keyof typeof PROVISIONING_ENVIRONMENT_LABEL] ?? c.environment}
                 </td>
-                <td className="ebim-td font-mono text-xs">{c.issuer}</td>
-                <td className="ebim-td font-mono text-xs">{c.audience}</td>
-                <td className="ebim-td font-mono text-xs">{c.kid ?? '—'}</td>
+                <td className="ebim-td font-mono text-caption">{c.issuer}</td>
+                <td className="ebim-td font-mono text-caption">{c.audience}</td>
+                <td className="ebim-td font-mono text-caption">{c.kid ?? '—'}</td>
                 <td className="ebim-td">
                   <Badge tone={c.enabled ? 'ok' : 'neutral'}>{c.enabled ? 'Habilitada' : 'Deshabilitada'}</Badge>
                 </td>
-                <td className="ebim-td whitespace-nowrap text-xs text-muted">{formatDateTime(c.updated_at)}</td>
+                <td className="ebim-td whitespace-nowrap text-caption text-muted">{formatDateTime(c.updated_at)}</td>
                 <td className="ebim-td text-right">
                   {perms.canManagePlatform ? (
-                    <button type="button" className="ebim-link text-[13px]" onClick={() => setConfiguring(c)}>
+                    <button type="button" className="ebim-link text-compact" onClick={() => setConfiguring(c)}>
                       Editar
                     </button>
                   ) : null}

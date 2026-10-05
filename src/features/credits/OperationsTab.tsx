@@ -41,7 +41,7 @@ export function OperationsTab() {
   if (!perms.canReadFinance) {
     return (
       <Card title="Operaciones">
-        <p className="px-4 py-6 text-sm text-muted">
+        <p className="px-4 py-6 text-body text-muted">
           Abrir períodos, registrar bonos, ajustes y compras de créditos es exclusivo de EBIM_FINANCE.
         </p>
       </Card>
@@ -72,14 +72,14 @@ export function OperationsTab() {
   return (
     <div className="space-y-4">
       {last ? (
-        <div role="status" className="ebim-card px-4 py-3 text-sm">
+        <div role="status" className="ebim-card px-4 py-3 text-body">
           <div className="flex items-center gap-2 font-semibold">
             <Badge tone={last.tone}>{last.tone === 'ok' ? 'Hecho' : 'Atención'}</Badge> {last.title}
           </div>
           <dl className="mt-2 grid gap-1 sm:grid-cols-3">
             {last.lines.map(([k, v]) => (
               <div key={k}>
-                <dt className="text-[11px] font-bold uppercase tracking-wider text-muted">{k}</dt>
+                <dt className="text-caption font-bold uppercase tracking-wider text-muted">{k}</dt>
                 <dd>{v}</dd>
               </div>
             ))}
@@ -90,7 +90,7 @@ export function OperationsTab() {
         {cards.map((c) => (
           <Card key={c.id} title={c.title}>
             <div className="flex h-full flex-col gap-3 p-4">
-              <p className="text-sm text-muted">{c.text}</p>
+              <p className="text-body text-muted">{c.text}</p>
               <div>
                 <button type="button" className="ebim-btn-primary" onClick={() => setOp(c.id)}>
                   {c.action}
@@ -246,7 +246,7 @@ function ManualEntryDialog({
         lines: [
           ['Créditos', formatQuantity(v.credits)],
           ['Pool', poolLabel(v.pool_key)],
-          ['Movimiento', <span key="id" className="font-mono text-xs">{String(id)}</span>],
+          ['Movimiento', <span key="id" className="font-mono text-compact">{String(id)}</span>],
         ],
       });
       toast.success('Movimiento registrado', `${formatQuantity(v.credits)} créditos`);
@@ -285,7 +285,7 @@ function ManualEntryDialog({
       </FieldRow>
       <TextField label="Mes" type="month" required error={form.formState.errors.month} {...form.register('month')} />
       <TextAreaField label="Motivo" required error={form.formState.errors.reason} {...form.register('reason')} />
-      <p className="text-xs text-muted">
+      <p className="text-compact text-muted">
         Clave de idempotencia: <span className="font-mono">{key}</span>
       </p>
     </FormDialog>
@@ -409,7 +409,7 @@ function PurchaseDialog({
       </FieldRow>
       <TextField label="Mes" type="month" required error={form.formState.errors.month} {...form.register('month')} />
       <TextAreaField label="Motivo" required error={form.formState.errors.reason} {...form.register('reason')} />
-      <p className="text-xs text-muted">
+      <p className="text-compact text-muted">
         Clave de idempotencia: <span className="font-mono">{key}</span>
       </p>
     </FormDialog>
