@@ -6,11 +6,18 @@ import {
 import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { SectionTabs, StatusTabs } from '@/components/ui/SectionTabs';
 import {
-  PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge,
+  PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge, KpiTile, type DataColumn,
 } from '@/components/ui/primitives';
 import { formatMoney, formatPercent, formatNumber, formatDateTime } from '@/lib/format';
-import { KpiCard } from '@/features/executive/components/StateView';
-import { fromQuery } from '@/features/executive/dataState';
+import { InfoNote } from './listing';
+import { KpiStrip } from './financeUi';
+
+const R = (label: string): DataColumn => ({ label, align: 'right' });
+
+/** Solo una pérdida se marca; un margen positivo no se pinta de verde (A09). */
+function lossClass(value: unknown): string {
+  return Number(value ?? 0) < 0 ? 'text-danger' : 'text-fg';
+}
 
 /**
  * Reconciliación financiera.
@@ -81,8 +88,8 @@ export function ReconciliationPage() {
   const rows = filtered
     .filter((f) => (filter === 'ALL' ? true : f.severity === filter))
     .sort((a, b) => (SEVERITY_RANK[a.severity ?? ''] ?? 9) - (SEVERITY_RANK[b.severity ?? ''] ?? 9));
-  const findingsState = fromQuery(findings, { isEmpty: () => false });
   const all = findings.data ?? [];
+  const rejectedEvents = (events.data ?? []).filter((e) => e.status === 'REJECTED').length;
 
   const errors = all.filter((f) => f.severity === 'ERROR').length;
   const reviews = all.filter((f) => f.severity === 'REVIEW').length;
@@ -99,35 +106,52 @@ export function ReconciliationPage() {
         ) : null
       }
     >
-      <p className="mb-4 rounded-lg bg-info-soft px-3 py-2 text-xs text-info">
-        <strong>Sólo diagnóstico.</strong> Abrir esta pantalla no corrige, reintenta ni registra nada. Cada hallazgo indica
-        su causa y su fuente; la corrección la decide una persona desde el contrato o la factura.
-      </p>
-      <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <KpiCard
-          id="recon-errors"
+      <KpiStrip label="Indicadores de reconciliación">
+        <KpiTile
           label="Hallazgos con error"
-          temporality="Foto actual"
-          state={findingsState}
+          info="Diferencias que no deberían existir: hay que corregirlas desde el contrato o la factura."
+          value={findings.data ? formatNumber(errors) : null}
+          tone={errors > 0 ? 'danger' : 'neutral'}
+          footer="Foto actual"
+          loading={findings.isLoading}
+          error={findings.error}
           onRetry={() => void findings.refetch()}
-          render={() => <span className={`tabular-nums ${errors > 0 ? 'text-danger' : ''}`}>{formatNumber(errors)}</span>}
         />
-        <KpiCard
-          id="recon-review"
+        <KpiTile
           label="Para revisar"
-          temporality="Foto actual"
-          state={findingsState}
+          info="Situaciones que pueden ser correctas pero piden una mirada (OS/OC vencida, factura abierta vencida…)."
+          value={findings.data ? formatNumber(reviews) : null}
+          tone={reviews > 0 ? 'warn' : 'neutral'}
+          footer="Foto actual"
+          loading={findings.isLoading}
+          error={findings.error}
           onRetry={() => void findings.refetch()}
-          render={() => <span className={`tabular-nums ${reviews > 0 ? 'text-warn' : ''}`}>{formatNumber(reviews)}</span>}
         />
-        <KpiCard
-          id="recon-total"
+        <KpiTile
           label="Total de hallazgos"
-          temporality="Foto actual"
-          state={findingsState}
+          value={findings.data ? formatNumber(all.length) : null}
+          footer={all.length === 0 ? 'Todo cuadra' : 'Proveedor, facturas y cobros'}
+          loading={findings.isLoading}
+          error={findings.error}
           onRetry={() => void findings.refetch()}
-          render={() => <span className="tabular-nums">{formatNumber(all.length)}</span>}
         />
+        <KpiTile
+          label="Webhooks rechazados"
+          info="Eventos del proveedor que el ledger rechazó. Un evento IGNORADO (repetido) no es un fallo."
+          value={events.data ? formatNumber(rejectedEvents) : null}
+          tone={rejectedEvents > 0 ? 'warn' : 'neutral'}
+          footer={events.data ? `de los últimos ${formatNumber(events.data.length)} eventos` : undefined}
+          loading={events.isLoading}
+          error={events.error}
+          onRetry={() => void events.refetch()}
+        />
+      </KpiStrip>
+
+      <div className="mb-4">
+        <InfoNote>
+          <strong>Sólo diagnóstico.</strong> Abrir esta pantalla no corrige, reintenta ni registra nada. Cada hallazgo indica
+          su causa y su fuente; la corrección la decide una persona desde el contrato o la factura.
+        </InfoNote>
       </div>
 
       <SectionTabs
@@ -163,7 +187,11 @@ export function ReconciliationPage() {
                     description="No hay diferencias entre el proveedor, las facturas y los cobros registrados."
                   />
                 ) : (
-                  <DataTable columns={['Prioridad', 'Hallazgo', 'Sujeto', 'Organización', 'Detalle', 'Importe', 'Evidencia']}>
+                  <DataTable
+                    maxHeight={640}
+                    label="Hallazgos"
+                    columns={['Prioridad', 'Hallazgo', 'Sujeto', 'Organización', 'Detalle', R('Importe')]}
+                  >
                     {rows.map((f, idx) => (
                       <tr key={`${f.finding_type}-${f.subject}-${idx}`}>
                         <td className="ebim-td">
@@ -172,30 +200,41 @@ export function ReconciliationPage() {
                           </Badge>
                         </td>
                         <td className="ebim-td">
-                          <span className="font-semibold">{FINDING_LABEL[f.finding_type as string] ?? f.finding_type}</span>
-                          <span className="block text-xs text-muted">
-                            Fuente: {FINDING_SOURCE[f.finding_type as string] ?? 'Sin clasificar'}
+                          <span className="block whitespace-nowrap font-semibold">{FINDING_LABEL[f.finding_type as string] ?? f.finding_type}</span>
+                          <span className="block max-w-[220px] truncate text-compact text-fg-2" title={`Fuente: ${FINDING_SOURCE[f.finding_type as string] ?? 'Sin clasificar'}`}>
+                            {FINDING_SOURCE[f.finding_type as string] ?? 'Sin clasificar'}
                           </span>
                         </td>
-                        <td className="ebim-td font-mono text-xs font-semibold">{f.subject}</td>
-                        <td className="ebim-td text-muted">{f.organization_name}</td>
-                        <td className="ebim-td text-xs text-muted">{f.detail}</td>
-                        <td className="ebim-td tabular-nums">
+                        <td className="ebim-td">
+                          {/* El sujeto lleva al contrato: la corrección se decide ahí (acción primaria de la fila). */}
+                          {f.subscription_id ? (
+                            <Link
+                              className="ebim-link block max-w-[180px] truncate whitespace-nowrap font-mono text-compact"
+                              title={`${f.subject ?? ''} · abrir el contrato`}
+                              to={`/subscriptions/${f.subscription_id}`}
+                            >
+                              {f.subject}
+                            </Link>
+                          ) : (
+                            <span className="block max-w-[180px] truncate whitespace-nowrap font-mono text-compact font-semibold" title={f.subject ?? undefined}>
+                              {f.subject}
+                            </span>
+                          )}
+                        </td>
+                        <td className="ebim-td">
+                          <span className="block max-w-[170px] truncate text-fg-2" title={f.organization_name ?? undefined}>
+                            {f.organization_name}
+                          </span>
+                        </td>
+                        <td className="ebim-td">
+                          <span className="line-clamp-2 block min-w-[220px] max-w-[340px] text-compact text-fg-2" title={f.detail ?? undefined}>
+                            {f.detail}
+                          </span>
+                        </td>
+                        <td className="ebim-td ebim-num whitespace-nowrap">
                           {f.amount !== null
                             ? formatMoney(Number(f.amount), f.currency as string | null)
                             : '—'}
-                        </td>
-                        <td className="ebim-td text-right">
-                          {f.subscription_id ? (
-                            <Link
-                              className="ebim-link whitespace-nowrap text-[13px]"
-                              to={`/subscriptions/${f.subscription_id}`}
-                            >
-                              Ver contrato
-                            </Link>
-                          ) : (
-                            <span className="text-xs text-muted">Sin contrato</span>
-                          )}
                         </td>
                       </tr>
                     ))}
@@ -220,9 +259,10 @@ export function ReconciliationPage() {
                   <EmptyState title="Sin datos financieros" />
                 ) : (
                   <DataTable
+                    label="Panel gerencial por producto"
                     columns={[
-                      'Producto', 'Moneda', 'MRR', 'Licencia cobrada', 'Implementación',
-                      'Infraestructura', 'Costo', 'Comisiones', 'Margen gerencial', '% sobre cobrado',
+                      'Producto', 'Moneda', R('MRR'), R('Licencia cobrada'), R('Implementación'),
+                      R('Infraestructura'), R('Costo'), R('Comisiones'), R('Margen gerencial'), R('% sobre cobrado'),
                     ]}
                   >
                     {(products.data ?? [])
@@ -231,32 +271,30 @@ export function ReconciliationPage() {
                         <tr key={`${p.saas_product_id}-${p.currency}`}>
                           <td className="ebim-td font-semibold">{p.short_name}</td>
                           <td className="ebim-td text-muted">{p.currency}</td>
-                          <td className="ebim-td tabular-nums">
+                          <td className="ebim-td ebim-num whitespace-nowrap">
                             {formatMoney(Number(p.mrr), p.currency)}
                           </td>
-                          <td className="ebim-td tabular-nums">
+                          <td className="ebim-td ebim-num whitespace-nowrap">
                             {formatMoney(Number(p.collected_license), p.currency)}
                           </td>
-                          <td className="ebim-td tabular-nums">
+                          <td className="ebim-td ebim-num whitespace-nowrap">
                             {formatMoney(Number(p.collected_implementation), p.currency)}
                           </td>
-                          <td className="ebim-td tabular-nums">
+                          <td className="ebim-td ebim-num whitespace-nowrap">
                             {formatMoney(Number(p.collected_infrastructure), p.currency)}
                           </td>
-                          <td className="ebim-td tabular-nums text-warn">
+                          <td className="ebim-td ebim-num whitespace-nowrap">
                             {formatMoney(Number(p.direct_cost), p.currency)}
                           </td>
-                          <td className="ebim-td tabular-nums text-warn">
+                          <td className="ebim-td ebim-num whitespace-nowrap">
                             {formatMoney(Number(p.commission_total), p.currency)}
                           </td>
                           <td
-                            className={`ebim-td tabular-nums font-semibold ${
-                              Number(p.gross_margin) >= 0 ? 'text-ok' : 'text-danger'
-                            }`}
+                            className={`ebim-td ebim-num whitespace-nowrap font-semibold ${lossClass(p.gross_margin)}`}
                           >
                             {formatMoney(Number(p.gross_margin), p.currency)}
                           </td>
-                          <td className="ebim-td tabular-nums text-muted">
+                          <td className="ebim-td ebim-num whitespace-nowrap text-fg-2">
                             {p.margin_rate !== null ? formatPercent(Number(p.margin_rate)) : '—'}
                           </td>
                         </tr>
@@ -282,9 +320,10 @@ export function ReconciliationPage() {
                   <EmptyState title="Sin canales con actividad" />
                 ) : (
                   <DataTable
+                    label="Panel por partner"
                     columns={[
-                      'Organización', 'Moneda', 'MRR', 'Cobrado', 'Costo directo',
-                      'Margen gerencial', 'Margen de canal', 'Comisión a comerciales', 'Tenants',
+                      'Organización', 'Moneda', R('MRR'), R('Cobrado'), R('Costo directo'),
+                      R('Margen gerencial'), R('Margen de canal'), R('Comisión a comerciales'), R('Tenants'),
                     ]}
                   >
                     {(partners.data ?? []).map((p) => (
@@ -295,31 +334,29 @@ export function ReconciliationPage() {
                           </Link>
                         </td>
                         <td className="ebim-td text-muted">{p.currency}</td>
-                        <td className="ebim-td tabular-nums">
+                        <td className="ebim-td ebim-num whitespace-nowrap">
                           {formatMoney(Number(p.mrr), p.currency)}
                         </td>
-                        <td className="ebim-td tabular-nums">
+                        <td className="ebim-td ebim-num whitespace-nowrap">
                           {formatMoney(Number(p.collected_revenue), p.currency)}
                         </td>
-                        <td className="ebim-td tabular-nums text-warn">
+                        <td className="ebim-td ebim-num whitespace-nowrap">
                           {formatMoney(Number(p.direct_cost), p.currency)}
                         </td>
                         <td
-                          className={`ebim-td tabular-nums font-semibold ${
-                            Number(p.gross_margin) >= 0 ? 'text-ok' : 'text-danger'
-                          }`}
+                          className={`ebim-td ebim-num whitespace-nowrap font-semibold ${lossClass(p.gross_margin)}`}
                         >
                           {formatMoney(Number(p.gross_margin), p.currency)}
                         </td>
-                        <td className="ebim-td tabular-nums">
+                        <td className="ebim-td ebim-num whitespace-nowrap">
                           {p.weighted_channel_margin_rate !== null
                             ? formatPercent(Number(p.weighted_channel_margin_rate))
                             : '—'}
                         </td>
-                        <td className="ebim-td tabular-nums">
+                        <td className="ebim-td ebim-num whitespace-nowrap">
                           {formatMoney(Number(p.agent_commissions), p.currency)}
                         </td>
-                        <td className="ebim-td tabular-nums">{formatNumber(Number(p.managed_tenants))}</td>
+                        <td className="ebim-td ebim-num whitespace-nowrap">{formatNumber(Number(p.managed_tenants))}</td>
                       </tr>
                     ))}
                   </DataTable>
@@ -345,11 +382,11 @@ export function ReconciliationPage() {
                     description="No se ha recibido ningún webhook del proveedor todavía."
                   />
                 ) : (
-                  <DataTable columns={['Recibido', 'Cuenta', 'Tipo', 'Estado', 'Resultado']}>
+                  <DataTable label="Últimos eventos de webhook" columns={['Recibido', 'Cuenta', 'Tipo', 'Estado', 'Resultado']}>
                     {(events.data ?? []).map((e) => (
                       <tr key={e.id}>
-                        <td className="ebim-td text-xs text-muted">{formatDateTime(e.received_at)}</td>
-                        <td className="ebim-td font-mono text-xs">
+                        <td className="ebim-td whitespace-nowrap text-compact text-fg-2">{formatDateTime(e.received_at)}</td>
+                        <td className="ebim-td whitespace-nowrap font-mono text-compact">
                           {(e.payment_provider_accounts as { code: string } | null)?.code}
                         </td>
                         <td className="ebim-td">{e.event_type}</td>
@@ -366,7 +403,7 @@ export function ReconciliationPage() {
                             {EVENT_STATUS_LABEL[e.status] ?? e.status}
                           </Badge>
                         </td>
-                        <td className="ebim-td text-xs text-muted">
+                        <td className="ebim-td text-compact text-fg-2">
                           {e.error_message ?? (e.payment_id ? 'Cobro registrado' : '—')}
                         </td>
                       </tr>

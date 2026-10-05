@@ -280,7 +280,7 @@ test.describe('J11 · Renovaciones y gracia', () => {
     await goToSection(page, 'Renovaciones');
 
     await expect(page.getByRole('heading', { name: 'Renovaciones y alertas' })).toBeVisible();
-    await expect(page.getByText('Renuevan en 45 días')).toBeVisible();
+    await expect(page.getByRole('tab', { name: /^45 días/ })).toBeVisible();
     await expect(page.getByText('En gracia').first()).toBeVisible();
 
     // El seed deja una factura vencida dentro de la gracia.
