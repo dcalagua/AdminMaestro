@@ -1719,6 +1719,63 @@ export function useEntitlementSyncStatus() {
   });
 }
 
+/* ==========================================================================
+   Centro de la suite: ciclo de vida del tenant (20261020000100)
+   ========================================================================== */
+
+/** Cada tenant de cada app con su etapa de cobranza/suspensión y su entrega a la app. */
+export function useTenantLifecycle() {
+  return useQuery({
+    queryKey: ['tenant-lifecycle'],
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('v_tenant_lifecycle')
+          .select('*')
+          .order('organization_name')
+          .order('product_sort_order'),
+      ),
+  });
+}
+
+/** Interruptores globales y último ciclo. Solo EBIM (comercial o plataforma) los ve. */
+export function useTenantLifecycleSettings() {
+  return useQuery({
+    queryKey: ['tenant-lifecycle-settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('tenant_lifecycle_settings').select('*').maybeSingle();
+      if (error) throw new Error(error.message);
+      return data;
+    },
+  });
+}
+
+/** Historial de suspensiones (más recientes primero) con el tenant y su app. */
+export function useTenantSuspensions(limit = 100) {
+  return useQuery({
+    queryKey: ['tenant-suspensions', limit],
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('tenant_suspensions')
+          .select('*, tenant:tenants(name, slug, saas_product_id)')
+          .order('suspended_at', { ascending: false })
+          .limit(limit),
+      ),
+  });
+}
+
+/** Bitácora de los jobs programados (pg_cron). */
+export function useLifecycleJobRuns(limit = 50) {
+  return useQuery({
+    queryKey: ['lifecycle-job-runs', limit],
+    queryFn: async () =>
+      unwrap(
+        await supabase.from('lifecycle_job_runs').select('*').order('ran_at', { ascending: false }).limit(limit),
+      ),
+  });
+}
+
 /** Add-ons del catálogo central con su ciclo de vida y modelo de cobro. */
 export function useCatalogItemsWithLifecycle() {
   return useQuery({

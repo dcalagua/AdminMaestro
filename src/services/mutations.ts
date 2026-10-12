@@ -220,14 +220,39 @@ export function useCancelTenantAddon() {
 /** Suspende el tenant Y encola el trabajo de infraestructura, en una transacción. */
 export function useRequestTenantSuspension() {
   return useRpc('request_tenant_suspension', [
-    'tenant-overview', 'tenant', 'provisioning-requests',
+    'tenant-overview', 'tenant', 'provisioning-requests', ...LIFECYCLE_KEYS,
   ]);
 }
 
 export function useRequestTenantResume() {
   return useRpc('request_tenant_resume', [
-    'tenant-overview', 'tenant', 'provisioning-requests',
+    'tenant-overview', 'tenant', 'provisioning-requests', ...LIFECYCLE_KEYS,
   ]);
+}
+
+/* ==========================================================================
+   Centro de la suite: ciclo de vida del tenant
+   ========================================================================== */
+
+const LIFECYCLE_KEYS = [
+  'tenant-lifecycle', 'tenant-lifecycle-settings', 'tenant-suspensions', 'lifecycle-job-runs',
+  'entitlement-sync-status',
+];
+
+/**
+ * Ejecuta (o simula, con `p_dry_run`) el ciclo: alertas, suspensión por impago
+ * y reactivación. Suspende SOLO si el super admin habilitó el corte automático
+ * y la suscripción tiene `auto_suspend`: esa regla vive en la base.
+ */
+export function useRunTenantLifecycleCycle() {
+  return useRpc('run_tenant_lifecycle_cycle', [
+    ...LIFECYCLE_KEYS, 'billing-alerts', 'renewal-dashboard', 'tenant-overview', 'tenant', 'provisioning-requests',
+  ]);
+}
+
+/** Interruptores globales del ciclo de vida. Solo el super admin (42501 para el resto). */
+export function useSetTenantLifecycleSettings() {
+  return useRpc('set_tenant_lifecycle_settings', LIFECYCLE_KEYS);
 }
 
 /* ==========================================================================

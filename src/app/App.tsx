@@ -19,6 +19,7 @@ import { FeatureFlagsPage } from '@/features/catalog/FeatureFlagsPage';
 import { AddonsPage } from '@/features/catalog/AddonsPage';
 import { CapabilitiesPage } from '@/features/commercial/capabilities/CapabilitiesPage';
 import { EntitlementSyncPage } from '@/features/commercial/sync/EntitlementSyncPage';
+import { SuiteControlPage } from '@/features/suite/SuiteControlPage';
 import { OrganizationsPage } from '@/features/organizations/OrganizationsPage';
 import { OrganizationDetailPage } from '@/features/organizations/OrganizationDetailPage';
 import { PartnersPage } from '@/features/organizations/PartnersPage';
@@ -132,6 +133,18 @@ export function App() {
                     pasa por el orquestador, que autoriza con un booleano de
                     la base (platform.provisioning.execute del producto).
                   */}
+                    {/*
+                    Centro de la suite: ciclo de vida del tenant en todas las apps
+                    (impago → suspensión gobernada → reactivación al pagar).
+                  */}
+                    <Route
+                      path="suite"
+                      element={
+                        <RequirePersona personas={['EBIM']}>
+                          <SuiteControlPage />
+                        </RequirePersona>
+                      }
+                    />
                     <Route
                       path="commercial/entitlement-sync"
                       element={

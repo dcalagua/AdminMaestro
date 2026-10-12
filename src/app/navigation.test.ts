@@ -49,18 +49,18 @@ describe('navegación por perfil', () => {
     expect(new Set(grupos).size).toBe(grupos.length);
   });
 
-  it('conserva exactamente las 33 rutas existentes', () => {
+  it('conserva exactamente las 34 rutas existentes', () => {
     // CCP fase 07 añade `/catalog/addons` y `/commercial/capabilities`;
     // CCP fase 08 añade `/commercial/entitlement-sync`;
     // CCP M4 añade `/usage`, `/ai-credits` y `/billing-shadow`; M3 añade `/partner-fees`;
-    // M5 añade `/users`.
+    // M5 añade `/users`; el ciclo de vida de la suite añade `/suite`.
     expect(NAV_ITEMS.map((i) => i.to).sort()).toEqual([
       '/', '/ai-credits', '/attributions', '/audit', '/billing', '/billing-shadow', '/catalog/addons',
       '/commercial/capabilities', '/commercial/entitlement-sync',
       '/commission-plans', '/commissions', '/costs',
       '/customers', '/deployments', '/feature-flags', '/integrations', '/onboarding', '/organizations',
       '/partner-fees', '/partners', '/plans', '/products', '/provisioning', '/reconciliation', '/regional', '/renewals',
-      '/saas-provisioning', '/sales-agents', '/settings', '/subscriptions', '/tenants', '/usage', '/users',
+      '/saas-provisioning', '/sales-agents', '/settings', '/subscriptions', '/suite', '/tenants', '/usage', '/users',
     ]);
   });
 

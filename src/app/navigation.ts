@@ -1,6 +1,6 @@
 import {
   type Icon, ArrowsClockwiseIcon, BellRingingIcon, BuildingOfficeIcon, BuildingsIcon, CertificateIcon,
-  ChartLineUpIcon, CloudArrowUpIcon, CoinsIcon, CurrencyCircleDollarIcon, FlagIcon, GaugeIcon, GearSixIcon, GitDiffIcon,
+  ChartLineUpIcon, CloudArrowUpIcon, CoinsIcon, CurrencyCircleDollarIcon, FlagIcon, GaugeIcon, GearSixIcon, GitDiffIcon, GridFourIcon,
   HandCoinsIcon, HandshakeIcon, HardDrivesIcon, HouseIcon, LinkIcon, ListChecksIcon, PercentIcon,
   PlugsConnectedIcon, PuzzlePieceIcon, ReceiptIcon, RocketLaunchIcon, ScalesIcon, ShieldCheckIcon, SquaresFourIcon,
   StackIcon, StorefrontIcon, TreeStructureIcon, UserGearIcon, UsersThreeIcon,
@@ -84,6 +84,8 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/partner-fees', label: 'Tarifas de partners', icon: StorefrontIcon, group: 'Finanzas', personas: ['EBIM'], finance: true },
 
   // ---- Operación SaaS -----------------------------------------------------
+  // Ciclo de vida: cada cuenta × cada app, cobranza, cortes y entrega a la app.
+  { to: '/suite', label: 'Centro de la suite', icon: GridFourIcon, group: 'Operación SaaS', personas: ['EBIM'] },
   { to: '/integrations', label: 'Integraciones', icon: PlugsConnectedIcon, group: 'Operación SaaS', personas: ['EBIM'], detailLabel: 'Ficha de integración' },
   { to: '/commercial/entitlement-sync', label: 'Sincronización de entitlements', icon: ArrowsClockwiseIcon, group: 'Operación SaaS', personas: ['EBIM'] },
   { to: '/usage', label: 'Uso', icon: GaugeIcon, group: 'Operación SaaS', personas: ['EBIM'] },

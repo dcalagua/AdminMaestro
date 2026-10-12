@@ -3485,6 +3485,30 @@ export type Database = {
           },
         ];
       };
+      lifecycle_job_runs: {
+        Row: {
+          detail: Json;
+          id: number;
+          job: string;
+          outcome: string;
+          ran_at: string;
+        };
+        Insert: {
+          detail?: Json;
+          id?: number;
+          job: string;
+          outcome: string;
+          ran_at?: string;
+        };
+        Update: {
+          detail?: Json;
+          id?: number;
+          job?: string;
+          outcome?: string;
+          ran_at?: string;
+        };
+        Relationships: [];
+      };
       m2m_jti_replay: {
         Row: {
           expires_at: string;
@@ -8280,6 +8304,42 @@ export type Database = {
           },
         ];
       };
+      tenant_lifecycle_settings: {
+        Row: {
+          auto_resume_enabled: boolean;
+          auto_suspend_enabled: boolean;
+          autocharge_enabled: boolean;
+          entitlement_sync_enabled: boolean;
+          id: boolean;
+          last_cycle_at: string | null;
+          last_cycle_result: Json | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          auto_resume_enabled?: boolean;
+          auto_suspend_enabled?: boolean;
+          autocharge_enabled?: boolean;
+          entitlement_sync_enabled?: boolean;
+          id?: boolean;
+          last_cycle_at?: string | null;
+          last_cycle_result?: Json | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          auto_resume_enabled?: boolean;
+          auto_suspend_enabled?: boolean;
+          autocharge_enabled?: boolean;
+          entitlement_sync_enabled?: boolean;
+          id?: boolean;
+          last_cycle_at?: string | null;
+          last_cycle_result?: Json | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
       tenant_memberships: {
         Row: {
           created_at: string;
@@ -8536,6 +8596,62 @@ export type Database = {
             isOneToOne: true;
             referencedRelation: 'v_tenant_overview';
             referencedColumns: ['tenant_id'];
+          },
+        ];
+      };
+      tenant_suspensions: {
+        Row: {
+          cause: string;
+          detail: Json;
+          id: string;
+          provisioning_request_id: string | null;
+          reason: string;
+          resume_cause: string | null;
+          resume_reason: string | null;
+          resume_request_id: string | null;
+          resumed_at: string | null;
+          resumed_by: string | null;
+          suspended_at: string;
+          suspended_by: string | null;
+          tenant_id: string;
+        };
+        Insert: {
+          cause: string;
+          detail?: Json;
+          id?: string;
+          provisioning_request_id?: string | null;
+          reason: string;
+          resume_cause?: string | null;
+          resume_reason?: string | null;
+          resume_request_id?: string | null;
+          resumed_at?: string | null;
+          resumed_by?: string | null;
+          suspended_at?: string;
+          suspended_by?: string | null;
+          tenant_id: string;
+        };
+        Update: {
+          cause?: string;
+          detail?: Json;
+          id?: string;
+          provisioning_request_id?: string | null;
+          reason?: string;
+          resume_cause?: string | null;
+          resume_reason?: string | null;
+          resume_request_id?: string | null;
+          resumed_at?: string | null;
+          resumed_by?: string | null;
+          suspended_at?: string;
+          suspended_by?: string | null;
+          tenant_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'tenant_suspensions_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -13101,6 +13217,50 @@ export type Database = {
           },
         ];
       };
+      v_tenant_lifecycle: {
+        Row: {
+          applied_version: number | null;
+          auto_suspend_due: boolean | null;
+          cohort_state: string | null;
+          customer_organization_id: string | null;
+          days_past_due: number | null;
+          deployment_mode: Database['platform']['Enums']['deployment_mode'] | null;
+          desired_dirty: boolean | null;
+          desired_version: number | null;
+          environment: Database['platform']['Enums']['environment_kind'] | null;
+          grace_ends_on: string | null;
+          grace_expired: boolean | null;
+          integration_code: string | null;
+          last_change_at: string | null;
+          last_change_reason: string | null;
+          last_push_at: string | null;
+          last_verified_at: string | null;
+          lifecycle_stage: string | null;
+          managing_organization_id: string | null;
+          managing_organization_name: string | null;
+          oldest_due_date: string | null;
+          open_suspension_id: string | null;
+          organization_name: string | null;
+          overdue_balance: number | null;
+          overdue_currency: string | null;
+          overdue_invoices: number | null;
+          product_accent_color: string | null;
+          product_code: string | null;
+          product_short_name: string | null;
+          product_sort_order: number | null;
+          push_enabled: boolean | null;
+          saas_product_id: string | null;
+          suspended_at: string | null;
+          suspension_cause: string | null;
+          suspension_reason: string | null;
+          sync_state: string | null;
+          tenant_id: string | null;
+          tenant_name: string | null;
+          tenant_slug: string | null;
+          tenant_status: Database['platform']['Enums']['tenant_status'] | null;
+        };
+        Relationships: [];
+      };
       v_tenant_margin: {
         Row: {
           collected_revenue: number | null;
@@ -14432,6 +14592,7 @@ export type Database = {
         Returns: boolean;
       };
       is_super_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
+      is_system_job: { Args: Record<PropertyKey, never>; Returns: boolean };
       is_tenant_app_active: {
         Args: { p_product_id: string; p_tenant_id: string };
         Returns: boolean;
@@ -14986,6 +15147,7 @@ export type Database = {
       revoke_payment_link: { Args: { p_link_id: string; p_reason: string }; Returns: Json };
       revoke_platform_role: { Args: { p_reason: string; p_user_id: string }; Returns: string };
       revoke_provisioning_role: { Args: { p_id: string }; Returns: string };
+      run_tenant_lifecycle_cycle: { Args: { p_as_of?: string; p_dry_run?: boolean }; Returns: Json };
       schedule_cancel_tenant_addon: {
         Args: { p_effective_to?: string; p_reason: string; p_tenant_addon_id: string };
         Returns: string;
@@ -15174,6 +15336,15 @@ export type Database = {
         Args: { p_enabled: boolean; p_feature_key: string; p_tenant_id: string; p_value?: Json };
         Returns: undefined;
       };
+      set_tenant_lifecycle_settings: {
+        Args: {
+          p_auto_resume_enabled?: boolean;
+          p_auto_suspend_enabled?: boolean;
+          p_autocharge_enabled?: boolean;
+          p_entitlement_sync_enabled?: boolean;
+        };
+        Returns: Json;
+      };
       set_tenant_membership_active: {
         Args: { p_active: boolean; p_membership_id: string; p_reason?: string };
         Returns: string;
@@ -15239,6 +15410,24 @@ export type Database = {
           p_subscription_id: string;
         };
         Returns: string;
+      };
+      tenant_overdue_invoices: {
+        Args: { p_as_of?: string; p_tenant_id?: string };
+        Returns: {
+          auto_suspend: boolean;
+          balance: number;
+          currency: string;
+          days_past_due: number;
+          due_date: string;
+          grace_ends_on: string;
+          invoice_id: string;
+          invoice_number: string;
+          paid: number;
+          subscription_code: string;
+          subscription_id: string;
+          tenant_id: string;
+          total: number;
+        }[];
       };
       to_reporting_amount: {
         Args: {
