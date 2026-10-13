@@ -84,6 +84,7 @@ insert into platform.tenant_lifecycle_settings (id) values (true) on conflict do
 create index tenant_lifecycle_settings_updated_by_ix on platform.tenant_lifecycle_settings (updated_by);
 
 alter table platform.tenant_lifecycle_settings enable row level security;
+alter table platform.tenant_lifecycle_settings force row level security;
 -- Solo lectura desde la consola: toda escritura pasa por las funciones de esta migración.
 revoke all on platform.tenant_lifecycle_settings from public, anon, authenticated;
 grant select on platform.tenant_lifecycle_settings to authenticated, service_role;
@@ -130,6 +131,7 @@ create index tenant_suspensions_request_ix on platform.tenant_suspensions (provi
 create index tenant_suspensions_resume_request_ix on platform.tenant_suspensions (resume_request_id);
 
 alter table platform.tenant_suspensions enable row level security;
+alter table platform.tenant_suspensions force row level security;
 -- Solo lectura desde la consola: toda escritura pasa por las funciones de esta migración.
 revoke all on platform.tenant_suspensions from public, anon, authenticated;
 grant select on platform.tenant_suspensions to authenticated, service_role;
@@ -157,6 +159,7 @@ create table platform.lifecycle_job_runs (
 create index lifecycle_job_runs_job_ix on platform.lifecycle_job_runs (job, ran_at desc);
 
 alter table platform.lifecycle_job_runs enable row level security;
+alter table platform.lifecycle_job_runs force row level security;
 -- Solo lectura desde la consola: toda escritura pasa por las funciones de esta migración.
 revoke all on platform.lifecycle_job_runs from public, anon, authenticated;
 grant select on platform.lifecycle_job_runs to authenticated, service_role;
