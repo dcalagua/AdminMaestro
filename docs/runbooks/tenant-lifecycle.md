@@ -69,6 +69,22 @@ select platform.configure_lifecycle_integration(
   '<code>:lifecycle:write', '<code>:lifecycle:read');
 ```
 
+Configuración por app (implementada en la rama `dev` de cada repo el 2026-10-13, commits locales sin push):
+
+| App | `base_url` de la integración | `lifecycle_path` | Scopes | En la app |
+|---|---|---|---|---|
+| eSupplier | `…/functions/v1/platform-provisioning` | `/tenants/{controlPlaneTenantId}/lifecycle` | `esupplier:lifecycle:write\|read` | secretos `EBIM_MASTERADMIN_M2M_LIFECYCLE_{WRITE,READ}_SCOPE` |
+| eChange | `…/functions/v1/platform-provisioning` | `/tenants/{controlPlaneTenantId}/lifecycle` | `echange:lifecycle:write\|read` | ídem |
+| eCommerce | `…/functions/v1/platform-provisioning` | `/tenants/{controlPlaneTenantId}/lifecycle` | `ecommerce:lifecycle:write\|read` | ídem |
+| Comerza | `…/functions/v1/platform-provisioning` | `/tenants/{controlPlaneTenantId}/lifecycle` | `comerza:lifecycle:write\|read` | ídem |
+| eExpense | `…/functions/v1/platform-provisioning` | `/tenants/{controlPlaneTenantId}/lifecycle` | `eexpense:lifecycle:write\|read` | ídem |
+| GMAO | `…/functions/v1` | `/platform-provisioning/tenants/{controlPlaneTenantId}/lifecycle` | `gmao:lifecycle:write\|read` | ídem · **proyecto Supabase único dev/qas/prd** |
+| TMS | `https://<tms-api>/internal/platform-provisioning` | `/tenants/{controlPlaneTenantId}/lifecycle` | `tms:lifecycle:write\|read` (constantes) | `TMS_PLATFORM_M2M_ENABLED=true` |
+| EWM | host de la API | `/internal/platform/v1/tenants/{controlPlaneTenantId}/lifecycle` | `ewm:lifecycle:write\|read` (constantes) | — |
+
+Regla: `lifecycle_path` usa la MISMA base que el `entitlements_path` que ya funciona en esa integración. EWM avisa
+que su `ENTITLEMENTS.md` documenta `/tenants/…` con una `base_url` de solo host: revisar esa integración antes.
+
 En la app: las variables de scope lifecycle (ver `docs/platform-provisioning/LIFECYCLE.md` de cada repo). Para
 apagar el canal: los tres valores en `null`.
 
