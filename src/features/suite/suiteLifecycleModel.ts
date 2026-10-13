@@ -235,6 +235,29 @@ export function suiteProducts(rows: TenantLifecycleRow[]): SuiteProduct[] {
   return [...map.values()].sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name, 'es'));
 }
 
+export interface AppLifecycleChannel extends SuiteProduct {
+  /** Al menos un tenant de la app tiene alta en una integración con lifecycle.v1. */
+  configured: boolean;
+  tenants: number;
+  enforced: number;
+  pending: number;
+}
+
+/** Por app: ¿MasterAdmin puede bloquear la operación (contrato lifecycle.v1)? */
+export function appLifecycleChannels(rows: TenantLifecycleRow[]): AppLifecycleChannel[] {
+  return suiteProducts(rows).map((p) => {
+    const mine = rows.filter((r) => r.product_code === p.code);
+    const kinds = mine.map((r) => operationalDeliveryOf(r)?.kind);
+    return {
+      ...p,
+      configured: mine.some((r) => r.lifecycle_channel === true),
+      tenants: mine.length,
+      enforced: kinds.filter((k) => k === 'ENFORCED').length,
+      pending: kinds.filter((k) => k === 'PENDING' || k === 'INCIDENT').length,
+    };
+  });
+}
+
 /** Una fila por cuenta cliente, una columna por app. Lo más grave arriba. */
 export function buildSuiteMatrix(rows: TenantLifecycleRow[]): SuiteMatrixRow[] {
   const byOrg = new Map<string, SuiteMatrixRow>();

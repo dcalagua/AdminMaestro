@@ -20,7 +20,7 @@ import { useToast } from '@/components/ui/toast-context';
 import { KpiStrip } from '@/features/billing/financeUi';
 import { formatDate, formatDateTime, formatMoney, formatNumber } from '@/lib/format';
 import {
-  ATTENTION_STAGES, JOB_LABEL, JOB_OUTCOME, RESUME_CAUSE, STAGE, SUSPENSION_CAUSE, buildSuiteMatrix, cycleSummary,
+  appLifecycleChannels, ATTENTION_STAGES, JOB_LABEL, JOB_OUTCOME, RESUME_CAUSE, STAGE, SUSPENSION_CAUSE, buildSuiteMatrix, cycleSummary,
   deliveryOf, parseCycleResult, stageOf, suiteKpis, suiteProducts,
   type LifecycleCycleResult, type TenantLifecycleRow,
 } from './suiteLifecycleModel';
@@ -159,7 +159,7 @@ export function SuiteControlPage() {
             {
               id: 'politica',
               label: 'Política y jobs',
-              content: <PolicyTab isSuperAdmin={perms.isSuperAdmin} />,
+              content: <PolicyTab isSuperAdmin={perms.isSuperAdmin} rows={rows} />,
               hidden: !(perms.canManagePlatform || perms.canReadFinance),
             },
           ]}
@@ -527,7 +527,7 @@ function SuspensionHistory({ rows }: { rows: TenantLifecycleRow[] }) {
    Política y jobs
    ========================================================================== */
 
-function PolicyTab({ isSuperAdmin }: { isSuperAdmin: boolean }) {
+function PolicyTab({ isSuperAdmin, rows }: { isSuperAdmin: boolean; rows: TenantLifecycleRow[] }) {
   const settings = useTenantLifecycleSettings();
   const jobs = useLifecycleJobRuns();
   const save = useSetTenantLifecycleSettings();
@@ -576,7 +576,7 @@ function PolicyTab({ isSuperAdmin }: { isSuperAdmin: boolean }) {
             />
             <SwitchField
               label="Sincronización programada con las apps"
-              hint="Cada 5 minutos emite, envía y verifica los entitlements (incluido el estado activo/suspendido) en cada app."
+              hint="Cada 5 minutos entrega a cada app los entitlements y el estado operativo (activo o suspendido, contrato lifecycle.v1)."
               checked={s.entitlement_sync_enabled}
               disabled={!isSuperAdmin || save.isPending}
               onChange={(v) => void toggle({ p_entitlement_sync_enabled: v }, v ? 'Sincronización programada habilitada' : 'Sincronización programada apagada')}
@@ -603,6 +603,28 @@ function PolicyTab({ isSuperAdmin }: { isSuperAdmin: boolean }) {
         ) : (
           <EmptyState title="Sin política" description="No tienes acceso a la política del ciclo de vida." />
         )}
+      </Card>
+
+      <Card
+        title="Canal de suspensión por app"
+        description="Contrato lifecycle.v1: sin canal configurado, suspender no bloquea la operación en esa app."
+      >
+        <DataTable label="Canal de suspensión por app" columns={['App', 'Canal', 'Tenants', 'Bloqueo']}>
+          {appLifecycleChannels(rows).map((a) => (
+            <tr key={a.code}>
+              <td className="ebim-td text-compact font-medium">{a.name}</td>
+              <td className="ebim-td">
+                <Badge tone={a.configured ? 'ok' : 'warn'} dot>
+                  {a.configured ? 'Configurado' : 'Sin canal'}
+                </Badge>
+              </td>
+              <td className="ebim-td text-compact tabular-nums">{a.tenants}</td>
+              <td className="ebim-td text-compact">
+                {a.enforced || a.pending ? `${a.enforced} aplicado(s) · ${a.pending} pendiente(s)` : '—'}
+              </td>
+            </tr>
+          ))}
+        </DataTable>
       </Card>
 
       <Card title="Jobs programados" description="Lo que pg_cron ejecutó. «Sin configurar» = faltan los secretos de Vault del entorno.">

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  buildSuiteMatrix, cycleSummary, deliveryOf, operationalDeliveryOf, parseCycleResult, stageOf, suiteKpis, suiteProducts, worstStage,
+  appLifecycleChannels, buildSuiteMatrix, cycleSummary, deliveryOf, operationalDeliveryOf, parseCycleResult, stageOf, suiteKpis, suiteProducts, worstStage,
   type TenantLifecycleRow,
 } from './suiteLifecycleModel';
 
@@ -56,6 +56,21 @@ describe('operationalDeliveryOf (lifecycle.v1)', () => {
       .toMatchObject({ kind: 'PENDING', label: 'Bloqueo pendiente en la app' });
     expect(deliveryOf(row({ ...base, lifecycle_last_result: 'REJECTED', lifecycle_last_error: 'TENANT_NOT_PROVISIONED' })))
       .toMatchObject({ kind: 'INCIDENT', detail: expect.stringContaining('TENANT_NOT_PROVISIONED') });
+  });
+});
+
+describe('appLifecycleChannels', () => {
+  it('por app: canal configurado y cuántos tenants tienen el bloqueo aplicado o pendiente', () => {
+    const rows = [
+      row({ tenant_id: 'a', lifecycle_channel: true, lifecycle_desired_state: 'SUSPENDED', lifecycle_desired_version: 1,
+        lifecycle_applied_version: 1, lifecycle_applied_state: 'SUSPENDED' }),
+      row({ tenant_id: 'b', lifecycle_channel: true, lifecycle_desired_state: 'SUSPENDED', lifecycle_desired_version: 2 }),
+      row({ tenant_id: 'c', product_code: 'tms', product_short_name: 'TMS', product_sort_order: 30 }),
+    ];
+    expect(appLifecycleChannels(rows).map((a) => [a.code, a.configured, a.tenants, a.enforced, a.pending])).toEqual([
+      ['esupplier', true, 2, 1, 1],
+      ['tms', false, 1, 0, 0],
+    ]);
   });
 });
 
