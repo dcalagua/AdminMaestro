@@ -5512,6 +5512,9 @@ export type Database = {
           id: string;
           integration_type: Database['platform']['Enums']['integration_type'];
           issuer: string;
+          lifecycle_path: string | null;
+          lifecycle_read_scope: string | null;
+          lifecycle_write_scope: string | null;
           metadata: NonNullable<Json>;
           name: string;
           owner_name: string | null;
@@ -5549,6 +5552,9 @@ export type Database = {
           id?: string;
           integration_type: Database['platform']['Enums']['integration_type'];
           issuer?: string;
+          lifecycle_path?: string | null;
+          lifecycle_read_scope?: string | null;
+          lifecycle_write_scope?: string | null;
           metadata?: NonNullable<Json>;
           name: string;
           owner_name?: string | null;
@@ -5586,6 +5592,9 @@ export type Database = {
           id?: string;
           integration_type?: Database['platform']['Enums']['integration_type'];
           issuer?: string;
+          lifecycle_path?: string | null;
+          lifecycle_read_scope?: string | null;
+          lifecycle_write_scope?: string | null;
           metadata?: NonNullable<Json>;
           name?: string;
           owner_name?: string | null;
@@ -8301,6 +8310,84 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'profiles';
             referencedColumns: ['id'];
+          },
+        ];
+      };
+      tenant_lifecycle_delivery: {
+        Row: {
+          applied_at: string | null;
+          applied_state: string | null;
+          applied_version: number | null;
+          attempts: number;
+          desired_at: string;
+          desired_reason: string | null;
+          desired_state: string;
+          desired_version: number;
+          last_attempt_at: string | null;
+          last_error_code: string | null;
+          last_http_status: number | null;
+          last_result: string | null;
+          lease_owner: string | null;
+          lease_until: string | null;
+          next_attempt_at: string;
+          saas_product_id: string;
+          tenant_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          applied_at?: string | null;
+          applied_state?: string | null;
+          applied_version?: number | null;
+          attempts?: number;
+          desired_at?: string;
+          desired_reason?: string | null;
+          desired_state: string;
+          desired_version?: number;
+          last_attempt_at?: string | null;
+          last_error_code?: string | null;
+          last_http_status?: number | null;
+          last_result?: string | null;
+          lease_owner?: string | null;
+          lease_until?: string | null;
+          next_attempt_at?: string;
+          saas_product_id: string;
+          tenant_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          applied_at?: string | null;
+          applied_state?: string | null;
+          applied_version?: number | null;
+          attempts?: number;
+          desired_at?: string;
+          desired_reason?: string | null;
+          desired_state?: string;
+          desired_version?: number;
+          last_attempt_at?: string | null;
+          last_error_code?: string | null;
+          last_http_status?: number | null;
+          last_result?: string | null;
+          lease_owner?: string | null;
+          lease_until?: string | null;
+          next_attempt_at?: string;
+          saas_product_id?: string;
+          tenant_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "tenant_lifecycle_delivery_saas_product_id_fkey";
+            columns: ["saas_product_id"];
+            isOneToOne: false;
+            referencedRelation: "saas_products";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tenant_lifecycle_delivery_tenant_id_fkey";
+            columns: ["tenant_id"];
+            isOneToOne: true;
+            referencedRelation: "tenants";
+            referencedColumns: ["id"];
           },
         ];
       };
@@ -13235,6 +13322,17 @@ export type Database = {
           last_change_reason: string | null;
           last_push_at: string | null;
           last_verified_at: string | null;
+          lifecycle_applied_at: string | null;
+          lifecycle_applied_state: string | null;
+          lifecycle_applied_version: number | null;
+          lifecycle_attempts: number | null;
+          lifecycle_channel: boolean | null;
+          lifecycle_desired_reason: string | null;
+          lifecycle_desired_state: string | null;
+          lifecycle_desired_version: number | null;
+          lifecycle_last_error: string | null;
+          lifecycle_last_result: string | null;
+          lifecycle_next_attempt_at: string | null;
           lifecycle_stage: string | null;
           managing_organization_id: string | null;
           managing_organization_name: string | null;
@@ -13773,6 +13871,17 @@ export type Database = {
         };
         Returns: Json;
       };
+      claim_lifecycle_deliveries: {
+        Args: { p_lease_seconds?: number; p_limit?: number; p_worker: string };
+        Returns: {
+          desired_at: string;
+          desired_reason: string;
+          desired_state: string;
+          desired_version: number;
+          saas_product_id: string;
+          tenant_id: string;
+        }[];
+      };
       clear_catalog_item_usage_binding: {
         Args: { p_catalog_item_code: string; p_reason: string };
         Returns: Json;
@@ -13914,6 +14023,15 @@ export type Database = {
           p_entitlements_path: string;
           p_integration_id: string;
           p_manifest_path: string;
+          p_read_scope: string;
+          p_write_scope: string;
+        };
+        Returns: string;
+      };
+      configure_lifecycle_integration: {
+        Args: {
+          p_integration_id: string;
+          p_lifecycle_path: string;
           p_read_scope: string;
           p_write_scope: string;
         };
@@ -14613,6 +14731,10 @@ export type Database = {
       };
       jcs_canonical: { Args: { p_value: Json }; Returns: string };
       jsonb_deep_merge: { Args: { a: Json; b: Json }; Returns: Json };
+      lifecycle_delivery_context: {
+        Args: { p_tenant_id: string };
+        Returns: Json;
+      };
       link_user_sales_agent: {
         Args: { p_reason?: string; p_sales_agent_id: string; p_user_id: string };
         Returns: string;
@@ -14908,6 +15030,19 @@ export type Database = {
       };
       record_invitation_resend: {
         Args: { p_delivery: string; p_user_id: string };
+        Returns: string;
+      };
+      record_lifecycle_delivery_result: {
+        Args: {
+          p_applied_version?: number;
+          p_error_code?: string;
+          p_http_status?: number;
+          p_result: string;
+          p_state: string;
+          p_tenant_id: string;
+          p_version: number;
+          p_worker: string;
+        };
         Returns: string;
       };
       record_provisioning_event: {

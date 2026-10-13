@@ -1,7 +1,9 @@
 # Runbook · Ciclo de vida del tenant en la suite
 
-Migración `20261020000100_tenant_lifecycle.sql` · pantalla **Operación SaaS → Centro de la suite** (`/suite`) ·
-test `supabase/tests/56_tenant_lifecycle.test.sql`.
+Migraciones `20261020000100_tenant_lifecycle.sql` y `20261020000200_tenant_lifecycle_delivery.sql` · pantalla
+**Operación SaaS → Centro de la suite** (`/suite`) · tests `supabase/tests/56_tenant_lifecycle.test.sql` y
+`57_tenant_lifecycle_delivery.test.sql` · contrato con las apps
+[`LIFECYCLE_CONTRACT.md`](../platform-provisioning/LIFECYCLE_CONTRACT.md).
 
 ## 1. Qué hace
 
@@ -31,21 +33,44 @@ pago CONFIRMED que salda toda la deuda fuera de gracia ──┘
 
 ## 2. Cómo llega a cada app
 
-Cada cambio de estado del tenant marca su entitlement como cambiado (`mark_entitlements_dirty`,
-motivo `TENANT_STATUS_<estado>`). El job `entitlement-sync` emite un snapshot nuevo con
-`appActive` y lo empuja a la app. La columna «Entrega a la app» del Centro de la suite dice la verdad:
+Dos canales, separados por la enmienda D-14:
+
+| Canal | Qué lleva | Efecto en la app |
+|---|---|---|
+| `entitlements.v1` (snapshot) | `appActive` y capacidades | Solo lo **comercial** (D-14) |
+| `lifecycle.v1` (PUT `/tenants/{id}/lifecycle`) | `ACTIVE` / `SUSPENDED` + causa, versionado | **Bloqueo operativo**: escritura bloqueada (`TENANT_SUSPENDED`), lectura disponible, aviso en la UI |
+
+Cada cambio de estado del tenant marca el snapshot (`TENANT_STATUS_<estado>`) y sube la versión deseada en
+`platform.tenant_lifecycle_delivery` (solo si el tenant tiene alta ACTIVA en su app). `CHURNED`/`ARCHIVED` viajan
+como `SUSPENDED` con causa `TERMINATED`. El job `ebim-entitlement-sync` (cada 5 minutos, `job: "all"`) incluye
+`lifecycle`: reclama, hace el PUT y registra; ante `409 STALE_LIFECYCLE` re-emite por encima de lo que tiene la app.
+
+La columna «Entrega a la app» del Centro de la suite muestra primero el canal operativo:
 
 | Indicador | Significado |
 |---|---|
-| Aplicado en la app | snapshot confirmado por GET y la app está en `DUAL_READ` o superior: el corte es real |
-| Entregado, en sombra | la app lo recibió pero sigue en `LEGACY_ONLY`/`SHADOW`: **el corte es solo un registro** |
-| Entrega pendiente | hay cambios sin emitir o en curso (o el envío de la integración está apagado) |
-| Incidente de entrega | rechazo, app inalcanzable o desvío de checksum: requiere a una persona |
-| Sin canal | tenant no enrolado en entitlements: la app no se entera |
+| Bloqueo aplicado en la app / Reactivado en la app | la app confirmó la versión deseada |
+| Bloqueo / Reactivación pendiente en la app | sin confirmar aún (próximo ciclo o reintento con backoff) |
+| Incidente de entrega | la app rechazó (`REJECTED`, `CONFLICT`) o falta configuración: requiere a una persona |
+| App sin canal de suspensión | la integración no tiene `lifecycle_path`: **la app sigue operando** |
 
-Qué hace la app con `appActive=false` lo define cada app (hoy, por D-14, deniega las funciones de
-pago). La propuesta de contrato para un bloqueo total está en
-[`docs/platform-provisioning/LIFECYCLE_CONTRACT.md`](../platform-provisioning/LIFECYCLE_CONTRACT.md).
+Sin nada que entregar por `lifecycle.v1` (un tenant que nunca se suspendió), la columna muestra el canal de
+entitlements: «Aplicado en la app», «Entregado, en sombra», «Entrega pendiente», «Incidente de entrega» o «Sin canal».
+
+### Habilitar el canal en una integración
+
+Cuando la app ya implementa el contrato (rama `dev` de cada repo), un `EBIM_PRODUCT_ADMIN` lo configura con la
+misma base que `entitlements_path`:
+
+```sql
+select platform.configure_lifecycle_integration(
+  '<product_integration_id>',
+  '/tenants/{controlPlaneTenantId}/lifecycle',   -- relativo a base_url, igual que entitlements_path
+  '<code>:lifecycle:write', '<code>:lifecycle:read');
+```
+
+En la app: las variables de scope lifecycle (ver `docs/platform-provisioning/LIFECYCLE.md` de cada repo). Para
+apagar el canal: los tres valores en `null`.
 
 ## 3. Jobs programados (pg_cron, en la migración)
 

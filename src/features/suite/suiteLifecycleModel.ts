@@ -87,10 +87,64 @@ const ENFORCING_COHORTS = new Set(['DUAL_READ', 'MASTERADMIN_PRIMARY', 'LEGACY_R
 const PENDING_STATES = new Set(['PENDING_PUSH', 'PUSHING', 'AWAITING_VERIFY', 'DRIFT_BEHIND']);
 const INCIDENT_STATES = new Set(['REJECTED', 'UNREACHABLE', 'DRIFT_CHECKSUM', 'DRIFT_AHEAD', 'REGISTRY_DRIFT']);
 
-/** ¿Qué sabe la app de este tenant? */
-export function deliveryOf(
-  row: Pick<TenantLifecycleRow, 'sync_state' | 'cohort_state' | 'desired_dirty' | 'push_enabled'>,
-): Delivery {
+type DeliveryRow = Pick<
+  TenantLifecycleRow,
+  | 'sync_state'
+  | 'cohort_state'
+  | 'desired_dirty'
+  | 'push_enabled'
+  | 'lifecycle_channel'
+  | 'lifecycle_desired_state'
+  | 'lifecycle_desired_version'
+  | 'lifecycle_applied_state'
+  | 'lifecycle_applied_version'
+  | 'lifecycle_last_result'
+  | 'lifecycle_last_error'
+>;
+
+const LIFECYCLE_INCIDENTS = new Set(['REJECTED', 'NOT_CONFIGURED', 'CONFLICT']);
+
+/**
+ * Estado operativo (contrato lifecycle.v1): ¿la app ya bloquea o reanuda al tenant?
+ * `null` cuando el tenant nunca tuvo nada que entregar por este canal.
+ */
+export function operationalDeliveryOf(row: Partial<DeliveryRow>): Delivery | null {
+  if (!row.lifecycle_desired_state) return null;
+  const suspended = row.lifecycle_desired_state === 'SUSPENDED';
+  if (!row.lifecycle_channel) {
+    return {
+      kind: 'NO_CHANNEL',
+      label: 'App sin canal de suspensión',
+      tone: 'warn',
+      detail:
+        'La app no tiene configurado el contrato lifecycle.v1: el cambio queda en MasterAdmin y la app sigue operando.',
+    };
+  }
+  if (row.lifecycle_applied_version != null && row.lifecycle_applied_version === row.lifecycle_desired_version) {
+    return row.lifecycle_applied_state === 'SUSPENDED'
+      ? { kind: 'ENFORCED', label: 'Bloqueo aplicado en la app', tone: 'ok', detail: 'La app confirmó: escritura bloqueada, lectura disponible.' }
+      : { kind: 'ENFORCED', label: 'Reactivado en la app', tone: 'ok', detail: 'La app confirmó que el tenant vuelve a operar.' };
+  }
+  if (LIFECYCLE_INCIDENTS.has(row.lifecycle_last_result ?? '')) {
+    return {
+      kind: 'INCIDENT',
+      label: 'Incidente de entrega',
+      tone: 'danger',
+      detail: `La app rechazó el cambio${row.lifecycle_last_error ? ` (${row.lifecycle_last_error})` : ''}: requiere a una persona.`,
+    };
+  }
+  return {
+    kind: 'PENDING',
+    label: suspended ? 'Bloqueo pendiente en la app' : 'Reactivación pendiente en la app',
+    tone: 'info',
+    detail: `El próximo ciclo de sincronización (≤ 5 min) lo entrega${row.lifecycle_last_error ? `; último intento: ${row.lifecycle_last_error}` : ''}.`,
+  };
+}
+
+/** ¿Qué sabe la app de este tenant? Primero el estado operativo; si no hay, los entitlements. */
+export function deliveryOf(row: Partial<DeliveryRow>): Delivery {
+  const operational = operationalDeliveryOf(row);
+  if (operational) return operational;
   const state = row.sync_state ?? '';
   if (!state || state === 'NOT_PROVISIONED' || state === 'NOT_ENROLLED') {
     return {

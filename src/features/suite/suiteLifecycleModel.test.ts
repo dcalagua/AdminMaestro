@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  buildSuiteMatrix, cycleSummary, deliveryOf, parseCycleResult, stageOf, suiteKpis, suiteProducts, worstStage,
+  buildSuiteMatrix, cycleSummary, deliveryOf, operationalDeliveryOf, parseCycleResult, stageOf, suiteKpis, suiteProducts, worstStage,
   type TenantLifecycleRow,
 } from './suiteLifecycleModel';
 
@@ -16,6 +16,10 @@ function row(overrides: Partial<TenantLifecycleRow>): TenantLifecycleRow {
     product_short_name: 'eSupplier', product_sort_order: 10, push_enabled: false, saas_product_id: 'p1',
     suspended_at: null, suspension_cause: null, suspension_reason: null, sync_state: null, tenant_id: 't1',
     tenant_name: 'Alpha · eSupplier', tenant_slug: 'alpha', tenant_status: 'ACTIVE',
+    lifecycle_applied_at: null, lifecycle_applied_state: null, lifecycle_applied_version: null, lifecycle_attempts: null,
+    lifecycle_channel: false, lifecycle_desired_reason: null, lifecycle_desired_state: null,
+    lifecycle_desired_version: null, lifecycle_last_error: null, lifecycle_last_result: null,
+    lifecycle_next_attempt_at: null,
     ...overrides,
   };
 }
@@ -25,6 +29,33 @@ describe('stageOf', () => {
     expect(stageOf({ lifecycle_stage: 'SUSPENSION_SCHEDULED' })).toBe('SUSPENSION_SCHEDULED');
     expect(stageOf({ lifecycle_stage: 'OTRA' })).toBe('INACTIVE');
     expect(stageOf({ lifecycle_stage: null })).toBe('INACTIVE');
+  });
+});
+
+describe('operationalDeliveryOf (lifecycle.v1)', () => {
+  it('sin nada que entregar por el canal operativo no opina', () => {
+    expect(operationalDeliveryOf(row({}))).toBeNull();
+  });
+
+  it('una app sin el canal configurado lo dice: el bloqueo no llega', () => {
+    expect(deliveryOf(row({ lifecycle_desired_state: 'SUSPENDED', lifecycle_desired_version: 1, sync_state: 'IN_SYNC',
+      cohort_state: 'MASTERADMIN_PRIMARY' }))).toMatchObject({ kind: 'NO_CHANNEL', label: 'App sin canal de suspensión' });
+  });
+
+  it('confirmado por la app: bloqueo o reactivación aplicados', () => {
+    const base = { lifecycle_channel: true, lifecycle_desired_version: 3, lifecycle_applied_version: 3 };
+    expect(deliveryOf(row({ ...base, lifecycle_desired_state: 'SUSPENDED', lifecycle_applied_state: 'SUSPENDED' })))
+      .toMatchObject({ kind: 'ENFORCED', label: 'Bloqueo aplicado en la app' });
+    expect(deliveryOf(row({ ...base, lifecycle_desired_state: 'ACTIVE', lifecycle_applied_state: 'ACTIVE' })))
+      .toMatchObject({ kind: 'ENFORCED', label: 'Reactivado en la app' });
+  });
+
+  it('pendiente mientras la versión aplicada no alcanza la deseada; rechazo = incidente con el código', () => {
+    const base = { lifecycle_channel: true, lifecycle_desired_state: 'SUSPENDED', lifecycle_desired_version: 4, lifecycle_applied_version: 3 };
+    expect(deliveryOf(row({ ...base, lifecycle_last_result: 'RETRYABLE', lifecycle_last_error: 'HTTP_503' })))
+      .toMatchObject({ kind: 'PENDING', label: 'Bloqueo pendiente en la app' });
+    expect(deliveryOf(row({ ...base, lifecycle_last_result: 'REJECTED', lifecycle_last_error: 'TENANT_NOT_PROVISIONED' })))
+      .toMatchObject({ kind: 'INCIDENT', detail: expect.stringContaining('TENANT_NOT_PROVISIONED') });
   });
 });
 

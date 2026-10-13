@@ -1,62 +1,130 @@
-# Contrato de ciclo de vida con las apps de la suite (propuesta v1)
+# Contrato `lifecycle.v1` · estado operativo del tenant en cada app
 
-Estado: **PROPUESTA** para acordar con los equipos de EWM, TMS, eSupplier, Comerza, eChange,
-eExpense, eCommerce y GMAO. MasterAdmin ya emite la señal (§2); falta el lado de cada app (§3).
+Estado: **v1 IMPLEMENTADO** en MasterAdmin y en las 8 apps de la suite (rama `dev` de cada repo).
+Runbook de operación: [`docs/runbooks/tenant-lifecycle.md`](../runbooks/tenant-lifecycle.md).
 
-## 1. Por qué
+## 1. Por qué un canal aparte
 
-MasterAdmin decide quién puede operar cada app: suspende por impago y reactiva al pagar
-(`docs/runbooks/tenant-lifecycle.md`). Hoy la única vía hacia la app es el snapshot de entitlements,
-y su `appActive=false` solo deniega las funciones de pago (D-14). Un cliente moroso sigue entrando.
+La enmienda D-14 de la spec (2026-09-29) fija que `appActive=false` en el snapshot de entitlements
+retira **solo** lo comercial: la operación sigue. Y deja «el apagado operativo completo» como una
+política aparte. `lifecycle.v1` es esa política:
 
-## 2. Lo que MasterAdmin ya envía (sin cambios en la app)
+- no toca el contrato `entitlements.v1` (sus textos y checksums siguen intactos);
+- no sobrecarga `appActive`: un tenant sin una app contratada no queda bloqueado por eso;
+- es **declarativo y versionado**, como los entitlements: MasterAdmin dice en qué estado debe estar el
+  tenant y con qué versión; la app guarda la última versión aplicada y rechaza versiones viejas.
 
-- Snapshot de entitlements con `appActive` = `tenant.status = 'ACTIVE'` y la app contratada
-  (`platform.is_tenant_app_active`).
-- Cada cambio de estado del tenant marca el snapshot como cambiado: el próximo push (cada 5 minutos con
-  el job `ebim-entitlement-sync`) lo entrega.
-- El checksum JCS cambia con `appActive`, así que el GET de verificación detecta si la app no lo aplicó.
+## 2. Transporte
 
-**Primer paso recomendado (sin contrato nuevo):** cada app, al recibir `appActive=false`, deja de
-permitir el uso operativo y no solo las funciones de pago:
+El mismo de `entitlements.v1`: HTTP M2M con un JWT asimétrico firmado por MasterAdmin, verificado por
+la app con la misma clave pública, el mismo `iss`, `aud` y `sub` de la integración, `jti` de un solo
+uso y un token nuevo por intento.
 
-| Comportamiento con `appActive=false` | Obligatorio |
+| Operación | Ruta (relativa a `base_url`) | Scope del token |
+|---|---|---|
+| Aplicar estado | `PUT /tenants/{controlPlaneTenantId}/lifecycle` | `<productCode>:lifecycle:write` |
+| Leer estado aplicado | `GET /tenants/{controlPlaneTenantId}/lifecycle` | `<productCode>:lifecycle:read` |
+
+Los scopes son **distintos** de los de alta y de entitlements: una credencial de provisioning no
+suspende a nadie. La ruta y los scopes se configuran por integración en MasterAdmin
+(`product_integrations.lifecycle_path`, `lifecycle_write_scope`, `lifecycle_read_scope`). Una
+integración sin ellos no recibe el canal y el Centro de la suite lo muestra como «App sin canal de
+suspensión».
+
+Cabeceras: `Authorization: Bearer <jwt>`, `Idempotency-Key`, `X-Correlation-Id`,
+`X-MasterAdmin-Contract: lifecycle.v1`, `Content-Type: application/json`.
+
+## 3. Cuerpo del PUT
+
+```json
+{
+  "contract": "lifecycle.v1",
+  "controlPlaneTenantId": "5c600000-0000-4000-8000-000000000001",
+  "productCode": "esupplier",
+  "environment": "DEV",
+  "version": 3,
+  "state": "SUSPENDED",
+  "reason": "NON_PAYMENT",
+  "effectiveAt": "2026-10-13T11:00:00Z",
+  "idempotencyKey": "lifecycle:5c600000-0000-4000-8000-000000000001:esupplier:3",
+  "correlationId": "1f0a3c1e-1b7e-4c47-9d55-3a4b1f2e9c10"
+}
+```
+
+| Campo | Regla |
 |---|---|
-| Login permitido, con un aviso «Cuenta suspendida: contacte a su administrador» | sí |
-| Lectura de datos propios (exportar, consultar) | sí, por 30 días: evita secuestro de datos |
-| Escritura operativa (crear, aprobar, mover inventario, emitir) | **bloqueada** |
-| Integraciones y API M2M del cliente | bloqueadas (HTTP 423 `TENANT_SUSPENDED`) |
-| Jobs programados del tenant | pausados |
-| Al volver `appActive=true` | todo se reanuda sin intervención |
+| `contract` | exactamente `lifecycle.v1` |
+| `controlPlaneTenantId` | UUID; igual al de la ruta |
+| `productCode` | el código de la app que recibe; si no coincide → 400 `PRODUCT_MISMATCH` |
+| `environment` | `DEV`, `QAS`, `DEMO` o `PRD`; si no es el de la app → 400 `WRONG_ENVIRONMENT` |
+| `version` | entero ≥ 1, creciente por tenant × app |
+| `state` | `ACTIVE` o `SUSPENDED` |
+| `reason` | con `SUSPENDED`: `NON_PAYMENT`, `MANUAL` o `TERMINATED`; con `ACTIVE`: `null` |
+| `effectiveAt` | ISO-8601 con zona; informativo (la app aplica al recibir) |
+| `idempotencyKey`, `correlationId` | texto ≤ 200; se guardan para auditoría |
 
-## 3. Extensión v1 del contrato de provisioning (opcional, para corte inmediato)
+Campos desconocidos → 400 `INVALID_LIFECYCLE`. No viajan datos personales ni importes.
 
-Para no depender del intervalo de sincronización, el adaptador `http-m2m` puede sumar dos
-operaciones idempotentes con el mismo token ES256 y la misma audiencia del alta:
+## 4. Respuestas
 
-```
-POST {base_url}/tenants/{externalTenantId}/suspend
-POST {base_url}/tenants/{externalTenantId}/activate
+| Caso | HTTP | Cuerpo |
+|---|---|---|
+| Aplicado | 200 | `{"controlPlaneTenantId","productCode","appliedVersion","state","reason","appliedAt","replayed":false}` |
+| Misma versión y mismo estado | 200 | lo mismo con `"replayed": true` |
+| Versión menor que la aplicada | 409 | `{"error":"STALE_LIFECYCLE","appliedVersion":n}` |
+| Misma versión, otro estado | 409 | `{"error":"VERSION_CONFLICT","appliedVersion":n}` |
+| Tenant no aprovisionado en la app | 404 | `{"error":"TENANT_NOT_PROVISIONED"}` |
+| Cuerpo inválido | 400 | `{"error":"INVALID_LIFECYCLE" \| "PRODUCT_MISMATCH" \| "WRONG_ENVIRONMENT"}` |
+| Token inválido / scope ausente | 401 / 403 | `{"error":"..."}` |
 
-{ "requestId": "<uuid de la suspensión>", "reason": "NON_PAYMENT" | "MANUAL", "effectiveAt": "<ISO-8601>" }
-```
+`GET` devuelve `200 {"controlPlaneTenantId","productCode","appliedVersion"|null,"state","reason","appliedAt"|null}`.
+Sin ningún PUT previo: `appliedVersion: null`, `state: "ACTIVE"`.
 
-- Respuesta `200 {"status":"SUSPENDED"|"ACTIVE"}` también si ya estaba en ese estado (idempotente por
-  `requestId`).
-- `404` si el tenant no existe; `409` si está dado de baja.
-- La app que no implemente estas rutas sigue funcionando con §2: MasterAdmin mantendrá el snapshot
-  como fuente de verdad y las rutas como aceleración.
+Los errores usan códigos estables en `error` (`^[A-Z][A-Z0-9_]+$`), nunca trazas ni textos del proveedor.
 
-Al acordarlo, en MasterAdmin: añadir `suspend`/`activate` a `ProvisioningAdapter`
-(`supabase/functions/_shared/provisioning`), que el worker procese `SUSPEND_TENANT`/`RESUME_TENANT`
-contra el adaptador del producto y una capacidad por integración (`supports_lifecycle`) para saber
-a qué apps llamar.
+## 5. Qué hace la app con `SUSPENDED` (obligatorio)
 
-## 4. Certificación por app
+| Ámbito | Comportamiento |
+|---|---|
+| Datos | **Nunca se borran.** Lectura y exportación siguen disponibles |
+| Escritura operativa (crear, editar, aprobar, emitir, mover) | **bloqueada en el servidor**: en la base (trigger/RLS) o en el filtro HTTP único de la API. Error estable `TENANT_SUSPENDED` (HTTP 423 en APIs) |
+| Integraciones y API M2M del cliente, portales externos | escritura bloqueada con el mismo error |
+| Canales de plataforma (`/tenants/{id}/entitlements`, `/lifecycle`, alta, health) | **siempre abiertos**: así MasterAdmin puede reactivar |
+| Login | permitido |
+| UI | aviso fijo «Cuenta suspendida»: con `NON_PAYMENT`, «regularice el pago con su proveedor»; botones de escritura deshabilitados (solo UX: el servidor es la autoridad) |
+| `ACTIVE` | todo se reanuda sin intervención y sin perder datos |
+
+La UI nunca es la autoridad: un cliente que salta el aviso recibe el mismo `TENANT_SUSPENDED` del servidor.
+
+### 5.1 Cómo lo implementa cada app (v1)
+
+| Regla | Detalle |
+|---|---|
+| Registro propio | Tabla de la app (p. ej. `platform_tenant_lifecycle`) con `control_plane_tenant_id`, clave interna del tenant, `state`, `reason`, `applied_version`, `applied_at`, más bitácora append-only. **No** se reutiliza el `status` operativo previo de la app: en varias apps ese valor ya bloquea también la lectura o el login |
+| Mapeo | `controlPlaneTenantId` → tenant interno con la tabla de alta de la propia app. Sin alta → 404 `TENANT_NOT_PROVISIONED` |
+| Autoridad en la base (apps Supabase) | Trigger genérico `BEFORE INSERT OR UPDATE OR DELETE` en cada tabla de negocio con la columna del tenant. Lanza `TENANT_SUSPENDED` con SQLSTATE `P0423`. Cubre RLS, RPC `SECURITY DEFINER`, `service_role` y webhooks. Una prueba estructural exige el trigger en toda tabla con esa columna |
+| Exentas | Solo las tablas del canal de plataforma (alta, entitlements, lifecycle, bitácoras y outbox de uso). Cualquier otra exención se justifica en el documento de la app |
+| APIs Java (TMS, EWM) | Filtro/interceptor único tras la autenticación: método distinto de GET/HEAD/OPTIONS sobre un tenant suspendido → 423 `TENANT_SUSPENDED`. EWM suma el trigger en la base porque parte de su web escribe por RPC sin pasar por Java |
+| Estado legible para la UI | RPC/endpoint de solo lectura del propio tenant (`state`, `reason`, `appliedAt`) para el aviso |
+
+## 6. Qué hace MasterAdmin
+
+- `platform.tenant_lifecycle_delivery` guarda, por tenant × app aprovisionada, el estado deseado
+  (`desired_state`, `desired_reason`, `desired_version`) y lo último aplicado por la app.
+- Cada cambio de estado del tenant sube la versión: `ACTIVE` → `ACTIVE`; `SUSPENDED` → `SUSPENDED` con
+  la causa de la suspensión abierta; `CHURNED`/`ARCHIVED` → `SUSPENDED` con `TERMINATED`.
+- El job `ebim-entitlement-sync` (cada 5 minutos) incluye `lifecycle`: reclama las entregas pendientes
+  (`FOR UPDATE SKIP LOCKED`), hace el PUT y registra el resultado. Un 409 `STALE_LIFECYCLE` se resuelve
+  re-emitiendo una versión mayor que la aplicada.
+- El Centro de la suite muestra por tenant: «Bloqueo aplicado en la app», «Reactivado en la app»,
+  «Entrega pendiente», «Incidente de entrega» o «App sin canal de suspensión».
+
+## 7. Certificación por app
 
 Para cada app, en DEV y luego en QAS:
 
-1. Tenant de prueba en `DUAL_READ` o superior.
-2. Suspender desde el Centro de la suite → en ≤ 5 min la app bloquea la escritura (§2).
+1. Configurar en MasterAdmin la ruta y los scopes (`configure_lifecycle_integration`).
+2. Suspender desde el Centro de la suite → en ≤ 5 min la app responde `TENANT_SUSPENDED` a una
+   escritura y muestra el aviso; la lectura sigue.
 3. Registrar un pago que salda la deuda → la app vuelve a operar sin intervención.
 4. Evidencia en `docs/superpowers/evidence/<fecha>-<app>-lifecycle-certification.md`.
