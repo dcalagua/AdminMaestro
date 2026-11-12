@@ -41,6 +41,7 @@ const CATALOGO: HubPanels = {
 };
 
 const COBRANZA: HubPanels = {
+  'por-cobrar': lazyPanel(() => import('@/features/billing/CollectionsInboxPage'), 'CollectionsInboxPage'),
   facturacion: lazyPanel(() => import('@/features/billing/BillingPage'), 'BillingPage'),
   renovaciones: lazyPanel(() => import('@/features/billing/RenewalsPage'), 'RenewalsPage'),
   conciliacion: lazyPanel(() => import('@/features/billing/ReconciliationPage'), 'ReconciliationPage'),

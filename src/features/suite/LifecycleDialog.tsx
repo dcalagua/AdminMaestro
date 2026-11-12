@@ -31,6 +31,7 @@ export function LifecycleDialog({
   organizationId,
   targets,
   defaultReason = '',
+  loadingTargets = false,
   onClose,
 }: {
   open: boolean;
@@ -42,6 +43,8 @@ export function LifecycleDialog({
   /** Tenants candidatos; sólo cambian los que admiten la transición. */
   targets: LifecycleTarget[];
   defaultReason?: string;
+  /** Los tenants de la cuenta todavía se están leyendo. */
+  loadingTargets?: boolean;
   onClose: () => void;
 }) {
   const toast = useToast();
@@ -71,6 +74,7 @@ export function LifecycleDialog({
   const verb = suspending ? 'Suspender' : 'Reactivar';
 
   async function submit() {
+    if (loadingTargets) return;
     if (reason.trim() === '') {
       setError(new Error('MOTIVO_REQUERIDO: indica el motivo; queda en la auditoría.'));
       return;
@@ -146,7 +150,9 @@ export function LifecycleDialog({
         <h3 id="lifecycle-apps" className="text-micro text-muted">
           Apps y tenants afectados
         </h3>
-        {impact.affected.length === 0 ? (
+        {loadingTargets ? (
+          <p className="mt-1.5 text-compact text-fg-2" role="status">Leyendo los tenants de la cuenta…</p>
+        ) : impact.affected.length === 0 ? (
           <p className="mt-1.5 text-compact text-fg-2">
             {suspending ? 'Ningún tenant activo: no hay nada que suspender.' : 'Ningún tenant suspendido: no hay nada que reactivar.'}
           </p>

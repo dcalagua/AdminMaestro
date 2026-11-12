@@ -93,7 +93,7 @@ describe('menú V5: seis grupos, 18 entradas (plan §4)', () => {
     const tabs = (to: string) => NAV_ITEMS.find((i) => i.to === to)?.tabs?.map((t) => t.id);
     expect(tabs('/cuentas')).toEqual(['clientes', 'directorio']);
     expect(tabs('/catalogo')).toEqual(['productos', 'planes', 'addons', 'capacidades', 'registro']);
-    expect(tabs('/cobranza')).toEqual(['facturacion', 'renovaciones', 'conciliacion']);
+    expect(tabs('/cobranza')).toEqual(['por-cobrar', 'facturacion', 'renovaciones', 'conciliacion']);
     expect(tabs('/commissions')).toEqual(['comisiones', 'planes']);
     expect(tabs('/apps')).toEqual(['integraciones', 'altas', 'sincronizacion', 'uso', 'entornos', 'infraestructura']);
     expect(tabs('/sales-agents')).toEqual(['equipo', 'atribuciones']);

@@ -17,10 +17,12 @@ import { useNavAccess } from '@/app/useNavAccess';
  *   cada pantalla (p. ej. `/apps?tab=uso#aggregates`). Cambiar de pestaña limpia
  *   los filtros de la anterior.
  * - Cada pantalla se pinta «incrustada»: sin repetir migas ni `h1`.
+ * - `actions`: la acción primaria de la entrada (p. ej. «Emitir factura» en
+ *   Cobranza), visible en todas sus pestañas.
  */
 export type HubPanels = Record<string, ComponentType>;
 
-export function HubPage({ to, panels }: { to: string; panels: HubPanels }) {
+export function HubPage({ to, panels, actions }: { to: string; panels: HubPanels; actions?: ReactNode }) {
   const item = findNavItem(to);
   const access = useNavAccess();
   const [params, setParams] = useSearchParams();
@@ -43,7 +45,13 @@ export function HubPage({ to, panels }: { to: string; panels: HubPanels }) {
   };
 
   return (
-    <PageContainer title={item.label} description={item.description}>
+    <PageContainer
+      title={item.label}
+      description={item.description}
+      actions={
+        actions && tabs.length > 0 ? <Suspense fallback={null}>{actions}</Suspense> : undefined
+      }
+    >
       {tabs.length === 0 ? (
         <NoAccess />
       ) : (
