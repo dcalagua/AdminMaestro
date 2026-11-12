@@ -159,7 +159,7 @@ export function AuditDetail({
             <p className="text-body text-muted">Sin diferencias entre los dos estados registrados.</p>
           ) : (
             <div className="overflow-hidden rounded-field border border-border bg-card">
-              <DataTable label="Diferencias antes y después" columns={['Campo', 'Antes', 'Después']} scrollRegion>
+              <DataTable label="Diferencias antes y después" paginate={false} columns={['Campo', 'Antes', 'Después']} scrollRegion>
                 {diff.map((d) => (
                   <tr key={d.field}>
                     <td className="ebim-td font-mono text-caption">{d.field}</td>

@@ -251,6 +251,7 @@ function CommissionsByMonthPanel() {
       )}
       table={() => (
         <DataTable
+          paginate={false}
           caption="Comisión devengada por mes"
           columns={[
             'Mes',

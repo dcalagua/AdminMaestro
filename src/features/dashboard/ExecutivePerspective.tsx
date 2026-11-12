@@ -518,6 +518,7 @@ function MrrEvolutionPanel({
       )}
       table={() => (
         <DataTable
+          paginate={false}
           caption="MRR por mes"
           columns={[
             'Mes',
@@ -639,6 +640,7 @@ function BridgePanel({
       table={() =>
         steps ? (
           <DataTable
+            paginate={false}
             caption="Puente de MRR"
             columns={[
               'Paso',
@@ -783,6 +785,7 @@ function BilledCollectedPanel({
       )}
       table={() => (
         <DataTable
+          paginate={false}
           caption="Facturado vs cobrado por mes"
           columns={[
             'Mes',

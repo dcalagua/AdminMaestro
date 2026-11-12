@@ -96,6 +96,7 @@ export function OperationsPerspective() {
         ) : (
           <DataTable
             label="Matriz por producto y entorno"
+            paginate={false}
             minWidth={860}
             scrollRegion
             columns={[

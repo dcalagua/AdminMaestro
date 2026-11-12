@@ -190,6 +190,7 @@ function SeriesTable({
 }) {
   return (
     <DataTable
+      paginate={false}
       caption={caption}
       columns={['Mes', ...columns.map((c) => ({ label: `${c.label} (${view.currency})`, align: 'right' as const }))]}
     >

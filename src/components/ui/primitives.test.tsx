@@ -14,6 +14,7 @@ import {
   StatCard,
 } from './primitives';
 import { Sparkline } from './Sparkline';
+import { PagedList } from './TablePager';
 import { ToastProvider } from './Toast';
 import { useToast } from './toast-context';
 
@@ -259,3 +260,78 @@ describe('Toast', () => {
     expect(screen.getAllByRole('status')).toHaveLength(3);
   });
 });
+
+describe('DataTable · paginación en cliente (V5 · F0)', () => {
+  function Rows({ n }: { n: number }) {
+    return (
+      <DataTable label="Tenants" columns={['Nombre']}>
+        {Array.from({ length: n }, (_, i) => (
+          <tr key={i}>
+            <td>Fila {i + 1}</td>
+          </tr>
+        ))}
+      </DataTable>
+    );
+  }
+
+  it('hasta 25 filas no muestra paginador', () => {
+    render(<Rows n={25} />);
+    expect(screen.getAllByRole('row')).toHaveLength(26);
+    expect(screen.queryByRole('button', { name: 'Página siguiente' })).toBeNull();
+  });
+
+  it('con más de 25 filas pinta solo la página y permite avanzar y cambiar el tamaño', async () => {
+    const user = userEvent.setup();
+    render(<Rows n={60} />);
+    expect(screen.getAllByRole('row')).toHaveLength(26);
+    expect(screen.getByText('Página 1 de 3')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Página siguiente' }));
+    expect(screen.getByText('Fila 26')).toBeInTheDocument();
+    expect(screen.queryByText('Fila 1')).toBeNull();
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Filas' }), '100');
+    expect(screen.getAllByRole('row')).toHaveLength(61);
+  });
+
+  it('vuelve a la primera página cuando cambia el número de filas', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<Rows n={60} />);
+    await user.click(screen.getByRole('button', { name: 'Página siguiente' }));
+    rerender(<Rows n={40} />);
+    expect(screen.getByText('Página 1 de 2')).toBeInTheDocument();
+    expect(screen.getByText('Fila 1')).toBeInTheDocument();
+  });
+
+  it('paginate={false} pinta todas las filas', () => {
+    render(
+      <DataTable label="Meses" paginate={false} columns={['Mes']}>
+        {Array.from({ length: 36 }, (_, i) => (
+          <tr key={i}>
+            <td>{i}</td>
+          </tr>
+        ))}
+      </DataTable>,
+    );
+    expect(screen.getAllByRole('row')).toHaveLength(37);
+  });
+});
+
+describe('PagedList (V5 · F0)', () => {
+  it('pagina una lista no tabular con el mismo pie', async () => {
+    const user = userEvent.setup();
+    render(
+      <PagedList items={Array.from({ length: 30 }, (_, i) => `Plan ${i + 1}`)}>
+        {(items) => (
+          <ul>
+            {items.map((x) => (
+              <li key={x}>{x}</li>
+            ))}
+          </ul>
+        )}
+      </PagedList>,
+    );
+    expect(screen.getAllByRole('listitem')).toHaveLength(25);
+    await user.click(screen.getByRole('button', { name: 'Página siguiente' }));
+    expect(screen.getAllByRole('listitem')).toHaveLength(5);
+  });
+});
+

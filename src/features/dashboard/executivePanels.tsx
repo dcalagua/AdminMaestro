@@ -235,6 +235,7 @@ export function MixPanel({
       )}
       table={() => (
         <DataTable
+          paginate={false}
           caption={copy.unit}
           columns={[
             copy.column,
@@ -356,6 +357,7 @@ export function AgingPanel({
       }
       table={() => (
         <DataTable
+          paginate={false}
           caption="Cartera por antigüedad"
           columns={[
             'Antigüedad',

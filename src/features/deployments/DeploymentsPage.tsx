@@ -494,6 +494,7 @@ function EnvironmentMatrix({
     >
       <DataTable
         label="Matriz de producto y entorno"
+        paginate={false}
         scrollRegion
         columns={['Producto', ...environments.map((e) => PROVISIONING_ENVIRONMENT_LABEL[e])]}
       >

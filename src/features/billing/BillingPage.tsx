@@ -254,6 +254,7 @@ function WeeklyCollectionsPanel() {
       )}
       table={() => (
         <DataTable
+          paginate={false}
           caption="Cobrado por semana"
           columns={[
             'Semana',

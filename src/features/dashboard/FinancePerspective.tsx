@@ -72,6 +72,7 @@ function AgingChart({ onSelect }: { onSelect: (bucket: string) => void }) {
       )}
       table={() => (
         <DataTable
+          paginate={false}
           caption="Saldo por antigüedad"
           columns={[
             'Antigüedad',
@@ -153,6 +154,7 @@ function ComponentsChart({
       }
       table={() => (
         <DataTable
+          paginate={false}
           caption="Componentes del margen por SaaS"
           columns={[
             'SaaS',
@@ -229,6 +231,7 @@ function PartnerChart({
       )}
       table={() => (
         <DataTable
+          paginate={false}
           caption="Cartera y contribución por partner"
           columns={[
             'Canal',

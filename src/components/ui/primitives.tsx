@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react';
+import { Children, type CSSProperties, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowClockwiseIcon,
@@ -14,6 +14,9 @@ import {
 } from '@phosphor-icons/react';
 import { SearchField } from './fields';
 import { Sparkline } from './Sparkline';
+import { TablePager } from './TablePager';
+import { PAGE_SIZES } from '@/lib/paging';
+import { useClientPagination } from '@/hooks/useClientPagination';
 import { usePageTrail } from './pageTrail';
 import { formatDelta } from '@/lib/format';
 import { businessErrorMessage } from '@/lib/pgError';
@@ -662,6 +665,13 @@ export type DataColumn = string | { label: string; align?: 'left' | 'right'; srO
  * (antes `<table>` sueltas): `caption` para lectores de pantalla, `minWidth`
  * para matrices anchas y `scrollRegion` para que el scroll horizontal sea una
  * región enfocable con teclado. Las filas pueden abrir con `<th scope="row">`.
+ *
+ * Paginación (V5 · F0): un listado con más de 25 filas se pagina en cliente
+ * con el mismo pie que `PagedTable` («Mostrando a–b de N», filas por página,
+ * anterior/siguiente), para que ninguna pantalla pinte miles de filas. Cada
+ * fila hija (`<tr>`) cuenta como una; si cambia el número de filas (buscador,
+ * pestaña) vuelve a la primera página. Las vistas «Tabla» de los gráficos y
+ * las matrices con `rowSpan` lo desactivan con `paginate={false}`.
  */
 export function DataTable({
   columns,
@@ -671,6 +681,8 @@ export function DataTable({
   maxHeight,
   minWidth,
   scrollRegion = false,
+  paginate = true,
+  pageSize: initialPageSize = PAGE_SIZES[0],
 }: {
   columns: DataColumn[];
   children: ReactNode;
@@ -683,10 +695,18 @@ export function DataTable({
   minWidth?: number;
   /** El área de scroll es una región enfocable (teclado) con el nombre de la tabla. */
   scrollRegion?: boolean;
+  /** Paginar en cliente cuando hay más de 25 filas (por defecto, sí). */
+  paginate?: boolean;
+  /** Filas por página iniciales. */
+  pageSize?: number;
 }) {
+  const rows = paginate ? Children.toArray(children) : null;
+  const pager = useClientPagination(rows?.length ?? 0, initialPageSize);
+  const paged = rows !== null && pager.active;
+  const body = paged ? pager.slice(rows) : children;
   const style: CSSProperties | undefined = maxHeight ? { maxHeight, overflowY: 'auto' } : undefined;
   const region = scrollRegion ? { role: 'region', 'aria-label': label ?? caption, tabIndex: 0 } : {};
-  return (
+  const table = (
     // `relative`: el scroll horizontal también recorta a los descendientes
     // posicionados (p. ej. etiquetas sr-only); sin él ensanchan la página.
     <div className="relative overflow-x-auto" style={style} {...region}>
@@ -705,9 +725,24 @@ export function DataTable({
           </tr>
         </thead>
         <tbody className="divide-y divide-border [&>tr]:transition-colors [&>tr]:duration-fast [&>tr:hover]:bg-hover">
-          {children}
+          {body}
         </tbody>
       </table>
     </div>
   );
+  if (!paged) return table;
+  return (
+    <div>
+      {table}
+      <TablePager
+        page={pager.page}
+        pageSize={pager.pageSize}
+        total={pager.total}
+        shown={(body as unknown[]).length}
+        onPageChange={pager.onPageChange}
+        onPageSizeChange={pager.onPageSizeChange}
+      />
+    </div>
+  );
 }
+

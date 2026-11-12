@@ -243,6 +243,7 @@ function MarginOverview() {
           )}
           table={() => (
             <DataTable
+              paginate={false}
               caption="Componentes del margen gerencial por mes"
               columns={[
                 'Mes',

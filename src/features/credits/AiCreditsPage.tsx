@@ -164,6 +164,7 @@ function CreditsOverview() {
           )}
           table={() => (
             <DataTable
+              paginate={false}
               caption="Créditos incluidos y consumidos por mes"
               columns={[
                 'Mes',

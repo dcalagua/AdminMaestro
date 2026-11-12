@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
-import { CaretDownIcon, CaretLeftIcon, CaretRightIcon, CaretUpDownIcon, CaretUpIcon } from '@phosphor-icons/react';
+import { CaretDownIcon, CaretUpDownIcon, CaretUpIcon } from '@phosphor-icons/react';
 import { EmptyState, ErrorState, LoadingState } from './primitives';
-import { SelectInput } from './fields';
-import { formatNumber } from '@/lib/format';
+import { TablePager } from './TablePager';
 import type { SortDir } from '@/services/financeRead';
-import { PAGE_SIZES } from '@/services/financeRead';
+
+export { TablePager };
 
 /**
  * Tabla operativa paginada en servidor (E06, spec §10).
@@ -136,72 +136,6 @@ export function PagedTable<Row>({
         onPageChange={onPageChange}
         onPageSizeChange={onPageSizeChange}
       />
-    </div>
-  );
-}
-
-/**
- * Pie de un listado paginado en servidor: «Mostrando a–b de N», filas por
- * página y anterior/siguiente. Lo usan `PagedTable` y las líneas de tiempo
- * (PT-TIMELINE) que no son tablas.
- */
-export function TablePager({
-  page,
-  pageSize,
-  total,
-  shown,
-  onPageChange,
-  onPageSizeChange,
-}: {
-  page: number;
-  pageSize: number;
-  total: number;
-  /** Filas presentes en la página actual. */
-  shown: number;
-  onPageChange: (page: number) => void;
-  onPageSizeChange: (size: number) => void;
-}) {
-  const pages = Math.max(1, Math.ceil(total / pageSize));
-  const from = page * pageSize + 1;
-  const to = Math.min(total, page * pageSize + shown);
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-3 text-caption text-muted">
-      <p aria-live="polite">
-        Mostrando <span className="font-semibold text-fg tabular-nums">{formatNumber(from)}–{formatNumber(to)}</span> de{' '}
-        <span className="font-semibold text-fg tabular-nums">{formatNumber(total)}</span>
-      </p>
-      <div className="flex items-center gap-2">
-        <SelectInput
-          label="Filas"
-          labelDisplay="inline"
-          size="sm"
-          selectClassName="w-auto"
-          value={String(pageSize)}
-          onChange={(v) => onPageSizeChange(Number(v))}
-          options={PAGE_SIZES.map((n) => ({ value: String(n), label: String(n) }))}
-        />
-        <button
-          type="button"
-          className="ebim-btn-ghost ebim-btn-sm w-8 px-0"
-          aria-label="Página anterior"
-          disabled={page === 0}
-          onClick={() => onPageChange(page - 1)}
-        >
-          <CaretLeftIcon size={14} aria-hidden />
-        </button>
-        <span className="tabular-nums">
-          Página {page + 1} de {pages}
-        </span>
-        <button
-          type="button"
-          className="ebim-btn-ghost ebim-btn-sm w-8 px-0"
-          aria-label="Página siguiente"
-          disabled={page + 1 >= pages}
-          onClick={() => onPageChange(page + 1)}
-        >
-          <CaretRightIcon size={14} aria-hidden />
-        </button>
-      </div>
     </div>
   );
 }
