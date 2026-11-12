@@ -14,19 +14,24 @@ import { login, USERS } from './fixtures';
 
 const ALPHA_ORG_ID = '30000000-0000-4000-a000-000000000004'; // Empresa Directa Alpha (seed)
 
-const CONSOLE_PAGES: Array<{ path: string; heading: RegExp }> = [
+/**
+ * V5 · F1: uso, créditos IA y la comparación de cobro viven como pestañas de
+ * Apps y Configuración; la ruta vieja redirige a la pestaña correcta.
+ */
+const CONSOLE_PAGES: Array<{ path: string; heading: RegExp; tab?: string }> = [
   { path: '/users', heading: /Usuarios y accesos/ },
-  { path: '/usage', heading: /Uso/ },
-  { path: '/ai-credits', heading: /Créditos IA/ },
-  { path: '/billing-shadow', heading: /Billing shadow/i },
+  { path: '/usage', heading: /^Apps$/, tab: 'Uso' },
+  { path: '/ai-credits', heading: /^Configuración$/, tab: 'Créditos IA' },
+  { path: '/billing-shadow', heading: /^Configuración$/, tab: 'Avanzado' },
   { path: '/partner-fees', heading: /Tarifas de partners/ },
 ];
 
 test('las pantallas nuevas cargan para el super admin', async ({ page }) => {
   await login(page, USERS.superAdmin);
-  for (const { path, heading } of CONSOLE_PAGES) {
+  for (const { path, heading, tab } of CONSOLE_PAGES) {
     await page.goto(path);
     await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
+    if (tab) await expect(page.getByRole('tab', { name: tab, selected: true }).first()).toBeVisible();
     await expect(page.getByText('No se pudo cargar')).toHaveCount(0);
   }
 });

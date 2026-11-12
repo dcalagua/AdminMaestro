@@ -23,14 +23,14 @@ const OUT = resolve(process.cwd(), 'docs/superpowers/evidence/visual-gerencia/ca
 const ALLOWED = new Set(['127.0.0.1', 'localhost', 'fonts.googleapis.com', 'fonts.gstatic.com']);
 
 const ROUTES: Array<{ slug: string; path: string; title: string }> = [
-  { slug: 'integrations', path: '/integrations', title: 'Integraciones SaaS' },
-  { slug: 'entitlement-sync', path: '/commercial/entitlement-sync', title: 'Sincronización de entitlements' },
-  { slug: 'usage', path: '/usage#meters', title: 'Uso' },
-  { slug: 'usage-aggregates', path: '/usage#aggregates', title: 'Uso' },
-  { slug: 'usage-alerts', path: '/usage#alerts', title: 'Uso' },
-  { slug: 'deployments', path: '/deployments', title: 'Entornos y despliegues' },
-  { slug: 'saas-provisioning', path: '/saas-provisioning', title: 'Altas SaaS' },
-  { slug: 'provisioning', path: '/provisioning', title: 'Solicitudes de infraestructura' },
+  { slug: 'integrations', path: '/integrations', title: 'Apps' },
+  { slug: 'entitlement-sync', path: '/commercial/entitlement-sync', title: 'Apps' },
+  { slug: 'usage', path: '/usage#meters', title: 'Apps' },
+  { slug: 'usage-aggregates', path: '/usage#aggregates', title: 'Apps' },
+  { slug: 'usage-alerts', path: '/usage#alerts', title: 'Apps' },
+  { slug: 'deployments', path: '/deployments', title: 'Apps' },
+  { slug: 'saas-provisioning', path: '/saas-provisioning', title: 'Apps' },
+  { slug: 'provisioning', path: '/provisioning', title: 'Apps' },
   { slug: 'users', path: '/users', title: 'Usuarios y accesos' },
   { slug: 'audit', path: '/audit', title: 'Auditoría' },
   { slug: 'settings', path: '/settings#appearance', title: 'Configuración' },

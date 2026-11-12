@@ -46,7 +46,7 @@ async function sellRegional(page: Page, sale: RegionalSale) {
   // 2 · canal y tenant
   if (sale.channel) await page.getByLabel('Canal / partner que administra').selectOption({ label: sale.channel });
   await page.getByLabel('Nombre del tenant').fill(sale.tenantName);
-  await page.getByLabel('Slug').fill(sale.slug);
+  await page.getByLabel(/^Código( \*)?$/).fill(sale.slug);
   await page.getByLabel('Correo del administrador del cliente').fill(`admin-${sale.slug}@regional-e2e.com`);
   await page.getByRole('button', { name: 'Continuar' }).click();
 
@@ -207,7 +207,7 @@ test.describe('Fase 17 · Journeys regionales', () => {
     await page.getByLabel('Producto SaaS').selectOption({ label: 'eSupplier (esupplier)' });
     await page.getByRole('button', { name: 'Continuar' }).click();
     await page.getByLabel('Nombre del tenant').fill(`Dif ${RUN}`);
-    await page.getByLabel('Slug').fill(`dif-${RUN}`);
+    await page.getByLabel(/^Código( \*)?$/).fill(`dif-${RUN}`);
     await page.getByLabel('Correo del administrador del cliente').fill(`dif-${RUN}@regional-e2e.com`);
     await page.getByRole('button', { name: 'Continuar' }).click();
 

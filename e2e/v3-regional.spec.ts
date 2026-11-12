@@ -40,7 +40,7 @@ async function wizardToPlanStep(page: Page, customer: string, market: string, su
   await page.getByRole('button', { name: 'Continuar' }).click();
 
   await page.getByLabel('Nombre del tenant').fill(`Regional ${suffix} ${RUN}`);
-  await page.getByLabel('Slug').fill(`regional-${suffix}-${RUN}`);
+  await page.getByLabel(/^Código( \*)?$/).fill(`regional-${suffix}-${RUN}`);
   await page.getByLabel('Correo del administrador del cliente').fill(`admin-${suffix}-${RUN}@regional-e2e.com`);
   await page.getByRole('button', { name: 'Continuar' }).click();
   await expect(field(page, 'Plan')).toBeVisible();
@@ -105,8 +105,9 @@ test.describe('R1 · Selector regional de Nueva venta (fase 05)', () => {
 test.describe('R1b · Tarifa regional en el catálogo (fase 04)', () => {
   test('el diálogo de tarifa exige mercado y solo ofrece sus monedas', async ({ page }) => {
     await login(page, USERS.superAdmin);
+    // V5: /plans redirige a Catálogo › Planes y licencias.
     await page.goto('/plans');
-    await expect(page.getByRole('heading', { name: 'Planes y licencias' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Planes y licencias', selected: true })).toBeVisible();
 
     // Las acciones del plan viven en el menú de la fila (A12).
     await page.getByRole('button', { name: /^Acciones del plan/ }).first().click();
@@ -158,8 +159,10 @@ test.describe('R3 · Routing regional de cobro (fase 07)', () => {
 test.describe('R4 · Moneda de reporte (fase 09)', () => {
   test('finanzas cambia la moneda de reporte entre monedas activas y la restaura', async ({ page }) => {
     await login(page, USERS.finance);
-    await page.getByRole('link', { name: 'Monedas y FX', exact: true }).click();
-    await page.waitForURL('**/regional');
+    // V5: monedas y tipo de cambio son una pestaña de Configuración.
+    await page.getByRole('link', { name: 'Configuración', exact: true }).click();
+    await page.getByRole('tab', { name: 'Monedas y tipo de cambio' }).click();
+    await page.waitForURL((url) => url.pathname === '/settings' && url.searchParams.get('tab') === 'regional');
 
     // El panel de la pestaña también se rotula «Moneda de reporte»: se busca el <select>.
     const select = page.getByRole('combobox', { name: 'Moneda de reporte' });
@@ -182,9 +185,10 @@ test.describe('R4 · Moneda de reporte (fase 09)', () => {
 
   test('un partner no tiene acceso a la administración de monedas', async ({ page }) => {
     await login(page, USERS.partnerAdmin);
-    await expect(page.getByRole('link', { name: 'Monedas y FX', exact: true })).toHaveCount(0);
+    await page.getByRole('link', { name: 'Configuración', exact: true }).click();
+    await expect(page.getByRole('tab', { name: 'Monedas y tipo de cambio' })).toHaveCount(0);
     await page.goto('/regional');
-    await expect(page.getByRole('heading', { name: 'Monedas y FX' })).toHaveCount(0);
+    await expect(page.getByText('Tu rol no tiene acceso a «Monedas y tipo de cambio»')).toBeVisible();
   });
 });
 

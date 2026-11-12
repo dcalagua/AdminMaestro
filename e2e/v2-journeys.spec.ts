@@ -23,28 +23,37 @@ const RUN = Date.now().toString(36).slice(-6);
  * pantalla ANTERIOR — que fue exactamente lo que hizo que un conteo de filas
  * midiera la tabla del dashboard creyendo que medía la de tenants.
  */
-const SECTION_PATH: Record<string, string> = {
-  'Suite SaaS': '/products',
-  'Partners y canales': '/partners',
-  Clientes: '/customers',
-  'Directorio corporativo': '/organizations',
-  'Nueva venta': '/onboarding',
-  Tenants: '/tenants',
-  'Contratos y suscripciones': '/subscriptions',
-  'Renovaciones': '/renewals',
-  Reconciliación: '/reconciliation',
-  Deployments: '/deployments',
-  Provisioning: '/provisioning',
-  'Comisiones': '/commissions',
+/**
+ * V5 · F1: varias pantallas viven ahora como PESTAÑAS de una entrada de menú
+ * (Cobranza › Renovaciones, Apps › Entornos…). Cada sección dice qué entrada
+ * del menú abrir, qué pestaña elegir y a qué URL se llega.
+ */
+const SECTIONS: Record<string, { menu: string; tab?: string; path: string }> = {
+  'Suite SaaS': { menu: 'Catálogo', tab: 'Productos', path: '/catalogo' },
+  'Partners y canales': { menu: 'Partners', path: '/partners' },
+  Clientes: { menu: 'Cuentas', tab: 'Clientes', path: '/cuentas' },
+  'Directorio corporativo': { menu: 'Cuentas', tab: 'Todas las organizaciones', path: '/cuentas?tab=directorio' },
+  'Nueva venta': { menu: 'Nueva venta', path: '/onboarding' },
+  Tenants: { menu: 'Tenants', path: '/tenants' },
+  'Contratos y suscripciones': { menu: 'Contratos', path: '/subscriptions' },
+  Renovaciones: { menu: 'Cobranza', tab: 'Renovaciones', path: '/cobranza?tab=renovaciones' },
+  Conciliación: { menu: 'Cobranza', tab: 'Conciliación', path: '/cobranza?tab=conciliacion' },
+  'Entornos y despliegues': { menu: 'Apps', tab: 'Entornos y despliegues', path: '/apps?tab=entornos' },
+  'Solicitudes de infraestructura': {
+    menu: 'Apps', tab: 'Solicitudes de infraestructura', path: '/apps?tab=infraestructura',
+  },
+  Comisiones: { menu: 'Comisiones', path: '/commissions' },
 };
 
 async function goToSection(page: Page, label: string) {
+  const section = SECTIONS[label] ?? { menu: label, path: '' };
   // El enlace puede llevar un contador en su nombre accesible
-  // («Renovaciones (28 alertas críticas abiertas)», fase 06).
-  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  await page.getByRole('link', { name: new RegExp(`^${escaped}( \\(.*\\))?$`) }).first().click();
-  const path = SECTION_PATH[label];
-  if (path) await page.waitForURL(`**${path}`);
+  // («Cobranza (28 alertas críticas de renovación abiertas)», fase 06).
+  const escaped = section.menu.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const nav = page.getByRole('navigation', { name: 'Navegación principal' });
+  await nav.getByRole('link', { name: new RegExp(`^${escaped}( \\(.*\\))?$`) }).first().click();
+  if (section.tab) await page.getByRole('tab', { name: section.tab, exact: true }).first().click();
+  if (section.path) await page.waitForURL((url) => `${url.pathname}${url.search}`.startsWith(section.path));
 }
 
 test.describe('J1 · Canal: alta de partner y acuerdo por SaaS', () => {
@@ -57,7 +66,7 @@ test.describe('J1 · Canal: alta de partner y acuerdo por SaaS', () => {
     const alta = page.getByRole('dialog');
     await alta.getByLabel('Nombre comercial').fill(`Partner E2E ${RUN}`);
     await alta.getByLabel('Razón social').fill(`Partner E2E ${RUN} SAC`);
-    await alta.getByLabel('Slug').fill(`partner-e2e-${RUN}`);
+    await alta.getByLabel(/^Código( \*)?$/).fill(`partner-e2e-${RUN}`);
     await alta.getByLabel('País').fill('PE');
     await alta.getByRole('button', { name: 'Crear organización' }).click();
 
@@ -99,7 +108,7 @@ test.describe('J2 · Alta transaccional de cliente con fee de implementación', 
 
     // Paso 2 · canal y modelo
     await page.getByLabel('Nombre del tenant').fill(`Alpha E2E ${RUN}`);
-    await page.getByLabel('Slug').fill(`alpha-e2e-${RUN}`);
+    await page.getByLabel(/^Código( \*)?$/).fill(`alpha-e2e-${RUN}`);
     await page.getByLabel('Correo del administrador del cliente').fill(`admin-${RUN}@alpha-e2e.com`);
     await page.getByRole('button', { name: 'Continuar' }).click();
 
@@ -155,7 +164,10 @@ test.describe('J3-J4 · Partner Shared: su cartera, y solo la suya', () => {
 
   test('el partner no ve costos ni reconciliación de la plataforma', async ({ page }) => {
     await expect(page.getByRole('link', { name: 'Costos y margen' })).toHaveCount(0);
-    await expect(page.getByRole('link', { name: 'Conciliación' })).toHaveCount(0);
+    // Conciliación es una pestaña de Cobranza que el partner no recibe.
+    await page.getByRole('link', { name: /^Cobranza/ }).click();
+    await expect(page.getByRole('tab', { name: 'Renovaciones' })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('tab', { name: 'Conciliación' })).toHaveCount(0);
   });
 });
 
@@ -172,9 +184,9 @@ test.describe('J5-J6 · Modelos dedicados', () => {
     await expect(page.getByText('shared-esupplier-sa-east')).toBeVisible();
   });
 
-  test('se encola provisioning en DRY_RUN desde la consola', async ({ page }) => {
+  test('se encola una solicitud de infraestructura en simulación desde la consola', async ({ page }) => {
     await goToSection(page, 'Solicitudes de infraestructura');
-    await expect(page.getByText('Modo por defecto: DRY_RUN')).toBeVisible();
+    await expect(page.getByText('Modo por defecto: simulación')).toBeVisible();
 
     await page.getByRole('button', { name: 'Encolar solicitud' }).click();
     const encolar = page.getByRole('dialog');
@@ -270,11 +282,9 @@ test.describe('J10 · Comercial: comisión sí, acceso operativo no', () => {
     await expect(page.getByRole('heading', { name: /Comisiones/ })).toBeVisible({ timeout: 15_000 });
 
     // Nada de infraestructura, cobranza ni organizaciones ajenas.
-    await expect(page.getByRole('link', { name: 'Entornos y despliegues' })).toHaveCount(0);
-    // Los DOS ejes de provisioning quedan fuera del alcance de un comercial.
-    await expect(page.getByRole('link', { name: 'Solicitudes de infraestructura' })).toHaveCount(0);
-    await expect(page.getByRole('link', { name: 'Altas SaaS' })).toHaveCount(0);
-    await expect(page.getByRole('link', { name: 'Renovaciones' })).toHaveCount(0);
+    // Apps (entornos, altas e infraestructura) y Cobranza quedan fuera de su alcance.
+    await expect(page.getByRole('link', { name: 'Apps' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: /^Cobranza/ })).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'Nueva venta' })).toHaveCount(0);
   });
 });
@@ -284,7 +294,7 @@ test.describe('J11 · Renovaciones y gracia', () => {
     await login(page, USERS.superAdmin);
     await goToSection(page, 'Renovaciones');
 
-    await expect(page.getByRole('heading', { name: 'Renovaciones y alertas' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Renovaciones', selected: true }).first()).toBeVisible();
     await expect(page.getByRole('tab', { name: /^45 días/ })).toBeVisible();
     await expect(page.getByText('En gracia').first()).toBeVisible();
 
@@ -316,9 +326,10 @@ test.describe('J12 · Una mutación no autorizada se rechaza de verdad', () => {
     await login(page, USERS.partnerAdmin);
     await goToSection(page, 'Suite SaaS');
 
-    await expect(page.getByRole('heading', { name: 'Suite SaaS', level: 1 })).toBeVisible({
+    await expect(page.getByRole('heading', { name: 'Catálogo', level: 1 })).toBeVisible({
       timeout: 15_000,
     });
+    await expect(page.getByRole('tab', { name: 'Productos', selected: true }).first()).toBeVisible();
     // La UI no ofrece la acción...
     await expect(page.getByRole('button', { name: 'Nuevo producto' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Editar' })).toHaveCount(0);
