@@ -4,7 +4,7 @@ import { findNavItem } from '@/app/navigation';
 
 /**
  * Entradas nuevas de la V5 cuya pantalla llega en una fase posterior (plan §5:
- * Bandeja en F5, Centro de la suite en F2). Ya ocupan su lugar en el menú, pero
+ * Bandeja en F5). Ya ocupan su lugar en el menú, pero
  * dicen la verdad: todavía no hay contenido, y llevan a dónde está hoy.
  */
 function Placeholder({ to, what, links }: { to: string; what: string; links: Array<{ to: string; label: string }> }) {
@@ -32,19 +32,6 @@ export function InboxPage() {
       to="/bandeja"
       what="Aquí verás, en una sola lista, las alertas, cobros vencidos, altas pendientes y aprobaciones que esperan una acción tuya. Mientras tanto, el panel «Requiere atención» del resumen reúne lo más urgente."
       links={[{ to: '/', label: 'Ir al resumen' }]}
-    />
-  );
-}
-
-export function SuiteCenterPage() {
-  return (
-    <Placeholder
-      to="/suite"
-      what="Aquí verás la salud de las 8 apps por ambiente y, para cada cuenta, su estado en cada app: alta, contrato, módulos habilitados, suspensión y uso. Mientras tanto, esa información está en Apps y en Tenants."
-      links={[
-        { to: '/apps', label: 'Ir a Apps' },
-        { to: '/tenants', label: 'Ir a Tenants' },
-      ]}
     />
   );
 }

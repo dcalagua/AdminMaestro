@@ -46,7 +46,7 @@ const WelcomePage = lazyPage(() => import('@/features/auth/WelcomePage'), 'Welco
 const UsersPage = lazyPage(() => import('@/features/users/UsersPage'), 'UsersPage');
 const UserDetailPage = lazyPage(() => import('@/features/users/UserDetailPage'), 'UserDetailPage');
 const InboxPage = lazyPage(() => import('@/features/hubs/PlaceholderPages'), 'InboxPage');
-const SuiteCenterPage = lazyPage(() => import('@/features/hubs/PlaceholderPages'), 'SuiteCenterPage');
+const SuiteCenterPage = lazyPage(() => import('@/features/suite/SuiteCenterPage'), 'SuiteCenterPage');
 
 /*
  * V5 · F1: entradas que fusionan pantallas como pestañas (`?tab=`). Cada
