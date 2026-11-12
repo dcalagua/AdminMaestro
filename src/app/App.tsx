@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, type ComponentType, type LazyExoticComponent } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/features/auth/AuthContext';
@@ -11,49 +11,62 @@ import { createAppQueryClient } from './queryClient';
 import { AppearanceProvider } from './AppearanceProvider';
 
 import { LoginPage } from '@/features/auth/LoginPage';
-import { PaymentPortalPage } from '@/features/paymentPortal/PaymentPortalPage';
-import { ProductsPage } from '@/features/catalog/ProductsPage';
-import { ProductDetailPage } from '@/features/catalog/ProductDetailPage';
-import { PlansPage } from '@/features/catalog/PlansPage';
-import { FeatureFlagsPage } from '@/features/catalog/FeatureFlagsPage';
-import { AddonsPage } from '@/features/catalog/AddonsPage';
-import { CapabilitiesPage } from '@/features/commercial/capabilities/CapabilitiesPage';
-import { EntitlementSyncPage } from '@/features/commercial/sync/EntitlementSyncPage';
-import { OrganizationsPage } from '@/features/organizations/OrganizationsPage';
-import { OrganizationDetailPage } from '@/features/organizations/OrganizationDetailPage';
-import { PartnersPage } from '@/features/organizations/PartnersPage';
-import { CustomersPage } from '@/features/organizations/CustomersPage';
-import { OnboardingPage } from '@/features/onboarding/OnboardingPage';
-import { TenantsPage } from '@/features/tenants/TenantsPage';
-import { TenantDetailPage } from '@/features/tenants/TenantDetailPage';
-import { SalesAgentsPage } from '@/features/commercial/SalesAgentsPage';
-import { AttributionsPage } from '@/features/commercial/AttributionsPage';
-import { CommissionPlansPage } from '@/features/commercial/CommissionPlansPage';
-import { CommissionsPage } from '@/features/commercial/CommissionsPage';
-import { SubscriptionsPage } from '@/features/billing/SubscriptionsPage';
-import { SubscriptionDetailPage } from '@/features/billing/SubscriptionDetailPage';
-import { BillingPage } from '@/features/billing/BillingPage';
-import { CostsPage } from '@/features/billing/CostsPage';
-import { RenewalsPage } from '@/features/billing/RenewalsPage';
-import { ReconciliationPage } from '@/features/billing/ReconciliationPage';
-import { DeploymentsPage } from '@/features/deployments/DeploymentsPage';
-import { ProvisioningPage } from '@/features/deployments/ProvisioningPage';
-import { SaasProvisioningPage } from '@/features/deployments/SaasProvisioningPage';
-import { IntegrationsPage } from '@/features/platform/IntegrationsPage';
-import { IntegrationDetailPage } from '@/features/platform/IntegrationDetailPage';
-import { AuditPage } from '@/features/settings/AuditPage';
-import { SettingsPage } from '@/features/settings/SettingsPage';
-import { RegionalPage } from '@/features/regional/RegionalPage';
-import { UsagePage } from '@/features/usage/UsagePage';
-import { AiCreditsPage } from '@/features/credits/AiCreditsPage';
-import { BillingShadowPage } from '@/features/billing/shadow/BillingShadowPage';
-import { PartnerFeesPage } from '@/features/partnerFees/PartnerFeesPage';
-import { NotFoundPage } from '@/features/settings/NotFoundPage';
-// ---- M5 · Usuarios y perfiles -----------------------------------------------
-import { WelcomePage } from '@/features/auth/WelcomePage';
-import { UsersPage } from '@/features/users/UsersPage';
-import { UserDetailPage } from '@/features/users/UserDetailPage';
-// ---- fin M5 -------------------------------------------------------------------
+
+/**
+ * Carga diferida por ruta (V5 · F0): cada pantalla es su propio chunk, así el
+ * login y el shell no pagan el peso de toda la consola. Solo el login (puerta
+ * de entrada) y el shell se cargan de inmediato. Los límites de `Suspense`
+ * viven en `AppShell` (rutas privadas, el menú queda visible) y aquí (rutas
+ * públicas), con el esqueleto de página del sistema de diseño.
+ */
+function lazyPage<K extends string>(
+  loader: () => Promise<Record<K, ComponentType>>,
+  name: K,
+): LazyExoticComponent<ComponentType> {
+  return lazy(() => loader().then((m) => ({ default: m[name] })));
+}
+
+const PaymentPortalPage = lazyPage(() => import('@/features/paymentPortal/PaymentPortalPage'), 'PaymentPortalPage');
+const ProductsPage = lazyPage(() => import('@/features/catalog/ProductsPage'), 'ProductsPage');
+const ProductDetailPage = lazyPage(() => import('@/features/catalog/ProductDetailPage'), 'ProductDetailPage');
+const PlansPage = lazyPage(() => import('@/features/catalog/PlansPage'), 'PlansPage');
+const FeatureFlagsPage = lazyPage(() => import('@/features/catalog/FeatureFlagsPage'), 'FeatureFlagsPage');
+const AddonsPage = lazyPage(() => import('@/features/catalog/AddonsPage'), 'AddonsPage');
+const CapabilitiesPage = lazyPage(() => import('@/features/commercial/capabilities/CapabilitiesPage'), 'CapabilitiesPage');
+const EntitlementSyncPage = lazyPage(() => import('@/features/commercial/sync/EntitlementSyncPage'), 'EntitlementSyncPage');
+const OrganizationsPage = lazyPage(() => import('@/features/organizations/OrganizationsPage'), 'OrganizationsPage');
+const OrganizationDetailPage = lazyPage(() => import('@/features/organizations/OrganizationDetailPage'), 'OrganizationDetailPage');
+const PartnersPage = lazyPage(() => import('@/features/organizations/PartnersPage'), 'PartnersPage');
+const CustomersPage = lazyPage(() => import('@/features/organizations/CustomersPage'), 'CustomersPage');
+const OnboardingPage = lazyPage(() => import('@/features/onboarding/OnboardingPage'), 'OnboardingPage');
+const TenantsPage = lazyPage(() => import('@/features/tenants/TenantsPage'), 'TenantsPage');
+const TenantDetailPage = lazyPage(() => import('@/features/tenants/TenantDetailPage'), 'TenantDetailPage');
+const SalesAgentsPage = lazyPage(() => import('@/features/commercial/SalesAgentsPage'), 'SalesAgentsPage');
+const AttributionsPage = lazyPage(() => import('@/features/commercial/AttributionsPage'), 'AttributionsPage');
+const CommissionPlansPage = lazyPage(() => import('@/features/commercial/CommissionPlansPage'), 'CommissionPlansPage');
+const CommissionsPage = lazyPage(() => import('@/features/commercial/CommissionsPage'), 'CommissionsPage');
+const SubscriptionsPage = lazyPage(() => import('@/features/billing/SubscriptionsPage'), 'SubscriptionsPage');
+const SubscriptionDetailPage = lazyPage(() => import('@/features/billing/SubscriptionDetailPage'), 'SubscriptionDetailPage');
+const BillingPage = lazyPage(() => import('@/features/billing/BillingPage'), 'BillingPage');
+const CostsPage = lazyPage(() => import('@/features/billing/CostsPage'), 'CostsPage');
+const RenewalsPage = lazyPage(() => import('@/features/billing/RenewalsPage'), 'RenewalsPage');
+const ReconciliationPage = lazyPage(() => import('@/features/billing/ReconciliationPage'), 'ReconciliationPage');
+const DeploymentsPage = lazyPage(() => import('@/features/deployments/DeploymentsPage'), 'DeploymentsPage');
+const ProvisioningPage = lazyPage(() => import('@/features/deployments/ProvisioningPage'), 'ProvisioningPage');
+const SaasProvisioningPage = lazyPage(() => import('@/features/deployments/SaasProvisioningPage'), 'SaasProvisioningPage');
+const IntegrationsPage = lazyPage(() => import('@/features/platform/IntegrationsPage'), 'IntegrationsPage');
+const IntegrationDetailPage = lazyPage(() => import('@/features/platform/IntegrationDetailPage'), 'IntegrationDetailPage');
+const AuditPage = lazyPage(() => import('@/features/settings/AuditPage'), 'AuditPage');
+const SettingsPage = lazyPage(() => import('@/features/settings/SettingsPage'), 'SettingsPage');
+const RegionalPage = lazyPage(() => import('@/features/regional/RegionalPage'), 'RegionalPage');
+const UsagePage = lazyPage(() => import('@/features/usage/UsagePage'), 'UsagePage');
+const AiCreditsPage = lazyPage(() => import('@/features/credits/AiCreditsPage'), 'AiCreditsPage');
+const BillingShadowPage = lazyPage(() => import('@/features/billing/shadow/BillingShadowPage'), 'BillingShadowPage');
+const PartnerFeesPage = lazyPage(() => import('@/features/partnerFees/PartnerFeesPage'), 'PartnerFeesPage');
+const NotFoundPage = lazyPage(() => import('@/features/settings/NotFoundPage'), 'NotFoundPage');
+const WelcomePage = lazyPage(() => import('@/features/auth/WelcomePage'), 'WelcomePage');
+const UsersPage = lazyPage(() => import('@/features/users/UsersPage'), 'UsersPage');
+const UserDetailPage = lazyPage(() => import('@/features/users/UserDetailPage'), 'UserDetailPage');
 
 /**
  * El inicio ejecutivo es la única pantalla con gráficos (Recharts ≈ 170 kB gzip):
@@ -79,6 +92,7 @@ export function App() {
           <BrowserRouter>
             <AuthProvider>
               <AppearanceProvider>
+                <Suspense fallback={<LoadingState variant="page" label="Cargando…" />}>
                 <Routes>
                   <Route path="/login" element={<LoginPage />} />
                   {/*
@@ -404,6 +418,7 @@ export function App() {
                     <Route path="*" element={<Navigate to="/404" replace />} />
                   </Route>
                 </Routes>
+                </Suspense>
               </AppearanceProvider>
             </AuthProvider>
           </BrowserRouter>

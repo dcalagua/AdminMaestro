@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { useEffect, useMemo, useRef, useState, type SyntheticEvent } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState, type SyntheticEvent } from 'react';
 import {
   CaretDoubleLeftIcon,
   CaretDoubleRightIcon,
@@ -17,7 +17,7 @@ import { hasFinanceView, navGroupsFor, routeMeta, type NavGroup, type NavItem } 
 import { EbimMark } from '@/components/ui/EbimMark';
 import { useModalFocus } from '@/components/ui/useModalFocus';
 import { PageTrailContext } from '@/components/ui/pageTrail';
-import type { Crumb } from '@/components/ui/primitives';
+import { LoadingState, type Crumb } from '@/components/ui/primitives';
 import { useCriticalBillingAlertCount } from '@/services/queries';
 import { PLATFORM_ROLE_LABEL, ORG_ROLE_LABEL } from '@/types/domain';
 import { env } from '@/lib/env';
@@ -487,7 +487,10 @@ export function AppShell() {
           <PageTrailContext.Provider value={trail}>
             {/* La clave reinicia solo la animación de entrada (opacidad, 120 ms). */}
             <div key={location.pathname} className="ebim-route-enter">
-              <Outlet />
+              {/* Rutas perezosas (V5 · F0): el shell queda visible mientras llega el chunk. */}
+              <Suspense fallback={<LoadingState variant="page" label="Cargando la pantalla…" />}>
+                <Outlet />
+              </Suspense>
             </div>
           </PageTrailContext.Provider>
         </main>
