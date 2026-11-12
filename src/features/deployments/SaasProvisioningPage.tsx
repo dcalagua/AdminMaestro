@@ -321,7 +321,7 @@ export function SaasProvisioningPage() {
                             disabled={provision.isPending}
                             onClick={() => void runProvision(id, label)}
                           >
-                            Provisionar
+                            Ejecutar alta
                           </button>
                         ) : null}
                         {canExecute &&
