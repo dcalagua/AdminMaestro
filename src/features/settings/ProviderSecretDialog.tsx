@@ -82,13 +82,13 @@ function SecretForm({ target, onClose }: { target: SecretTarget; onClose: () => 
       onSubmit={() => void submit()}
     >
       {target.environment === 'LIVE' ? (
-        <p className="rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn" role="note">
+        <p className="rounded-lg bg-warn-soft px-3 py-2 text-body text-warn" role="note">
           Cuenta <strong>LIVE</strong>: esta llave cobra dinero real. Además el servidor exige{' '}
           <span className="font-mono">CULQI_ALLOW_LIVE=true</span>, que no se cambia desde esta consola.
         </p>
       ) : null}
       {replacing ? (
-        <p className="text-sm text-muted">
+        <p className="text-body text-muted">
           Llave actual: <span className="font-mono">{target.hint}</span>. La nueva la sustituye en cuanto guardes.
         </p>
       ) : null}
@@ -124,11 +124,11 @@ function SecretForm({ target, onClose }: { target: SecretTarget; onClose: () => 
           </button>
         </div>
         {fieldError ? (
-          <p id={`${inputId}-msg`} className="mt-1 text-xs text-danger" role="alert">
+          <p id={`${inputId}-msg`} className="mt-1 text-caption text-danger" role="alert">
             {fieldError}
           </p>
         ) : (
-          <p id={`${inputId}-msg`} className="mt-1 text-xs text-muted">
+          <p id={`${inputId}-msg`} className="mt-1 text-caption text-muted">
             {target.environment === 'LIVE' ? 'sk_live_…' : 'sk_test_…'} del panel de Culqi. Se envía una sola vez y el campo se
             vacía al guardar.
           </p>

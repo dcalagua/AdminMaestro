@@ -50,7 +50,7 @@ export function PartnerFeeStatementsPanel({ organizationId }: { organizationId: 
         description="Lo que este partner paga a EBIM cada mes por los tenants que gestiona y factura él mismo. No son comisiones."
         actions={
           perms.canReadFinance ? (
-            <Link className="ebim-btn-ghost h-8 px-3 text-xs" to="/partner-fees">
+            <Link className="ebim-btn-ghost h-8 px-3 text-caption" to="/partner-fees">
               Ir a Tarifas de partners
             </Link>
           ) : null
@@ -71,16 +71,16 @@ export function PartnerFeeStatementsPanel({ organizationId }: { organizationId: 
               const st = labelOf(STATEMENT_STATUS, s.status);
               return (
                 <tr key={s.id}>
-                  <td className="ebim-td whitespace-nowrap text-xs">
+                  <td className="ebim-td whitespace-nowrap text-caption">
                     {formatPeriod(s.period_start)}
                     <div className="text-[11px] text-muted">{s.currency}</div>
                   </td>
-                  <td className="ebim-td text-xs tabular-nums">{s.tenant_count}</td>
-                  <td className="ebim-td whitespace-nowrap text-xs font-semibold tabular-nums">
+                  <td className="ebim-td text-caption tabular-nums">{s.tenant_count}</td>
+                  <td className="ebim-td whitespace-nowrap text-caption font-semibold tabular-nums">
                     {formatMoney(Number(s.fee_total), s.currency)}
                   </td>
                   <td className="ebim-td"><Badge tone={st.tone}>{st.label}</Badge></td>
-                  <td className="ebim-td text-xs">
+                  <td className="ebim-td text-caption">
                     {s.invoice_number ? (
                       <>
                         <div className="font-mono">{s.invoice_number}</div>
@@ -90,7 +90,7 @@ export function PartnerFeeStatementsPanel({ organizationId }: { organizationId: 
                       <span className="text-muted">Sin emitir</span>
                     )}
                   </td>
-                  <td className="ebim-td whitespace-nowrap text-xs tabular-nums">
+                  <td className="ebim-td whitespace-nowrap text-caption tabular-nums">
                     {s.invoice_balance !== null ? formatMoney(Number(s.invoice_balance), s.currency) : '—'}
                   </td>
                   <td className="ebim-td text-right">

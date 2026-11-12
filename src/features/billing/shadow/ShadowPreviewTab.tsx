@@ -107,7 +107,7 @@ export function ShadowPreviewTab() {
           </DataTable>
           <div className="flex items-center justify-end gap-3 border-t border-border px-4 py-3 text-body">
             <span className="text-muted">Total {formatPeriod(data.periodStart)}</span>
-            <Money className="text-base font-bold" amount={data.total} currency={data.currency} />
+            <Money className="text-h3" amount={data.total} currency={data.currency} />
           </div>
         </>
       )}

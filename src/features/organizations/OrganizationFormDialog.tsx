@@ -239,11 +239,11 @@ export function OrganizationFormDialog({
       </FieldRow>
 
       <fieldset className="rounded-lg border border-border p-3">
-        <legend className="px-1 text-xs font-bold uppercase tracking-wider text-muted">
+        <legend className="px-1 text-micro uppercase text-muted">
           Capacidades
         </legend>
         {!perms.canManagePlatform ? (
-          <p className="mb-2 text-xs text-muted">
+          <p className="mb-2 text-caption text-muted">
             Solo el equipo de plataforma EBIM puede cambiar las capacidades de una organización.
           </p>
         ) : null}

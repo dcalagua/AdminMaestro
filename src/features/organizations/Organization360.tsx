@@ -258,21 +258,21 @@ export function Org360Contracts({ organizationId, organizationName }: { organiza
               <tr key={s.subscription_id as string}>
                 <td className="ebim-td font-semibold">{s.product_short_name}</td>
                 <td className="ebim-td">
-                  <Link className="ebim-link font-mono text-xs" to={`/subscriptions/${s.subscription_id}`}>{s.subscription_code}</Link>
+                  <Link className="ebim-link font-mono text-caption" to={`/subscriptions/${s.subscription_id}`}>{s.subscription_code}</Link>
                 </td>
                 <td className="ebim-td">
                   {s.tenant_id ? <Link className="ebim-link" to={`/tenants/${s.tenant_id}`}>{s.tenant_name}</Link> : <Badge tone="accent">Nivel partner</Badge>}
                 </td>
-                <td className="ebim-td text-xs text-muted">
+                <td className="ebim-td text-caption text-muted">
                   {tenant?.deployment_mode ? DEPLOYMENT_MODE_LABEL[tenant.deployment_mode as keyof typeof DEPLOYMENT_MODE_LABEL] : '—'}
                 </td>
                 <td className="ebim-td">
                   {s.collection_method ? <Badge tone="accent">{METHOD_LABEL[s.collection_method as string] ?? s.collection_method}</Badge> : <Badge tone="warn">Manual (sin perfil)</Badge>}
                 </td>
-                <td className="ebim-td text-xs">
+                <td className="ebim-td text-caption">
                   {renewals.error ? <span className="text-danger">No se pudo leer</span> : renewal?.renewal_on ? `${formatDate(renewal.renewal_on)} (${renewal.days_to_renewal} d)` : '—'}
                 </td>
-                <td className="ebim-td text-xs">
+                <td className="ebim-td text-caption">
                   {docs.error ? (
                     <span className="text-danger">No se pudo leer</span>
                   ) : !doc?.document_required ? (
@@ -422,16 +422,16 @@ export function Org360Documents({ organizationId }: { organizationId: string }) 
           {rows.map((d) => (
             <tr key={`${d.subscription_id}-${d.document_id ?? 'none'}`}>
               <td className="ebim-td">
-                <Link className="ebim-link font-mono text-xs" to={`/subscriptions/${d.subscription_id}#documents`}>{d.subscription_code}</Link>
+                <Link className="ebim-link font-mono text-caption" to={`/subscriptions/${d.subscription_id}#documents`}>{d.subscription_code}</Link>
               </td>
-              <td className="ebim-td text-xs">{d.document_type === 'SERVICE_ORDER' ? 'Orden de Servicio' : d.document_type === 'PURCHASE_ORDER' ? 'Orden de Compra' : d.document_required ? 'Requerido' : '—'}</td>
-              <td className="ebim-td font-mono text-xs">{d.document_number ?? '—'}</td>
+              <td className="ebim-td text-caption">{d.document_type === 'SERVICE_ORDER' ? 'Orden de Servicio' : d.document_type === 'PURCHASE_ORDER' ? 'Orden de Compra' : d.document_required ? 'Requerido' : '—'}</td>
+              <td className="ebim-td font-mono text-caption">{d.document_number ?? '—'}</td>
               <td className="ebim-td">
                 {d.document_ok ? <Badge tone="ok">Vigente</Badge> : d.document_status ? <Badge tone="warn">{DOC_STATUS_LABEL[d.document_status] ?? d.document_status}</Badge> : <Badge tone="danger">Falta</Badge>}
               </td>
-              <td className="ebim-td text-xs text-muted">{d.valid_from ? `${formatDate(d.valid_from)} → ${formatDate(d.valid_to)}` : '—'}</td>
+              <td className="ebim-td text-caption text-muted">{d.valid_from ? `${formatDate(d.valid_from)} → ${formatDate(d.valid_to)}` : '—'}</td>
               <td className="ebim-td text-right tabular-nums">{d.document_amount !== null ? formatMoney(Number(d.document_amount), d.document_currency) : '—'}</td>
-              <td className="ebim-td text-xs">
+              <td className="ebim-td text-caption">
                 {d.external_file_ref ? (
                   <span title="Referencia registrada; no es un archivo cargado en la consola" className="font-mono text-muted">
                     {d.external_file_ref} <span className="font-sans">(referencia)</span>
@@ -465,7 +465,7 @@ export function Org360Tenants({ organizationId }: { organizationId: string }) {
       {() => (
         <>
           {saas.error ? (
-            <p className="px-4 pt-3 text-xs font-semibold text-warn" role="status">
+            <p className="px-4 pt-3 text-caption font-semibold text-warn" role="status">
               No se pudieron leer las altas SaaS: la columna de alta técnica y acceso puede estar incompleta.
             </p>
           ) : null}
@@ -476,8 +476,8 @@ export function Org360Tenants({ organizationId }: { organizationId: string }) {
                 <tr key={t.tenant_id as string}>
                   <td className="ebim-td"><Link className="ebim-link font-semibold" to={`/tenants/${t.tenant_id}`}>{t.name}</Link></td>
                   <td className="ebim-td">{t.product_short_name}</td>
-                  <td className="ebim-td text-xs">{t.customer_organization_id === organizationId ? 'Propio (cliente)' : 'Administrado (canal)'}</td>
-                  <td className="ebim-td text-xs">{t.environment ?? '—'}</td>
+                  <td className="ebim-td text-caption">{t.customer_organization_id === organizationId ? 'Propio (cliente)' : 'Administrado (canal)'}</td>
+                  <td className="ebim-td text-caption">{t.environment ?? '—'}</td>
                   <td className="ebim-td"><TenantDimensionsInline dims={dims} /></td>
                 </tr>
               );
@@ -505,9 +505,9 @@ export function Org360Activity({ organizationId }: { organizationId: string }) {
         {() => (
           <ol className="divide-y divide-border">
             {audit.data!.map((e) => (
-              <li key={String(e.id)} className="px-4 py-2.5 text-sm">
+              <li key={String(e.id)} className="px-4 py-2.5 text-body">
                 <p className="font-semibold text-fg">{e.action}</p>
-                <p className="text-xs text-muted">
+                <p className="text-caption text-muted">
                   {formatDateTime(e.occurred_at)} · {e.actor_email ?? 'sistema'} · {e.entity_type}
                 </p>
               </li>
@@ -521,10 +521,10 @@ export function Org360Activity({ organizationId }: { organizationId: string }) {
             {saas.data!.slice(0, 50).map((r) => (
               <tr key={r.id as string}>
                 <td className="ebim-td">{r.product_short_name}</td>
-                <td className="ebim-td text-xs">{r.tenant_id ? <Link className="ebim-link" to={`/tenants/${r.tenant_id}`}>Ver tenant</Link> : '—'}</td>
+                <td className="ebim-td text-caption">{r.tenant_id ? <Link className="ebim-link" to={`/tenants/${r.tenant_id}`}>Ver tenant</Link> : '—'}</td>
                 <td className="ebim-td"><Badge tone={r.status === 'ACTIVE' ? 'ok' : r.status === 'FAILED' ? 'danger' : 'info'}>{r.status as string}</Badge></td>
-                <td className="ebim-td text-xs">{r.mapping_status ?? '—'}</td>
-                <td className="ebim-td text-xs text-muted">{formatDateTime(r.requested_at as string)}</td>
+                <td className="ebim-td text-caption">{r.mapping_status ?? '—'}</td>
+                <td className="ebim-td text-caption text-muted">{formatDateTime(r.requested_at as string)}</td>
               </tr>
             ))}
           </DataTable>

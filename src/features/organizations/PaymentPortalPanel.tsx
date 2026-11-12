@@ -107,7 +107,7 @@ function LinkCreatedDialog({
         </label>
         <input
           id="payment-link-url"
-          className="ebim-input font-mono text-xs"
+          className="ebim-input font-mono text-caption"
           readOnly
           value={created.url}
           onFocus={(e) => e.currentTarget.select()}
@@ -173,13 +173,13 @@ function LinkEventsDialog({ linkId, hint, onClose }: { linkId: string | null; hi
             <DataTable columns={['Fecha', 'Evento', 'Factura', 'Importe', 'Código']}>
               {rows.map((e) => (
                 <tr key={e.id}>
-                  <td className="ebim-td text-xs text-muted">{formatDateTime(e.created_at)}</td>
+                  <td className="ebim-td text-caption text-muted">{formatDateTime(e.created_at)}</td>
                   <td className="ebim-td">{EVENT_LABEL[e.kind] ?? e.kind}</td>
-                  <td className="ebim-td font-mono text-xs">{e.invoices?.number ?? '—'}</td>
+                  <td className="ebim-td font-mono text-caption">{e.invoices?.number ?? '—'}</td>
                   <td className="ebim-td tabular-nums">
                     {e.amount !== null && e.amount !== undefined ? formatMoney(Number(e.amount), e.currency) : '—'}
                   </td>
-                  <td className="ebim-td font-mono text-xs">{e.error_code ?? '—'}</td>
+                  <td className="ebim-td font-mono text-caption">{e.error_code ?? '—'}</td>
                 </tr>
               ))}
             </DataTable>
@@ -280,7 +280,7 @@ export function PaymentPortalPanel({
         description="El cliente abre su estado de cuenta, paga sus facturas con tarjeta y puede activar el pago automático. Un enlace vence y se puede revocar."
         actions={
           perms.canReadFinance ? (
-            <button type="button" className="ebim-btn-primary h-8 px-3 text-xs" onClick={openGenerate}>
+            <button type="button" className="ebim-btn-primary h-8 px-3 text-caption" onClick={openGenerate}>
               Generar enlace
             </button>
           ) : null
@@ -320,7 +320,7 @@ export function PaymentPortalPanel({
           <DataTable columns={['Enlace', 'Estado', 'Vence', 'Último acceso', 'Accesos', 'Cobros', '']}>
             {visible.map((l) => (
               <tr key={l.id as string}>
-                <td className="ebim-td font-mono text-xs">
+                <td className="ebim-td font-mono text-caption">
                   …{l.token_hint}
                   {l.allow_card_enrollment ? null : (
                     <span className="ml-2 font-sans text-[11px] text-muted">sin tarjeta guardada</span>
@@ -332,12 +332,12 @@ export function PaymentPortalPanel({
                   </Badge>
                   {l.revoke_reason ? <div className="mt-0.5 text-[11px] text-muted">{l.revoke_reason}</div> : null}
                 </td>
-                <td className="ebim-td text-xs text-muted">{formatDate(l.expires_at as string)}</td>
-                <td className="ebim-td text-xs text-muted">
+                <td className="ebim-td text-caption text-muted">{formatDate(l.expires_at as string)}</td>
+                <td className="ebim-td text-caption text-muted">
                   {l.last_accessed_at ? formatDateTime(l.last_accessed_at as string) : 'Nunca'}
                 </td>
                 <td className="ebim-td tabular-nums">{Number(l.access_count ?? 0)}</td>
-                <td className="ebim-td text-xs">
+                <td className="ebim-td text-caption">
                   <span className="text-ok">{Number(l.charges_ok ?? 0)} ok</span>
                   {' · '}
                   <span className={Number(l.charges_failed ?? 0) > 0 ? 'text-danger' : 'text-muted'}>
@@ -393,11 +393,11 @@ export function PaymentPortalPanel({
                 <td className="ebim-td font-medium">
                   {a.brand ?? 'Tarjeta'} •••• {a.last4 ?? '????'}
                 </td>
-                <td className="ebim-td text-xs text-muted">
+                <td className="ebim-td text-caption text-muted">
                   {formatDateTime(a.accepted_at as string)}
                   <div>Términos {a.terms_version}</div>
                 </td>
-                <td className="ebim-td text-xs">
+                <td className="ebim-td text-caption">
                   {a.provider_account_code ?? '—'} {a.provider_environment ? `(${a.provider_environment})` : ''}
                 </td>
                 <td className="ebim-td tabular-nums">{Number(a.subscriptions_on_card ?? 0)}</td>

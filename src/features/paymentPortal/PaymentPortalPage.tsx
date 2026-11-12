@@ -822,7 +822,7 @@ function MockCardDialog({ request, onClose }: { request: TokenRequest | null; on
         onClose();
       }}
     >
-      <p className="rounded-field bg-warn-soft px-3 py-2 text-xs font-semibold text-warn">
+      <p className="rounded-field bg-warn-soft px-3 py-2 text-caption font-semibold text-warn">
         Modo de prueba: no escribas datos de una tarjeta real.
       </p>
       <TextField label="Titular (opcional)" value={holder} onChange={(e) => setHolder(e.target.value)} autoComplete="off" />

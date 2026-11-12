@@ -334,7 +334,7 @@ export function IntegrationDialog({
 
       {isHttp ? (
         <>
-          <p className="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
+          <p className="mt-4 mb-2 text-micro uppercase text-muted">
             Contrato M2M
           </p>
 
@@ -421,7 +421,7 @@ export function IntegrationDialog({
             />
           </FieldRow>
 
-          <p className="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
+          <p className="mt-4 mb-2 text-micro uppercase text-muted">
             Rutas del contrato (relativas a la URL base del destino)
           </p>
 

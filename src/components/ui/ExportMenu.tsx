@@ -71,7 +71,7 @@ export function ExportMenu<Row>({
       <button
         ref={buttonRef}
         type="button"
-        className="ebim-btn-ghost h-9 px-3 text-xs"
+        className="ebim-btn-ghost h-9 px-3 text-caption"
         aria-haspopup="true"
         aria-expanded={open}
         aria-controls={menuId}
@@ -98,23 +98,23 @@ export function ExportMenu<Row>({
         >
           <button
             type="button"
-            className="block w-full rounded-md px-3 py-2 text-left text-sm hover:bg-accent-soft"
+            className="block w-full rounded-md px-3 py-2 text-left text-body hover:bg-accent-soft"
             onClick={exportPage}
           >
             <span className="font-semibold text-fg">Página actual</span>
-            <span className="block text-xs text-muted">{formatNumber(pageRows.length)} filas visibles</span>
+            <span className="block text-caption text-muted">{formatNumber(pageRows.length)} filas visibles</span>
           </button>
           <button
             type="button"
-            className="block w-full rounded-md px-3 py-2 text-left text-sm hover:bg-accent-soft"
+            className="block w-full rounded-md px-3 py-2 text-left text-body hover:bg-accent-soft"
             onClick={() => void exportAll()}
           >
             <span className="font-semibold text-fg">Todos los resultados filtrados</span>
-            <span className="block text-xs text-muted">
+            <span className="block text-caption text-muted">
               {formatNumber(total)} filas con los filtros actuales
             </span>
             {overLimit ? (
-              <span className="mt-1 block text-xs font-semibold text-warn">
+              <span className="mt-1 block text-caption font-semibold text-warn">
                 Supera el límite de {formatNumber(EXPORT_LIMIT)}: el archivo saldrá marcado como incompleto.
               </span>
             ) : null}
@@ -127,7 +127,7 @@ export function ExportMenu<Row>({
       {message ? (
         <p
           role="status"
-          className={`mt-2 max-w-xs rounded-md px-3 py-2 text-xs ${
+          className={`mt-2 max-w-xs rounded-md px-3 py-2 text-caption ${
             message.tone === 'ok'
               ? 'bg-ok-soft text-ok'
               : message.tone === 'warn'

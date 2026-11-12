@@ -143,7 +143,7 @@ export function TenantAddonsPanel({
         title="Add-ons del tenant"
         description="Historia completa: solicitudes, altas, bajas y suspensiones. El importe es el congelado en la suscripción al aprobar, visible sólo si tu perfil puede verlo."
         actions={
-          <button type="button" className="ebim-btn-secondary h-8 px-3 text-xs" onClick={() => setRequestOpen(true)}>
+          <button type="button" className="ebim-btn-secondary h-8 px-3 text-caption" onClick={() => setRequestOpen(true)}>
             Solicitar add-on
           </button>
         }
@@ -178,15 +178,15 @@ export function TenantAddonsPanel({
                       </div>
                     ) : null}
                   </td>
-                  <td className="ebim-td text-xs">{requestSourceLabel(a.request_source)}</td>
-                  <td className="ebim-td whitespace-nowrap text-xs text-muted">
+                  <td className="ebim-td text-caption">{requestSourceLabel(a.request_source)}</td>
+                  <td className="ebim-td whitespace-nowrap text-caption text-muted">
                     {a.requested_at ? formatDateTime(a.requested_at) : '—'}
                   </td>
-                  <td className="ebim-td whitespace-nowrap text-xs">
+                  <td className="ebim-td whitespace-nowrap text-caption">
                     {a.effective_from ? formatDate(a.effective_from) : '—'} →{' '}
                     {a.effective_to ? formatDate(a.effective_to) : a.effective_from ? 'sin fin' : '—'}
                   </td>
-                  <td className="ebim-td text-xs">
+                  <td className="ebim-td text-caption">
                     {a.unit_amount !== null && a.unit_amount !== undefined && a.currency ? (
                       <Money className="font-semibold" amount={a.unit_amount} currency={a.currency} />
                     ) : (
@@ -242,8 +242,8 @@ export function TenantAddonsPanel({
                       : ''}
                   </div>
                 </td>
-                <td className="ebim-td text-xs">{entitlementValue(e)}</td>
-                <td className="ebim-td text-xs">
+                <td className="ebim-td text-caption">{entitlementValue(e)}</td>
+                <td className="ebim-td text-caption">
                   {e.enforcement ? (
                     <Badge tone={e.enforcement === 'HARD' ? 'danger' : 'neutral'}>
                       {e.enforcement === 'HARD' ? 'Bloqueante' : e.enforcement === 'SOFT' ? 'Aviso' : e.enforcement}
@@ -255,7 +255,7 @@ export function TenantAddonsPanel({
                 <td className="ebim-td">
                   <div className="flex flex-wrap gap-1">
                     {(e.sources ?? []).length === 0 ? (
-                      <span className="text-xs text-muted">—</span>
+                      <span className="text-caption text-muted">—</span>
                     ) : (
                       (e.sources ?? []).map((s) => (
                         <Badge key={s} tone="info">{s}</Badge>
@@ -267,7 +267,7 @@ export function TenantAddonsPanel({
                   {e.desired_dirty ? (
                     <Badge tone="warn">pendiente de sincronizar</Badge>
                   ) : (
-                    <span className="text-xs text-muted">Sincronizado</span>
+                    <span className="text-caption text-muted">Sincronizado</span>
                   )}
                 </td>
               </tr>

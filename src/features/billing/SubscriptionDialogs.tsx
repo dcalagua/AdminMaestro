@@ -177,7 +177,7 @@ export function SubscriptionFormDialog({ open, onClose }: { open: boolean; onClo
       </FieldRow>
 
       {!hasRegionalPrice ? (
-        <p className="rounded-lg bg-warn-soft px-3 py-2 text-xs text-warn" role="alert">
+        <p className="rounded-lg bg-warn-soft px-3 py-2 text-caption text-warn" role="alert">
           Este plan no tiene tarifa vigente en {marketCode}/{currency}. La base rechazará el
           contrato (TARIFA_REGIONAL_NO_DEFINIDA): publica antes la tarifa regional del plan.
         </p>

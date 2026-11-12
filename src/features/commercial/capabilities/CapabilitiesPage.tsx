@@ -122,7 +122,7 @@ export function CapabilitiesPage() {
             ].map(([k, v]) => (
               <div key={k as string}>
                 <dt className="text-micro text-muted">{k as string}</dt>
-                <dd className="mt-1 text-xl font-bold tabular-nums">{v === undefined || v === null ? '—' : String(v)}</dd>
+                <dd className="mt-1 text-h2 tabular-nums">{v === undefined || v === null ? '—' : String(v)}</dd>
               </div>
             ))}
           </dl>

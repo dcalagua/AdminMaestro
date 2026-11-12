@@ -55,7 +55,7 @@ function ReportContextBar({ ctx, months, setMonth, setFxDate }: ReturnType<typeo
   return (
     <section
       aria-label="Contexto del reporte"
-      className="ebim-card mb-4 flex flex-wrap items-end gap-x-6 gap-y-3 px-4 py-3 text-sm"
+      className="ebim-card mb-4 flex flex-wrap items-end gap-x-6 gap-y-3 px-4 py-3 text-body"
     >
       <label className="flex flex-col gap-1">
         <span className="text-[11px] font-bold uppercase tracking-wider text-muted">Período de operaciones</span>
@@ -72,7 +72,7 @@ function ReportContextBar({ ctx, months, setMonth, setFxDate }: ReturnType<typeo
         <span className="text-[11px] font-bold uppercase tracking-wider text-muted">Fecha de tipo de cambio</span>
         <input type="date" className="ebim-input h-9" value={ctx.fxDate} onChange={(e) => e.target.value && setFxDate(e.target.value)} />
       </label>
-      <dl className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted">
+      <dl className="flex flex-wrap gap-x-6 gap-y-1 text-caption text-muted">
         <div>
           <dt className="inline">Movimientos: </dt>
           <dd className="inline font-semibold text-fg">{periodLabel(ctx)}</dd>

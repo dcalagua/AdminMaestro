@@ -71,7 +71,7 @@ function AgingChart({ onSelect }: { onSelect: (bucket: string) => void }) {
         <SingleBars data={data} currency={currency} ariaLabel={`Saldo por antigüedad en ${currency}`} onSelect={(d) => onSelect(d.key)} />
       )}
       table={() => (
-        <table className="w-full text-sm">
+        <table className="w-full text-body">
           <caption className="sr-only">Saldo por antigüedad</caption>
           <thead>
             <tr>
@@ -151,11 +151,11 @@ function ComponentsChart({
         data.length ? (
           <ComponentBars data={data} currency={currency} ariaLabel={`Componentes del margen por SaaS en ${currency}`} onSelect={(d) => onSelect(d.key)} />
         ) : (
-          <p className="py-6 text-sm text-muted">Sin movimientos en {currency} para el período.</p>
+          <p className="py-6 text-body text-muted">Sin movimientos en {currency} para el período.</p>
         )
       }
       table={() => (
-        <table className="w-full text-sm">
+        <table className="w-full text-body">
           <caption className="sr-only">Componentes del margen por SaaS</caption>
           <thead>
             <tr>
@@ -234,7 +234,7 @@ function PartnerChart({
         <SingleBars data={data} currency={currency} layout="horizontal-bars" ariaLabel={`Cobrado por canal en ${currency}`} onSelect={(d) => onSelect(d.key)} />
       )}
       table={() => (
-        <table className="w-full text-sm">
+        <table className="w-full text-body">
           <caption className="sr-only">Cartera y contribución por partner</caption>
           <thead>
             <tr>
@@ -273,10 +273,10 @@ function FxCoverage({ query, ctx }: { query: ReturnType<typeof useFinanceConsoli
   return (
     <section className="ebim-card flex flex-col" aria-labelledby="fx-title">
       <header className="border-b border-border px-4 py-3">
-        <h3 id="fx-title" className="text-sm font-bold text-fg">¿Se puede consolidar en una sola moneda?</h3>
-        <p className="text-xs text-muted">Tasas al {ctx.fxDate} · período {periodLabel(ctx)}</p>
+        <h3 id="fx-title" className="text-body font-bold text-fg">¿Se puede consolidar en una sola moneda?</h3>
+        <p className="text-caption text-muted">Tasas al {ctx.fxDate} · período {periodLabel(ctx)}</p>
       </header>
-      <div className="flex-1 px-4 py-3 text-sm">
+      <div className="flex-1 px-4 py-3 text-body">
         {state.status !== 'ready' || !data ? (
           <StateMessage state={state} onRetry={() => void query.refetch()} />
         ) : !data.reporting_currency ? (
@@ -284,7 +284,7 @@ function FxCoverage({ query, ctx }: { query: ReturnType<typeof useFinanceConsoli
         ) : data.completeness.complete ? (
           <>
             <p className="font-semibold text-ok">Cobertura FX completa en {data.reporting_currency}.</p>
-            <ul className="mt-2 space-y-1 text-xs text-muted">
+            <ul className="mt-2 space-y-1 text-caption text-muted">
               {data.rates_used.map((r) => (
                 <li key={`${r.from}-${r.to}-${r.rate_date}`}>
                   {formatRateLabel(r.from, r.to, Number(r.rate))} · {r.rate_date}
@@ -299,13 +299,13 @@ function FxCoverage({ query, ctx }: { query: ReturnType<typeof useFinanceConsoli
             <p className="font-semibold text-warn">
               Cobertura parcial: falta tasa para {data.completeness.missing_currencies.join(', ')}.
             </p>
-            <p className="mt-1 text-xs text-muted">
+            <p className="mt-1 text-caption text-muted">
               Los totales consolidados afectados no se calculan (no se muestran como cero). Los importes nativos siguen siendo exactos.
             </p>
           </>
         )}
       </div>
-      <footer className="border-t border-border px-4 py-2 text-xs">
+      <footer className="border-t border-border px-4 py-2 text-caption">
         <Link className="ebim-link" to="/regional">Ver monedas y tipos de cambio →</Link>
       </footer>
     </section>

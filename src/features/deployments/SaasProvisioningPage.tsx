@@ -605,7 +605,7 @@ function Pair({ label, value, mono }: { label: string; value: string; mono?: boo
   return (
     <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
       <dt className="shrink-0 text-muted sm:w-44">{label}</dt>
-      <dd className={mono ? 'min-w-0 break-all font-mono text-xs' : 'min-w-0'}>{value}</dd>
+      <dd className={mono ? 'min-w-0 break-all font-mono text-caption' : 'min-w-0'}>{value}</dd>
     </div>
   );
 }

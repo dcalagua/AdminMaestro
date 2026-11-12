@@ -184,12 +184,12 @@ export function TenantDetailPage() {
     >
       {onboarded ? (
         <section className="ebim-card mb-4 border-l-4 border-l-[color:var(--accent-action)] p-4" aria-labelledby="next-steps-title">
-          <h2 id="next-steps-title" className="text-sm font-bold text-fg">Venta registrada: siguientes pasos</h2>
-          <p className="mt-1 text-sm text-muted">
+          <h2 id="next-steps-title" className="text-body font-bold text-fg">Venta registrada: siguientes pasos</h2>
+          <p className="mt-1 text-body text-muted">
             Se crearon el tenant, el contrato y la atribución{onboarded.activated ? ' (contrato activo)' : ' (contrato en borrador para revisión)'}. El alta
             dentro del producto es una decisión aparte: nada de lo de abajo la ejecuta.
           </p>
-          <ul className="mt-2 flex flex-wrap gap-2 text-sm">
+          <ul className="mt-2 flex flex-wrap gap-2 text-body">
             {onboarded.subscriptionId ? (
               <li>
                 <Link className="ebim-btn-secondary ebim-btn-sm" to={`/subscriptions/${onboarded.subscriptionId}`}>

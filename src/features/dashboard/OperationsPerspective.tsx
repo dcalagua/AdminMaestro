@@ -86,8 +86,8 @@ export function OperationsPerspective() {
 
       <section className="ebim-card" aria-labelledby="ops-matrix-title">
         <header className="border-b border-border px-4 py-3">
-          <h3 id="ops-matrix-title" className="text-sm font-bold text-fg">Matriz por producto y entorno</h3>
-          <p className="text-xs text-muted">
+          <h3 id="ops-matrix-title" className="text-body font-bold text-fg">Matriz por producto y entorno</h3>
+          <p className="text-caption text-muted">
             Catálogo, integración, destino, última observación de salud y altas SaaS. Sin llamadas a proveedores al abrir esta vista.
           </p>
         </header>
@@ -95,7 +95,7 @@ export function OperationsPerspective() {
           <div className="px-4"><StateMessage state={productState} onRetry={() => void products.refetch()} /></div>
         ) : (
           <div className="relative overflow-x-auto" role="region" aria-label="Matriz por producto y entorno" tabIndex={0}>
-            <table className="w-full min-w-[860px] border-collapse text-sm">
+            <table className="w-full min-w-[860px] border-collapse text-body">
               <thead className="border-b border-border bg-[color:var(--bg)]">
                 <tr>
                   <th scope="col" className="ebim-th">Producto</th>
@@ -130,7 +130,7 @@ export function OperationsPerspective() {
                       <td className="ebim-td">
                         {t ? (
                           <span className="flex flex-col">
-                            <span className="font-mono text-xs">{t.code}</span>
+                            <span className="font-mono text-caption">{t.code}</span>
                             <span className="text-[11px] text-muted">
                               {t.provisioning_environment ?? 'Sin entorno'} · {t.provisioning_enabled ? 'habilitado' : 'deshabilitado'} · {t.provisioning_status}
                             </span>
@@ -144,7 +144,7 @@ export function OperationsPerspective() {
                       <td className="ebim-td">
                         {t?.integration_code ? (
                           <span className="flex flex-col">
-                            <span className="text-xs font-semibold">{t.integration_code}</span>
+                            <span className="text-caption font-semibold">{t.integration_code}</span>
                             <span className="text-[11px] text-muted">{t.integration_status ?? '—'} · {t.integration_enabled ? 'activa' : 'inactiva'}</span>
                           </span>
                         ) : (
@@ -154,7 +154,7 @@ export function OperationsPerspective() {
                       <td className="ebim-td">{t ? healthCell(t) : '—'}</td>
                       {i === 0 ? (
                         <>
-                          <td rowSpan={rows.length} className="ebim-td align-top text-xs">
+                          <td rowSpan={rows.length} className="ebim-td align-top text-caption">
                             {saasState.status !== 'ready' ? (
                               <StateMessage state={saasState} compact />
                             ) : reqs.length === 0 ? (
@@ -169,7 +169,7 @@ export function OperationsPerspective() {
                               </span>
                             )}
                           </td>
-                          <td rowSpan={rows.length} className="ebim-td align-top text-xs text-muted">
+                          <td rowSpan={rows.length} className="ebim-td align-top text-caption text-muted">
                             Sin fuente verificable en el control plane
                           </td>
                         </>

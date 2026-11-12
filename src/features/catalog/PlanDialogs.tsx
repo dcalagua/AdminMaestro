@@ -172,7 +172,7 @@ export function PlanFormDialog({
         hint="Solo para Dedicado partner: es la licencia del canal, no la de un tenant."
         {...form.register('is_partner_base')} />
       {form.formState.errors.is_partner_base ? (
-        <p className="-mt-2 text-xs text-danger" role="alert">
+        <p className="-mt-2 text-caption text-danger" role="alert">
           {form.formState.errors.is_partner_base.message}
         </p>
       ) : null}

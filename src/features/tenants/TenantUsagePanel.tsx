@@ -24,7 +24,7 @@ export function TenantUsagePanel({ tenantId }: { tenantId: string }) {
         title="Agregados de uso"
         description="Por medidor y período. La cantidad es definitiva al finalizar; solo lo finalizado y facturable entra en una factura."
         actions={
-          <Link className="ebim-link text-xs" to="/usage#aggregates">
+          <Link className="ebim-link text-caption" to="/usage#aggregates">
             Ir a Uso
           </Link>
         }
@@ -43,20 +43,20 @@ export function TenantUsagePanel({ tenantId }: { tenantId: string }) {
               return (
                 <tr key={a.id ?? `${a.meter_code}:${a.period_start}`}>
                   <td className="ebim-td">
-                    <div className="font-mono text-xs">{a.meter_code}</div>
+                    <div className="font-mono text-caption">{a.meter_code}</div>
                     <div className="text-[11px] text-muted">{a.product_code}</div>
                   </td>
-                  <td className="ebim-td whitespace-nowrap text-xs">{formatPeriod(a.period_start)}</td>
+                  <td className="ebim-td whitespace-nowrap text-caption">{formatPeriod(a.period_start)}</td>
                   <td className="ebim-td">
                     <Badge tone={st.tone}>{st.label}</Badge>
                   </td>
-                  <td className="ebim-td text-xs tabular-nums">
+                  <td className="ebim-td text-caption tabular-nums">
                     {finalized ? `${formatQuantity(a.quantity)} ${a.unit ?? ''}` : <span className="text-muted">Se calcula al finalizar</span>}
                   </td>
-                  <td className="ebim-td text-xs">
+                  <td className="ebim-td text-caption">
                     {a.allowance_status ? labelOf(ALLOWANCE_STATUS, a.allowance_status).label : '—'}
                   </td>
-                  <td className="ebim-td text-xs">{finalized ? (a.is_billable ? 'Sí' : 'No') : '—'}</td>
+                  <td className="ebim-td text-caption">{finalized ? (a.is_billable ? 'Sí' : 'No') : '—'}</td>
                 </tr>
               );
             })}
@@ -68,7 +68,7 @@ export function TenantUsagePanel({ tenantId }: { tenantId: string }) {
         title="Saldo de créditos IA por pool"
         description="Derivado del ledger. Sin política de créditos (D-03) no hay incluidos: el saldo no se inventa."
         actions={
-          <Link className="ebim-link text-xs" to="/ai-credits#balances">
+          <Link className="ebim-link text-caption" to="/ai-credits#balances">
             Ir a Créditos IA
           </Link>
         }
@@ -83,13 +83,13 @@ export function TenantUsagePanel({ tenantId }: { tenantId: string }) {
           <DataTable columns={['Pool', 'Período', 'Incluidos', 'Comprados', 'Bono', 'Usados', 'Saldo']}>
             {(balances.data ?? []).map((b) => (
               <tr key={`${b.pool_key}:${b.period_start}`}>
-                <td className="ebim-td text-xs font-semibold">{poolLabel(b.pool_key)}</td>
-                <td className="ebim-td whitespace-nowrap text-xs">{formatPeriod(b.period_start)}</td>
-                <td className="ebim-td text-xs tabular-nums">{formatQuantity(b.included)}</td>
-                <td className="ebim-td text-xs tabular-nums">{formatQuantity(b.purchased)}</td>
-                <td className="ebim-td text-xs tabular-nums">{formatQuantity(b.bonus)}</td>
-                <td className="ebim-td text-xs tabular-nums">{formatQuantity(b.used)}</td>
-                <td className={`ebim-td text-sm font-bold tabular-nums ${Number(b.balance ?? 0) < 0 ? 'text-danger' : ''}`}>
+                <td className="ebim-td text-caption font-semibold">{poolLabel(b.pool_key)}</td>
+                <td className="ebim-td whitespace-nowrap text-caption">{formatPeriod(b.period_start)}</td>
+                <td className="ebim-td text-caption tabular-nums">{formatQuantity(b.included)}</td>
+                <td className="ebim-td text-caption tabular-nums">{formatQuantity(b.purchased)}</td>
+                <td className="ebim-td text-caption tabular-nums">{formatQuantity(b.bonus)}</td>
+                <td className="ebim-td text-caption tabular-nums">{formatQuantity(b.used)}</td>
+                <td className={`ebim-td text-body font-bold tabular-nums ${Number(b.balance ?? 0) < 0 ? 'text-danger' : ''}`}>
                   {formatQuantity(b.balance)}
                 </td>
               </tr>
@@ -111,17 +111,17 @@ export function TenantUsagePanel({ tenantId }: { tenantId: string }) {
               const t = labelOf(LEDGER_ENTRY, e.entry_type);
               return (
                 <tr key={e.id}>
-                  <td className="ebim-td whitespace-nowrap text-xs text-muted">{formatDateTime(e.created_at)}</td>
+                  <td className="ebim-td whitespace-nowrap text-caption text-muted">{formatDateTime(e.created_at)}</td>
                   <td className="ebim-td">
                     <Badge tone={t.tone}>{t.label}</Badge>
                   </td>
-                  <td className="ebim-td text-xs">{poolLabel(e.pool_key)}</td>
-                  <td className="ebim-td whitespace-nowrap text-xs">{formatPeriod(e.period_start)}</td>
-                  <td className={`ebim-td text-sm font-semibold tabular-nums ${e.credits < 0 ? 'text-danger' : 'text-ok'}`}>
+                  <td className="ebim-td text-caption">{poolLabel(e.pool_key)}</td>
+                  <td className="ebim-td whitespace-nowrap text-caption">{formatPeriod(e.period_start)}</td>
+                  <td className={`ebim-td text-body font-semibold tabular-nums ${e.credits < 0 ? 'text-danger' : 'text-ok'}`}>
                     {e.credits > 0 ? '+' : ''}
                     {formatQuantity(e.credits)}
                   </td>
-                  <td className="ebim-td max-w-[260px] text-xs text-muted">{e.reason ?? '—'}</td>
+                  <td className="ebim-td max-w-[260px] text-caption text-muted">{e.reason ?? '—'}</td>
                 </tr>
               );
             })}
