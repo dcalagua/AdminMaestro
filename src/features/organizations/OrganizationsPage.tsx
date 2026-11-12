@@ -253,7 +253,7 @@ export function OrganizationsPage({
                       label={`Acciones de ${o.display_name}`}
                       items={[
                         { label: 'Abrir ficha 360', to: `/organizations/${o.id}` },
-                        { label: 'Ver contratos', to: `/organizations/${o.id}#contracts` },
+                        { label: 'Ver contratos', to: `/organizations/${o.id}?tab=contratos#contracts` },
                         perms.canManageOrganization(o.id)
                           ? { label: 'Editar datos', onSelect: () => setDialog({ open: true, org: toDraft(o) }) }
                           : null,

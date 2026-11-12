@@ -24,9 +24,9 @@ vi.mock('./org360Queries', () => ({
   },
   useOrgTenants: (id: string) => {
     calls.scoped.push(['tenants', id]);
-    return q([{ tenant_id: 't1', name: 'Alpha', product_short_name: 'EWM', customer_organization_id: ORG, managing_organization_id: null, status: 'PENDING', tenant_type: 'PRODUCTION', mrr: 0, currency: null, environment: 'QAS' }]);
+    return q([{ tenant_id: 't1', name: 'Alpha', product_short_name: 'EWM', product_code: 'ewm', saas_product_id: 'p-ewm', customer_organization_id: ORG, managing_organization_id: null, status: 'PENDING', tenant_type: 'PRODUCTION', mrr: 0, currency: null, environment: 'QAS' }]);
   },
-  useOrgSaasProvisioning: () => q([{ tenant_id: 't1', status: 'ACTIVE', mapping_status: 'ACTIVE', requested_at: '2026-09-24', product_short_name: 'EWM', mapping_metadata: { resources: { adminProvisioningStatus: 'PREPROVISIONED' } } }]),
+  useOrgSaasProvisioning: () => q([{ tenant_id: 't1', saas_product_id: 'p-ewm', status: 'ACTIVE', mapping_status: 'ACTIVE', requested_at: '2026-09-24', product_short_name: 'EWM', mapping_metadata: { resources: { adminProvisioningStatus: 'PREPROVISIONED' } } }]),
   useOrgCommissions: () => q([]),
   useOrgInfraRequests: () => q([]),
   useOrgAudit: () => q([]),
@@ -39,6 +39,11 @@ vi.mock('@/services/queries', () => ({
   useProvisioningTargets: () => q([]),
   useCurrencies: () => q([]),
 }));
+const auth = vi.hoisted(() => ({ persona: 'EBIM', canManagePlatform: true }));
+vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ persona: auth.persona, roles: null }) }));
+vi.mock('@/hooks/usePermissions', () => ({ usePermissions: () => ({ canManagePlatform: auth.canManagePlatform }) }));
+vi.mock('@/components/ui/toast-context', () => ({ useToast: () => ({ success: vi.fn(), error: vi.fn() }) }));
+vi.mock('@/services/mutations', () => ({ useSetTenantStatus: () => ({ mutateAsync: vi.fn(), isPending: false }) }));
 vi.mock('@/services/financeRead', () => ({
   useInvoiceSummary: (p: { organizationId?: string }) => {
     calls.scoped.push(['invoices', p.organizationId]);
@@ -55,9 +60,11 @@ vi.mock('@/services/financeRead', () => ({
   PAGE_SIZES: [10, 25, 50],
 }));
 
-import { Org360Contracts, Org360Documents, Org360KpiStrip, Org360Summary, Org360Tenants } from './Organization360';
+import { Org360Apps, Org360Contracts, Org360Documents, Org360KpiStrip, Org360Summary } from './Organization360';
 
 beforeEach(() => {
+  auth.persona = 'EBIM';
+  auth.canManagePlatform = true;
   calls.scoped.length = 0;
   calls.docsError = null;
 });
@@ -106,11 +113,35 @@ describe('Organización 360', () => {
     expect(screen.queryByText(/no exige OS\/OC/)).not.toBeInTheDocument();
   });
 
-  it('tenants: comercial PENDING + alta ACTIVE + admin PREPROVISIONED por separado', () => {
-    wrap(<Org360Tenants organizationId={ORG} />);
+  it('apps y accesos: comercial PENDING + alta ACTIVE + admin PREPROVISIONED por separado', () => {
+    wrap(<Org360Apps organizationId={ORG} organizationName="Alpha" />);
     const row = screen.getByRole('link', { name: 'Alpha' }).closest('tr') as HTMLElement;
     expect(within(row).getByText('Pendiente de activación comercial')).toBeInTheDocument();
     expect(within(row).getByText('Alta registrada · mapping activo')).toBeInTheDocument();
     expect(within(row).getByText('Administrador preaprovisionado')).toBeInTheDocument();
+  });
+
+  it('apps y accesos: por app, el tenant con su alta, su estado aquí y las acciones', () => {
+    wrap(<Org360Apps organizationId={ORG} organizationName="Alpha Corp" />);
+    const app = document.querySelector('[data-account-app="EWM"]') as HTMLElement;
+    expect(within(app).getByRole('heading', { name: 'EWM' })).toBeInTheDocument();
+    const row = within(app).getByRole('link', { name: 'Alpha' }).closest('tr') as HTMLElement;
+    expect(row.getAttribute('data-tenant-kind')).toBe('PENDING_CONFIRM');
+    expect(within(row).getByText('Propio (cliente) · QAS')).toBeInTheDocument();
+    expect(within(row).getByText('Pendiente')).toBeInTheDocument();
+    expect(within(row).getByRole('link', { name: 'Abrir tenant' })).toHaveAttribute('href', '/tenants/t1');
+    // Misma acción y mismo aviso que el Centro de la suite.
+    expect(within(row).getByRole('button', { name: 'Confirmar como activo' })).toBeInTheDocument();
+    expect(document.querySelector('[data-pending-confirm-notice]')).toHaveTextContent('1 tenant activo en su app');
+    expect(screen.getByRole('link', { name: 'Ver en el Centro de la suite' })).toHaveAttribute('href', '/suite?mq=Alpha%20Corp');
+  });
+
+  it('apps y accesos: sin permiso de plataforma no se ofrece confirmar; fuera de EBIM no se enlaza al Centro', () => {
+    auth.canManagePlatform = false;
+    auth.persona = 'PARTNER';
+    wrap(<Org360Apps organizationId={ORG} organizationName="Alpha" />);
+    expect(screen.queryByRole('button', { name: 'Confirmar como activo' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Ver en el Centro de la suite' })).toBeNull();
+    expect(screen.queryByRole('link', { name: /Ficha de/ })).toBeNull();
   });
 });
