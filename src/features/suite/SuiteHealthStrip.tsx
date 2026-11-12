@@ -122,8 +122,7 @@ export function SuiteHealthStrip({
   error,
   onRetry,
   canCheck,
-  checkingTargetId,
-  busy,
+  isChecking,
   onCheck,
   now,
 }: {
@@ -132,8 +131,8 @@ export function SuiteHealthStrip({
   error: unknown;
   onRetry: () => void;
   canCheck: (productId: string) => boolean;
-  checkingTargetId: string | null;
-  busy: boolean;
+  /** ¿Hay una verificación en curso para este destino? */
+  isChecking: (targetId: string | null | undefined) => boolean;
   onCheck: (item: AppHealth) => void;
   now?: Date;
 }) {
@@ -166,7 +165,7 @@ export function SuiteHealthStrip({
               key={item.app.id}
               item={item}
               canCheck={canCheck(item.app.id)}
-              checking={busy && checkingTargetId === item.primary?.deployment_target_id}
+              checking={isChecking(item.primary?.deployment_target_id)}
               onCheck={() => onCheck(item)}
               now={now}
             />

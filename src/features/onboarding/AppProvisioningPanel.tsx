@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Badge, DataTable, EmptyState, ErrorState, LoadingState } from '@/components/ui/primitives';
 import { SelectInput } from '@/components/ui/fields';
 import { useToast } from '@/components/ui/toast-context';
+import { useTaskQueue, type TaskResult } from '@/components/ui/task-queue-context';
 import { useProvisioningAccess } from '@/hooks/useProvisioningAccess';
 import { useProvisioningTargets, useSaasProvisioningRequests } from '@/services/queries';
 import {
@@ -36,6 +37,7 @@ export interface AltaTenant {
  */
 export function AppProvisioningPanel({ tenants }: { tenants: AltaTenant[] }) {
   const toast = useToast();
+  const queue = useTaskQueue();
   const access = useProvisioningAccess();
   const requests = useSaasProvisioningRequests();
   const targets = useProvisioningTargets();
@@ -56,7 +58,8 @@ export function AppProvisioningPanel({ tenants }: { tenants: AltaTenant[] }) {
   const latest = latestRequestByTenant((requests.data ?? []) as ProvisioningRow[]);
   const targetRows = (targets.data ?? []) as TargetRow[];
 
-  async function run(t: AltaTenant, fn: () => Promise<void>) {
+  /** `tracked`: el error ya quedó en la cola de tareas; aquí sólo se marca la fila. */
+  async function run(t: AltaTenant, fn: () => Promise<void>, tracked = false) {
     setBusy(t.tenantId);
     setErrors((e) => ({ ...e, [t.tenantId]: '' }));
     try {
@@ -64,23 +67,38 @@ export function AppProvisioningPanel({ tenants }: { tenants: AltaTenant[] }) {
     } catch (error) {
       const message = businessErrorMessage(error);
       setErrors((e) => ({ ...e, [t.tenantId]: message }));
-      toast.error(`No se pudo completar el alta en ${t.productName}`, message);
+      if (!tracked) toast.error(`No se pudo completar el alta en ${t.productName}`, message);
     } finally {
       setBusy(null);
     }
   }
 
-  async function execute(t: AltaTenant, requestId: string) {
-    const result = await provision.mutateAsync(requestId);
-    if (result.status === 'ACTIVE') {
-      toast.success(`Alta activa en ${t.productName}`, t.tenantName);
-    } else if (result.status === 'FAILED') {
-      const reason = providerErrorLabel(result.error_code) ?? result.message ?? 'Sin detalle';
-      setErrors((e) => ({ ...e, [t.tenantId]: reason }));
-      toast.error(`${t.productName} rechazó el alta`, reason);
-    } else {
-      toast.push('info', 'Alta en curso', result.message ?? `${t.productName}: la app sigue procesando.`);
-    }
+  /**
+   * «Ejecutar alta» (V5 · F5): una tarea visible en la cola del shell mientras
+   * la app responde; al terminar queda con su resultado y el enlace al tenant.
+   * `requestId` puede venir de un paso previo (reintento o nueva versión).
+   */
+  async function execute(t: AltaTenant, requestId: () => Promise<string>) {
+    await queue.track(
+      { title: `Alta de ${t.tenantName} en ${t.productName}`, link: { to: `/tenants/${t.tenantId}`, label: 'Ver el tenant' } },
+      async () => provision.mutateAsync(await requestId()),
+      (result): TaskResult => {
+        if (result.status === 'ACTIVE') {
+          return { status: 'success', title: `Alta activa en ${t.productName}`, detail: t.tenantName };
+        }
+        if (result.status === 'FAILED') {
+          const reason = providerErrorLabel(result.error_code) ?? result.message ?? 'Sin detalle';
+          setErrors((e) => ({ ...e, [t.tenantId]: reason }));
+          return { status: 'error', title: `${t.productName} rechazó el alta`, detail: reason };
+        }
+        return { status: 'info', title: `Alta en curso en ${t.productName}`, detail: result.message ?? 'La app sigue procesando.' };
+      },
+      (error) => ({
+        status: 'error',
+        title: `No se pudo completar el alta en ${t.productName}`,
+        detail: businessErrorMessage(error),
+      }),
+    );
   }
 
   function createRequest(t: AltaTenant, env: string) {
@@ -163,7 +181,7 @@ export function AppProvisioningPanel({ tenants }: { tenants: AltaTenant[] }) {
                     type="button"
                     className="ebim-btn-primary ebim-btn-sm"
                     disabled={rowBusy}
-                    onClick={() => void run(t, () => execute(t, state.requestId!))}
+                    onClick={() => void run(t, () => execute(t, async () => state.requestId!), true)}
                   >
                     {rowBusy ? 'Ejecutando…' : 'Ejecutar alta'}
                   </button>
@@ -173,14 +191,19 @@ export function AppProvisioningPanel({ tenants }: { tenants: AltaTenant[] }) {
                     className="ebim-btn-secondary ebim-btn-sm"
                     disabled={rowBusy || (!state.canRetrySame && envs.length === 0)}
                     onClick={() =>
-                      void run(t, async () => {
-                        // Con intentos disponibles se reintenta la MISMA solicitud (misma
-                        // clave de idempotencia); agotados, la base abre una nueva versión.
-                        let id = state.requestId!;
-                        if (state.canRetrySame) await retry.mutateAsync({ p_request_id: id });
-                        else id = await createRequest(t, env);
-                        await execute(t, id);
-                      })
+                      void run(
+                        t,
+                        () =>
+                          execute(t, async () => {
+                            // Con intentos disponibles se reintenta la MISMA solicitud (misma
+                            // clave de idempotencia); agotados, la base abre una nueva versión.
+                            const id = state.requestId!;
+                            if (!state.canRetrySame) return createRequest(t, env);
+                            await retry.mutateAsync({ p_request_id: id });
+                            return id;
+                          }),
+                        true,
+                      )
                     }
                   >
                     {rowBusy ? 'Reintentando…' : 'Reintentar'}

@@ -28,10 +28,9 @@ export function SuiteCenterPage() {
         error={data.error.health}
         onRetry={data.refetch.health}
         canCheck={(productId) => access.canForProduct('platform.deployment.read', productId)}
-        busy={health.isPending}
-        checkingTargetId={health.pendingTargetId}
+        isChecking={health.isRunning}
         onCheck={(h) => {
-          if (h.primary?.deployment_target_id) void health.run(h.primary.deployment_target_id, h.app.name);
+          if (h.primary?.deployment_target_id) void health.run(h.primary.deployment_target_id, h.app.name, h.app.code);
         }}
       />
       <SuiteMatrix

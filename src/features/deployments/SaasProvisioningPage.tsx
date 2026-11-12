@@ -15,6 +15,7 @@ import { useProvisioningAccess } from '@/hooks/useProvisioningAccess';
 import { StatusTabs } from '@/components/ui/SectionTabs';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/toast-context';
+import { useTaskQueue, type TaskResult } from '@/components/ui/task-queue-context';
 import { businessErrorMessage } from '@/lib/pgError';
 import {
   PageContainer, Card, DataTable, SearchBar, KpiTile, LoadingState, ErrorState, EmptyState, Badge,
@@ -84,6 +85,7 @@ export function SaasProvisioningPage() {
   const requests = useSaasProvisioningRequests();
   const access = useProvisioningAccess();
   const toast = useToast();
+  const queue = useTaskQueue();
 
   const provision = useProvisionTenant();
   const retry = useRetrySaasProvisioning();
@@ -130,21 +132,29 @@ export function SaasProvisioningPage() {
   const countBy = (status: SaasProvisioningStatus) =>
     all.filter((r) => r.status === status).length;
 
-  async function runProvision(requestId: string, label: string) {
+  /** «Ejecutar alta» (V5 · F5): tarea visible en la cola del shell, con su resultado y el enlace al tenant. */
+  async function runProvision(requestId: string, label: string, tenantId: string | null) {
     try {
-      const result = await provision.mutateAsync(requestId);
-      if (result.status === 'ACTIVE') {
-        toast.success('Tenant provisionado', `${label} · ${result.external_tenant_id ?? ''}`);
-      } else if (result.status === 'FAILED') {
-        toast.error(
-          'El producto rechazó la operación',
-          providerErrorLabel(result.error_code) ?? result.message ?? 'Sin detalle',
-        );
-      } else {
-        toast.push('info', 'Alta en curso', result.message ?? `Estado: ${result.status}`);
-      }
-    } catch (error) {
-      toast.error('No se pudo provisionar', businessErrorMessage(error));
+      await queue.track(
+        { title: `Ejecutar alta · ${label}`, link: tenantId ? { to: `/tenants/${tenantId}`, label: 'Ver el tenant' } : undefined },
+        () => provision.mutateAsync(requestId),
+        (result): TaskResult => {
+          if (result.status === 'ACTIVE') {
+            return { status: 'success', title: 'Tenant provisionado', detail: `${label}${result.external_tenant_id ? ` · ${result.external_tenant_id}` : ''}` };
+          }
+          if (result.status === 'FAILED') {
+            return {
+              status: 'error',
+              title: 'El producto rechazó la operación',
+              detail: providerErrorLabel(result.error_code) ?? result.message ?? 'Sin detalle',
+            };
+          }
+          return { status: 'info', title: 'Alta en curso', detail: result.message ?? `${label}: la app sigue procesando.` };
+        },
+        (error) => ({ status: 'error', title: 'No se pudo provisionar', detail: businessErrorMessage(error) }),
+      );
+    } catch {
+      /* El fallo ya quedó en la cola con su motivo. */
     }
   }
 
@@ -319,7 +329,7 @@ export function SaasProvisioningPage() {
                             type="button"
                             className="ebim-btn-primary ebim-btn-sm"
                             disabled={provision.isPending}
-                            onClick={() => void runProvision(id, label)}
+                            onClick={() => void runProvision(id, label, (r.tenant_id as string | null) ?? null)}
                           >
                             Ejecutar alta
                           </button>

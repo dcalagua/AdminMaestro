@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -41,6 +41,7 @@ vi.mock('@/components/ui/toast-context', () => ({
 }));
 
 import { AppProvisioningPanel, type AltaTenant } from './AppProvisioningPanel';
+import { TaskQueuePanel, TaskQueueProvider } from '@/components/ui/TaskQueue';
 
 const EWM: AltaTenant = { tenantId: 'tn-1', tenantName: 'Alpha EWM', productId: 'p-ewm', productName: 'EWM', productCode: 'ewm', subscriptionId: 's-1' };
 const TMS: AltaTenant = { tenantId: 'tn-2', tenantName: 'Alpha TMS', productId: 'p-tms', productName: 'TMS', productCode: 'tms', subscriptionId: null };
@@ -90,6 +91,27 @@ describe('AppProvisioningPanel', () => {
     await userEvent.click(within(row('EWM')).getByRole('button', { name: 'Ejecutar alta' }));
     expect(m.provision).toHaveBeenCalledWith('r-1');
     expect(within(row('EWM')).getByRole('alert')).toHaveTextContent('X');
+  });
+
+  it('«Ejecutar alta» se ve en la cola de tareas mientras corre y queda con su resultado y el enlace al tenant', async () => {
+    m.requests = [req('READY_TO_PROVISION')];
+    let finish!: (v: unknown) => void;
+    m.provision.mockReturnValue(new Promise((res) => (finish = res)));
+    render(
+      <MemoryRouter>
+        <TaskQueueProvider>
+          <AppProvisioningPanel tenants={[EWM]} />
+          <TaskQueuePanel />
+        </TaskQueueProvider>
+      </MemoryRouter>,
+    );
+    await userEvent.click(within(row('EWM')).getByRole('button', { name: 'Ejecutar alta' }));
+    const queue = screen.getByRole('region', { name: 'Tareas en curso' });
+    expect(queue).toHaveTextContent('Alta de Alpha EWM en EWM');
+    expect(queue).toHaveTextContent('En curso…');
+    await act(async () => finish({ status: 'ACTIVE', external_tenant_id: 'x-1' }));
+    expect(queue).toHaveTextContent('Alta activa en EWM');
+    expect(within(queue).getByRole('link', { name: 'Ver el tenant' })).toHaveAttribute('href', '/tenants/tn-1');
   });
 
   it('resultado por app: activo, pendiente con su porqué y falló con motivo', () => {

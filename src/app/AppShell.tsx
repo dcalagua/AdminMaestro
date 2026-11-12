@@ -22,6 +22,7 @@ import { LoadingState, type Crumb } from '@/components/ui/primitives';
 import { useCriticalBillingAlertCount } from '@/services/queries';
 import { PLATFORM_ROLE_LABEL, ORG_ROLE_LABEL } from '@/types/domain';
 import { env } from '@/lib/env';
+import { TaskQueuePanel, TaskQueueProvider } from '@/components/ui/TaskQueue';
 import { AccountMenu } from './AccountMenu';
 import { CommandPalette, type PaletteAccess } from './CommandPalette';
 
@@ -352,6 +353,7 @@ export function AppShell() {
   const railLabel = rail ? 'Expandir menú lateral' : 'Reducir menú lateral a iconos';
 
   return (
+    <TaskQueueProvider>
     <div className="flex min-h-screen bg-bg">
       <a
         href="#contenido"
@@ -513,6 +515,10 @@ export function AppShell() {
       {paletteOpen ? (
         <CommandPalette items={destinations} access={paletteAccess} onClose={() => setPaletteOpen(false)} />
       ) : null}
+
+      {/* Cola de tareas largas (V5 · F5): abajo a la izquierda del contenido; los avisos van a la derecha. */}
+      <TaskQueuePanel className={`left-3 ${rail ? 'lg:left-[92px]' : 'lg:left-[264px]'}`} />
     </div>
+    </TaskQueueProvider>
   );
 }
