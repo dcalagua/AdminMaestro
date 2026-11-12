@@ -71,7 +71,7 @@ export function ConfirmStep({ wizard }: { wizard: OnboardingWizard }) {
         dentro del producto: son dos decisiones distintas y la segunda
         tiene su propia política (manual, al activar la suscripción, o al
         confirmarse el pago), configurable por integración y por destino.
-        Provisionar al cotizar sería regalar el producto.
+        Dar el alta en la app al cotizar sería regalar el producto.
       */}
       <Card title="Qué NO hace este alta">
         <div className="px-5 py-4 text-body text-fg-2">
