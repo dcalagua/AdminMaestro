@@ -106,6 +106,7 @@ vi.mock('./Organization360', () => ({
   Org360Activity: () => <div>Bitácora de la organización</div>,
 }));
 vi.mock('./PaymentPortalPanel', () => ({ PaymentPortalPanel: () => <div>Portal de pago de la cuenta</div> }));
+vi.mock('./CustomerProgress', () => ({ CustomerProgress: () => <div>Hilo de progreso del cliente</div> }));
 vi.mock('./BillingContactPanel', () => ({ BillingContactPanel: () => <div>Datos del titular</div> }));
 vi.mock('@/features/partnerFees/PartnerFeeStatementsPanel', () => ({
   PartnerFeeStatementsPanel: () => <div>Estados de tarifa de plataforma</div>,
@@ -283,6 +284,7 @@ describe('permisos', () => {
 describe('suspender el servicio de la cuenta (V5 · F4)', () => {
   it('lista las apps afectadas, omite los tenants que no cambian y suspende uno a uno con el motivo', async () => {
     renderAt();
+    expect(screen.getByText('Hilo de progreso del cliente')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Más acciones de Qhapaq' }));
     await userEvent.click(screen.getByRole('menuitem', { name: 'Suspender el servicio' }));
     const dialog = screen.getByRole('dialog', { name: 'Suspender el servicio de Qhapaq' });

@@ -37,6 +37,7 @@ import { PartnerFeeStatementsPanel } from '@/features/partnerFees/PartnerFeeStat
 import type { FeeTerms } from '@/features/partnerFees/feeLabels';
 import { LifecycleDialog, type LifecycleMode, type LifecycleTarget } from '@/features/suite/LifecycleDialog';
 import { useOrgTenants } from './org360Queries';
+import { CustomerProgress } from './CustomerProgress';
 
 /**
  * Ficha 360 de la cuenta (P22 → V5 · F3).
@@ -200,6 +201,14 @@ export function OrganizationDetailPage() {
             label: 'Resumen',
             content: (
               <div className="space-y-4">
+                {capabilities.includes('CUSTOMER') ? (
+                  <CustomerProgress
+                    organizationId={o.id}
+                    organizationName={o.display_name}
+                    billingEmail={o.billing_email}
+                    showFinance={showFinance}
+                  />
+                ) : null}
                 {showFinance ? <Org360KpiStrip organizationId={o.id} /> : null}
                 <Org360Summary
                   organizationId={o.id}
