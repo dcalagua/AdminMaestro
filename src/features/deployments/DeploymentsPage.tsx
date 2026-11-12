@@ -492,54 +492,44 @@ function EnvironmentMatrix({
       title="Salud observada por producto y entorno"
       description="Última comprobación guardada; no es monitoreo en tiempo real. Sólo cuentan los destinos con provisioning habilitado."
     >
-      <div className="relative overflow-x-auto" role="region" aria-label="Matriz de producto y entorno" tabIndex={0}>
-        <table className="w-full border-collapse">
-          <thead className="border-b border-border bg-sunken">
-            <tr>
-              <th scope="col" className="ebim-th">Producto</th>
-              {environments.map((e) => (
-                <th key={e} scope="col" className="ebim-th">
-                  {PROVISIONING_ENVIRONMENT_LABEL[e]}
-                </th>
-              ))}
+      <DataTable
+        label="Matriz de producto y entorno"
+        scrollRegion
+        columns={['Producto', ...environments.map((e) => PROVISIONING_ENVIRONMENT_LABEL[e])]}
+      >
+        {products.map(([product, targets]) => {
+          const summaries = summarizeByEnvironment(targets);
+          return (
+            <tr key={product}>
+              {/* Producto y celdas alineados arriba: las celdas con salud ocupan tres líneas. */}
+              <th scope="row" className="ebim-td py-3 text-left align-top font-semibold">
+                {product}
+              </th>
+              {environments.map((e) => {
+                const s = summaries.find((x) => x.environment === e);
+                return (
+                  <td key={e} className="ebim-td py-3 align-top">
+                    {s ? (
+                      <div className="flex flex-col items-start gap-0.5 text-caption" data-health-cell={s.health}>
+                        <span className="inline-flex items-center gap-1.5 text-compact">
+                          <HealthDot health={s.health} />
+                          <HealthText health={s.health} />
+                        </span>
+                        {s.health === 'NOT_EVALUATED' ? null : <ObservationDate at={s.latestCheckedAt} />}
+                        <span className="text-muted">
+                          {s.evaluated} de {s.total} habilitado{s.total === 1 ? '' : 's'}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-caption text-muted">Sin destino</span>
+                    )}
+                  </td>
+                );
+              })}
             </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {products.map(([product, targets]) => {
-              const summaries = summarizeByEnvironment(targets);
-              return (
-                <tr key={product}>
-                  {/* Producto y celdas alineados arriba: las celdas con salud ocupan tres líneas. */}
-                  <th scope="row" className="ebim-td py-3 text-left align-top font-semibold">
-                    {product}
-                  </th>
-                  {environments.map((e) => {
-                    const s = summaries.find((x) => x.environment === e);
-                    return (
-                      <td key={e} className="ebim-td py-3 align-top">
-                        {s ? (
-                          <div className="flex flex-col items-start gap-0.5 text-caption" data-health-cell={s.health}>
-                            <span className="inline-flex items-center gap-1.5 text-compact">
-                              <HealthDot health={s.health} />
-                              <HealthText health={s.health} />
-                            </span>
-                            {s.health === 'NOT_EVALUATED' ? null : <ObservationDate at={s.latestCheckedAt} />}
-                            <span className="text-muted">
-                              {s.evaluated} de {s.total} habilitado{s.total === 1 ? '' : 's'}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-caption text-muted">Sin destino</span>
-                        )}
-                      </td>
-                    );
-                  })}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+          );
+        })}
+      </DataTable>
     </Card>
   );
 }

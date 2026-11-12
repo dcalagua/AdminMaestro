@@ -8,7 +8,7 @@ import {
 } from '@/services/queries';
 import { fromQuery } from '@/features/executive/dataState';
 import { StateMessage } from '@/features/executive/components/StateView';
-import { Badge, KpiTile } from '@/components/ui/primitives';
+import { Badge, DataTable, KpiTile } from '@/components/ui/primitives';
 import { formatDateTime, formatNumber } from '@/lib/format';
 
 /**
@@ -37,7 +37,7 @@ function healthCell(t: Target) {
     return (
       <span className="inline-flex flex-col">
         <span className="inline-flex items-center gap-1 font-semibold text-ok"><CheckCircleIcon size={14} aria-hidden /> Respondió sano</span>
-        <span className="text-[11px] text-muted">{observed}</span>
+        <span className="text-caption text-muted">{observed}</span>
       </span>
     );
   }
@@ -45,14 +45,14 @@ function healthCell(t: Target) {
     return (
       <span className="inline-flex flex-col">
         <span className="inline-flex items-center gap-1 font-semibold text-danger"><WarningCircleIcon size={14} aria-hidden /> {t.health_status === 'DEGRADED' ? 'Degradado' : 'No respondió'}</span>
-        <span className="text-[11px] text-muted">{observed}</span>
+        <span className="text-caption text-muted">{observed}</span>
       </span>
     );
   }
   return (
     <span className="inline-flex flex-col">
       <span className="inline-flex items-center gap-1 text-muted"><QuestionIcon size={14} aria-hidden /> Sin dato de salud</span>
-      <span className="text-[11px] text-muted">{observed}</span>
+      <span className="text-caption text-muted">{observed}</span>
     </span>
   );
 }
@@ -94,92 +94,90 @@ export function OperationsPerspective() {
         {productState.status !== 'ready' ? (
           <div className="px-4"><StateMessage state={productState} onRetry={() => void products.refetch()} /></div>
         ) : (
-          <div className="relative overflow-x-auto" role="region" aria-label="Matriz por producto y entorno" tabIndex={0}>
-            <table className="w-full min-w-[860px] border-collapse text-body">
-              <thead className="border-b border-border bg-[color:var(--bg)]">
-                <tr>
-                  <th scope="col" className="ebim-th">Producto</th>
-                  <th scope="col" className="ebim-th">Catálogo</th>
-                  <th scope="col" className="ebim-th">Destino · entorno</th>
-                  <th scope="col" className="ebim-th">Integración</th>
-                  <th scope="col" className="ebim-th">Salud (última observación)</th>
-                  <th scope="col" className="ebim-th">Altas SaaS</th>
-                  <th scope="col" className="ebim-th">Certificación</th>
+          <DataTable
+            label="Matriz por producto y entorno"
+            minWidth={860}
+            scrollRegion
+            columns={[
+              'Producto',
+              'Catálogo',
+              'Destino · entorno',
+              'Integración',
+              'Salud (última observación)',
+              'Altas SaaS',
+              'Certificación',
+            ]}
+          >
+            {products.data!.map((p) => {
+              const pts = (targets.data ?? []).filter((t) => t.saas_product_id === p.id);
+              const reqs = (saas.data ?? []).filter((r) => r.saas_product_id === p.id);
+              const byStatus: Record<string, number> = {};
+              for (const r of reqs) byStatus[r.status ?? '—'] = (byStatus[r.status ?? '—'] ?? 0) + 1;
+              const mappings = reqs.filter((r) => r.mapping_status === 'ACTIVE').length;
+              const rows = pts.length ? pts : [null];
+              return rows.map((t, i) => (
+                <tr key={`${p.id}-${t?.deployment_target_id ?? 'none'}`}>
+                  {i === 0 ? (
+                    <>
+                      <th scope="row" rowSpan={rows.length} className="ebim-td text-left align-top">
+                        <Link className="ebim-link" to={`/products/${p.id}`}>{p.short_name}</Link>
+                      </th>
+                      <td rowSpan={rows.length} className="ebim-td align-top">
+                        <Badge tone={p.status === 'ACTIVE' ? 'accent' : 'neutral'}>{p.status === 'ACTIVE' ? 'Activo en catálogo' : p.status}</Badge>
+                      </td>
+                    </>
+                  ) : null}
+                  <td className="ebim-td">
+                    {t ? (
+                      <span className="flex flex-col">
+                        <span className="font-mono text-caption">{t.code}</span>
+                        <span className="text-caption text-muted">
+                          {t.provisioning_environment ?? 'Sin entorno'} · {t.provisioning_enabled ? 'habilitado' : 'deshabilitado'} · {t.provisioning_status}
+                        </span>
+                      </span>
+                    ) : targetState.status === 'ready' ? (
+                      <span className="text-muted">Sin destinos registrados</span>
+                    ) : (
+                      <StateMessage state={targetState} compact />
+                    )}
+                  </td>
+                  <td className="ebim-td">
+                    {t?.integration_code ? (
+                      <span className="flex flex-col">
+                        <span className="text-caption font-semibold">{t.integration_code}</span>
+                        <span className="text-caption text-muted">{t.integration_status ?? '—'} · {t.integration_enabled ? 'activa' : 'inactiva'}</span>
+                      </span>
+                    ) : (
+                      <span className="text-muted">Sin integración</span>
+                    )}
+                  </td>
+                  <td className="ebim-td">{t ? healthCell(t) : '—'}</td>
+                  {i === 0 ? (
+                    <>
+                      <td rowSpan={rows.length} className="ebim-td align-top text-caption">
+                        {saasState.status !== 'ready' ? (
+                          <StateMessage state={saasState} compact />
+                        ) : reqs.length === 0 ? (
+                          <span className="text-muted">Sin solicitudes</span>
+                        ) : (
+                          <span className="flex flex-col gap-0.5">
+                            {Object.entries(byStatus).map(([s, n]) => (
+                              <span key={s}>{s}: <strong className="tabular-nums">{n}</strong></span>
+                            ))}
+                            <span className="text-muted">Mappings activos: {mappings}</span>
+                            <Link className="ebim-link" to="/saas-provisioning">Ver altas</Link>
+                          </span>
+                        )}
+                      </td>
+                      <td rowSpan={rows.length} className="ebim-td align-top text-caption text-muted">
+                        Sin fuente verificable en el control plane
+                      </td>
+                    </>
+                  ) : null}
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {products.data!.map((p) => {
-                  const pts = (targets.data ?? []).filter((t) => t.saas_product_id === p.id);
-                  const reqs = (saas.data ?? []).filter((r) => r.saas_product_id === p.id);
-                  const byStatus: Record<string, number> = {};
-                  for (const r of reqs) byStatus[r.status ?? '—'] = (byStatus[r.status ?? '—'] ?? 0) + 1;
-                  const mappings = reqs.filter((r) => r.mapping_status === 'ACTIVE').length;
-                  const rows = pts.length ? pts : [null];
-                  return rows.map((t, i) => (
-                    <tr key={`${p.id}-${t?.deployment_target_id ?? 'none'}`}>
-                      {i === 0 ? (
-                        <>
-                          <th scope="row" rowSpan={rows.length} className="ebim-td text-left align-top">
-                            <Link className="ebim-link" to={`/products/${p.id}`}>{p.short_name}</Link>
-                          </th>
-                          <td rowSpan={rows.length} className="ebim-td align-top">
-                            <Badge tone={p.status === 'ACTIVE' ? 'accent' : 'neutral'}>{p.status === 'ACTIVE' ? 'Activo en catálogo' : p.status}</Badge>
-                          </td>
-                        </>
-                      ) : null}
-                      <td className="ebim-td">
-                        {t ? (
-                          <span className="flex flex-col">
-                            <span className="font-mono text-caption">{t.code}</span>
-                            <span className="text-[11px] text-muted">
-                              {t.provisioning_environment ?? 'Sin entorno'} · {t.provisioning_enabled ? 'habilitado' : 'deshabilitado'} · {t.provisioning_status}
-                            </span>
-                          </span>
-                        ) : targetState.status === 'ready' ? (
-                          <span className="text-muted">Sin destinos registrados</span>
-                        ) : (
-                          <StateMessage state={targetState} compact />
-                        )}
-                      </td>
-                      <td className="ebim-td">
-                        {t?.integration_code ? (
-                          <span className="flex flex-col">
-                            <span className="text-caption font-semibold">{t.integration_code}</span>
-                            <span className="text-[11px] text-muted">{t.integration_status ?? '—'} · {t.integration_enabled ? 'activa' : 'inactiva'}</span>
-                          </span>
-                        ) : (
-                          <span className="text-muted">Sin integración</span>
-                        )}
-                      </td>
-                      <td className="ebim-td">{t ? healthCell(t) : '—'}</td>
-                      {i === 0 ? (
-                        <>
-                          <td rowSpan={rows.length} className="ebim-td align-top text-caption">
-                            {saasState.status !== 'ready' ? (
-                              <StateMessage state={saasState} compact />
-                            ) : reqs.length === 0 ? (
-                              <span className="text-muted">Sin solicitudes</span>
-                            ) : (
-                              <span className="flex flex-col gap-0.5">
-                                {Object.entries(byStatus).map(([s, n]) => (
-                                  <span key={s}>{s}: <strong className="tabular-nums">{n}</strong></span>
-                                ))}
-                                <span className="text-muted">Mappings activos: {mappings}</span>
-                                <Link className="ebim-link" to="/saas-provisioning">Ver altas</Link>
-                              </span>
-                            )}
-                          </td>
-                          <td rowSpan={rows.length} className="ebim-td align-top text-caption text-muted">
-                            Sin fuente verificable en el control plane
-                          </td>
-                        </>
-                      ) : null}
-                    </tr>
-                  ));
-                })}
-              </tbody>
-            </table>
-          </div>
+              ));
+            })}
+          </DataTable>
         )}
       </section>
     </div>

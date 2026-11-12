@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useListState } from '@/hooks/useListState';
-import { PageContainer, Card, SearchBar, EmptyState, ErrorState, LoadingState } from '@/components/ui/primitives';
+import { PageContainer, Card, SearchBar, EmptyState, ErrorState, LoadingState, DataTable } from '@/components/ui/primitives';
 import { TablePager } from '@/components/ui/PagedTable';
 import { ExportMenu } from '@/components/ui/ExportMenu';
 import type { ExportColumn } from '@/lib/export';
@@ -156,32 +156,18 @@ export function AuditDetail({
           {diff.length === 0 ? (
             <p className="text-body text-muted">Sin diferencias entre los dos estados registrados.</p>
           ) : (
-            <div
-              className="relative overflow-x-auto rounded-field border border-border bg-card"
-              role="region"
-              aria-label="Diferencias"
-              tabIndex={0}
-            >
-              <table className="w-full border-collapse" aria-label="Diferencias antes y después">
-                <thead className="border-b border-border bg-sunken">
-                  <tr>
-                    <th scope="col" className="ebim-th">Campo</th>
-                    <th scope="col" className="ebim-th">Antes</th>
-                    <th scope="col" className="ebim-th">Después</th>
+            <div className="overflow-hidden rounded-field border border-border bg-card">
+              <DataTable label="Diferencias antes y después" columns={['Campo', 'Antes', 'Después']} scrollRegion>
+                {diff.map((d) => (
+                  <tr key={d.field}>
+                    <td className="ebim-td font-mono text-caption">{d.field}</td>
+                    <td className="ebim-td break-all font-mono text-caption text-muted line-through">
+                      {d.before}
+                    </td>
+                    <td className="ebim-td break-all font-mono text-caption font-semibold">{d.after}</td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {diff.map((d) => (
-                    <tr key={d.field}>
-                      <td className="ebim-td font-mono text-caption">{d.field}</td>
-                      <td className="ebim-td break-all font-mono text-caption text-muted line-through">
-                        {d.before}
-                      </td>
-                      <td className="ebim-td break-all font-mono text-caption font-semibold">{d.after}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                ))}
+              </DataTable>
             </div>
           )}
         </div>

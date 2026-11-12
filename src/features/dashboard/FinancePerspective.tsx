@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useExecutiveAging, useFinanceConsolidated } from '@/services/queries';
-import { KpiTile } from '@/components/ui/primitives';
+import { KpiTile, DataTable } from '@/components/ui/primitives';
 import { agingSummary } from './executiveModel';
 import { useReceivablesAging } from '@/services/financeRead';
 import { fromQuery } from '@/features/executive/dataState';
@@ -71,35 +71,32 @@ function AgingChart({ onSelect }: { onSelect: (bucket: string) => void }) {
         <SingleBars data={data} currency={currency} ariaLabel={`Saldo por antigüedad en ${currency}`} onSelect={(d) => onSelect(d.key)} />
       )}
       table={() => (
-        <table className="w-full text-body">
-          <caption className="sr-only">Saldo por antigüedad</caption>
-          <thead>
-            <tr>
-              <th scope="col" className="ebim-th">Antigüedad</th>
-              <th scope="col" className="ebim-th">Moneda</th>
-              <th scope="col" className="ebim-th text-right">Facturas</th>
-              <th scope="col" className="ebim-th text-right">Saldo</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {AGING_BUCKETS.flatMap((b) =>
-              rows
-                .filter((r) => r.aging_bucket === b.id)
-                .map((r) => (
-                  <tr key={`${b.id}-${r.currency}`}>
-                    <th scope="row" className="ebim-td text-left">
-                      <Link className="ebim-link" to={`/billing?estado=OPEN&antiguedad=${b.id}`}>{b.label}</Link>
-                    </th>
-                    <td className="ebim-td">{r.currency}</td>
-                    <td className="ebim-td text-right tabular-nums">{formatNumber(Number(r.invoice_count))}</td>
-                    <td className={`ebim-td text-right tabular-nums ${Number(r.balance) < 0 ? 'text-danger' : ''}`}>
-                      {formatMoney(Number(r.balance), r.currency)}
-                    </td>
-                  </tr>
-                )),
-            )}
-          </tbody>
-        </table>
+        <DataTable
+          caption="Saldo por antigüedad"
+          columns={[
+            'Antigüedad',
+            'Moneda',
+            { label: 'Facturas', align: 'right' },
+            { label: 'Saldo', align: 'right' },
+          ]}
+        >
+          {AGING_BUCKETS.flatMap((b) =>
+            rows
+              .filter((r) => r.aging_bucket === b.id)
+              .map((r) => (
+                <tr key={`${b.id}-${r.currency}`}>
+                  <th scope="row" className="ebim-td text-left">
+                    <Link className="ebim-link" to={`/billing?estado=OPEN&antiguedad=${b.id}`}>{b.label}</Link>
+                  </th>
+                  <td className="ebim-td">{r.currency}</td>
+                  <td className="ebim-td text-right tabular-nums">{formatNumber(Number(r.invoice_count))}</td>
+                  <td className={`ebim-td text-right tabular-nums ${Number(r.balance) < 0 ? 'text-danger' : ''}`}>
+                    {formatMoney(Number(r.balance), r.currency)}
+                  </td>
+                </tr>
+              )),
+          )}
+        </DataTable>
       )}
     />
   );
@@ -155,41 +152,38 @@ function ComponentsChart({
         )
       }
       table={() => (
-        <table className="w-full text-body">
-          <caption className="sr-only">Componentes del margen por SaaS</caption>
-          <thead>
-            <tr>
-              <th scope="col" className="ebim-th">SaaS</th>
-              <th scope="col" className="ebim-th">Moneda</th>
-              <th scope="col" className="ebim-th text-right">Cobrado</th>
-              <th scope="col" className="ebim-th text-right">Costo directo</th>
-              <th scope="col" className="ebim-th text-right">Comisión</th>
-              <th scope="col" className="ebim-th text-right">Margen gerencial</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {groups.flatMap((g) =>
-              Object.entries(g.native_margin ?? {}).map(([c, margin]) => (
-                <tr key={`${g.key}-${c}`}>
-                  <th scope="row" className="ebim-td text-left">
-                    {g.key === 'SIN_PRODUCTO' ? (
-                      'No asignado / plataforma'
-                    ) : (
-                      <Link className="ebim-link" to={`/products/${g.key}`}>{g.label}</Link>
-                    )}
-                  </th>
-                  <td className="ebim-td">{c}</td>
-                  <td className="ebim-td text-right tabular-nums">{formatMoney(Number(g.metrics.COLLECTED?.native?.[c] ?? 0), c)}</td>
-                  <td className="ebim-td text-right tabular-nums">{formatMoney(Number(g.metrics.COST?.native?.[c] ?? 0), c)}</td>
-                  <td className="ebim-td text-right tabular-nums">{formatMoney(Number(g.metrics.COMMISSION?.native?.[c] ?? 0), c)}</td>
-                  <td className={`ebim-td text-right font-semibold tabular-nums ${Number(margin) < 0 ? 'text-danger' : ''}`}>
-                    {formatMoney(Number(margin), c)}
-                  </td>
-                </tr>
-              )),
-            )}
-          </tbody>
-        </table>
+        <DataTable
+          caption="Componentes del margen por SaaS"
+          columns={[
+            'SaaS',
+            'Moneda',
+            { label: 'Cobrado', align: 'right' },
+            { label: 'Costo directo', align: 'right' },
+            { label: 'Comisión', align: 'right' },
+            { label: 'Margen gerencial', align: 'right' },
+          ]}
+        >
+          {groups.flatMap((g) =>
+            Object.entries(g.native_margin ?? {}).map(([c, margin]) => (
+              <tr key={`${g.key}-${c}`}>
+                <th scope="row" className="ebim-td text-left">
+                  {g.key === 'SIN_PRODUCTO' ? (
+                    'No asignado / plataforma'
+                  ) : (
+                    <Link className="ebim-link" to={`/products/${g.key}`}>{g.label}</Link>
+                  )}
+                </th>
+                <td className="ebim-td">{c}</td>
+                <td className="ebim-td text-right tabular-nums">{formatMoney(Number(g.metrics.COLLECTED?.native?.[c] ?? 0), c)}</td>
+                <td className="ebim-td text-right tabular-nums">{formatMoney(Number(g.metrics.COST?.native?.[c] ?? 0), c)}</td>
+                <td className="ebim-td text-right tabular-nums">{formatMoney(Number(g.metrics.COMMISSION?.native?.[c] ?? 0), c)}</td>
+                <td className={`ebim-td text-right font-semibold tabular-nums ${Number(margin) < 0 ? 'text-danger' : ''}`}>
+                  {formatMoney(Number(margin), c)}
+                </td>
+              </tr>
+            )),
+          )}
+        </DataTable>
       )}
     />
   );
@@ -234,34 +228,31 @@ function PartnerChart({
         <SingleBars data={data} currency={currency} layout="horizontal-bars" ariaLabel={`Cobrado por canal en ${currency}`} onSelect={(d) => onSelect(d.key)} />
       )}
       table={() => (
-        <table className="w-full text-body">
-          <caption className="sr-only">Cartera y contribución por partner</caption>
-          <thead>
-            <tr>
-              <th scope="col" className="ebim-th">Canal</th>
-              <th scope="col" className="ebim-th">Moneda</th>
-              <th scope="col" className="ebim-th text-right">MRR vigente</th>
-              <th scope="col" className="ebim-th text-right">Cobrado</th>
-              <th scope="col" className="ebim-th text-right">Margen gerencial</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {groups.flatMap((g) => {
-              const cs = [...new Set([...Object.keys(g.metrics.MRR?.native ?? {}), ...Object.keys(g.native_margin ?? {})])].sort();
-              return cs.map((c) => (
-                <tr key={`${g.key}-${c}`}>
-                  <th scope="row" className="ebim-td text-left">
-                    {g.key === 'DIRECTO' ? 'Venta directa' : <Link className="ebim-link" to={`/organizations/${g.key}`}>{g.label}</Link>}
-                  </th>
-                  <td className="ebim-td">{c}</td>
-                  <td className="ebim-td text-right tabular-nums">{g.metrics.MRR?.native?.[c] !== undefined ? formatMoney(Number(g.metrics.MRR.native[c]), c) : '—'}</td>
-                  <td className="ebim-td text-right tabular-nums">{g.metrics.COLLECTED?.native?.[c] !== undefined ? formatMoney(Number(g.metrics.COLLECTED.native[c]), c) : '—'}</td>
-                  <td className="ebim-td text-right tabular-nums">{g.native_margin?.[c] !== undefined ? formatMoney(Number(g.native_margin[c]), c) : '—'}</td>
-                </tr>
-              ));
-            })}
-          </tbody>
-        </table>
+        <DataTable
+          caption="Cartera y contribución por partner"
+          columns={[
+            'Canal',
+            'Moneda',
+            { label: 'MRR vigente', align: 'right' },
+            { label: 'Cobrado', align: 'right' },
+            { label: 'Margen gerencial', align: 'right' },
+          ]}
+        >
+          {groups.flatMap((g) => {
+            const cs = [...new Set([...Object.keys(g.metrics.MRR?.native ?? {}), ...Object.keys(g.native_margin ?? {})])].sort();
+            return cs.map((c) => (
+              <tr key={`${g.key}-${c}`}>
+                <th scope="row" className="ebim-td text-left">
+                  {g.key === 'DIRECTO' ? 'Venta directa' : <Link className="ebim-link" to={`/organizations/${g.key}`}>{g.label}</Link>}
+                </th>
+                <td className="ebim-td">{c}</td>
+                <td className="ebim-td text-right tabular-nums">{g.metrics.MRR?.native?.[c] !== undefined ? formatMoney(Number(g.metrics.MRR.native[c]), c) : '—'}</td>
+                <td className="ebim-td text-right tabular-nums">{g.metrics.COLLECTED?.native?.[c] !== undefined ? formatMoney(Number(g.metrics.COLLECTED.native[c]), c) : '—'}</td>
+                <td className="ebim-td text-right tabular-nums">{g.native_margin?.[c] !== undefined ? formatMoney(Number(g.native_margin[c]), c) : '—'}</td>
+              </tr>
+            ));
+          })}
+        </DataTable>
       )}
     />
   );

@@ -34,4 +34,10 @@ describe('consistencia del sistema de diseño (V5 · F0)', () => {
   it('no usa los tamaños de Tailwind fuera de la escala de tokens', () => {
     expect(offenders(/(^|[^\w-])text-(xs|sm|base|lg|xl|[2-9]xl)(?![\w-])/)).toEqual([]);
   });
+
+  it('no pinta <table> sueltas: usa DataTable o PagedTable', () => {
+    expect(
+      offenders(/<table[\s>]/, ['src/components/ui/primitives.tsx', 'src/components/ui/PagedTable.tsx']),
+    ).toEqual([]);
+  });
 });

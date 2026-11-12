@@ -11,7 +11,7 @@ import {
   type ExecutiveMrrBridge,
   type ExecutiveMrrPoint,
 } from '@/services/queries';
-import { KpiTile } from '@/components/ui/primitives';
+import { KpiTile, DataTable } from '@/components/ui/primitives';
 import { fromQuery, type DataState } from '@/features/executive/dataState';
 import { ChartLegend, ChartPanel, CurrencyPicker } from '@/features/executive/components/ChartPanel';
 import { StateMessage } from '@/features/executive/components/StateView';
@@ -518,34 +518,31 @@ function MrrEvolutionPanel({
         />
       )}
       table={() => (
-        <table className="w-full text-compact">
-          <caption className="sr-only">MRR por mes</caption>
-          <thead>
-            <tr>
-              <th scope="col" className="ebim-th">Mes</th>
-              <th scope="col" className="ebim-th text-right">MRR ({currency})</th>
-              <th scope="col" className="ebim-th text-right">ARR ({currency})</th>
-              <th scope="col" className="ebim-th text-right">Clientes</th>
-              <th scope="col" className="ebim-th text-right">Contratos</th>
+        <DataTable
+          caption="MRR por mes"
+          columns={[
+            'Mes',
+            { label: `MRR (${currency})`, align: 'right' },
+            { label: `ARR (${currency})`, align: 'right' },
+            { label: 'Clientes', align: 'right' },
+            { label: 'Contratos', align: 'right' },
+          ]}
+        >
+          {[...points].reverse().map((p) => (
+            <tr key={p.month}>
+              <th scope="row" className="ebim-td text-left font-medium">
+                <button type="button" className="ebim-link" onClick={() => onSelect(p.month.slice(0, 7))}>
+                  {monthShortLabel(p.month.slice(0, 7))}
+                </button>
+                {p.isPartial ? <span className="ml-1 text-caption text-muted">(parcial)</span> : null}
+              </th>
+              <td className="ebim-td text-right tabular-nums">{p.mrr == null ? 'Sin tasa' : formatMoney(p.mrr, currency)}</td>
+              <td className="ebim-td text-right tabular-nums">{p.arr == null ? 'Sin tasa' : formatMoney(p.arr, currency)}</td>
+              <td className="ebim-td text-right tabular-nums">{formatNumber(p.activeCustomers)}</td>
+              <td className="ebim-td text-right tabular-nums">{formatNumber(p.activeSubscriptions)}</td>
             </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {[...points].reverse().map((p) => (
-              <tr key={p.month}>
-                <th scope="row" className="ebim-td text-left font-medium">
-                  <button type="button" className="ebim-link" onClick={() => onSelect(p.month.slice(0, 7))}>
-                    {monthShortLabel(p.month.slice(0, 7))}
-                  </button>
-                  {p.isPartial ? <span className="ml-1 text-caption text-muted">(parcial)</span> : null}
-                </th>
-                <td className="ebim-td text-right tabular-nums">{p.mrr == null ? 'Sin tasa' : formatMoney(p.mrr, currency)}</td>
-                <td className="ebim-td text-right tabular-nums">{p.arr == null ? 'Sin tasa' : formatMoney(p.arr, currency)}</td>
-                <td className="ebim-td text-right tabular-nums">{formatNumber(p.activeCustomers)}</td>
-                <td className="ebim-td text-right tabular-nums">{formatNumber(p.activeSubscriptions)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          ))}
+        </DataTable>
       )}
     />
   );
@@ -642,36 +639,33 @@ function BridgePanel({
       }
       table={() =>
         steps ? (
-          <table className="w-full text-compact">
-            <caption className="sr-only">Puente de MRR</caption>
-            <thead>
-              <tr>
-                <th scope="col" className="ebim-th">Paso</th>
-                <th scope="col" className="ebim-th text-right">Importe ({currency})</th>
-                <th scope="col" className="ebim-th text-right">Clientes</th>
+          <DataTable
+            caption="Puente de MRR"
+            columns={[
+              'Paso',
+              { label: `Importe (${currency})`, align: 'right' },
+              { label: 'Clientes', align: 'right' },
+            ]}
+          >
+            {steps.map((s) => (
+              <tr key={s.key}>
+                <th scope="row" className="ebim-td text-left">
+                  {s.movement && (s.customers ?? 0) > 0 ? (
+                    <button type="button" className="ebim-link" onClick={() => pick(s)}>
+                      {s.label}
+                    </button>
+                  ) : (
+                    s.label
+                  )}
+                </th>
+                <td className="ebim-td text-right tabular-nums">
+                  {s.kind === 'neg' ? '−' : s.kind === 'pos' ? '+' : ''}
+                  {formatMoney(s.value, currency)}
+                </td>
+                <td className="ebim-td text-right tabular-nums">{s.customers === undefined ? '—' : formatNumber(s.customers)}</td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {steps.map((s) => (
-                <tr key={s.key}>
-                  <th scope="row" className="ebim-td text-left">
-                    {s.movement && (s.customers ?? 0) > 0 ? (
-                      <button type="button" className="ebim-link" onClick={() => pick(s)}>
-                        {s.label}
-                      </button>
-                    ) : (
-                      s.label
-                    )}
-                  </th>
-                  <td className="ebim-td text-right tabular-nums">
-                    {s.kind === 'neg' ? '−' : s.kind === 'pos' ? '+' : ''}
-                    {formatMoney(s.value, currency)}
-                  </td>
-                  <td className="ebim-td text-right tabular-nums">{s.customers === undefined ? '—' : formatNumber(s.customers)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            ))}
+          </DataTable>
         ) : null
       }
     />
@@ -789,34 +783,31 @@ function BilledCollectedPanel({
         />
       )}
       table={() => (
-        <table className="w-full text-compact">
-          <caption className="sr-only">Facturado vs cobrado por mes</caption>
-          <thead>
-            <tr>
-              <th scope="col" className="ebim-th">Mes</th>
-              <th scope="col" className="ebim-th text-right">Facturado ({currency})</th>
-              <th scope="col" className="ebim-th text-right">Cobrado ({currency})</th>
-              <th scope="col" className="ebim-th text-right">% cobrado</th>
-              <th scope="col" className="ebim-th text-right">Vencida al cierre</th>
+        <DataTable
+          caption="Facturado vs cobrado por mes"
+          columns={[
+            'Mes',
+            { label: `Facturado (${currency})`, align: 'right' },
+            { label: `Cobrado (${currency})`, align: 'right' },
+            { label: '% cobrado', align: 'right' },
+            { label: 'Vencida al cierre', align: 'right' },
+          ]}
+        >
+          {[...points].reverse().map((p) => (
+            <tr key={p.month}>
+              <th scope="row" className="ebim-td text-left font-medium">
+                <button type="button" className="ebim-link" onClick={() => onSelect(p.month.slice(0, 7))}>
+                  {monthShortLabel(p.month.slice(0, 7))}
+                </button>
+                {p.isPartial ? <span className="ml-1 text-caption text-muted">(parcial)</span> : null}
+              </th>
+              <td className="ebim-td text-right tabular-nums">{p.invoiced == null ? 'Sin tasa' : formatMoney(p.invoiced, currency)}</td>
+              <td className="ebim-td text-right tabular-nums">{p.collected == null ? 'Sin tasa' : formatMoney(p.collected, currency)}</td>
+              <td className="ebim-td text-right tabular-nums">{p.collectionRate == null ? '—' : formatPercent(p.collectionRate)}</td>
+              <td className="ebim-td text-right tabular-nums">{p.overdue == null ? 'Sin tasa' : formatMoney(p.overdue, currency)}</td>
             </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {[...points].reverse().map((p) => (
-              <tr key={p.month}>
-                <th scope="row" className="ebim-td text-left font-medium">
-                  <button type="button" className="ebim-link" onClick={() => onSelect(p.month.slice(0, 7))}>
-                    {monthShortLabel(p.month.slice(0, 7))}
-                  </button>
-                  {p.isPartial ? <span className="ml-1 text-caption text-muted">(parcial)</span> : null}
-                </th>
-                <td className="ebim-td text-right tabular-nums">{p.invoiced == null ? 'Sin tasa' : formatMoney(p.invoiced, currency)}</td>
-                <td className="ebim-td text-right tabular-nums">{p.collected == null ? 'Sin tasa' : formatMoney(p.collected, currency)}</td>
-                <td className="ebim-td text-right tabular-nums">{p.collectionRate == null ? '—' : formatPercent(p.collectionRate)}</td>
-                <td className="ebim-td text-right tabular-nums">{p.overdue == null ? 'Sin tasa' : formatMoney(p.overdue, currency)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          ))}
+        </DataTable>
       )}
     />
   );

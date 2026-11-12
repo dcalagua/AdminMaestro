@@ -24,7 +24,7 @@ import {
   type useExecutiveAging,
   type useExecutiveMrrMix,
 } from '@/services/queries';
-import { Skeleton } from '@/components/ui/primitives';
+import { Skeleton, DataTable } from '@/components/ui/primitives';
 import { fromQuery, type DataState } from '@/features/executive/dataState';
 import { ChartPanel } from '@/features/executive/components/ChartPanel';
 import { StateMessage } from '@/features/executive/components/StateView';
@@ -234,33 +234,30 @@ export function MixPanel({
         />
       )}
       table={() => (
-        <table className="w-full text-compact">
-          <caption className="sr-only">{copy.unit}</caption>
-          <thead>
-            <tr>
-              <th scope="col" className="ebim-th">{copy.column}</th>
-              <th scope="col" className="ebim-th text-right">MRR ({currency})</th>
-              <th scope="col" className="ebim-th text-right">%</th>
-              <th scope="col" className="ebim-th text-right">Clientes</th>
-              <th scope="col" className="ebim-th">Nativo</th>
+        <DataTable
+          caption={copy.unit}
+          columns={[
+            copy.column,
+            { label: `MRR (${currency})`, align: 'right' },
+            { label: '%', align: 'right' },
+            { label: 'Clientes', align: 'right' },
+            'Nativo',
+          ]}
+        >
+          {rows.map((r: ExecutiveMrrMixRow) => (
+            <tr key={r.key}>
+              <th scope="row" className="ebim-td text-left font-semibold">
+                <Link className="ebim-link" to={copy.href(r.key)}>{r.label}</Link>
+              </th>
+              <td className="ebim-td text-right tabular-nums">{r.mrr == null ? 'Sin tasa' : formatMoney(r.mrr, currency)}</td>
+              <td className="ebim-td text-right tabular-nums">{r.share == null ? '—' : formatPercent(r.share)}</td>
+              <td className="ebim-td text-right tabular-nums">{formatNumber(r.activeCustomers)}</td>
+              <td className="ebim-td text-caption text-muted">
+                {Object.entries(r.native).map(([c, v]) => `${c} ${formatCompactAmount(v)}`).join(' · ')}
+              </td>
             </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {rows.map((r: ExecutiveMrrMixRow) => (
-              <tr key={r.key}>
-                <th scope="row" className="ebim-td text-left font-semibold">
-                  <Link className="ebim-link" to={copy.href(r.key)}>{r.label}</Link>
-                </th>
-                <td className="ebim-td text-right tabular-nums">{r.mrr == null ? 'Sin tasa' : formatMoney(r.mrr, currency)}</td>
-                <td className="ebim-td text-right tabular-nums">{r.share == null ? '—' : formatPercent(r.share)}</td>
-                <td className="ebim-td text-right tabular-nums">{formatNumber(r.activeCustomers)}</td>
-                <td className="ebim-td text-caption text-muted">
-                  {Object.entries(r.native).map(([c, v]) => `${c} ${formatCompactAmount(v)}`).join(' · ')}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          ))}
+        </DataTable>
       )}
     />
   );
@@ -358,31 +355,28 @@ export function AgingPanel({
         ) : null
       }
       table={() => (
-        <table className="w-full text-compact">
-          <caption className="sr-only">Cartera por antigüedad</caption>
-          <thead>
-            <tr>
-              <th scope="col" className="ebim-th">Antigüedad</th>
-              <th scope="col" className="ebim-th text-right">Facturas</th>
-              <th scope="col" className="ebim-th text-right">Saldo ({currency})</th>
-              <th scope="col" className="ebim-th">Nativo</th>
+        <DataTable
+          caption="Cartera por antigüedad"
+          columns={[
+            'Antigüedad',
+            { label: 'Facturas', align: 'right' },
+            { label: `Saldo (${currency})`, align: 'right' },
+            'Nativo',
+          ]}
+        >
+          {(query.data?.buckets ?? []).map((b) => (
+            <tr key={b.bucket}>
+              <th scope="row" className="ebim-td text-left">
+                <Link className="ebim-link" to={link(b.bucket)}>{AGING_LABEL[b.bucket]}</Link>
+              </th>
+              <td className="ebim-td text-right tabular-nums">{formatNumber(b.invoiceCount)}</td>
+              <td className="ebim-td text-right tabular-nums">{b.balance == null ? 'Sin tasa' : formatMoney(b.balance, currency)}</td>
+              <td className="ebim-td text-caption text-muted">
+                {Object.entries(b.native).map(([c, v]) => formatMoney(v, c)).join(' · ') || '—'}
+              </td>
             </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {(query.data?.buckets ?? []).map((b) => (
-              <tr key={b.bucket}>
-                <th scope="row" className="ebim-td text-left">
-                  <Link className="ebim-link" to={link(b.bucket)}>{AGING_LABEL[b.bucket]}</Link>
-                </th>
-                <td className="ebim-td text-right tabular-nums">{formatNumber(b.invoiceCount)}</td>
-                <td className="ebim-td text-right tabular-nums">{b.balance == null ? 'Sin tasa' : formatMoney(b.balance, currency)}</td>
-                <td className="ebim-td text-caption text-muted">
-                  {Object.entries(b.native).map(([c, v]) => formatMoney(v, c)).join(' · ') || '—'}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          ))}
+        </DataTable>
       )}
     />
   );

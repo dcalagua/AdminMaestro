@@ -657,24 +657,41 @@ export type DataColumn = string | { label: string; align?: 'left' | 'right'; srO
  * scroll), filas con hairline y hover `--hover`. Las columnas pueden ser texto
  * o `{ label, align: 'right' }` para importes (la celda usa `ebim-num`).
  * Con `maxHeight` el cuerpo hace scroll y la cabecera queda fija.
+ *
+ * V5 · F0: también cubre las vistas «Tabla» de los gráficos y las matrices
+ * (antes `<table>` sueltas): `caption` para lectores de pantalla, `minWidth`
+ * para matrices anchas y `scrollRegion` para que el scroll horizontal sea una
+ * región enfocable con teclado. Las filas pueden abrir con `<th scope="row">`.
  */
 export function DataTable({
   columns,
   children,
   label,
+  caption,
   maxHeight,
+  minWidth,
+  scrollRegion = false,
 }: {
   columns: DataColumn[];
   children: ReactNode;
   /** Nombre accesible de la tabla. */
   label?: string;
+  /** Título de la tabla solo para lectores de pantalla (`<caption>`). */
+  caption?: string;
   maxHeight?: number;
+  /** Ancho mínimo en px: por debajo, la tabla hace scroll horizontal. */
+  minWidth?: number;
+  /** El área de scroll es una región enfocable (teclado) con el nombre de la tabla. */
+  scrollRegion?: boolean;
 }) {
+  const style: CSSProperties | undefined = maxHeight ? { maxHeight, overflowY: 'auto' } : undefined;
+  const region = scrollRegion ? { role: 'region', 'aria-label': label ?? caption, tabIndex: 0 } : {};
   return (
     // `relative`: el scroll horizontal también recorta a los descendientes
     // posicionados (p. ej. etiquetas sr-only); sin él ensanchan la página.
-    <div className="relative overflow-x-auto" style={maxHeight ? { maxHeight, overflowY: 'auto' } : undefined}>
-      <table className="w-full border-collapse" aria-label={label}>
+    <div className="relative overflow-x-auto" style={style} {...region}>
+      <table className="w-full border-collapse" aria-label={label} style={minWidth ? { minWidth } : undefined}>
+        {caption ? <caption className="sr-only">{caption}</caption> : null}
         <thead className="sticky top-0 z-[1] border-b border-border bg-sunken">
           <tr>
             {columns.map((c, i) => {

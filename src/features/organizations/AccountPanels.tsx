@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { KpiTile } from '@/components/ui/primitives';
+import { KpiTile, DataTable } from '@/components/ui/primitives';
 import { ChartLegend, ChartPanel } from '@/features/executive/components/ChartPanel';
 import { fromQuery } from '@/features/executive/dataState';
 import { PeriodArea, PeriodBars } from '@/features/billing/lazyFinanceCharts';
@@ -189,35 +189,23 @@ function SeriesTable({
   columns: Array<{ key: 'mrr' | 'invoiced' | 'collected'; label: string }>;
 }) {
   return (
-    <table className="w-full text-compact">
-      <caption className="sr-only">{caption}</caption>
-      <thead>
-        <tr>
-          <th scope="col" className="ebim-th">
-            Mes
+    <DataTable
+      caption={caption}
+      columns={['Mes', ...columns.map((c) => ({ label: `${c.label} (${view.currency})`, align: 'right' as const }))]}
+    >
+      {[...view.points].reverse().map((p) => (
+        <tr key={p.month}>
+          <th scope="row" className="ebim-td text-left font-medium">
+            {p.title}
+            {p.partial ? <span className="ml-1 text-muted">(a hoy)</span> : null}
           </th>
           {columns.map((c) => (
-            <th key={c.key} scope="col" className="ebim-th text-right">
-              {c.label} ({view.currency})
-            </th>
+            <td key={c.key} className="ebim-td ebim-num">
+              {p[c.key] == null ? 'Sin tasa' : formatMoney(p[c.key]!, view.currency)}
+            </td>
           ))}
         </tr>
-      </thead>
-      <tbody className="divide-y divide-border">
-        {[...view.points].reverse().map((p) => (
-          <tr key={p.month}>
-            <th scope="row" className="ebim-td text-left font-medium">
-              {p.title}
-              {p.partial ? <span className="ml-1 text-muted">(a hoy)</span> : null}
-            </th>
-            {columns.map((c) => (
-              <td key={c.key} className="ebim-td ebim-num">
-                {p[c.key] == null ? 'Sin tasa' : formatMoney(p[c.key]!, view.currency)}
-              </td>
-            ))}
-          </tr>
-        ))}
-      </tbody>
-    </table>
+      ))}
+    </DataTable>
   );
 }

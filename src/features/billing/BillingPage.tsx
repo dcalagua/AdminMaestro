@@ -17,7 +17,7 @@ import {
 import { useExecutiveBillingSeries, useWeeklyCollections, type WeeklyCollectionPoint } from '@/services/queries';
 import { useListState } from '@/hooks/useListState';
 import { SectionTabs, StatusTabs } from '@/components/ui/SectionTabs';
-import { PageContainer, Card, SearchBar, Badge, KpiTile } from '@/components/ui/primitives';
+import { PageContainer, Card, SearchBar, Badge, KpiTile, DataTable } from '@/components/ui/primitives';
 import { PagedTable, type TableColumn } from '@/components/ui/PagedTable';
 import { ExportMenu } from '@/components/ui/ExportMenu';
 import type { ExportColumn } from '@/lib/export';
@@ -253,28 +253,25 @@ function WeeklyCollectionsPanel() {
         />
       )}
       table={() => (
-        <table className="w-full text-compact">
-          <caption className="sr-only">Cobrado por semana</caption>
-          <thead>
-            <tr>
-              <th scope="col" className="ebim-th">Semana</th>
-              <th scope="col" className="ebim-th text-right">Cobrado ({rc})</th>
-              <th scope="col" className="ebim-th text-right">Pagos</th>
+        <DataTable
+          caption="Cobrado por semana"
+          columns={[
+            'Semana',
+            { label: `Cobrado (${rc})`, align: 'right' },
+            { label: 'Pagos', align: 'right' },
+          ]}
+        >
+          {[...points].reverse().map((p) => (
+            <tr key={p.weekStart}>
+              <th scope="row" className="ebim-td text-left font-medium">
+                {formatDate(p.weekStart)} – {formatDate(p.weekEnd)}
+                {p.isPartial ? <span className="ml-1 text-caption text-muted">(en curso)</span> : null}
+              </th>
+              <td className="ebim-td ebim-num">{p.collected == null ? 'Sin tasa' : formatMoney(p.collected, rc)}</td>
+              <td className="ebim-td ebim-num">{formatNumber(p.paymentCount)}</td>
             </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {[...points].reverse().map((p) => (
-              <tr key={p.weekStart}>
-                <th scope="row" className="ebim-td text-left font-medium">
-                  {formatDate(p.weekStart)} – {formatDate(p.weekEnd)}
-                  {p.isPartial ? <span className="ml-1 text-caption text-muted">(en curso)</span> : null}
-                </th>
-                <td className="ebim-td ebim-num">{p.collected == null ? 'Sin tasa' : formatMoney(p.collected, rc)}</td>
-                <td className="ebim-td ebim-num">{formatNumber(p.paymentCount)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          ))}
+        </DataTable>
       )}
     />
   );

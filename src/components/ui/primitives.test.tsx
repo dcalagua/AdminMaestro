@@ -199,6 +199,21 @@ describe('PageContainer, Card y DataTable', () => {
     expect(screen.getByRole('columnheader', { name: 'Importe' })).toHaveClass('text-right');
     expect(screen.getByText('Acciones')).toHaveClass('sr-only');
   });
+
+  it('DataTable admite caption, ancho mínimo y región de scroll enfocable', () => {
+    render(
+      <DataTable caption="MRR por mes" label="Matriz" minWidth={860} scrollRegion columns={['Mes']}>
+        <tr>
+          <th scope="row">ene 2026</th>
+        </tr>
+      </DataTable>,
+    );
+    const region = screen.getByRole('region', { name: 'Matriz' });
+    expect(region).toHaveAttribute('tabindex', '0');
+    expect(screen.getByRole('table', { name: 'Matriz' })).toHaveStyle({ minWidth: '860px' });
+    expect(screen.getByText('MRR por mes').tagName).toBe('CAPTION');
+    expect(screen.getByRole('rowheader', { name: 'ene 2026' })).toBeInTheDocument();
+  });
 });
 
 describe('Toast', () => {
