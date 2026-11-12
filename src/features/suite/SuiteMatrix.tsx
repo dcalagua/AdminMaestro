@@ -1,13 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { InfoIcon } from '@phosphor-icons/react';
 import {
   Badge, Card, DataTable, EmptyState, ErrorState, LoadingState, SearchBar,
 } from '@/components/ui/primitives';
 import { StatusTabs } from '@/components/ui/SectionTabs';
 import { SelectInput } from '@/components/ui/fields';
 import { DetailDrawer, DetailList } from '@/components/ui/DetailDrawer';
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { RevokeWithReasonDialog } from '@/components/ui/RevokeWithReasonDialog';
 import { useToast } from '@/components/ui/toast-context';
 import { useListState } from '@/hooks/useListState';
@@ -17,7 +15,6 @@ import {
   useRequestTenantResume,
   useRequestTenantSuspension,
   useRetrySaasProvisioning,
-  useSetTenantStatus,
 } from '@/services/mutations';
 import { businessErrorMessage } from '@/lib/pgError';
 import { providerErrorLabel } from '@/lib/provisioning';
@@ -36,9 +33,10 @@ import {
   type MatrixTenant,
   type SuiteApp,
 } from './suiteModel';
+import { ConfirmActiveButton, PENDING_CONFIRM_EXPLANATION, PendingConfirmNotice } from './ConfirmActive';
+import { useConfirmActive } from './useConfirmActive';
 
 type Action =
-  | { kind: 'CONFIRM_ACTIVE'; tenant: MatrixTenant }
   | { kind: 'SUSPEND'; tenant: MatrixTenant }
   | { kind: 'RESUME'; tenant: MatrixTenant };
 
@@ -120,7 +118,7 @@ export function SuiteMatrix({
   const perms = usePermissions();
   const access = useProvisioningAccess();
   const toast = useToast();
-  const setStatus = useSetTenantStatus();
+  const confirmActive = useConfirmActive();
   const retry = useRetrySaasProvisioning();
   const suspend = useRequestTenantSuspension();
   const resume = useRequestTenantResume();
@@ -149,23 +147,8 @@ export function SuiteMatrix({
     }
   }
 
-  async function confirmActive(tenant: MatrixTenant) {
-    try {
-      await setStatus.mutateAsync({
-        p_tenant_id: tenant.tenantId,
-        p_status: 'ACTIVE',
-        p_reason: 'La app confirmó el alta: se confirma el tenant como activo en MasterAdmin',
-      });
-      toast.success('Tenant confirmado como activo', tenant.tenantName);
-    } catch (e) {
-      toast.error('No se pudo confirmar el tenant', businessErrorMessage(e));
-    } finally {
-      setAction(null);
-    }
-  }
-
   async function runLifecycle(reason: string) {
-    if (!action || action.kind === 'CONFIRM_ACTIVE') return;
+    if (!action) return;
     const { tenant } = action;
     if (action.kind === 'SUSPEND') {
       await suspend.mutateAsync({ p_tenant_id: tenant.tenantId, p_reason: reason });
@@ -187,19 +170,7 @@ export function SuiteMatrix({
       title="Cuentas en cada app"
       description="Una fila por cuenta cliente con al menos un tenant; una columna por app. Abre una celda para ver el detalle y sus acciones."
     >
-      {pendingConfirm > 0 ? (
-        <div className="flex items-start gap-2 border-b border-border bg-warn-soft px-5 py-3 text-compact text-fg" role="note" data-pending-confirm-notice>
-          <InfoIcon size={16} className="mt-0.5 shrink-0 text-warn" aria-hidden />
-          <p>
-            <strong>
-              {pendingConfirm} tenant{pendingConfirm === 1 ? '' : 's'} activo{pendingConfirm === 1 ? '' : 's'} en su app
-              {' '}pero «Pendiente» en MasterAdmin.
-            </strong>{' '}
-            Cuando la app confirma el alta, el estado del tenant todavía no se actualiza solo. Revisa cada uno y
-            confírmalo desde su detalle; nada cambia sin tu confirmación.
-          </p>
-        </div>
-      ) : null}
+      <PendingConfirmNotice count={pendingConfirm} />
       <SearchBar
         value={list.search}
         onChange={list.setSearch}
@@ -320,9 +291,7 @@ export function SuiteMatrix({
                   <p className="mb-3 text-compact text-fg-2">{CELL[t.kind].help}</p>
                   {t.kind === 'PENDING_CONFIRM' ? (
                     <p className="mb-3 rounded-md bg-warn-soft px-3 py-2 text-compact text-fg" role="note">
-                      La app respondió que el tenant existe y está activo, pero el Admin Maestro lo mantiene «Pendiente».
-                      Mientras tanto no se cuenta como activo en los reportes. Confírmalo cuando verifiques que el cliente
-                      ya entra a la app.
+                      {PENDING_CONFIRM_EXPLANATION}
                     </p>
                   ) : null}
                   <DetailList
@@ -371,17 +340,12 @@ export function SuiteMatrix({
                     <Link to={`/tenants/${t.tenantId}`} className="ebim-btn-ghost ebim-btn-sm">
                       Ver tenant
                     </Link>
-                    {t.kind === 'PENDING_CONFIRM' && perms.canManagePlatform ? (
-                      <button
-                        type="button"
-                        className="ebim-btn-primary ebim-btn-sm"
-                        onClick={() => {
-                          setSelected(null);
-                          setAction({ kind: 'CONFIRM_ACTIVE', tenant: t });
-                        }}
-                      >
-                        Confirmar como activo
-                      </button>
+                    {t.kind === 'PENDING_CONFIRM' ? (
+                      <ConfirmActiveButton
+                        confirm={confirmActive}
+                        target={{ tenantId: t.tenantId, tenantName: t.tenantName }}
+                        onBeforeOpen={() => setSelected(null)}
+                      />
                     ) : null}
                     {t.canRetry && canExecute ? (
                       <button
@@ -425,20 +389,7 @@ export function SuiteMatrix({
         ) : null}
       </DetailDrawer>
 
-      <ConfirmDialog
-        open={action?.kind === 'CONFIRM_ACTIVE'}
-        tone="primary"
-        title="Confirmar el tenant como activo"
-        message={
-          action
-            ? `${action.tenant.tenantName} ya está activo en su app. Pasará de «Pendiente» a «Activo» en MasterAdmin y el cambio queda en la auditoría.`
-            : ''
-        }
-        confirmLabel="Confirmar como activo"
-        busy={setStatus.isPending}
-        onConfirm={() => (action?.kind === 'CONFIRM_ACTIVE' ? confirmActive(action.tenant) : undefined)}
-        onCancel={() => setAction(null)}
-      />
+      {confirmActive.dialog}
 
       <RevokeWithReasonDialog
         open={action?.kind === 'SUSPEND' || action?.kind === 'RESUME'}

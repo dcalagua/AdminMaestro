@@ -423,6 +423,74 @@ export function buildMatrix(input: {
   return [...rows.values()].sort((a, b) => a.organizationName.localeCompare(b.organizationName, 'es'));
 }
 
+/** Compara por urgencia: lo que pide una acción va primero. */
+export function byAttention(a: { kind: CellKind }, b: { kind: CellKind }): number {
+  return ATTENTION_ORDER.indexOf(a.kind) - ATTENTION_ORDER.indexOf(b.kind);
+}
+
+// ---------------------------------------------------------------------------
+// Apps de una cuenta (ficha 360, V5 · F3)
+// ---------------------------------------------------------------------------
+
+export interface AccountAppTenant extends MatrixTenant {
+  productName: string;
+  productCode: string | null;
+  /** OWN: la cuenta es la cliente; MANAGED: la administra como canal. */
+  relation: 'OWN' | 'MANAGED';
+}
+
+export interface AccountApp {
+  productId: string;
+  productName: string;
+  productCode: string | null;
+  tenants: AccountAppTenant[];
+  /** El tenant que más atención pide: resume la app en la cabecera. */
+  primary: AccountAppTenant;
+}
+
+/**
+ * Los tenants de UNA cuenta agrupados por app, con el MISMO estado combinado
+ * (alta en la app × estado aquí) que la matriz del Centro de la suite.
+ */
+export function accountApps(
+  organizationId: string,
+  tenants: readonly TenantRow[],
+  requests: readonly ProvisioningRow[],
+  subscriptions?: ReadonlyMap<string, string> | null,
+): AccountApp[] {
+  const byId = new Map(tenants.filter((t) => t.tenant_id).map((t) => [t.tenant_id as string, t]));
+  const rows = buildMatrix({ apps: [], tenants, requests, subscriptions });
+  const groups = new Map<string, AccountAppTenant[]>();
+  for (const row of rows) {
+    for (const cell of Object.values(row.cells)) {
+      for (const m of cell.tenants) {
+        const t = byId.get(m.tenantId);
+        const enriched: AccountAppTenant = {
+          ...m,
+          productName: t?.product_short_name ?? '—',
+          productCode: t?.product_code ?? null,
+          relation: t?.customer_organization_id === organizationId ? 'OWN' : 'MANAGED',
+        };
+        const list = groups.get(m.productId) ?? [];
+        list.push(enriched);
+        groups.set(m.productId, list);
+      }
+    }
+  }
+  return [...groups.entries()]
+    .map(([productId, list]) => {
+      const sorted = [...list].sort((a, b) => byAttention(a, b) || a.tenantName.localeCompare(b.tenantName, 'es'));
+      return {
+        productId,
+        productName: sorted[0]!.productName,
+        productCode: sorted[0]!.productCode,
+        tenants: sorted,
+        primary: sorted[0]!,
+      };
+    })
+    .sort((a, b) => a.productName.localeCompare(b.productName, 'es'));
+}
+
 export type MatrixFilter = 'ALL' | 'ATTENTION' | 'PENDING_CONFIRM' | 'FAILED' | 'IN_PROGRESS' | 'SUSPENDED' | 'ACTIVE';
 
 export const MATRIX_FILTERS: MatrixFilter[] = ['ALL', 'ATTENTION', 'PENDING_CONFIRM', 'FAILED', 'IN_PROGRESS', 'SUSPENDED', 'ACTIVE'];

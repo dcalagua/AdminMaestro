@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  accountApps,
   appChannels,
   appHealth,
   buildMatrix,
@@ -143,6 +144,34 @@ describe('matriz cuenta × app', () => {
     expect(rowMatches(acme!, 'ALL', 'p-tms', '')).toBe(false);
     expect(rowMatches(beta!, 'ACTIVE', 'p-tms', 'bet')).toBe(true);
     expect(rowMatches(beta!, 'ALL', null, 'acme')).toBe(false);
+  });
+});
+
+describe('apps de una cuenta (ficha 360)', () => {
+  it('agrupa los tenants de la cuenta por app con el mismo estado que la matriz', () => {
+    const apps = accountApps(
+      'o-acme',
+      [
+        tenant({ product_short_name: 'EWM', product_code: 'ewm' }),
+        tenant({ tenant_id: 'tn-2', name: 'Acme TMS', saas_product_id: 'p-tms', product_short_name: 'TMS', product_code: 'tms', status: 'ACTIVE' }),
+        // Tenant de otro cliente que Acme administra como canal.
+        tenant({ tenant_id: 'tn-3', name: 'Zeta EWM', customer_organization_id: 'o-zeta', customer_name: 'Zeta', managing_organization_id: 'o-acme', product_short_name: 'EWM', product_code: 'ewm', status: 'ACTIVE' }),
+      ],
+      [request(), request({ id: 'r-2', tenant_id: 'tn-2', saas_product_id: 'p-tms' }), request({ id: 'r-3', tenant_id: 'tn-3' })],
+    );
+    expect(apps.map((a) => a.productName)).toEqual(['EWM', 'TMS']);
+    const ewm = apps[0]!;
+    expect(ewm.productCode).toBe('ewm');
+    expect(ewm.tenants.map((t) => [t.tenantName, t.relation, t.kind])).toEqual([
+      ['Acme EWM', 'OWN', 'PENDING_CONFIRM'],
+      ['Zeta EWM', 'MANAGED', 'ACTIVE'],
+    ]);
+    expect(ewm.primary.kind).toBe('PENDING_CONFIRM');
+    expect(apps[1]!.primary.kind).toBe('ACTIVE');
+  });
+
+  it('sin tenants no hay apps', () => {
+    expect(accountApps('o-acme', [], [])).toEqual([]);
   });
 });
 
