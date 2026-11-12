@@ -33,7 +33,7 @@ function FinanceItems({ organizationId }: { organizationId: string }) {
   const renewals = useRenewalPipeline(organizationId);
   const mrr = currentMrrByCurrency(series.data);
   const overdue = toCurrencyAmounts(invoices.data?.overdue);
-  const health = HEALTH_TEXT[accountHealth(renewals.data ?? [])];
+  const health = HEALTH_TEXT[accountHealth(renewals.data ?? [], Object.keys(overdue).length > 0)];
   return (
     <>
       <SummaryItem label="Salud de cobranza" hint={health.detail}>
