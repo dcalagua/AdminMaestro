@@ -126,6 +126,20 @@ export function useInvoicePage(p: InvoiceListParams) {
   });
 }
 
+/**
+ * Bandeja (V5 · F5): las facturas vencidas con saldo, de la más antigua a la
+ * más reciente, con un tope (`limit`). Misma vista y mismo RLS que «Por
+ * cobrar»; cuelga de `invoices`, así un cobro registrado la refresca.
+ */
+export function useOverdueInvoices({ enabled = true, limit = 200 }: { enabled?: boolean; limit?: number } = {}) {
+  return useQuery({
+    queryKey: ['invoices', 'overdue-inbox', limit],
+    enabled,
+    queryFn: () =>
+      fetchInvoicePage({ search: '', filter: 'OPEN', aging: 'VENCIDA', page: 0, pageSize: limit, sortBy: 'due_date', sortDir: 'asc' }),
+  });
+}
+
 export function useInvoiceSummary(p: Pick<InvoiceListParams, 'search' | 'filter' | 'organizationId' | 'aging'>) {
   return useQuery({
     queryKey: ['invoices', 'summary', { ...p, search: cleanSearch(p.search) }],
