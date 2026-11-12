@@ -244,7 +244,7 @@ export function CulqiCardPanel({
               {organizationId ? (
                 <>
                   {' '}
-                  (<Link className="ebim-link" to={`/organizations/${organizationId}#payment-portal`}>Portal de pago</Link>)
+                  (<Link className="ebim-link" to={`/organizations/${organizationId}?tab=contratos#payment-portal`}>Portal de pago</Link>)
                 </>
               ) : null}
               .

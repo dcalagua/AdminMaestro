@@ -199,7 +199,7 @@ test.describe('pantallas públicas (fase 07)', () => {
     if (process.env.CCP_PORTAL_E2E === '1') {
       const { context: ops, page: finance } = await publicContext(browser, blocked, DESKTOP, 'light');
       await loginWithRetry(finance, USERS.finance);
-      await finance.goto(`/organizations/${QHAPAQ_ORG_ID}#payment-portal`);
+      await finance.goto(`/organizations/${QHAPAQ_ORG_ID}?tab=contratos#payment-portal`);
       await finance.getByRole('button', { name: 'Generar enlace' }).click();
       await finance.getByRole('dialog').getByRole('button', { name: /Generar/ }).click();
       const url = await finance.getByLabel('Enlace para el cliente').inputValue();

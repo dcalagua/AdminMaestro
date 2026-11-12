@@ -67,7 +67,7 @@ async function sellRegional(page: Page, sale: RegionalSale) {
   await expect(page.getByText('Alta completada')).toBeVisible({ timeout: 20_000 });
   await expect(page.getByRole('heading', { level: 1, name: sale.tenantName })).toBeVisible({ timeout: 15_000 });
 
-  await page.getByRole('tab', { name: 'Suscripción' }).click();
+  await page.getByRole('tab', { name: 'Contrato', exact: true }).click();
   await page.locator('a[href^="/subscriptions/"]').first().click();
   await page.waitForURL('**/subscriptions/**');
   return page.url();

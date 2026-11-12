@@ -103,7 +103,7 @@ export function FeatureFlagsPage() {
                   </td>
                   <td className="ebim-td">
                     {f.tenant_id ? (
-                      <Link className="hover:underline" to={`/tenants/${f.tenant_id}#features`}>
+                      <Link className="hover:underline" to={`/tenants/${f.tenant_id}?tab=app#features`}>
                         {tenant?.name ?? '—'}
                       </Link>
                     ) : (
