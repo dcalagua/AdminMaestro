@@ -34,9 +34,9 @@ export function LastCheck({ at, stale, now }: { at: string | null; stale: boolea
 /** Los cuatro canales de una app, con el estado en texto; el porqué va al pasar el puntero y en la ficha. */
 export function ChannelGrid({ channels }: { channels: ChannelState[] }) {
   return (
-    <ul className="grid grid-cols-2 gap-x-3 gap-y-1.5" aria-label="Canales con la app">
+    <ul className="grid grid-cols-2 gap-x-3 gap-y-2" aria-label="Canales con la app">
       {channels.map((c) => (
-        <li key={c.key} className="flex min-w-0 items-center justify-between gap-2 text-caption" data-channel={c.key} data-active={c.active ? 'true' : 'false'}>
+        <li key={c.key} className="flex min-w-0 flex-col items-start gap-0.5 text-caption" data-channel={c.key} data-active={c.active ? 'true' : 'false'}>
           <span className="text-muted">{c.label}</span>
           <span title={c.detail}>
             <Badge tone={c.tone}>{c.status}</Badge>

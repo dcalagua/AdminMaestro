@@ -68,30 +68,29 @@ function CellSummary({
 }) {
   const meta = CELL[tenant.kind];
   const modules = moduleState(flags.modules, tenant.moduleSync);
+  const appLine =
+    tenant.kind === 'PENDING_CONFIRM'
+      ? 'Activo en la app · pendiente de confirmar en MasterAdmin'
+      : `En la app: ${tenant.requestStatusLabel ?? 'sin alta'} · Aquí: ${tenant.tenantStatusLabel}`;
+  const contractLine = finance
+    ? `Contrato: ${tenant.subscriptionStatus ? SUBSCRIPTION_STATUS_LABEL[tenant.subscriptionStatus] ?? tenant.subscriptionStatus : 'sin contrato'}`
+    : null;
+  const channelLine = `Módulos: ${modules.label.toLowerCase()} · Uso: ${flags.usage ? 'activo' : 'no activo'}`;
+  // La celda muestra sólo el estado; el detalle va al pasar el puntero, al lector de pantalla y al panel lateral.
   return (
-    <>
+    <span className="flex flex-col items-center gap-1" title={[appLine, contractLine, channelLine].filter(Boolean).join('\n')}>
       <Badge tone={meta.tone} dot>
         {meta.short}
       </Badge>
-      <span className="text-caption text-fg-2">
-        {tenant.kind === 'PENDING_CONFIRM'
-          ? 'Activo en la app · pendiente de confirmar en MasterAdmin'
-          : `En la app: ${tenant.requestStatusLabel ?? 'sin alta'} · Aquí: ${tenant.tenantStatusLabel}`}
-      </span>
-      {finance ? (
-        <span className="text-caption text-muted">
-          Contrato: {tenant.subscriptionStatus ? SUBSCRIPTION_STATUS_LABEL[tenant.subscriptionStatus] ?? tenant.subscriptionStatus : 'sin contrato'}
-        </span>
-      ) : null}
-      <span className="text-caption text-muted">
-        Módulos: {modules.label.toLowerCase()} · Uso: {flags.usage ? 'activo' : 'no activo'}
-      </span>
+      <span className="sr-only">{appLine}</span>
+      {contractLine ? <span className="sr-only">{contractLine}</span> : null}
+      <span className="sr-only">{channelLine}</span>
       {extra > 0 ? (
         <span className="text-caption font-semibold text-accent-deep">
           +{extra} tenant{extra === 1 ? '' : 's'} más
         </span>
       ) : null}
-    </>
+    </span>
   );
 }
 
@@ -243,12 +242,12 @@ export function SuiteMatrix({
         <DataTable
           label="Cuentas por app"
           scrollRegion
-          minWidth={240 + apps.length * 190}
+          minWidth={180 + apps.length * 100}
           columns={['Cuenta', ...apps.map((a) => a.name)]}
         >
           {visible.map((row) => (
             <tr key={row.organizationId} data-account={row.organizationName}>
-              <th scope="row" className="ebim-td sticky left-0 z-[1] min-w-[200px] bg-card text-left align-top font-semibold">
+              <th scope="row" className="ebim-td sticky left-0 z-[1] min-w-[170px] bg-card text-left align-middle font-semibold">
                 <Link to={`/organizations/${row.organizationId}`} className="hover:text-accent-deep hover:underline">
                   {row.organizationName}
                 </Link>
@@ -258,17 +257,17 @@ export function SuiteMatrix({
                 const tenant = cell?.primary;
                 if (!cell || !tenant) {
                   return (
-                    <td key={app.id} className="ebim-td align-top text-caption text-muted">
+                    <td key={app.id} className="ebim-td text-center align-middle text-caption text-muted">
                       <span aria-hidden>—</span>
                       <span className="sr-only">Sin tenant en {app.name}</span>
                     </td>
                   );
                 }
                 return (
-                  <td key={app.id} className="ebim-td p-1.5 align-top">
+                  <td key={app.id} className="ebim-td p-1 text-center align-middle">
                     <button
                       type="button"
-                      className="flex w-full min-w-[170px] flex-col items-start gap-1 rounded-md p-1.5 text-left transition-colors duration-fast hover:bg-hover"
+                      className="flex w-full min-w-[84px] justify-center rounded-md p-1.5 transition-colors duration-fast hover:bg-hover"
                       data-cell-kind={tenant.kind}
                       aria-label={`${row.organizationName} en ${app.name}: ${CELL[tenant.kind].label}. Ver detalle`}
                       onClick={() => setSelected({ row, app })}
