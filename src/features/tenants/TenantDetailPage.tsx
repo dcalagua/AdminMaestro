@@ -15,7 +15,6 @@ import { tenantDimensions } from './tenantDimensions';
 import { TenantDimensionsView } from './TenantDimensionsView';
 import { TenantAddonsPanel } from './TenantAddonsPanel';
 import { TenantUsagePanel } from './TenantUsagePanel';
-import { useRequestTenantSuspension, useRequestTenantResume } from '@/services/mutations';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { isFinance, canManagePlatform } from '@/features/auth/session';
@@ -27,13 +26,11 @@ import { PROVISIONING_ACTION_LABEL } from '@/features/deployments/provisioningLa
 import { accountApps, type ProvisioningRow, type TenantRow } from '@/features/suite/suiteModel';
 import { ConfirmActiveButton, PENDING_CONFIRM_EXPLANATION, PendingConfirmNotice } from '@/features/suite/ConfirmActive';
 import { useConfirmActive } from '@/features/suite/useConfirmActive';
+import { LifecycleDialog } from '@/features/suite/LifecycleDialog';
 import { TenantHeader } from './TenantHeader';
 import {
   PageContainer, Card, DataTable, LoadingState, ErrorState, EmptyState, Badge,
 } from '@/components/ui/primitives';
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { useToast } from '@/components/ui/toast-context';
-import { businessErrorMessage } from '@/lib/pgError';
 import { formatMoney, formatDate, formatDateTime } from '@/lib/format';
 import { DEPLOYMENT_MODE_LABEL, TENANT_TYPE_LABEL, PROVISIONING_STATUS_LABEL } from '@/types/domain';
 import {
@@ -117,41 +114,7 @@ export function TenantDetailPage() {
   const series = useAccountSeries({ tenantId });
   const renewals = useTenantRenewals(tenantId);
   const perms = usePermissions();
-  const toast = useToast();
-  const suspend = useRequestTenantSuspension();
-  const resume = useRequestTenantResume();
   const [pendingAction, setPendingAction] = useState<'SUSPEND' | 'RESUME' | null>(null);
-
-  /**
-   * Suspender y reanudar pasan por RPC: cambian el estado del tenant Y encolan el
-   * trabajo de infraestructura en la misma transacción. Un UPDATE suelto dejaría
-   * el tenant apagado en la consola y encendido en la infraestructura.
-   */
-  async function applyAction() {
-    if (!pendingAction || !tenantId) return;
-    try {
-      if (pendingAction === 'SUSPEND') {
-        await suspend.mutateAsync({
-          p_tenant_id: tenantId,
-          p_reason: 'Suspensión solicitada desde la consola',
-        });
-        toast.success(
-          'Estado comercial: suspendido',
-          'Cambió en el Control Plane. La orden de suspensión a la app quedó encolada en simulación: el acceso en la app no cambió.',
-        );
-      } else {
-        await resume.mutateAsync({ p_tenant_id: tenantId });
-        toast.success(
-          'Estado comercial: activo',
-          'Cambió en el Control Plane. La orden de reactivación a la app quedó encolada en simulación.',
-        );
-      }
-    } catch (error) {
-      toast.error('No se pudo aplicar el cambio', businessErrorMessage(error));
-    } finally {
-      setPendingAction(null);
-    }
-  }
 
   if (tenant.isLoading) return <LoadingState variant="page" />;
   if (tenant.error) return <ErrorState error={tenant.error} />;
@@ -615,19 +578,20 @@ export function TenantDetailPage() {
         ]}
       />
 
-      <ConfirmDialog
+      <LifecycleDialog
         open={pendingAction !== null}
-        title={pendingAction === 'SUSPEND' ? '¿Suspender este tenant?' : '¿Reactivar este tenant?'}
-        message={
-          pendingAction === 'SUSPEND'
-            ? 'Cambia el estado COMERCIAL a «Suspendido» en el Control Plane y encola la orden de suspensión a la app en simulación: no se apaga el acceso en las apps. El motivo queda en auditoría.'
-            : 'Cambia el estado COMERCIAL a «Activo» en el Control Plane y encola la orden de reactivación a la app en simulación.'
-        }
-        confirmLabel={pendingAction === 'SUSPEND' ? 'Suspender (comercial)' : 'Reactivar (comercial)'}
-        busy={suspend.isPending || resume.isPending}
-        tone={pendingAction === 'SUSPEND' ? 'danger' : 'primary'}
-        onConfirm={applyAction}
-        onCancel={() => setPendingAction(null)}
+        mode={pendingAction ?? 'SUSPEND'}
+        subject={t.name as string}
+        organizationId={t.customer_organization_id as string | null}
+        targets={[
+          {
+            tenantId: t.tenant_id as string,
+            tenantName: t.name as string,
+            productName: (t.product_short_name as string) ?? '—',
+            tenantStatus: (t.status as string) ?? 'PENDING',
+          },
+        ]}
+        onClose={() => setPendingAction(null)}
       />
       {confirmActive.dialog}
     </PageContainer>

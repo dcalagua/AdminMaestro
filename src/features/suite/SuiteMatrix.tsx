@@ -6,16 +6,11 @@ import {
 import { StatusTabs } from '@/components/ui/SectionTabs';
 import { SelectInput } from '@/components/ui/fields';
 import { DetailDrawer, DetailList } from '@/components/ui/DetailDrawer';
-import { RevokeWithReasonDialog } from '@/components/ui/RevokeWithReasonDialog';
 import { useToast } from '@/components/ui/toast-context';
 import { useListState } from '@/hooks/useListState';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useProvisioningAccess } from '@/hooks/useProvisioningAccess';
-import {
-  useRequestTenantResume,
-  useRequestTenantSuspension,
-  useRetrySaasProvisioning,
-} from '@/services/mutations';
+import { useRetrySaasProvisioning } from '@/services/mutations';
 import { businessErrorMessage } from '@/lib/pgError';
 import { providerErrorLabel } from '@/lib/provisioning';
 import { formatDateTime } from '@/lib/format';
@@ -35,10 +30,9 @@ import {
 } from './suiteModel';
 import { ConfirmActiveButton, PENDING_CONFIRM_EXPLANATION, PendingConfirmNotice } from './ConfirmActive';
 import { useConfirmActive } from './useConfirmActive';
+import { LifecycleDialog } from './LifecycleDialog';
 
-type Action =
-  | { kind: 'SUSPEND'; tenant: MatrixTenant }
-  | { kind: 'RESUME'; tenant: MatrixTenant };
+type Action = { kind: 'SUSPEND' | 'RESUME'; tenant: MatrixTenant; organizationId: string; appName: string };
 
 interface Selection {
   row: MatrixRow;
@@ -120,8 +114,6 @@ export function SuiteMatrix({
   const toast = useToast();
   const confirmActive = useConfirmActive();
   const retry = useRetrySaasProvisioning();
-  const suspend = useRequestTenantSuspension();
-  const resume = useRequestTenantResume();
 
   const [selected, setSelected] = useState<Selection | null>(null);
   const [action, setAction] = useState<Action | null>(null);
@@ -145,22 +137,6 @@ export function SuiteMatrix({
     } catch (e) {
       toast.error('No se pudo reintentar el alta', businessErrorMessage(e));
     }
-  }
-
-  async function runLifecycle(reason: string) {
-    if (!action) return;
-    const { tenant } = action;
-    if (action.kind === 'SUSPEND') {
-      await suspend.mutateAsync({ p_tenant_id: tenant.tenantId, p_reason: reason });
-      toast.success(
-        'Suspendido en MasterAdmin',
-        'Cambió el estado y la orden de infraestructura quedó encolada. La app no tiene canal de suspensión: el acceso en la app no cambió.',
-      );
-    } else {
-      await resume.mutateAsync({ p_tenant_id: tenant.tenantId, p_reason: reason });
-      toast.success('Reactivado en MasterAdmin', 'Cambió el estado y la orden de infraestructura quedó encolada.');
-    }
-    setAction(null);
   }
 
   const appOptions = apps.map((a) => ({ value: a.code, label: a.name }));
@@ -363,7 +339,7 @@ export function SuiteMatrix({
                         className="ebim-btn-ghost ebim-btn-sm"
                         onClick={() => {
                           setSelected(null);
-                          setAction({ kind: 'SUSPEND', tenant: t });
+                          setAction({ kind: 'SUSPEND', tenant: t, organizationId: selected.row.organizationId, appName: selected.app.name });
                         }}
                       >
                         Suspender
@@ -375,7 +351,7 @@ export function SuiteMatrix({
                         className="ebim-btn-primary ebim-btn-sm"
                         onClick={() => {
                           setSelected(null);
-                          setAction({ kind: 'RESUME', tenant: t });
+                          setAction({ kind: 'RESUME', tenant: t, organizationId: selected.row.organizationId, appName: selected.app.name });
                         }}
                       >
                         Reactivar
@@ -391,18 +367,17 @@ export function SuiteMatrix({
 
       {confirmActive.dialog}
 
-      <RevokeWithReasonDialog
-        open={action?.kind === 'SUSPEND' || action?.kind === 'RESUME'}
-        title={action?.kind === 'RESUME' ? `Reactivar ${action.tenant.tenantName}` : `Suspender ${action?.tenant.tenantName ?? ''}`}
-        description={
-          action?.kind === 'RESUME'
-            ? 'Vuelve a «Activo» en MasterAdmin y se encola la orden de infraestructura.'
-            : 'Pasa a «Suspendido» en MasterAdmin y se encola la orden de infraestructura. La app no tiene canal de suspensión: el cliente sigue entrando hasta que exista.'
+      <LifecycleDialog
+        open={Boolean(action)}
+        mode={action?.kind ?? 'SUSPEND'}
+        subject={action?.tenant.tenantName ?? ''}
+        organizationId={action?.organizationId}
+        targets={
+          action
+            ? [{ tenantId: action.tenant.tenantId, tenantName: action.tenant.tenantName, productName: action.appName, tenantStatus: action.tenant.tenantStatus }]
+            : []
         }
-        submitLabel={action?.kind === 'RESUME' ? 'Reactivar' : 'Suspender'}
-        busy={suspend.isPending || resume.isPending}
-        onSubmit={runLifecycle}
-        onCancel={() => setAction(null)}
+        onClose={() => setAction(null)}
       />
     </Card>
   );

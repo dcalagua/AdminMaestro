@@ -13,6 +13,7 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
  */
 
 const setStatus = vi.fn().mockResolvedValue(undefined);
+const suspend = vi.fn().mockResolvedValue({});
 const q = (data?: unknown) => ({ data, error: null, isLoading: false, isFetching: false, refetch: vi.fn() });
 
 const state = vi.hoisted(() => ({
@@ -38,7 +39,7 @@ vi.mock('@/hooks/usePermissions', () => ({
 vi.mock('@/features/users/useUserAdminScope', () => ({ useUserAdminScope: () => ({ canView: state.canViewUsers }) }));
 vi.mock('@/components/ui/toast-context', () => ({ useToast: () => ({ success: vi.fn(), error: vi.fn() }) }));
 vi.mock('@/services/mutations', () => ({
-  useRequestTenantSuspension: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useRequestTenantSuspension: () => ({ mutateAsync: suspend, isPending: false }),
   useRequestTenantResume: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useSetTenantStatus: () => ({ mutateAsync: setStatus, isPending: false }),
 }));
@@ -62,6 +63,7 @@ vi.mock('@/services/queries', () => ({
     ),
   useProvisioningTargets: () => q([]),
   useAccountSeries: () => q([]),
+  useAdminUsers: () => q([]),
 }));
 vi.mock('./tenantQueries', () => ({
   useTenantSubscriptions: () => q([]),
@@ -252,9 +254,18 @@ describe('permisos del tenant', () => {
     expect(screen.queryByText('Usuarios del tenant')).toBeNull();
   });
 
-  it('suspender sólo con permiso de plataforma', () => {
+  it('suspender sólo con permiso de plataforma, con el impacto y el aviso del canal', async () => {
     state.tenantStatus = 'ACTIVE';
     renderAt();
-    expect(screen.getByRole('button', { name: 'Suspender' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Suspender' }));
+    const dialog = screen.getByRole('dialog', { name: 'Suspender Qhapaq EWM' });
+    expect(within(dialog).getByText('La app aún no aplica la suspensión: canal pendiente.')).toBeInTheDocument();
+    expect(within(dialog).getByText('EWM')).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Suspender' }));
+    // Sin motivo no se llama a la base.
+    expect(suspend).not.toHaveBeenCalled();
+    await userEvent.type(within(dialog).getByLabelText(/Motivo/), 'Mora de 60 días');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Suspender' }));
+    expect(suspend).toHaveBeenCalledWith({ p_tenant_id: 'tn-1', p_reason: 'Mora de 60 días' });
   });
 });

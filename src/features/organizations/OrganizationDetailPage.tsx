@@ -35,6 +35,8 @@ import type { AgreementDraft } from './AgreementFormDialog';
 import { PlatformFeeDialog, type PlatformFeeTarget } from '@/features/partnerFees/PlatformFeeDialog';
 import { PartnerFeeStatementsPanel } from '@/features/partnerFees/PartnerFeeStatementsPanel';
 import type { FeeTerms } from '@/features/partnerFees/feeLabels';
+import { LifecycleDialog, type LifecycleMode, type LifecycleTarget } from '@/features/suite/LifecycleDialog';
+import { useOrgTenants } from './org360Queries';
 
 /**
  * Ficha 360 de la cuenta (P22 → V5 · F3).
@@ -95,6 +97,8 @@ export function OrganizationDetailPage() {
   const [endingAgreement, setEndingAgreement] = useState<{ id: string; product: string } | null>(
     null,
   );
+  const [lifecycle, setLifecycle] = useState<LifecycleMode | null>(null);
+  const orgTenants = useOrgTenants(organizationId ?? '');
 
   async function confirmEndAgreement() {
     if (!endingAgreement) return;
@@ -145,6 +149,17 @@ export function OrganizationDetailPage() {
     ]),
   );
   const isPartner = (agreements.data ?? []).length > 0;
+  // Suspender / reactivar la cuenta = sus tenants PROPIOS (los que administra como canal son de otro cliente).
+  const ownTenants: LifecycleTarget[] = (orgTenants.data ?? [])
+    .filter((t) => t.customer_organization_id === o.id && t.tenant_id)
+    .map((t) => ({
+      tenantId: t.tenant_id as string,
+      tenantName: (t.name as string) ?? '—',
+      productName: (t.product_short_name as string) ?? '—',
+      tenantStatus: (t.status as string) ?? 'PENDING',
+    }));
+  const canSuspend = perms.canManagePlatform && ownTenants.some((t) => t.tenantStatus === 'ACTIVE');
+  const canResume = perms.canManagePlatform && ownTenants.some((t) => t.tenantStatus === 'SUSPENDED');
 
   return (
     <PageContainer
@@ -168,6 +183,8 @@ export function OrganizationDetailPage() {
             items={[
               canManageCompanies ? { label: 'Nueva sociedad', onSelect: () => setCompanyDialog({ open: true, company: null }) } : null,
               perms.canManagePlatform ? { label: 'Nuevo acuerdo de producto', onSelect: () => setAgreementDialog({ open: true, agreement: null }) } : null,
+              canResume ? { label: 'Reactivar el servicio', onSelect: () => setLifecycle('RESUME') } : null,
+              canSuspend ? { label: 'Suspender el servicio', tone: 'danger' as const, onSelect: () => setLifecycle('SUSPEND') } : null,
             ]}
           />
         ) : null
@@ -282,6 +299,15 @@ export function OrganizationDetailPage() {
         organizationId={o.id}
         company={companyDialog.company}
         onClose={() => setCompanyDialog({ open: false, company: null })}
+      />
+
+      <LifecycleDialog
+        open={lifecycle !== null}
+        mode={lifecycle ?? 'SUSPEND'}
+        subject={`el servicio de ${o.display_name}`}
+        organizationId={o.id}
+        targets={ownTenants}
+        onClose={() => setLifecycle(null)}
       />
 
       <ConfirmDialog

@@ -72,6 +72,11 @@ vi.mock('@/services/queries', () => ({
     ]),
   useEntitlementSyncStatus: () => q([]),
   useSubscriptionStatuses: () => q([{ id: 's-1', code: 'SUB-1', status: 'ACTIVE' }]),
+  useAdminUsers: () =>
+    q([
+      { id: 'u-1', fullName: 'Lucía Beta', email: 'lucia@beta.pe', tenants: [{ tenant_id: 'tn-beta', is_active: true }] },
+      { id: 'u-2', fullName: 'Otro', email: 'otro@beta.pe', tenants: [{ tenant_id: 'tn-otro', is_active: true }] },
+    ]),
 }));
 vi.mock('@/hooks/useProvisioningAccess', () => ({
   useProvisioningAccess: () => ({ canForProduct: (code: string, id?: string | null) => state.canForProduct(code, id) }),
@@ -178,6 +183,14 @@ describe('matriz cuenta × app', () => {
     await userEvent.click(screen.getByRole('button', { name: /^Beta en TMS/ }));
     await userEvent.click(within(screen.getByRole('dialog', { name: 'Beta · TMS' })).getByRole('button', { name: 'Suspender' }));
     const dialog = screen.getByRole('dialog', { name: 'Suspender Beta TMS' });
+    // Vista previa del impacto: la app, el tenant, los usuarios y el aviso honesto del canal.
+    expect(within(dialog).getByText('La app aún no aplica la suspensión: canal pendiente.')).toBeInTheDocument();
+    const impact = dialog.querySelector('[data-lifecycle-impact]') as HTMLElement;
+    expect(within(impact).getByText('TMS')).toBeInTheDocument();
+    expect(within(impact).getByText('Beta TMS')).toBeInTheDocument();
+    const users = dialog.querySelector('[data-lifecycle-users]') as HTMLElement;
+    expect(within(users).getByText('Lucía Beta')).toBeInTheDocument();
+    expect(within(users).queryByText('Otro')).toBeNull();
     await userEvent.type(within(dialog).getByLabelText(/Motivo/), 'Impago de octubre');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Suspender' }));
     expect(suspend).toHaveBeenCalledWith({ p_tenant_id: 'tn-beta', p_reason: 'Impago de octubre' });

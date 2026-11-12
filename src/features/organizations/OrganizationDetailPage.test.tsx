@@ -13,6 +13,7 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
  */
 
 const ORG = '30000000-0000-4000-a000-000000000004';
+const suspend = vi.fn().mockResolvedValue({});
 const q = (data?: unknown, extra: Record<string, unknown> = {}) => ({
   data, error: null, isLoading: false, isFetching: false, refetch: vi.fn(), ...extra,
 });
@@ -49,6 +50,8 @@ vi.mock('@/components/ui/toast-context', () => ({ useToast: () => ({ success: vi
 vi.mock('@/services/mutations', () => ({
   useEndProductAgreement: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useSetTenantStatus: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useRequestTenantSuspension: () => ({ mutateAsync: suspend, isPending: false }),
+  useRequestTenantResume: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 vi.mock('@/services/queries', () => ({
   useOrganization: () =>
@@ -139,6 +142,7 @@ function renderAt(url = `/organizations/${ORG}`) {
 const header = () => screen.getByRole('region', { name: 'Resumen de la cuenta' });
 
 beforeEach(() => {
+  suspend.mockClear();
   state.persona = 'EBIM';
   state.platformRole = 'EBIM_SUPER_ADMIN';
   state.orgAdmin = false;
@@ -273,5 +277,30 @@ describe('permisos', () => {
     renderAt();
     expect(header().querySelector('[data-owner]')).toHaveTextContent('Rosa Quispe');
     expect(screen.queryByRole('button', { name: /Más acciones/ })).toBeNull();
+  });
+});
+
+describe('suspender el servicio de la cuenta (V5 · F4)', () => {
+  it('lista las apps afectadas, omite los tenants que no cambian y suspende uno a uno con el motivo', async () => {
+    renderAt();
+    await userEvent.click(screen.getByRole('button', { name: 'Más acciones de Qhapaq' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Suspender el servicio' }));
+    const dialog = screen.getByRole('dialog', { name: 'Suspender el servicio de Qhapaq' });
+    const impact = dialog.querySelector('[data-lifecycle-impact]') as HTMLElement;
+    // TMS está activo: cambia. EWM está pendiente: no admite la suspensión.
+    expect(impact.querySelector('[data-impact-app="TMS"]')).not.toBeNull();
+    expect(impact.querySelector('[data-impact-app="EWM"]')).toBeNull();
+    expect(within(dialog).getByText(/1 tenant no cambia \(Qhapaq EWM\)/)).toBeInTheDocument();
+    expect(within(dialog).getByText('La app aún no aplica la suspensión: canal pendiente.')).toBeInTheDocument();
+    await userEvent.type(within(dialog).getByLabelText(/Motivo/), 'Mora');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Suspender' }));
+    expect(suspend).toHaveBeenCalledTimes(1);
+    expect(suspend).toHaveBeenCalledWith({ p_tenant_id: 't2', p_reason: 'Mora' });
+  });
+
+  it('sin permiso de plataforma no se ofrece', async () => {
+    state.platformRole = 'EBIM_FINANCE';
+    renderAt();
+    expect(screen.queryByRole('button', { name: 'Más acciones de Qhapaq' })).toBeNull();
   });
 });
