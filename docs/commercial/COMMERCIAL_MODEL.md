@@ -200,3 +200,63 @@ tope de tenants y quién factura al cliente final (`billing_responsibility`).
 **Solo EBIM define acuerdos.** Un partner admin que llame a
 `upsert_product_agreement` recibe 42501: no puede concederse a sí mismo margen,
 modelos ni cupo.
+
+---
+
+# M3 · Tarifa de plataforma de partners (partner → EBIM)
+
+Spec: `docs/superpowers/specs/2026-10-04-masteradmin-cobro-usuarios-design.md` §4.
+Migraciones `20261011000050` (enum) y `20261011000100`; test `supabase/tests/47_partner_platform_fee.test.sql`.
+
+## 1. Cuándo existe
+
+Solo cuando el **partner factura al cliente final** (`billing_responsibility ≠ 'EBIM'`). Entonces EBIM no
+le factura al cliente: le cobra al **partner** una tarifa por usar la plataforma. Si EBIM factura al cliente,
+el acuerdo solo admite «Sin tarifa» (`TARIFA_PARTNER_REQUIERE_FACTURACION_PARTNER`; además un CHECK del
+acuerdo impide combinar tarifa con facturación EBIM).
+
+| Modelo (`platform_fee_model`) | Tarifa por tenant y mes |
+|---|---|
+| `NONE` | — |
+| `PERCENT_OF_LIST` | `round(base × platform_fee_rate, 2)` |
+| `FIXED_PER_TENANT` | `platform_fee_fixed_amount` en `platform_fee_currency` |
+| `PERCENT_PLUS_FIXED` | ambos |
+
+Se fija con `set_agreement_platform_fee` (finanzas o super admin, motivo, auditoría). Las columnas de la
+tarifa no tienen GRANT de escritura para `authenticated`: el acuerdo pasó a GRANT por columna (C-06).
+
+## 2. Canal de facturación del contrato
+
+`subscriptions.billing_channel`: `DIRECT` (EBIM factura al cliente) o `PARTNER_STATEMENT` (factura el partner).
+`onboard_customer_subscription` asigna `PARTNER_STATEMENT` cuando el partner que gestiona el tenant tiene un
+acuerdo `ACTIVE` con `billing_responsibility = 'PARTNER'` para ese producto. `issue_subscription_invoice`
+rechaza esos contratos (`SUSCRIPCION_FACTURADA_POR_PARTNER`). Finanzas corrige contratos existentes con
+`set_subscription_billing_channel` (motivo; `PARTNER_STATEMENT` exige un partner que facture el producto).
+
+## 3. Estado de cuenta mensual
+
+`partner_fee_statements` (uno por partner × mes × moneda mientras no esté `VOID`) y
+`partner_fee_statement_lines` (una por tenant y moneda):
+
+- **Base:** tenants `ACTIVE` de tipo `PRODUCTION`/`TRIAL` gestionados por el partner, del producto con acuerdo
+  vigente con tarifa; suscripciones `ACTIVE` en el mes; ítems recurrentes vigentes `LICENSE`, `TENANT_LICENSE`
+  y `ADDON` mensualizados (`QUARTERLY/3`, `YEARLY/12`); `ONE_TIME`, uso y créditos fuera (D-01/D-02).
+- **Monedas:** la línea va en la moneda de la suscripción. El fijo va en la misma línea si coincide su moneda;
+  si no, en una línea `FIXED_SEPARATE` del estado de cuenta de `platform_fee_currency`.
+- `compute_partner_fee_statement` recalcula el `DRAFT` (idempotente: mismo `source_hash` ⇒ sin cambios) y nunca
+  toca un `ISSUED`; `compute_all_partner_fee_statements` recorre los partners con tarifa.
+- `issue_partner_fee_statement` emite la factura `ISSUED` **al partner, sin suscripción**, con líneas
+  `PARTNER_PLATFORM_FEE` por tenant y producto, número `INV-AAAAMM-PFEE-<PARTNER>-<MONEDA>` (`-R2`… tras una
+  anulación) y vencimiento a 15 días. Se paga por el **portal de pago** (M1) con la cuenta Culqi del país.
+- `void_partner_fee_statement` anula estado y factura solo si no hay cobros `CONFIRMED`.
+
+Consola: Finanzas → **Tarifas de partners** (`/partner-fees`); ficha del partner → **Tarifa de plataforma**
+(estados y saldo; también la ve el `PARTNER_ADMIN` de esa organización); acción **Tarifa** en cada acuerdo.
+
+## 4. Tres flujos de dinero que no se mezclan
+
+| | Margen del canal | Tarifa de plataforma | Comisión de comercial |
+|---|---|---|---|
+| Dirección | EBIM deja de ingresar | **Partner → EBIM** | EBIM → vendedor |
+| Dónde | `margin_rate` / `channel_margin_rate` | `partner_fee_statements` + factura al partner | `commission_events` |
+| Cuándo | En el precio del contrato | Mensual, al emitir el estado de cuenta | Con cada cobro `CONFIRMED` |

@@ -19,7 +19,7 @@ const FINANCE = 'finance@ebim.test';
 
 async function gotoSaasProvisioning(page: Page) {
   await page.goto('/saas-provisioning');
-  await expect(page.getByRole('heading', { name: 'Provisioning SaaS' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Altas en las apps', selected: true })).toBeVisible();
 }
 
 /**
@@ -61,15 +61,20 @@ test.beforeAll(async () => {
   }
 });
 
+/** Enlace a la ficha desde la tarjeta de una integración (fase 12: el título es el nombre, el código va debajo). */
+const integrationLink = (page: Page, code: string) =>
+  page.locator(`[data-integration="${code}"]`).getByRole('link').first();
+
 test.describe('Tech Lead: visión transversal', () => {
   test('ve el catálogo de integraciones de toda la suite', async ({ page }) => {
     await login(page, TECH_LEAD);
     await page.goto('/integrations');
 
-    await expect(page.getByRole('heading', { name: 'Integraciones SaaS' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'ewm-provisioning-v1' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'ewm-mock-local' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'esupplier-manual' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Integraciones', selected: true })).toBeVisible();
+    // Una tarjeta por integración (identificada por su código) con enlace a su ficha.
+    await expect(integrationLink(page, 'ewm-provisioning-v1')).toBeVisible();
+    await expect(integrationLink(page, 'ewm-mock-local')).toBeVisible();
+    await expect(integrationLink(page, 'esupplier-manual')).toBeVisible();
 
     // Y puede administrarlas.
     await expect(page.getByRole('button', { name: 'Nueva integración' })).toBeVisible();
@@ -78,7 +83,7 @@ test.describe('Tech Lead: visión transversal', () => {
   test('el detalle muestra el contrato completo SIN revelar ningún secreto', async ({ page }) => {
     await login(page, TECH_LEAD);
     await page.goto('/integrations');
-    await page.getByRole('link', { name: 'ewm-provisioning-v1' }).click();
+    await integrationLink(page, 'ewm-provisioning-v1').click();
 
     await page.getByRole('tab', { name: 'Seguridad' }).click();
     await expect(page.getByText('masteradmin.ebim').first()).toBeVisible();
@@ -102,7 +107,7 @@ test.describe('Tech Lead: visión transversal', () => {
   test('las rutas del contrato son relativas: el host vive en el destino', async ({ page }) => {
     await login(page, TECH_LEAD);
     await page.goto('/integrations');
-    await page.getByRole('link', { name: 'ewm-provisioning-v1' }).click();
+    await integrationLink(page, 'ewm-provisioning-v1').click();
     await page.getByRole('tab', { name: 'Seguridad' }).click();
 
     await expect(page.getByText('/internal/platform/v1/tenants').first()).toBeVisible();
@@ -113,11 +118,11 @@ test.describe('Tech Lead: visión transversal', () => {
     await login(page, TECH_LEAD);
     await page.goto('/deployments');
 
-    await page.getByRole('button', { name: 'Configurar provisioning' }).first().click();
-    await expect(page.getByRole('heading', { name: /Provisioning de/ })).toBeVisible();
+    await page.getByRole('button', { name: 'Configurar altas' }).first().click();
+    await expect(page.getByRole('heading', { name: /Altas en/ })).toBeVisible();
 
     // El endpoint de metadatos del cloud: la consola lo explica en el acto.
-    await page.getByLabel('Ambiente de provisioning').selectOption('PRD');
+    await page.getByLabel('Ambiente de altas').selectOption('PRD');
     await page.getByLabel('URL base').fill('http://169.254.169.254');
     await expect(page.getByText(/host interno|HTTPS/).first()).toBeVisible();
 
@@ -128,7 +133,7 @@ test.describe('Tech Lead: visión transversal', () => {
     await login(page, TECH_LEAD);
     await page.goto('/deployments');
 
-    await expect(page.getByText('Provisioning SaaS').first()).toBeVisible();
+    await expect(page.getByRole('tabpanel').getByText('Altas en las apps').first()).toBeVisible();
     await page.getByRole('button', { name: 'Verificar conexión' }).first().click();
 
     // Cualquiera de los dos resultados es correcto y ninguno es una invención:
@@ -178,7 +183,7 @@ test.describe('Provisioning SaaS: estados y acciones', () => {
     await page.goto('/tenants');
     await page.getByRole('link', { name: 'Empresa Directa Alpha · EWM' }).first().click();
 
-    await page.getByRole('tab', { name: 'Productos / Provisioning' }).click();
+    await page.getByRole('tab', { name: 'Productos / Altas' }).click();
     await expect(page.getByText('Alta en los productos de la suite')).toBeVisible();
     // La columna se llama «ID en el producto» a propósito: lo que se muestra son
     // identificadores DEL PRODUCTO, no datos operativos ni IDs universales EBIM.
@@ -195,7 +200,7 @@ test.describe('Nueva venta: cerrar un contrato NO aprovisiona', () => {
     await expect(page.getByRole('heading', { name: /Nueva venta/ })).toBeVisible();
     // El único provisioning que menciona el alta es el de infraestructura, y en
     // simulación. Nada aquí crea el tenant dentro de un producto.
-    await expect(page.getByText('Provisioning en DRY_RUN')).toBeVisible();
+    await expect(page.getByText('Infraestructura en simulación')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Provisionar' })).toHaveCount(0);
   });
 
@@ -203,12 +208,14 @@ test.describe('Nueva venta: cerrar un contrato NO aprovisiona', () => {
     await login(page, TECH_LEAD);
     await page.goto('/onboarding');
 
-    const menu = page.getByRole('navigation');
+    const menu = page.getByRole('navigation', { name: 'Navegación principal' });
     await expect(menu.getByRole('link', { name: 'Nueva venta' })).toBeVisible();
-    await expect(menu.getByRole('link', { name: 'Provisioning SaaS' })).toBeVisible();
+    // V5: las altas en las apps son una pestaña de «Apps», en otro grupo del menú.
+    await expect(menu.getByRole('link', { name: 'Apps' })).toBeVisible();
 
-    await menu.getByRole('link', { name: 'Provisioning SaaS' }).click();
-    await expect(page.getByRole('heading', { name: 'Provisioning SaaS' })).toBeVisible();
+    await menu.getByRole('link', { name: 'Apps' }).click();
+    await page.getByRole('tab', { name: 'Altas en las apps' }).click();
+    await expect(page.getByRole('tab', { name: 'Altas en las apps', selected: true })).toBeVisible();
   });
 });
 
@@ -217,7 +224,7 @@ test.describe('aislamiento entre propietarios de producto', () => {
     await login(page, EWM_OWNER);
     await page.goto('/saas-provisioning');
 
-    await expect(page.getByRole('heading', { name: 'Provisioning SaaS' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Altas en las apps', selected: true })).toBeVisible();
     await expect(page.getByText('EWM').first()).toBeVisible();
     // RLS, no el menú: aunque llegara por URL, la base no le devuelve eSupplier.
     await expect(page.getByText('eSupplier')).toHaveCount(0);
@@ -227,7 +234,7 @@ test.describe('aislamiento entre propietarios de producto', () => {
     await login(page, ESUPPLIER_OWNER);
     await page.goto('/saas-provisioning');
 
-    await expect(page.getByRole('heading', { name: 'Provisioning SaaS' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Altas en las apps', selected: true })).toBeVisible();
     await expect(page.getByText('EWM')).toHaveCount(0);
   });
 
@@ -244,7 +251,7 @@ test.describe('sólo lectura', () => {
     await login(page, FINANCE);
     await page.goto('/saas-provisioning');
 
-    await expect(page.getByRole('heading', { name: 'Provisioning SaaS' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Altas en las apps', selected: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Nueva solicitud' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Provisionar' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Reintentar' })).toHaveCount(0);

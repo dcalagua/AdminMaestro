@@ -1,0 +1,117 @@
+{
+  "label": "fase07",
+  "generatedAt": "2026-10-05T09:50:04.287Z",
+  "blockedHosts": [],
+  "shots": [
+    {
+      "file": "01-login-1440-claro.png",
+      "route": "/login",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "01-login-390-claro.png",
+      "route": "/login",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "01-login-1440-oscuro.png",
+      "route": "/login",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "01-login-390-oscuro.png",
+      "route": "/login",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "02-login-recuperar-1440-claro.png",
+      "route": "/login",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "03-bienvenida-sin-enlace-1440-claro.png",
+      "route": "/bienvenida",
+      "overflow": false,
+      "alerts": [
+        "No pudimos abrir tu enlaceAbre esta página desde el enlace que recibiste. Si el enlace venció, pide una nueva invitación a tu administrador o usa «¿Olvidaste tu contraseña?».Ir al ingreso"
+      ]
+    },
+    {
+      "file": "03-bienvenida-sin-enlace-390-claro.png",
+      "route": "/bienvenida",
+      "overflow": false,
+      "alerts": [
+        "No pudimos abrir tu enlaceAbre esta página desde el enlace que recibiste. Si el enlace venció, pide una nueva invitación a tu administrador o usa «¿Olvidaste tu contraseña?».Ir al ingreso"
+      ]
+    },
+    {
+      "file": "04-bienvenida-formulario-1440-claro.png",
+      "route": "/bienvenida",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "05-bienvenida-formulario-390-claro.png",
+      "route": "/bienvenida",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "06-pagar-enlace-invalido-1440-claro.png",
+      "route": "/pagar",
+      "overflow": false,
+      "alerts": [
+        "No reconocemos este enlaceEste enlace de pago no es válido. Pide uno nuevo a tu contacto en EBIM.Tus facturas no se ven afectadasPor seguridad, cada enlace de pago tiene vigencia limitada. Tu contacto en EBIM puede enviarte uno nuevo en minutos."
+      ]
+    },
+    {
+      "file": "06-pagar-enlace-invalido-390-claro.png",
+      "route": "/pagar",
+      "overflow": false,
+      "alerts": [
+        "No reconocemos este enlaceEste enlace de pago no es válido. Pide uno nuevo a tu contacto en EBIM.Tus facturas no se ven afectadasPor seguridad, cada enlace de pago tiene vigencia limitada. Tu contacto en EBIM puede enviarte uno nuevo en minutos."
+      ]
+    },
+    {
+      "file": "07-pagar-estado-cuenta-1440-claro.png",
+      "route": "/pagar",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "07-pagar-estado-cuenta-390-claro.png",
+      "route": "/pagar",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "07-pagar-estado-cuenta-390-oscuro.png",
+      "route": "/pagar",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "07-pagar-estado-cuenta-1440-oscuro.png",
+      "route": "/pagar",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "08-pagar-tarjeta-simulada-390-claro.png",
+      "route": "/pagar",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "09-pagar-comprobante-390-claro.png",
+      "route": "/pagar",
+      "overflow": false,
+      "alerts": []
+    }
+  ]
+}

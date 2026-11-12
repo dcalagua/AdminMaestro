@@ -1,0 +1,66 @@
+{
+  "label": "fase13",
+  "generatedAt": "2026-10-05T13:49:39.548Z",
+  "shots": [
+    {
+      "file": "01-devengado-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "02-liquidaciones-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "03-detalle-aprobada-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "04-dialogo-pago-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "05-detalle-pagada-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "06-dialogo-generar-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "07-liquidaciones-1280-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "08-liquidaciones-1440-oscuro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "dark"
+    },
+    {
+      "file": "09-detalle-aprobada-1440-oscuro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "dark"
+    },
+    {
+      "file": "10-vendedor-liquidaciones-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    }
+  ]
+}

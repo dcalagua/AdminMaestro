@@ -1,0 +1,26 @@
+PASS · 0. alta real de eChange (CREATED) y en SHADOW decide legacy (WhatsApp sí, notas de voz sí: sin gate previo) · CREATED
+PASS · 1. receptor eChange configurado (fail-closed si faltara algo; sujeto M2M exacto)
+PASS · 2. MasterAdmin lee el manifiesto (6 vendibles + 7 incluidos ACTIVE; asset_clerk, email_intake, línea y bolsa DRAFT) · 2026-10-07.1 · 13 ACTIVE
+PASS · 3. el snapshot lista las 6 vendibles ACTIVE con enabled explícito, sin DRAFT ni baseline, sin precios
+PASS · 4. emisor real → PUT M2M real → APPLIED (en SHADOW: guarda y compara) · APPLIED 200
+PASS · 5. SHADOW no toca nada: WhatsApp sigue legacy (contratado y encendido)
+PASS · 6. SHADOW registra la diferencia legacy vs snapshot (WhatsApp) · 1 diferencias
+PASS · 7. GET: misma versión y checksum, PRIMARY · 1 PRIMARY
+PASS · 8. PRIMARY: el snapshot sustituye al legacy (WhatsApp sin derecho y apagado) y lo incluido sigue
+PASS · 9. v2 concede WhatsApp + reportería → APPLIED; el tenant los enciende y la puerta los ve · APPLIED
+PASS · 10. replay idempotente → REPLAYED · REPLAYED
+PASS · 11. v1 tras v2 → STALE (409) · STALE STALE_SNAPSHOT
+PASS · 12. misma versión, otro contenido → CONFLICT (409) · CONFLICT VERSION_CONFLICT
+PASS · 13. credencial con scope de provisioning → 403 REJECTED · 403 INSUFFICIENT_SCOPE
+PASS · 14. PRIMARY: una escritura legacy del derecho queda bloqueada en servidor
+PASS · 15. dual-read: modelo comercial local = snapshot (paridad, sin precios en la lectura) · sin diferencias
+PASS · 16. SaaS no disponible → RETRYABLE, nada aplicado · RETRYABLE 503
+PASS · 17. reconciliación: el GET delata deriva (aplicado v2 ≠ deseado v3)
+PASS · 18. offline: sin MasterAdmin ni receptor HTTP, la puerta sigue con el last-good v2
+PASS · 19. caso nuevo → evento echange.cases con controlPlaneTenantId, billable=false, PENDING, sin contenido · echange.cases|9f140000-0000-4000-8000-000000000001|false|PENDING|true
+PASS · 20. llamada IA → ACCEPTED, tokens reales, medidor NULL (D-06), billable=false · 9f140000-0000-4000-8000-000000000001|false|null
+PASS · 21. v3 appActive=false: reportería y WhatsApp retirados; clasificador y portal siguen (comercial ≠ operativo)
+PASS · 22. rollback PRIMARY → DUAL_READ → SHADOW: WhatsApp vuelve a su legacy (contratado y encendido)
+PASS · 23. limpieza: el tenant X-07 no queda en la base desechable
+
+24/24 PASS

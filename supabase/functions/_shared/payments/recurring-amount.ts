@@ -23,10 +23,18 @@
  *   · si el total recurrente cambia en cualquier fecha futura dentro del
  *     contrato → MONTO_RECURRENTE_FUTURO_VARIABLE.
  * No hay reprovisioning automático del Plan: es un rechazo FAIL-SAFE.
+ *
+ * CCP fase 18 · Un DISCOUNT recurrente RESTA, igual que en la factura
+ * (`platform.signed_line_amount`, CCP P-01): se guarda con magnitud positiva y
+ * antes se sumaba al Plan (sobrecobro). Uso, excesos, compras de créditos y
+ * correctivos no son importes fijos por intervalo: nunca llegan aquí como
+ * recurrentes (docs/finance/USAGE_BILLING.md).
  */
 import { formatMinorUnits, toMinorUnits } from './money.ts';
 
 export interface RecurringItem {
+  /** `platform.charge_kind`. Solo DISCOUNT cambia el signo; ausente = cargo. */
+  charge_kind?: string | null;
   billing_interval: string;
   amount: number | string | null;
   valid_from: string;
@@ -74,7 +82,10 @@ export function recurringCardAmount(
     .filter((i) => i.billing_interval !== 'ONE_TIME')
     .map((i) => ({
       interval: i.billing_interval,
-      minor: toMinorUnits(i.amount ?? 0),
+      // Signo contable (CCP P-01): DISCOUNT resta sea cual sea la forma guardada.
+      minor: i.charge_kind === 'DISCOUNT'
+        ? -Math.abs(toMinorUnits(i.amount ?? 0))
+        : toMinorUnits(i.amount ?? 0),
       from: i.valid_from.slice(0, 10),
       to: i.valid_to?.slice(0, 10) ?? null,
     }))

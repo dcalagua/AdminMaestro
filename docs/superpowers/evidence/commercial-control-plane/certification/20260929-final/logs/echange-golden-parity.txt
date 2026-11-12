@@ -1,0 +1,13 @@
+
+ RUN  v3.2.7 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eChange/.worktrees/ebim-commercial-control-plane-v1/web
+
+ ✓ src/edge/platformEntitlementsParidad.test.ts (15 tests) 384ms
+ ✓ src/edge/platformEntitlementsGolden.test.ts (14 tests) 3207ms
+   ✓ FIX-ENT-v1 golden contra el handler y las RPC reales (base desechable) > 08-stale  327ms
+   ✓ FIX-ENT-v1 golden contra el handler y las RPC reales (base desechable) > 09-conflict  318ms
+
+ Test Files  2 passed (2)
+      Tests  29 passed (29)
+   Start at  03:04:12
+   Duration  3.91s (transform 63ms, setup 180ms, collect 71ms, tests 3.59s, environment 783ms, prepare 76ms)
+

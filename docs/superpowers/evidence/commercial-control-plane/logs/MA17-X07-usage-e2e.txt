@@ -1,0 +1,80 @@
+
+=== gmao ===
+PASS · gmao: emisor apagado por defecto (sin POST) · DISABLED
+PASS · gmao: emisor encendido → OK · {"status":"OK","claimed":3,"batches":1,"sent":2,"dead":1,"retry":0,"unmapped":0}
+PASS · gmao: evento con tokens del proveedor → SENT
+PASS · gmao: evento sin tokens → SENT
+PASS · gmao: fila no aceptable (medidor no registrado o cantidad inválida) → DEAD con código, sin reintento · DEAD/UNKNOWN_METER
+PASS · gmao: MasterAdmin guarda tenant, medidor, cantidad, capacidad y tokens reales · ab6778c3-e748-02eb-c7b5-b41129ac7020|gmao.ai.calls|1.000000|gmao.ai.assist|900|DEMO
+PASS · gmao: sin tokens del proveedor → MasterAdmin no recibe tokens · null
+PASS · gmao: el ingest abre el agregado OPEN del período · OPEN:10
+PASS · gmao: reenvío idempotente (DUPLICATE → SENT, sin filas nuevas) · 10 → 10
+PASS · gmao: ingest apagado en MasterAdmin → los eventos válidos quedan PENDING (RETRY USAGE_INGEST_DISABLED) · 2/2 · medidor inválido PENDING/USAGE_INGEST_DISABLED
+PASS · gmao: estado final: ingest del producto apagado
+
+=== eexpense ===
+PASS · eexpense: emisor apagado por defecto (sin POST) · DISABLED
+PASS · eexpense: emisor encendido → OK · {"status":"OK","claimed":3,"notMapped":0,"batches":1,"sent":2,"dead":1,"retry":0,"invalid":1}
+PASS · eexpense: evento con tokens del proveedor → SENT
+PASS · eexpense: evento sin tokens → SENT
+PASS · eexpense: fila no aceptable (medidor no registrado o cantidad inválida) → DEAD con código, sin reintento · DEAD/UNKNOWN_METER
+PASS · eexpense: MasterAdmin guarda tenant, medidor, cantidad, capacidad y tokens reales · 61cbf4a3-5bb0-9b23-39fe-37257587257d|eexpense.ai.calls|1.000000|eexpense.ai_copilot|700|DEMO
+PASS · eexpense: sin tokens del proveedor → MasterAdmin no recibe tokens · null
+PASS · eexpense: el ingest abre el agregado OPEN del período · OPEN:10
+PASS · eexpense: reenvío idempotente (DUPLICATE → SENT, sin filas nuevas) · 10 → 10
+PASS · eexpense: ingest apagado en MasterAdmin → los eventos válidos quedan PENDING (RETRY USAGE_INGEST_DISABLED) · 2/2 · medidor inválido DEAD/UNKNOWN_METER
+PASS · eexpense: estado final: ingest del producto apagado
+
+=== ecommerce ===
+PASS · ecommerce: emisor apagado por defecto (sin POST) · DISABLED
+PASS · ecommerce: emisor encendido → OK · {"status":"OK","claimed":3,"batches":1,"sent":2,"dead":1,"retry":0}
+PASS · ecommerce: evento con tokens del proveedor → SENT
+PASS · ecommerce: evento sin tokens → SENT
+PASS · ecommerce: fila no aceptable (medidor no registrado o cantidad inválida) → DEAD con código, sin reintento · DEAD/UNKNOWN_METER
+PASS · ecommerce: MasterAdmin guarda tenant, medidor, cantidad, capacidad y tokens reales · 47afd51e-f373-483c-3aa1-e71d81b1af94|ecommerce.ai.calls|1.000000|ecommerce.ai.content|800|DEMO
+PASS · ecommerce: sin tokens del proveedor → MasterAdmin no recibe tokens · null
+PASS · ecommerce: el ingest abre el agregado OPEN del período · OPEN:6
+PASS · ecommerce: reenvío idempotente (DUPLICATE → SENT, sin filas nuevas) · 6 → 6
+PASS · ecommerce: ingest apagado en MasterAdmin → los eventos válidos quedan PENDING (RETRY USAGE_INGEST_DISABLED) · 2/2 · medidor inválido DEAD/UNKNOWN_METER
+PASS · ecommerce: estado final: ingest del producto apagado
+
+=== esupplier ===
+PASS · esupplier: emisor apagado por defecto (sin POST) · DISABLED
+PASS · esupplier: emisor encendido → OK · {"status":"OK","rounds":1,"claimed":3,"sent":2,"dead":1,"retried":0,"batches":1}
+PASS · esupplier: evento con tokens del proveedor → SENT
+PASS · esupplier: evento sin tokens → SENT
+PASS · esupplier: fila no aceptable (medidor no registrado o cantidad inválida) → DEAD con código, sin reintento · DEAD/NEGATIVE_QUANTITY
+PASS · esupplier: MasterAdmin guarda tenant, medidor, cantidad, capacidad y tokens reales · 03e57f96-38e4-ab0d-85bf-1df872557d7b|esupplier.ai.calls|1.000000|esupplier.ai.tender_copilot|600|DEMO
+PASS · esupplier: sin tokens del proveedor → MasterAdmin no recibe tokens · null
+PASS · esupplier: el ingest abre el agregado OPEN del período · OPEN:6
+PASS · esupplier: reenvío idempotente (DUPLICATE → SENT, sin filas nuevas) · 6 → 6
+PASS · esupplier: ingest apagado en MasterAdmin → los eventos válidos quedan PENDING (RETRY USAGE_INGEST_DISABLED) · 2/2 · medidor inválido DEAD/NEGATIVE_QUANTITY
+PASS · esupplier: estado final: ingest del producto apagado
+
+=== echange ===
+PASS · echange: emisor apagado por defecto (sin POST) · DISABLED
+PASS · echange: emisor encendido → OK · {"status":"COMPLETED","claimed":3,"batches":1,"sent":2,"dead":1,"retry":0,"tenantNotMapped":0,"markFailures":0}
+PASS · echange: evento con tokens del proveedor → SENT
+PASS · echange: evento sin tokens → SENT
+PASS · echange: fila no aceptable (medidor no registrado o cantidad inválida) → DEAD con código, sin reintento · DEAD/UNKNOWN_METER
+PASS · echange: MasterAdmin guarda tenant, medidor, cantidad, capacidad y tokens reales · d3846bcf-2680-e926-a927-9e1be6065a67|echange.ai.calls|1.000000|echange.ai.triage|500|DEMO
+PASS · echange: sin tokens del proveedor → MasterAdmin no recibe tokens · {"provider": "anthropic"}
+PASS · echange: el ingest abre el agregado OPEN del período · OPEN:6
+PASS · echange: reenvío idempotente (DUPLICATE → SENT, sin filas nuevas) · 6 → 6
+PASS · echange: ingest apagado en MasterAdmin → los eventos válidos quedan PENDING (RETRY USAGE_INGEST_DISABLED) · 2/2 · medidor inválido PENDING/USAGE_INGEST_DISABLED
+PASS · echange: estado final: ingest del producto apagado
+
+=== comerza ===
+PASS · comerza: emisor apagado por defecto (sin POST) · DISABLED
+PASS · comerza: emisor encendido → OK · {"enabled":true,"ok":true,"claimed":3,"batches":1,"sent":2,"dead":1,"retry":0,"localDead":1,"ignored":0,"status":"OK"}
+PASS · comerza: evento con tokens del proveedor → SENT
+PASS · comerza: evento sin tokens → SENT
+PASS · comerza: fila no aceptable (medidor no registrado o cantidad inválida) → DEAD con código, sin reintento · DEAD/LOCAL_UNKNOWN_METER
+PASS · comerza: MasterAdmin guarda tenant, medidor, cantidad, capacidad y tokens reales · 950254ac-3c46-d40e-a35c-b78939f00636|comerza.ai.calls|1.000000|comerza.ai.whatsapp_agent|400|DEMO
+PASS · comerza: sin tokens del proveedor → MasterAdmin no recibe tokens · {"provider": "gemini"}
+PASS · comerza: el ingest abre el agregado OPEN del período · OPEN:4
+PASS · comerza: reenvío idempotente (DUPLICATE → SENT, sin filas nuevas) · 4 → 4
+PASS · comerza: ingest apagado en MasterAdmin → los eventos válidos quedan PENDING (RETRY USAGE_INGEST_DISABLED) · 2/2 · medidor inválido DEAD/LOCAL_UNKNOWN_METER
+PASS · comerza: estado final: ingest del producto apagado
+
+66/66 PASS

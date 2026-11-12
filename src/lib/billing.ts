@@ -1,4 +1,5 @@
 import { parseBusinessError } from './pgError';
+import { formatMonth } from './period';
 
 /**
  * V3.1 · Presentación de la facturación del PERIODO.
@@ -62,10 +63,9 @@ export function formatDateDMY(value: string | null | undefined): string {
   return match ? `${match[3]}/${match[2]}/${match[1]}` : '—';
 }
 
-/** `2026-09-01` → `09/2026`. */
+/** `2026-09-01` → «setiembre de 2026» (V5 · F0: período en español, no numérico). */
 export function formatPeriod(value: string | null | undefined): string {
-  const match = /^(\d{4})-(\d{2})/.exec(value ?? '');
-  return match ? `${match[2]}/${match[1]}` : '—';
+  return formatMonth(value);
 }
 
 /** Título del aviso tras emitir. `created: false` = la RPC devolvió la factura que ya existía. */

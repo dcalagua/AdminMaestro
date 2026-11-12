@@ -2,6 +2,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import type { PersonaKind } from '@/features/auth/session';
+import { hasFinanceView } from './navigation';
 import { LoadingState, PageContainer, Card, EmptyState } from '@/components/ui/primitives';
 
 /** Exige sesión activa. Recuerda la ruta pedida para volver tras el login. */
@@ -9,7 +10,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   const { session, loading } = useAuth();
   const location = useLocation();
 
-  if (loading) return <LoadingState label="Verificando sesión…" />;
+  if (loading) return <LoadingState variant="inline" label="Verificando sesión…" />;
   if (!session) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
@@ -32,7 +33,7 @@ export function RequirePersona({
 }) {
   const { persona, loading } = useAuth();
 
-  if (loading) return <LoadingState />;
+  if (loading) return <LoadingState variant="page" />;
 
   if (!personas.includes(persona)) {
     return (
@@ -47,5 +48,46 @@ export function RequirePersona({
     );
   }
 
+  return <>{children}</>;
+}
+
+/**
+ * Pantallas financieras: personal EBIM con alcance sólo técnico (propietario de
+ * producto, rol de provisioning) no las recibe por «ser EBIM» (spec §4). Igual
+ * que `RequirePersona`, es UX: `can_read_finance` y RLS deciden los datos.
+ */
+export function RequireFinanceView({ children }: { children: ReactNode }) {
+  const { persona, roles, loading } = useAuth();
+
+  if (loading) return <LoadingState variant="page" />;
+
+  if (!hasFinanceView(persona, roles)) {
+    return (
+      <PageContainer title="Sin acceso a información financiera">
+        <Card>
+          <EmptyState
+            title="Tu perfil técnico no incluye finanzas"
+            description="Tu acceso a MasterAdmin es de operación SaaS. La información de cobros, costos y comisiones está protegida en la base de datos y no se muestra por pertenecer a EBIM."
+          />
+        </Card>
+      </PageContainer>
+    );
+  }
+
+  return <>{children}</>;
+}
+
+/**
+ * Galería de componentes (`/design`): herramienta interna de revisión visual.
+ * Visible en desarrollo o para super admin EBIM; no muestra datos, así que no
+ * hay nada que proteger en la base: el guard solo evita exponerla en producción.
+ */
+export function RequireDesignGallery({ children }: { children: ReactNode }) {
+  const { roles, loading } = useAuth();
+
+  if (loading) return <LoadingState variant="page" />;
+  if (!import.meta.env.DEV && roles?.platformRole !== 'EBIM_SUPER_ADMIN') {
+    return <Navigate to="/404" replace />;
+  }
   return <>{children}</>;
 }

@@ -23,7 +23,7 @@ export async function loadSessionRoles(userId: string, email: string): Promise<S
     provisioningRoles,
     productOwnerships,
   ] = await Promise.all([
-    supabase.from('profiles').select('full_name').eq('id', userId).maybeSingle(),
+    supabase.from('profiles').select('full_name, is_active').eq('id', userId).maybeSingle(),
     supabase
       .from('platform_admins')
       .select('role')
@@ -66,6 +66,9 @@ export async function loadSessionRoles(userId: string, email: string): Promise<S
     userId,
     email,
     fullName: profile.data?.full_name ?? null,
+    // M5: un perfil desactivado no tiene persona aunque conserve un JWT vigente
+    // (la base ya apagó sus membresías en cascada; esto solo corta la UI).
+    isActive: profile.data ? profile.data.is_active !== false : true,
     platformRole: platformAdmin.data?.role ?? null,
     organizations: (orgMemberships.data ?? []).map((m) => ({
       organizationId: m.organization_id,
@@ -88,6 +91,7 @@ export type PersonaKind = 'EBIM' | 'PARTNER' | 'SALES_AGENT' | 'TENANT' | 'UNKNO
 
 export function resolvePersona(roles: SessionRoles | null): PersonaKind {
   if (!roles) return 'UNKNOWN';
+  if (roles.isActive === false) return 'UNKNOWN';
   if (roles.platformRole) return 'EBIM';
   // Personal de EBIM con alcance ACOTADO al plano de provisioning. Se resuelve
   // como EBIM para que el menú y las rutas de infraestructura existan para
@@ -126,3 +130,7 @@ export function isOperatorDomain(email: string): boolean {
   const domain = email.toLowerCase().split('@')[1] ?? '';
   return BLOCKED_OPERATOR_DOMAINS.includes(domain as (typeof BLOCKED_OPERATOR_DOMAINS)[number]);
 }
+
+/** M5: mensaje al cerrar la sesión de una cuenta desactivada. */
+export const DEACTIVATED_ACCOUNT_NOTICE =
+  'Tu cuenta está desactivada. Si crees que es un error, contacta al equipo de plataforma EBIM.';

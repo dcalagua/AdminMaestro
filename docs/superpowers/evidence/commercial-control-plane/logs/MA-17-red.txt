@@ -1,0 +1,17 @@
+Connecting to local database...
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/33_ccp_compute_entitlements.test.sql:45: ERROR:  function platform.compute_entitlements(uuid, uuid, timestamp with time zone) does not exist
+LINE 10:     from platform.compute_entitlements(p_tenant, pg_temp.esu...
+                  ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/33_ccp_compute_entitlements.test.sql .. 
+Dubious, test returned 3 (wstat 768, 0x300)
+Failed 1/1 subtests 
+
+Test Summary Report
+-------------------
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/33_ccp_compute_entitlements.test.sql (Wstat: 768 (exited 3) Tests: 0 Failed: 0)
+  Non-zero exit status: 3
+  Parse errors: Bad plan.  You planned 1 tests but ran 0.
+Files=1, Tests=0,  0 wallclock secs ( 0.01 usr +  0.01 sys =  0.02 CPU)
+Result: FAIL
+error running container: exit 1

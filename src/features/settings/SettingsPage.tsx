@@ -1,10 +1,22 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useAppearance } from '@/hooks/useAppearance';
+import { usePermissions } from '@/hooks/usePermissions';
+import { PaymentAccountsPanel } from './PaymentAccountsPanel';
+import { MyProfilePanel } from './MyProfilePanel';
 import { SectionTabs } from '@/components/ui/SectionTabs';
 import { PageContainer, Card, Badge, DataTable, EmptyState } from '@/components/ui/primitives';
 import { PLATFORM_ROLE_LABEL, ORG_ROLE_LABEL } from '@/types/domain';
 import { env } from '@/lib/env';
 import { EbimLockup } from '@/components/ui/EbimMark';
+import { MoonIcon, SunIcon } from '@phosphor-icons/react';
+import { Avatar } from '@/components/ui/Avatar';
+
+const APP_ENV_LABEL: Record<string, string> = {
+  LOCAL: 'Local (desarrollo en este equipo)',
+  DEV: 'Desarrollo',
+  QAS: 'Calidad (QAS)',
+  PRD: 'Producción',
+};
 
 /**
  * Configuración.
@@ -15,7 +27,8 @@ import { EbimLockup } from '@/components/ui/EbimMark';
  */
 export function SettingsPage() {
   const { roles, persona } = useAuth();
-  const { mode, density, setMode, setDensity } = useAppearance();
+  const { mode, density, setMode, setDensity, persistence } = useAppearance();
+  const perms = usePermissions();
 
   return (
     <PageContainer title="Configuración" description="Tu sesión, tu apariencia y el entorno de esta consola.">
@@ -27,22 +40,27 @@ export function SettingsPage() {
             content: (
               <Card
                 title="Apariencia"
-                description="Sólo modo y densidad. El color de marca no es elegible por el usuario: lo define la marca del portal (contrato §4.4)."
+                description="Sólo modo y densidad. El color de marca no es elegible por el usuario: lo define la marca del portal."
               >
                 <div className="space-y-5 p-4">
                   <div>
                     <span className="ebim-label">Modo</span>
-                    <div className="flex gap-2">
-                      {(['light', 'dark'] as const).map((m) => (
-                        <button
-                          key={m}
-                          type="button"
-                          onClick={() => setMode(m)}
-                          className={mode === m ? 'ebim-btn-primary' : 'ebim-btn-ghost'}
-                        >
-                          {m === 'light' ? 'Claro' : 'Oscuro'}
-                        </button>
-                      ))}
+                    <div className="flex flex-wrap gap-2">
+                      {(['light', 'dark'] as const).map((m) => {
+                        const Icon = m === 'light' ? SunIcon : MoonIcon;
+                        return (
+                          <button
+                            key={m}
+                            type="button"
+                            aria-pressed={mode === m}
+                            onClick={() => setMode(m)}
+                            className={mode === m ? 'ebim-btn-primary' : 'ebim-btn-secondary'}
+                          >
+                            <Icon size={16} aria-hidden />
+                            {m === 'light' ? 'Claro' : 'Oscuro'}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -53,22 +71,27 @@ export function SettingsPage() {
                         <button
                           key={d}
                           type="button"
+                          aria-pressed={density === d}
                           onClick={() => setDensity(d)}
-                          className={density === d ? 'ebim-btn-primary' : 'ebim-btn-ghost'}
+                          className={density === d ? 'ebim-btn-primary' : 'ebim-btn-secondary'}
                         >
                           {d === 'comoda' ? 'Cómoda' : d === 'equilibrada' ? 'Equilibrada' : 'Compacta'}
                         </button>
                       ))}
                     </div>
-                    <p className="mt-2 text-xs text-muted">
+                    <p className="mt-2 text-caption text-muted">
                       Altura de control / fila: cómoda 40/52 · equilibrada 36/44 · compacta 32/38.
                     </p>
                   </div>
 
-                  <div className="rounded-field border border-border p-4">
-                    <p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted">
-                      Vista previa
-                    </p>
+                  <p className="text-caption text-muted" data-testid="appearance-persistence">
+                    {persistence === 'BROWSER_AND_PROFILE'
+                      ? 'Se guarda en este navegador y en tu perfil: se aplica al iniciar sesión en otro equipo.'
+                      : 'Se guarda sólo en este navegador: no se pudo sincronizar con tu perfil.'}
+                  </p>
+
+                  <div className="rounded-card border border-border bg-sunken p-4">
+                    <p className="mb-2 text-micro text-muted">Vista previa</p>
                     <div className="flex flex-wrap items-center gap-2">
                       <button type="button" className="ebim-btn-primary">Acción primaria</button>
                       <button type="button" className="ebim-btn-ghost">Secundaria</button>
@@ -82,11 +105,27 @@ export function SettingsPage() {
             ),
           },
           {
+            // M5: nombre, teléfono, cargo y contraseña propios.
+            id: 'profile',
+            label: 'Mi perfil',
+            content: <MyProfilePanel />,
+          },
+          {
             id: 'session',
             label: 'Mi sesión',
             content: (
               <div className="grid gap-4 lg:grid-cols-2">
-                <Card title="Identidad">
+                <Card
+                  title="Identidad"
+                  description="Tus roles los asigna el equipo de plataforma EBIM; esta pantalla sólo los muestra."
+                >
+                  <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+                    <Avatar name={roles?.fullName ?? roles?.email ?? '—'} mode="person" size="md" />
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-fg">{roles?.fullName ?? '—'}</p>
+                      <p className="truncate text-caption text-muted">{roles?.email ?? '—'}</p>
+                    </div>
+                  </div>
                   <dl className="divide-y divide-border">
                     {[
                       ['Correo', roles?.email ?? '—'],
@@ -95,7 +134,7 @@ export function SettingsPage() {
                       ['Rol de plataforma', roles?.platformRole ? PLATFORM_ROLE_LABEL[roles.platformRole] : 'Ninguno'],
                       ['Comercial asociado', roles?.salesAgentId ? 'Sí' : 'No'],
                     ].map(([k, v]) => (
-                      <div key={k} className="flex justify-between gap-4 px-4 py-2.5 text-sm">
+                      <div key={k} className="flex justify-between gap-4 px-4 py-2.5 text-body">
                         <dt className="text-muted">{k}</dt>
                         <dd className="text-right font-medium">{v}</dd>
                       </div>
@@ -118,7 +157,7 @@ export function SettingsPage() {
                       {(roles?.tenantRoles ?? []).map((t) => (
                         <tr key={t.tenantId}>
                           <td className="ebim-td">Tenant</td>
-                          <td className="ebim-td font-mono text-xs">{t.tenantId.slice(0, 8)}…</td>
+                          <td className="ebim-td font-mono text-caption">{t.tenantId.slice(0, 8)}…</td>
                           <td className="ebim-td"><Badge tone="accent">{t.role}</Badge></td>
                         </tr>
                       ))}
@@ -129,27 +168,37 @@ export function SettingsPage() {
             ),
           },
           {
+            id: 'payment-accounts',
+            label: 'Cuentas de pago',
+            // UX: la RPC exige EBIM_FINANCE o super admin igualmente.
+            hidden: !perms.canReadFinance,
+            content: <PaymentAccountsPanel />,
+          },
+          {
             id: 'environment',
             label: 'Entorno',
             content: (
               <Card title="Entorno de la consola">
                 <div className="p-4">
-                  <div className="mb-4">
-                    <EbimLockup appName="Control Plane" />
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <EbimLockup />
+                    <Badge tone={env.isProduction ? 'warn' : 'info'}>
+                      Entorno: {APP_ENV_LABEL[env.appEnv] ?? env.appEnv}
+                    </Badge>
                   </div>
                   <dl className="divide-y divide-border">
                     {[
-                      ['Entorno', env.appEnv],
+                      ['Entorno (configuración de la aplicación)', env.appEnv],
                       ['URL de Supabase', env.supabaseUrl],
                       ['Clave en uso', 'anon / publicable — la seguridad la da RLS'],
                       // La regla de lint prohíbe el token literal en el cliente, incluso
                       // dentro de una etiqueta de UI. Se describe sin escribirlo.
                       ['Clave de servicio en el navegador', 'Nunca. Sólo existe del lado servidor.'],
-                      ['Modo de provisioning', 'DRY_RUN (por defecto)'],
+                      ['Solicitudes de infraestructura', 'En simulación por defecto'],
                     ].map(([k, v]) => (
-                      <div key={k} className="flex justify-between gap-4 px-1 py-2.5 text-sm">
+                      <div key={k} className="flex justify-between gap-4 px-1 py-2.5 text-body">
                         <dt className="text-muted">{k}</dt>
-                        <dd className="break-all text-right font-mono text-xs">{v}</dd>
+                        <dd className="break-all text-right font-mono text-caption">{v}</dd>
                       </div>
                     ))}
                   </dl>

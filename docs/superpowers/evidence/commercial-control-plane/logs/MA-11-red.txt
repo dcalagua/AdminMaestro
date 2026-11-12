@@ -1,0 +1,20 @@
+Connecting to local database...
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/29_ccp_capabilities.test.sql .. 
+# Failed test 2: "Existe platform.product_capabilities"
+# Failed test 3: "Existe platform.capability_aliases"
+# Failed test 4: "RLS habilitada y forzada en el registro"
+#         have: NULL
+#         want: capability_aliases:true:true,product_capabilities:true:true
+Dubious, test returned 3 (wstat 768, 0x300)
+Failed 34/35 subtests 
+
+Test Summary Report
+-------------------
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/29_ccp_capabilities.test.sql (Wstat: 768 (exited 3) Tests: 4 Failed: 3)
+  Failed tests:  2-4
+  Non-zero exit status: 3
+  Parse errors: Bad plan.  You planned 35 tests but ran 4.
+Files=1, Tests=4,  0 wallclock secs ( 0.01 usr +  0.01 sys =  0.02 CPU)
+Result: FAIL
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/29_ccp_capabilities.test.sql:87: ERROR:  relation "platform.capability_aliases" does not exist
+error running container: exit 1

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useDeploymentTargets, useProvisioningTargets } from '@/services/queries';
 import { useCheckDeploymentHealth } from '@/services/mutations';
 import { useProvisioningAccess } from '@/hooks/useProvisioningAccess';
@@ -8,12 +8,24 @@ import {
   DEPLOYMENT_HEALTH_LABEL,
   DEPLOYMENT_TARGET_STATUS_LABEL,
   PROVISIONING_ENVIRONMENT_LABEL,
-  healthTone,
   targetStatusTone,
   type DeploymentHealth,
   type DeploymentTargetStatus,
   type ProvisioningEnvironment,
 } from '@/lib/provisioning';
+import {
+  ENVIRONMENT_ORDER,
+  isEvaluable,
+  notEvaluatedReason,
+  observedHealth,
+  summarizeByEnvironment,
+  type TargetHealthInput,
+} from '@/features/platform/targetHealth';
+import { HealthDot, HealthText, ObservationDate } from '@/features/platform/EnvironmentHealth';
+import { ActionMenu } from '@/components/ui/ActionMenu';
+import { StatusTabs } from '@/components/ui/SectionTabs';
+import { KpiStrip } from '@/features/billing/financeUi';
+import { formatNumber } from '@/lib/format';
 import {
   DeploymentProvisioningDialog,
   type TargetProvisioningDraft,
@@ -22,14 +34,33 @@ import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Link } from 'react-router-dom';
 import {
-  PageContainer, Card, DataTable, SearchBar, StatCard, LoadingState, ErrorState, EmptyState, Badge,
+  PageContainer, Card, DataTable, SearchBar, KpiTile, LoadingState, ErrorState, EmptyState, Badge,
 } from '@/components/ui/primitives';
 import { DEPLOYMENT_MODE_LABEL } from '@/types/domain';
 import { DeploymentTargetDialog, AttachTenantDialog } from './DeploymentDialogs';
 import type { TargetDraft } from './DeploymentDialogs';
 
+const TARGET_STATUS_LABEL: Record<string, string> = {
+  ACTIVE: 'Activo',
+  INACTIVE: 'Inactivo',
+  SUSPENDED: 'Suspendido',
+  ARCHIVED: 'Archivado',
+};
+
+const ENVIRONMENT_KIND_LABEL: Record<string, string> = {
+  DEMO: 'Demo',
+  TRIAL: 'Prueba',
+  PRODUCTION: 'Producción',
+  SANDBOX: 'Sandbox',
+};
+
 /**
- * Deployment targets: la infraestructura FÍSICA, desacoplada del tenant lógico.
+ * Entornos y despliegues: la infraestructura FÍSICA, desacoplada del tenant lógico.
+ *
+ * La salud que se ve es la ÚLTIMA OBSERVACIÓN guardada, con su fecha. Abrir la
+ * pantalla no verifica nada ni habilita nada: «Verificar conexión» es una acción
+ * explícita, y un destino en borrador o deshabilitado se muestra «No evaluado»,
+ * no como fallo.
  *
  * Estas filas contienen SÓLO metadata pública (region, project ref). No hay
  * passwords, service_role keys ni PATs: un trigger en la base rechaza cualquier
@@ -77,13 +108,17 @@ export function DeploymentsPage() {
     (t.organizations as { display_name: string } | null)?.display_name,
   ]);
 
+  const [mode, setMode] = useState<string>('ALL');
   const all = targets.data ?? [];
-  const byMode = (mode: string) => all.filter((t) => t.deployment_mode === mode).length;
+  const byMode = (m: string) => all.filter((t) => t.deployment_mode === m).length;
+  const countIn = (m: string) => filtered.filter((t) => m === 'ALL' || t.deployment_mode === m).length;
+  const visible = filtered.filter((t) => mode === 'ALL' || t.deployment_mode === mode);
+  const provisioningRows = provisioning.data ?? [];
 
   return (
     <PageContainer
-      title="Deployments"
-      description="Dónde vive físicamente cada tenant. Un target compartido aloja muchos; uno dedicado de cliente, exactamente uno."
+      title="Entornos y despliegues"
+      description="Dónde vive físicamente cada tenant y a qué destino se llama en cada entorno. Un destino compartido aloja muchos tenants; uno dedicado de cliente, exactamente uno."
       actions={
         perms.canManagePlatform ? (
           <button
@@ -96,86 +131,114 @@ export function DeploymentsPage() {
         ) : null
       }
     >
-      <div className="mb-4 grid gap-3 sm:grid-cols-4">
-        <StatCard label="Targets totales" value={String(all.length)} />
-        <StatCard label="Compartidos" value={String(byMode('SHARED'))} />
-        <StatCard label="Dedicados de partner" value={String(byMode('PARTNER_DEDICATED'))} />
-        <StatCard label="Dedicados de cliente" value={String(byMode('TENANT_DEDICATED'))} />
-      </div>
+      <KpiStrip label="Destinos de despliegue">
+        <KpiTile label="Destinos totales" value={targets.isLoading ? null : formatNumber(all.length)} loading={targets.isLoading} />
+        <KpiTile
+          label="Compartidos"
+          value={targets.isLoading ? null : formatNumber(byMode('SHARED'))}
+          loading={targets.isLoading}
+          footer="Infraestructura de EBIM para muchos tenants."
+        />
+        <KpiTile label="Dedicados de partner" value={targets.isLoading ? null : formatNumber(byMode('PARTNER_DEDICATED'))} loading={targets.isLoading} />
+        <KpiTile label="Dedicados de cliente" value={targets.isLoading ? null : formatNumber(byMode('TENANT_DEDICATED'))} loading={targets.isLoading} />
+      </KpiStrip>
+
+      <EnvironmentMatrix rows={provisioningRows} loading={provisioning.isLoading} error={provisioning.error} />
 
       <Card>
-        <SearchBar value={term} onChange={setTerm} placeholder="Buscar por código, región, proveedor u organización…" />
+        <SearchBar
+          value={term}
+          onChange={setTerm}
+          placeholder="Buscar por código, región, proveedor u organización…"
+          right={
+            <StatusTabs
+              label="Modo de despliegue"
+              value={mode}
+              onChange={setMode}
+              options={[
+                { id: 'ALL', label: 'Todos', count: countIn('ALL') },
+                { id: 'SHARED', label: 'Compartidos', count: countIn('SHARED') },
+                { id: 'PARTNER_DEDICATED', label: 'De partner', count: countIn('PARTNER_DEDICATED') },
+                { id: 'TENANT_DEDICATED', label: 'De cliente', count: countIn('TENANT_DEDICATED') },
+              ]}
+            />
+          }
+        />
         {targets.isLoading ? (
           <LoadingState />
         ) : targets.error ? (
           <ErrorState error={targets.error} onRetry={() => void targets.refetch()} />
-        ) : filtered.length === 0 ? (
-          <EmptyState title="Sin deployment targets" />
+        ) : visible.length === 0 ? (
+          <EmptyState title="Sin destinos de despliegue" description="No hay destinos visibles para tu perfil o ninguno coincide con la búsqueda." />
         ) : (
           <div className="divide-y divide-border">
-            {filtered.map((t) => {
+            {visible.map((t) => {
               const deployments = ((t.tenant_deployments ?? []) as Array<Record<string, unknown>>).filter(
                 (d) => d.status === 'ACTIVE',
               );
               return (
-                <div key={t.id} className="p-4">
-                  <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-sm font-bold">{t.code}</span>
-                    <Badge tone="accent">
-                      {DEPLOYMENT_MODE_LABEL[t.deployment_mode as keyof typeof DEPLOYMENT_MODE_LABEL]}
-                    </Badge>
-                    <Badge tone="info">{t.provider}</Badge>
-                    {t.region ? <Badge tone="neutral">{t.region}</Badge> : null}
-                    <Badge tone={t.status === 'ACTIVE' ? 'ok' : 'neutral'}>{t.status}</Badge>
+                <div key={t.id} className="min-w-0 px-5 py-4" data-target={t.code}>
+                  <div className="mb-3 flex items-start gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <span className="break-all font-mono text-body font-semibold text-fg">{t.code}</span>
+                        <Badge tone={t.status === 'ACTIVE' ? 'ok' : 'neutral'} dot>
+                          {TARGET_STATUS_LABEL[t.status] ?? t.status}
+                        </Badge>
+                        <Badge tone="accent">
+                          {DEPLOYMENT_MODE_LABEL[t.deployment_mode as keyof typeof DEPLOYMENT_MODE_LABEL]}
+                        </Badge>
+                      </div>
+                      <p className="mt-0.5 text-body text-fg-2">{t.name}</p>
+                      <p className="mt-1 flex flex-wrap gap-x-2 text-caption text-muted">
+                        <span>
+                          {t.owner_organization_id
+                            ? `Dueño: ${(t.organizations as { display_name: string } | null)?.display_name}`
+                            : 'Infraestructura de EBIM (compartida)'}
+                        </span>
+                        {t.saas_products ? <span>· {(t.saas_products as { short_name: string }).short_name}</span> : null}
+                        <span>· {t.provider}{t.region ? ` ${t.region}` : ''}</span>
+                        <span>· {ENVIRONMENT_KIND_LABEL[t.environment] ?? t.environment}</span>
+                        {t.cost_center ? <span>· centro de costo {t.cost_center}</span> : null}
+                        <span>
+                          · ref pública <span className="font-mono">{(t.provider_project_ref as string) ?? '—'}</span>
+                        </span>
+                      </p>
+                    </div>
                     {perms.canManagePlatform ? (
-                      <span className="ml-auto flex gap-3">
-                        <button
-                          type="button"
-                          className="ebim-link text-[13px]"
-                          onClick={() =>
-                            setTargetDialog({
-                              open: true,
-                              target: {
-                                id: t.id,
-                                code: t.code,
-                                name: t.name,
-                                provider: t.provider,
-                                deployment_mode: t.deployment_mode,
-                                environment: t.environment,
-                                region: t.region,
-                                provider_project_ref: t.provider_project_ref,
-                                owner_organization_id: t.owner_organization_id,
-                                saas_product_id: t.saas_product_id,
-                                cost_center: t.cost_center,
-                                status: t.status,
-                              },
-                            })
-                          }
-                        >
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          className="ebim-link text-[13px]"
-                          onClick={() =>
-                            setAttachTarget({ id: t.id, code: t.code, mode: t.deployment_mode })
-                          }
-                        >
-                          Adjuntar tenant
-                        </button>
-                      </span>
+                      <ActionMenu
+                        variant="icon"
+                        label={`Acciones de ${t.code}`}
+                        items={[
+                          {
+                            label: 'Editar destino',
+                            onSelect: () =>
+                              setTargetDialog({
+                                open: true,
+                                target: {
+                                  id: t.id,
+                                  code: t.code,
+                                  name: t.name,
+                                  provider: t.provider,
+                                  deployment_mode: t.deployment_mode,
+                                  environment: t.environment,
+                                  region: t.region,
+                                  provider_project_ref: t.provider_project_ref,
+                                  owner_organization_id: t.owner_organization_id,
+                                  saas_product_id: t.saas_product_id,
+                                  cost_center: t.cost_center,
+                                  status: t.status,
+                                },
+                              }),
+                          },
+                          {
+                            label: 'Adjuntar tenant',
+                            onSelect: () => setAttachTarget({ id: t.id, code: t.code, mode: t.deployment_mode }),
+                          },
+                        ]}
+                      />
                     ) : null}
                   </div>
-                  <p className="mb-1 text-sm text-fg">{t.name}</p>
-                  <p className="mb-3 text-xs text-muted">
-                    {t.owner_organization_id
-                      ? `Dueño: ${(t.organizations as { display_name: string } | null)?.display_name}`
-                      : 'Infraestructura de EBIM (compartida)'}
-                    {t.saas_products ? ` · ${(t.saas_products as { short_name: string }).short_name}` : ''}
-                    {t.cost_center ? ` · centro de costo ${t.cost_center}` : ''}
-                    {' · ref pública: '}
-                    <span className="font-mono">{(t.provider_project_ref as string) ?? '—'}</span>
-                  </p>
 
                   <ProvisioningPanel
                     row={(provisioning.data ?? []).find((p) => p.deployment_target_id === t.id)}
@@ -187,26 +250,37 @@ export function DeploymentsPage() {
                   />
 
                   {deployments.length === 0 ? (
-                    <p className="text-xs text-muted">Sin tenants asignados.</p>
+                    <p className="text-caption text-muted">Sin tenants asignados.</p>
                   ) : (
-                    <div className="rounded-card border border-border">
-                      <DataTable columns={[`Tenants alojados (${deployments.length})`, 'Slug', 'Estado']}>
-                        {deployments.map((d) => {
-                          const tenant = d.tenants as { name: string; slug: string } | null;
-                          return (
-                            <tr key={d.tenant_id as string}>
-                              <td className="ebim-td">
-                                <Link className="ebim-link" to={`/tenants/${d.tenant_id}`}>
-                                  {tenant?.name}
-                                </Link>
-                              </td>
-                              <td className="ebim-td font-mono text-xs text-muted">{tenant?.slug}</td>
-                              <td className="ebim-td text-muted">{d.status as string}</td>
-                            </tr>
-                          );
-                        })}
-                      </DataTable>
-                    </div>
+                    <details className="group rounded-card border border-border">
+                      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-2.5 text-compact font-semibold text-fg hover:bg-hover">
+                        <span>
+                          Tenants alojados <span className="font-normal tabular-nums text-muted">{deployments.length}</span>
+                        </span>
+                        <span className="text-caption font-normal text-accent-deep group-open:hidden">Ver tenants</span>
+                        <span className="hidden text-caption font-normal text-accent-deep group-open:inline">Ocultar</span>
+                      </summary>
+                      <div className="border-t border-border">
+                        <DataTable label={`Tenants alojados en ${t.code}`} columns={['Tenant', 'Código', 'Estado']}>
+                          {deployments.map((d) => {
+                            const tenant = d.tenants as { name: string; slug: string } | null;
+                            return (
+                              <tr key={d.tenant_id as string}>
+                                <td className="ebim-td">
+                                  <Link className="ebim-link" to={`/tenants/${d.tenant_id}`}>
+                                    {tenant?.name}
+                                  </Link>
+                                </td>
+                                <td className="ebim-td font-mono text-caption text-muted">{tenant?.slug}</td>
+                                <td className="ebim-td text-compact text-muted">
+                                  {d.status === 'ACTIVE' ? 'Activo' : (d.status as string)}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </DataTable>
+                      </div>
+                    </details>
                   )}
                 </div>
               );
@@ -267,7 +341,9 @@ function ProvisioningPanel({
 
   const environment = row.provisioning_environment as ProvisioningEnvironment | null;
   const status = row.provisioning_status as DeploymentTargetStatus;
-  const health = row.health_status as DeploymentHealth;
+  const healthInput = row as TargetHealthInput;
+  const health = observedHealth(healthInput);
+  const evaluable = isEvaluable(healthInput);
   const targetId = row.deployment_target_id as string;
   const code = row.code as string;
 
@@ -287,29 +363,40 @@ function ProvisioningPanel({
   };
 
   return (
-    <div className="mb-3 rounded-card border border-border bg-[color:var(--bg)] p-3">
+    <div className="mb-3 rounded-card border border-border bg-sunken p-3">
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <span className="text-xs font-bold uppercase tracking-wide text-muted">
-          Provisioning SaaS
-        </span>
+        <span className="text-micro text-muted">Altas en las apps</span>
         {environment ? (
-          <Badge tone="info">{PROVISIONING_ENVIRONMENT_LABEL[environment]}</Badge>
+          <Badge tone="info">Entorno: {PROVISIONING_ENVIRONMENT_LABEL[environment]}</Badge>
         ) : (
-          <Badge tone="neutral">Sin ambiente</Badge>
+          <Badge tone="neutral">Sin entorno</Badge>
         )}
-        <Badge tone={targetStatusTone(status)}>{DEPLOYMENT_TARGET_STATUS_LABEL[status]}</Badge>
-        <Badge tone={healthTone(health)}>{DEPLOYMENT_HEALTH_LABEL[health]}</Badge>
+        {/* Deshabilitado/borrador no es un fallo: tono neutro, nunca rojo. */}
+        <Badge tone={status === 'DISABLED' ? 'neutral' : targetStatusTone(status)}>
+          {DEPLOYMENT_TARGET_STATUS_LABEL[status]}
+        </Badge>
         {row.provisioning_enabled ? (
           <Badge tone="ok">Habilitado</Badge>
         ) : (
           <Badge tone="neutral">Deshabilitado</Badge>
         )}
+        <span className="inline-flex items-center gap-1.5 text-compact">
+          <HealthDot health={health} />
+          <HealthText health={health} />
+        </span>
+        <span className="text-caption">
+          {evaluable ? (
+            <ObservationDate at={row.health_checked_at as string | null} />
+          ) : (
+            <span className="text-muted">{notEvaluatedReason(healthInput)}</span>
+          )}
+        </span>
 
-        <span className="ml-auto flex gap-3">
+        <span className="ml-auto flex flex-wrap gap-2">
           {canCheck ? (
             <button
               type="button"
-              className="ebim-link text-[13px]"
+              className="ebim-btn-secondary ebim-btn-sm"
               disabled={busy}
               onClick={() => onCheck(targetId, code)}
             >
@@ -319,16 +406,22 @@ function ProvisioningPanel({
           {canManage ? (
             <button
               type="button"
-              className="ebim-link text-[13px]"
+              className="ebim-btn-ghost ebim-btn-sm"
               onClick={() => onConfigure(draft)}
             >
-              Configurar provisioning
+              Configurar altas
             </button>
           ) : null}
         </span>
       </div>
 
-      <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted">
+      {evaluable && row.health_detail ? (
+        <p className="mb-2 break-words text-caption text-muted">
+          Detalle de la última comprobación: {row.health_detail as string}
+        </p>
+      ) : null}
+
+      <div className="flex flex-wrap gap-x-6 gap-y-1 text-caption text-muted">
         <span>
           Integración:{' '}
           {row.integration_code ? (
@@ -342,7 +435,7 @@ function ProvisioningPanel({
         <span>
           URL base:{' '}
           {row.base_url ? (
-            <span className="font-mono">{row.base_url as string}</span>
+            <span className="break-all font-mono">{row.base_url as string}</span>
           ) : (
             'no aplica'
           )}
@@ -361,5 +454,83 @@ function ProvisioningPanel({
         </span>
       </div>
     </div>
+  );
+}
+
+/**
+ * Matriz producto × entorno (spec §7.3). Cada celda resume SÓLO los destinos
+ * habilitados de ese producto en ese entorno; un entorno sin destinos
+ * habilitados es «No evaluado». No hay columna de «peor estado global».
+ */
+function EnvironmentMatrix({
+  rows,
+  loading,
+  error,
+}: {
+  rows: ReadonlyArray<TargetHealthInput & { product_short_name?: string | null }>;
+  loading: boolean;
+  error: unknown;
+}) {
+  const { products, environments } = useMemo(() => {
+    const byProduct = new Map<string, TargetHealthInput[]>();
+    for (const r of rows) {
+      const key = r.product_short_name ?? 'Sin producto';
+      byProduct.set(key, [...(byProduct.get(key) ?? []), r]);
+    }
+    const present = new Set(rows.map((r) => r.provisioning_environment).filter(Boolean) as string[]);
+    return {
+      products: [...byProduct.entries()].sort(([a], [b]) => a.localeCompare(b)),
+      environments: ENVIRONMENT_ORDER.filter((e) => present.has(e)),
+    };
+  }, [rows]);
+
+  if (loading || error || products.length === 0 || environments.length === 0) return null;
+
+  return (
+    <Card
+      className="mb-4"
+      title="Salud observada por producto y entorno"
+      description="Última comprobación guardada; no es monitoreo en tiempo real. Sólo cuentan los destinos con altas habilitadas."
+    >
+      <DataTable
+        label="Matriz de producto y entorno"
+        paginate={false}
+        scrollRegion
+        columns={['Producto', ...environments.map((e) => PROVISIONING_ENVIRONMENT_LABEL[e])]}
+      >
+        {products.map(([product, targets]) => {
+          const summaries = summarizeByEnvironment(targets);
+          return (
+            <tr key={product}>
+              {/* Producto y celdas alineados arriba: las celdas con salud ocupan tres líneas. */}
+              <th scope="row" className="ebim-td py-3 text-left align-top font-semibold">
+                {product}
+              </th>
+              {environments.map((e) => {
+                const s = summaries.find((x) => x.environment === e);
+                return (
+                  <td key={e} className="ebim-td py-3 align-top">
+                    {s ? (
+                      <div className="flex flex-col items-start gap-0.5 text-caption" data-health-cell={s.health}>
+                        <span className="inline-flex items-center gap-1.5 text-compact">
+                          <HealthDot health={s.health} />
+                          <HealthText health={s.health} />
+                        </span>
+                        {s.health === 'NOT_EVALUATED' ? null : <ObservationDate at={s.latestCheckedAt} />}
+                        <span className="text-muted">
+                          {s.evaluated} de {s.total} habilitado{s.total === 1 ? '' : 's'}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-caption text-muted">Sin destino</span>
+                    )}
+                  </td>
+                );
+              })}
+            </tr>
+          );
+        })}
+      </DataTable>
+    </Card>
   );
 }

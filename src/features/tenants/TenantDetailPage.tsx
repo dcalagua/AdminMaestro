@@ -1,16 +1,27 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import {
-  useTenant, useTenantFeatures, useTenantAttributions, useSubscriptions,
-  useTenantMargin, useProvisioningRequests, useAuditLogs, useTenantProductMappings,
+  useTenant, useTenantFeatures, useTenantAttributions, useTenantProductMappings, useProvisioningTargets,
 } from '@/services/queries';
+import { useTenantAudit, useTenantInfraRequests, useTenantMarginRows, useTenantRenewals, useTenantSubscriptions } from './tenantQueries';
+import { useAccountSeries } from '@/services/queries';
+import { Avatar } from '@/components/ui/Avatar';
+import { KpiTile } from '@/components/ui/primitives';
+import { KpiStrip } from '@/features/billing/financeUi';
+import { AccountMrrTile, AccountTrendCharts, HealthTile } from '@/features/organizations/AccountPanels';
+import { accountHealth } from '@/features/organizations/accountSeriesModel';
+import { AGENT_TYPE_LABEL, SOURCE_LABEL } from '@/features/commercial/commercialLabels';
+import { tenantDimensions } from './tenantDimensions';
+import { TenantDimensionsView } from './TenantDimensionsView';
+import { TenantAddonsPanel } from './TenantAddonsPanel';
+import { TenantUsagePanel } from './TenantUsagePanel';
 import { useRequestTenantSuspension, useRequestTenantResume } from '@/services/mutations';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { isFinance, canManagePlatform } from '@/features/auth/session';
 import { SectionTabs } from '@/components/ui/SectionTabs';
 import {
-  PageContainer, Card, DataTable, StatCard, LoadingState, ErrorState, EmptyState, Badge,
+  PageContainer, Card, DataTable, LoadingState, ErrorState, EmptyState, Badge,
 } from '@/components/ui/primitives';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/toast-context';
@@ -25,8 +36,20 @@ import {
   type SaasProvisioningStatus,
 } from '@/lib/provisioning';
 
+const ENVIRONMENT_TEXT: Record<string, string> = {
+  PRODUCTION: 'Producción',
+  TRIAL: 'Prueba',
+  DEMO: 'Demostración',
+  SANDBOX: 'Sandbox',
+};
+
 /**
- * Detalle de tenant en pestañas administrativas (prompt fase 9).
+ * Tenant 360 (P31, spec §11.2): cuatro dimensiones visibles — comercial, alta
+ * técnica, salud observada y acceso del administrador — sin semáforo global.
+ * Cambiar el estado comercial NO afirma una suspensión en los productos: la
+ * orden al producto se encola en DRY_RUN y así se dice.
+ *
+ * Todas las lecturas van acotadas a ESTE tenant en el servidor.
  *
  * Lo que NO aparece aquí, deliberadamente: proveedores, órdenes, inventario,
  * documentos. El Control Plane administra metadatos y gobierno; los datos
@@ -35,17 +58,28 @@ import {
 export function TenantDetailPage() {
   const { tenantId } = useParams();
   const { roles } = useAuth();
+  const location = useLocation();
+  // Se captura UNA vez al llegar: cambiar de pestaña (#hash) crea otra entrada de
+  // historial sin `state` y el contexto de la venta no debe desaparecer.
+  const [onboarded] = useState(
+    () =>
+      (location.state as { onboarded?: { subscriptionId: string | null; productName: string; activated: boolean } } | null)
+        ?.onboarded,
+  );
   const tenant = useTenant(tenantId);
   const features = useTenantFeatures(tenantId);
   const attributions = useTenantAttributions(tenantId);
-  const subscriptions = useSubscriptions();
-  const margins = useTenantMargin();
+  const subscriptions = useTenantSubscriptions(tenantId);
+  const margins = useTenantMarginRows(tenantId);
+  const targets = useProvisioningTargets();
   // Alta del tenant DENTRO de cada SaaS de la suite. Es otra pregunta que
   // «¿dónde vive la base de datos?»: aquí se responde «¿existe ya este tenant
   // en EWM, en eSupplier, en TMS?».
   const productProvisioning = useTenantProductMappings(tenantId);
-  const provisioning = useProvisioningRequests();
-  const audit = useAuditLogs();
+  const provisioning = useTenantInfraRequests(tenantId);
+  const audit = useTenantAudit(tenantId);
+  const series = useAccountSeries({ tenantId });
+  const renewals = useTenantRenewals(tenantId);
   const perms = usePermissions();
   const toast = useToast();
   const suspend = useRequestTenantSuspension();
@@ -65,10 +99,16 @@ export function TenantDetailPage() {
           p_tenant_id: tenantId,
           p_reason: 'Suspensión solicitada desde la consola',
         });
-        toast.success('Tenant suspendido', 'Se encoló la solicitud SUSPEND_TENANT en DRY_RUN.');
+        toast.success(
+          'Estado comercial: suspendido',
+          'Cambió en el Control Plane. La orden de suspensión a la app quedó encolada en simulación: el acceso en la app no cambió.',
+        );
       } else {
         await resume.mutateAsync({ p_tenant_id: tenantId });
-        toast.success('Tenant reactivado', 'Se encoló la solicitud RESUME_TENANT en DRY_RUN.');
+        toast.success(
+          'Estado comercial: activo',
+          'Cambió en el Control Plane. La orden de reactivación a la app quedó encolada en simulación.',
+        );
       }
     } catch (error) {
       toast.error('No se pudo aplicar el cambio', businessErrorMessage(error));
@@ -77,7 +117,7 @@ export function TenantDetailPage() {
     }
   }
 
-  if (tenant.isLoading) return <LoadingState />;
+  if (tenant.isLoading) return <LoadingState variant="page" />;
   if (tenant.error) return <ErrorState error={tenant.error} />;
   if (!tenant.data) {
     return (
@@ -93,59 +133,124 @@ export function TenantDetailPage() {
   }
 
   const t = tenant.data;
-  const tenantSubs = (subscriptions.data ?? []).filter((s) => s.tenant_id === tenantId);
+  const tenantSubs = subscriptions.data ?? [];
   // V3 · una fila por moneda: un tenant con costo USD y cobro PEN tiene dos.
-  const tenantMargins = (margins.data ?? []).filter((m) => m.tenant_id === tenantId && m.currency);
-  const tenantProvisioning = (provisioning.data ?? []).filter((p) => p.tenant_id === tenantId);
-  const tenantAudit = (audit.data ?? []).filter((a) => a.tenant_id === tenantId);
+  const tenantMargins = (margins.data ?? []).filter((m) => m.currency);
+  const tenantProvisioning = provisioning.data ?? [];
+  const tenantAudit = audit.data ?? [];
+  const dims = tenantDimensions(t, productProvisioning.data ?? [], targets.data ?? []);
 
   const showFinance = isFinance(roles) || canManagePlatform(roles);
 
   return (
     <PageContainer
       title={t.name as string}
-      description={`${t.product_lockup} · ${t.customer_name}${t.managing_name ? ` · administrado por ${t.managing_name}` : ' · venta directa EBIM'}`}
-      breadcrumbs={<Link className="text-xs text-muted hover:text-fg" to="/tenants">← Tenants</Link>}
-      actions={
-        <div className="flex flex-wrap items-center gap-1.5">
-          <Badge tone={t.tenant_type === 'PRODUCTION' ? 'ok' : 'info'}>
-            {TENANT_TYPE_LABEL[t.tenant_type as keyof typeof TENANT_TYPE_LABEL]}
-          </Badge>
-          <Badge tone="accent">
-            {DEPLOYMENT_MODE_LABEL[t.deployment_mode as keyof typeof DEPLOYMENT_MODE_LABEL]}
-          </Badge>
-          <Badge tone={t.status === 'ACTIVE' ? 'ok' : 'warn'}>
+      leading={<Avatar name={(t.customer_name as string) ?? (t.name as string)} size="lg" />}
+      titleAside={
+        <>
+          <Badge tone={t.status === 'ACTIVE' ? 'ok' : t.status === 'SUSPENDED' || t.status === 'CHURNED' ? 'danger' : 'warn'} dot>
             {TENANT_STATUS_LABEL[t.status as keyof typeof TENANT_STATUS_LABEL]}
           </Badge>
-          {perms.canManagePlatform && t.status === 'ACTIVE' ? (
-            <button
-              type="button" className="ebim-btn-ghost ml-2"
-              onClick={() => setPendingAction('SUSPEND')}
-            >
-              Suspender
-            </button>
+          <Badge tone={t.tenant_type === 'PRODUCTION' ? 'neutral' : 'info'}>
+            {TENANT_TYPE_LABEL[t.tenant_type as keyof typeof TENANT_TYPE_LABEL]}
+          </Badge>
+          <Badge tone="neutral">
+            {DEPLOYMENT_MODE_LABEL[t.deployment_mode as keyof typeof DEPLOYMENT_MODE_LABEL]}
+          </Badge>
+        </>
+      }
+      description={`${t.product_lockup} · ${t.customer_name}${t.managing_name ? ` · administrado por ${t.managing_name}` : ' · venta directa EBIM'}`}
+      meta={
+        <>
+          {t.customer_organization_id ? (
+            <Link className="ebim-link" to={`/organizations/${t.customer_organization_id}`}>
+              Ficha 360 de {t.customer_name as string}
+            </Link>
           ) : null}
-          {perms.canManagePlatform && t.status === 'SUSPENDED' ? (
-            <button
-              type="button" className="ebim-btn-primary ml-2"
-              onClick={() => setPendingAction('RESUME')}
-            >
-              Reactivar
-            </button>
-          ) : null}
-        </div>
+          {t.market_code ? <span> · Mercado {t.market_code as string}</span> : null}
+        </>
+      }
+      actions={
+        perms.canManagePlatform && t.status === 'ACTIVE' ? (
+          <button type="button" className="ebim-btn-ghost" onClick={() => setPendingAction('SUSPEND')}>
+            Suspender
+          </button>
+        ) : perms.canManagePlatform && t.status === 'SUSPENDED' ? (
+          <button type="button" className="ebim-btn-primary" onClick={() => setPendingAction('RESUME')}>
+            Reactivar
+          </button>
+        ) : null
       }
     >
-      <div className="mb-5 grid gap-3 sm:grid-cols-4">
-        <StatCard label="MRR" value={formatMoney(Number(t.mrr), t.currency as string | null)} tone="ok" />
-        <StatCard label="Plan" value={(t.plan_name as string) ?? 'Sin plan'} />
-        <StatCard label="Infraestructura" value={(t.deployment_target_code as string) ?? 'Sin asignar'} hint={(t.deployment_region as string) ?? undefined} />
-        <StatCard
-          label="Administrador"
-          value={t.admin_activated_at ? 'Activado' : 'Sin activar'}
-          tone={t.admin_activated_at ? 'ok' : 'warn'}
-          hint={t.admin_email as string}
+      {onboarded ? (
+        <section className="ebim-card mb-4 border-l-4 border-l-[color:var(--accent-action)] p-4" aria-labelledby="next-steps-title">
+          <h2 id="next-steps-title" className="text-body font-bold text-fg">Venta registrada: siguientes pasos</h2>
+          <p className="mt-1 text-body text-muted">
+            Se crearon el tenant, el contrato y la atribución{onboarded.activated ? ' (contrato activo)' : ' (contrato en borrador para revisión)'}. El alta
+            dentro del producto es una decisión aparte: nada de lo de abajo la ejecuta.
+          </p>
+          <ul className="mt-2 flex flex-wrap gap-2 text-body">
+            {onboarded.subscriptionId ? (
+              <li>
+                <Link className="ebim-btn-secondary ebim-btn-sm" to={`/subscriptions/${onboarded.subscriptionId}`}>
+                  Revisar el contrato
+                </Link>
+              </li>
+            ) : null}
+            <li>
+              <a className="ebim-btn-ghost ebim-btn-sm" href="#products">
+                Ver estado del alta en el producto
+              </a>
+            </li>
+            <li>
+              <Link className="ebim-btn-ghost ebim-btn-sm" to="/apps?tab=altas">
+                Ir a Altas en las apps (decisión manual)
+              </Link>
+            </li>
+          </ul>
+        </section>
+      ) : null}
+
+      <KpiStrip label="Indicadores del tenant">
+        <AccountMrrTile
+          query={series}
+          info="MRR contratado de los contratos de este tenant, a hoy (misma definición que el Resumen Ejecutivo)"
         />
+        <KpiTile
+          label="Plan"
+          value={t.plan_name ? <span className="text-h2">{t.plan_name as string}</span> : null}
+          footer={t.plan_name ? `${t.product_short_name as string} · ${TENANT_TYPE_LABEL[t.tenant_type as keyof typeof TENANT_TYPE_LABEL]}` : 'Sin plan contratado'}
+        />
+        <KpiTile
+          label="Infraestructura"
+          value={
+            t.deployment_target_code ? (
+              <span className="block max-w-full truncate font-mono text-h3" title={t.deployment_target_code as string}>
+                {t.deployment_target_code as string}
+              </span>
+            ) : null
+          }
+          footer={
+            t.deployment_target_code
+              ? `${DEPLOYMENT_MODE_LABEL[t.deployment_mode as keyof typeof DEPLOYMENT_MODE_LABEL]}${t.deployment_region ? ` · ${t.deployment_region as string}` : ''}`
+              : 'Sin destino asignado'
+          }
+        />
+        <HealthTile
+          health={accountHealth(renewals.data ?? [])}
+          loading={renewals.isLoading}
+          error={Boolean(renewals.error)}
+          onRetry={() => void renewals.refetch()}
+        />
+      </KpiStrip>
+
+      <div className="mb-6">
+        {productProvisioning.error ? (
+          <p className="mb-2 text-compact font-semibold text-warn" role="status">
+            No se pudieron leer las altas SaaS: «Alta técnica» y «Acceso administrador» pueden estar incompletos.
+          </p>
+        ) : null}
+        <TenantDimensionsView dims={dims} />
       </div>
 
       <SectionTabs
@@ -154,51 +259,54 @@ export function TenantDetailPage() {
             id: 'overview',
             label: 'Resumen',
             content: (
-              <Card title="Datos del tenant">
-                <dl className="divide-y divide-border">
-                  {[
-                    ['Slug', t.slug],
-                    ['Producto', t.product_lockup],
-                    ['Organización cliente', t.customer_name],
-                    ['Organización que administra', t.managing_name ?? 'Ninguna (venta directa EBIM)'],
-                    ['Tipo', TENANT_TYPE_LABEL[t.tenant_type as keyof typeof TENANT_TYPE_LABEL]],
-                    ['Entorno', t.environment],
-                    ['Modelo de despliegue', DEPLOYMENT_MODE_LABEL[t.deployment_mode as keyof typeof DEPLOYMENT_MODE_LABEL]],
-                    ['Correo del administrador', t.admin_email],
-                    ['Administrador activado', t.admin_activated_at ? formatDateTime(t.admin_activated_at as string) : 'Pendiente de activar'],
-                    ['Creado', formatDateTime(t.created_at as string)],
-                    ['Activado', t.activated_at ? formatDateTime(t.activated_at as string) : '—'],
-                  ].map(([k, v]) => (
-                    <div key={k as string} className="flex justify-between gap-4 px-4 py-2.5 text-sm">
-                      <dt className="text-muted">{k as string}</dt>
-                      <dd className="text-right font-medium">{(v as string) ?? '—'}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </Card>
+              <div className="space-y-4">
+                <AccountTrendCharts query={series} subject={t.name as string} />
+                <Card title="Datos del tenant">
+                  <dl className="grid gap-x-8 px-5 py-2 md:grid-cols-2">
+                    {[
+                      ['Código', <span key="slug" className="font-mono text-compact">{t.slug as string}</span>],
+                      ['Producto', t.product_lockup],
+                      ['Organización cliente', t.customer_name],
+                      ['Organización que administra', t.managing_name ?? 'Ninguna (venta directa EBIM)'],
+                      ['Tipo', TENANT_TYPE_LABEL[t.tenant_type as keyof typeof TENANT_TYPE_LABEL]],
+                      ['Entorno', ENVIRONMENT_TEXT[t.environment as string] ?? t.environment],
+                      ['Modelo de despliegue', DEPLOYMENT_MODE_LABEL[t.deployment_mode as keyof typeof DEPLOYMENT_MODE_LABEL]],
+                      ['Correo del administrador', t.admin_email],
+                      ['Administrador activado', t.admin_activated_at ? formatDateTime(t.admin_activated_at as string) : 'Pendiente de activar'],
+                      ['Creado', formatDateTime(t.created_at as string)],
+                      ['Activado', t.activated_at ? formatDateTime(t.activated_at as string) : '—'],
+                    ].map(([k, v]) => (
+                      <div key={k as string} className="flex justify-between gap-4 border-b border-border py-2.5 text-body">
+                        <dt className="text-muted">{k as string}</dt>
+                        <dd className="min-w-0 truncate text-right font-medium">{(v as React.ReactNode) ?? '—'}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </Card>
+              </div>
             ),
           },
           {
             id: 'commercial',
             label: 'Atribución comercial',
             content: (
-              <Card description="Quién se lleva el crédito de esta venta. Estar aquí NO da acceso operacional al tenant (regla §2.3).">
+              <Card description="Quién se lleva el crédito de esta venta. Estar aquí NO da acceso operacional al tenant.">
                 {(attributions.data ?? []).length === 0 ? (
                   <EmptyState title="Sin atribución comercial" description="Esta venta no tiene comercial asignado." />
                 ) : (
-                  <DataTable columns={['Comercial', 'Tipo', 'Participación', 'Plan de comisión', 'Origen', 'Vigencia']}>
+                  <DataTable columns={['Comercial', 'Tipo', { label: 'Participación', align: 'right' }, 'Plan de comisión', 'Origen', 'Vigencia']}>
                     {(attributions.data ?? []).map((a) => (
                       <tr key={a.id as string}>
                         <td className="ebim-td font-semibold">
                           {(a.sales_agents as { full_name: string } | null)?.full_name}
                         </td>
                         <td className="ebim-td">
-                          <Badge tone="info">{(a.sales_agents as { agent_type: string } | null)?.agent_type}</Badge>
+                          <Badge tone="neutral">{AGENT_TYPE_LABEL[(a.sales_agents as { agent_type: string } | null)?.agent_type ?? ''] ?? (a.sales_agents as { agent_type: string } | null)?.agent_type}</Badge>
                         </td>
-                        <td className="ebim-td tabular-nums">{(Number(a.attribution_pct) * 100).toFixed(0)}%</td>
+                        <td className="ebim-td ebim-num">{(Number(a.attribution_pct) * 100).toFixed(0)}%</td>
                         <td className="ebim-td">{(a.commission_plans as { name: string } | null)?.name ?? '—'}</td>
-                        <td className="ebim-td text-muted">{a.source as string}</td>
-                        <td className="ebim-td text-xs text-muted">
+                        <td className="ebim-td text-fg-2">{SOURCE_LABEL[a.source as string] ?? (a.source as string)}</td>
+                        <td className="ebim-td text-compact text-muted">
                           {formatDate(a.valid_from as string)} → {a.valid_to ? formatDate(a.valid_to as string) : 'sin fin'}
                         </td>
                       </tr>
@@ -229,7 +337,7 @@ export function TenantDetailPage() {
                         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2.5">
                           <div>
                             <Link className="ebim-link font-semibold" to={`/subscriptions/${s.id}`}>{s.code}</Link>
-                            <span className="ml-2 text-sm text-muted">
+                            <span className="ml-2 text-compact text-muted">
                               {(s.plans as { name: string } | null)?.name}
                             </span>
                           </div>
@@ -273,7 +381,7 @@ export function TenantDetailPage() {
                       ['Proveedor', t.deployment_provider ?? '—'],
                       ['Región', t.deployment_region ?? '—'],
                     ].map(([k, v]) => (
-                      <div key={k as string} className="flex justify-between gap-4 px-4 py-2.5 text-sm">
+                      <div key={k as string} className="flex justify-between gap-4 px-5 py-2.5 text-body">
                         <dt className="text-muted">{k as string}</dt>
                         <dd className="text-right font-medium">{(v as string) ?? '—'}</dd>
                       </div>
@@ -281,9 +389,9 @@ export function TenantDetailPage() {
                   </dl>
                 </Card>
 
-                <Card title="Solicitudes de provisioning" description="Todo corre en DRY_RUN salvo autorización explícita del operador.">
+                <Card title="Solicitudes de infraestructura" description="Todo corre en simulación salvo autorización explícita del operador.">
                   {tenantProvisioning.length === 0 ? (
-                    <EmptyState title="Sin solicitudes de provisioning" />
+                    <EmptyState title="Sin solicitudes de infraestructura" />
                   ) : (
                     <DataTable columns={['Acción', 'Modo', 'Estado', 'Intentos', 'Creada']}>
                       {tenantProvisioning.map((p) => (
@@ -296,7 +404,7 @@ export function TenantDetailPage() {
                             </Badge>
                           </td>
                           <td className="ebim-td tabular-nums">{p.attempts as number}/{p.max_attempts as number}</td>
-                          <td className="ebim-td text-xs text-muted">{formatDateTime(p.created_at as string)}</td>
+                          <td className="ebim-td text-compact text-muted">{formatDateTime(p.created_at as string)}</td>
                         </tr>
                       ))}
                     </DataTable>
@@ -307,7 +415,7 @@ export function TenantDetailPage() {
           },
           {
             id: 'products',
-            label: 'Productos / Provisioning',
+            label: 'Productos / Altas',
             content: (
               <Card
                 title="Alta en los productos de la suite"
@@ -318,8 +426,8 @@ export function TenantDetailPage() {
                     title="Sin altas registradas en ningún producto"
                     description="Crear una cotización no aprovisiona: la política por defecto es manual hasta certificar el contrato de cada producto."
                     action={
-                      <Link to="/saas-provisioning" className="ebim-btn-secondary">
-                        Ir a provisioning SaaS
+                      <Link to="/apps?tab=altas" className="ebim-btn-secondary">
+                        Ir a Altas en las apps
                       </Link>
                     }
                   />
@@ -342,15 +450,15 @@ export function TenantDetailPage() {
                             ]
                           }
                         </td>
-                        <td className="ebim-td font-mono text-xs">
+                        <td className="ebim-td font-mono text-compact">
                           {(r.deployment_code as string) ?? '—'}
                         </td>
-                        <td className="ebim-td font-mono text-xs">
+                        <td className="ebim-td font-mono text-compact">
                           {(r.external_tenant_id as string) ?? (
                             <span className="text-muted">todavía sin ID</span>
                           )}
                         </td>
-                        <td className="ebim-td text-xs text-muted">
+                        <td className="ebim-td text-compact text-muted">
                           {r.completed_at ? formatDateTime(r.completed_at as string) : '—'}
                         </td>
                       </tr>
@@ -380,7 +488,7 @@ export function TenantDetailPage() {
                         <td className="ebim-td">
                           <Badge tone={f.enabled ? 'ok' : 'neutral'}>{f.enabled ? 'Activo' : 'Inactivo'}</Badge>
                         </td>
-                        <td className="ebim-td text-xs text-muted">{formatDateTime(f.updated_at)}</td>
+                        <td className="ebim-td text-compact text-muted">{formatDateTime(f.updated_at)}</td>
                       </tr>
                     ))}
                   </DataTable>
@@ -389,25 +497,49 @@ export function TenantDetailPage() {
             ),
           },
           {
+            id: 'addons',
+            label: 'Add-ons y módulos',
+            content: (
+              <TenantAddonsPanel
+                tenantId={t.tenant_id as string}
+                saasProductId={(t.saas_product_id as string | null) ?? null}
+              />
+            ),
+          },
+          {
+            id: 'usage',
+            label: 'Uso y créditos',
+            content: <TenantUsagePanel tenantId={t.tenant_id as string} />,
+          },
+          {
             id: 'costs',
             label: 'Costos y margen',
             hidden: !showFinance,
             content: (
-              <Card title="Rentabilidad del tenant">
+              <Card title="Rentabilidad del tenant" description="Margen bruto = cobrado − costo − comisión, una fila por moneda (nunca se mezclan).">
                 {tenantMargins.length > 0 ? (
-                  tenantMargins.map((margin) => (
-                    <div key={margin.currency} className="grid gap-3 p-4 sm:grid-cols-4">
-                      <StatCard label={`MRR · ${margin.currency}`} value={formatMoney(Number(margin.mrr), margin.currency)} />
-                      <StatCard label="Ingreso cobrado" value={formatMoney(Number(margin.collected_revenue), margin.currency)} />
-                      <StatCard label="Costo directo" value={formatMoney(Number(margin.direct_cost), margin.currency)} tone="warn" />
-                      <StatCard
-                        label="Margen bruto"
-                        value={formatMoney(Number(margin.gross_margin), margin.currency)}
-                        tone={Number(margin.gross_margin) >= 0 ? 'ok' : 'danger'}
-                        hint="cobrado − costo − comisión, en la misma moneda"
-                      />
-                    </div>
-                  ))
+                  <DataTable
+                    label="Margen por moneda"
+                    columns={[
+                      'Moneda',
+                      { label: 'MRR', align: 'right' },
+                      { label: 'Ingreso cobrado', align: 'right' },
+                      { label: 'Costo directo', align: 'right' },
+                      { label: 'Margen bruto', align: 'right' },
+                    ]}
+                  >
+                    {tenantMargins.map((m) => (
+                      <tr key={m.currency}>
+                        <td className="ebim-td font-semibold">{m.currency}</td>
+                        <td className="ebim-td ebim-num">{formatMoney(Number(m.mrr), m.currency)}</td>
+                        <td className="ebim-td ebim-num">{formatMoney(Number(m.collected_revenue), m.currency)}</td>
+                        <td className="ebim-td ebim-num">{formatMoney(Number(m.direct_cost), m.currency)}</td>
+                        <td className={`ebim-td ebim-num font-semibold ${Number(m.gross_margin) < 0 ? 'text-danger' : ''}`}>
+                          {formatMoney(Number(m.gross_margin), m.currency)}
+                        </td>
+                      </tr>
+                    ))}
+                  </DataTable>
                 ) : (
                   <EmptyState title="Sin datos de margen para este tenant" />
                 )}
@@ -425,7 +557,7 @@ export function TenantDetailPage() {
                   <DataTable columns={['Fecha', 'Actor', 'Acción', 'Entidad']}>
                     {tenantAudit.map((a) => (
                       <tr key={a.id as unknown as string}>
-                        <td className="ebim-td text-xs text-muted">{formatDateTime(a.occurred_at)}</td>
+                        <td className="ebim-td text-compact text-muted">{formatDateTime(a.occurred_at)}</td>
                         <td className="ebim-td">{a.actor_email ?? '—'}</td>
                         <td className="ebim-td font-semibold">{a.action}</td>
                         <td className="ebim-td text-muted">{a.entity_type}</td>
@@ -444,12 +576,13 @@ export function TenantDetailPage() {
         title={pendingAction === 'SUSPEND' ? '¿Suspender este tenant?' : '¿Reactivar este tenant?'}
         message={
           pendingAction === 'SUSPEND'
-            ? 'El tenant queda suspendido y se encola una solicitud SUSPEND_TENANT en DRY_RUN. El motivo queda en auditoría.'
-            : 'El tenant vuelve a estado activo y se encola una solicitud RESUME_TENANT en DRY_RUN.'
+            ? 'Cambia el estado COMERCIAL a «Suspendido» en el Control Plane y encola la orden de suspensión a la app en simulación: no se apaga el acceso en las apps. El motivo queda en auditoría.'
+            : 'Cambia el estado COMERCIAL a «Activo» en el Control Plane y encola la orden de reactivación a la app en simulación.'
         }
-        confirmLabel={pendingAction === 'SUSPEND' ? 'Suspender' : 'Reactivar'}
+        confirmLabel={pendingAction === 'SUSPEND' ? 'Suspender (comercial)' : 'Reactivar (comercial)'}
+        busy={suspend.isPending || resume.isPending}
         tone={pendingAction === 'SUSPEND' ? 'danger' : 'primary'}
-        onConfirm={() => void applyAction()}
+        onConfirm={applyAction}
         onCancel={() => setPendingAction(null)}
       />
     </PageContainer>

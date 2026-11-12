@@ -1,0 +1,354 @@
+ plan  
+-------
+ 1..57
+(1 row)
+
+         has_table          
+----------------------------
+ ok 1 - Existe usage_meters
+(1 row)
+
+         has_table          
+----------------------------
+ ok 2 - Existe usage_events
+(1 row)
+
+               has_table                
+----------------------------------------
+ ok 3 - Existe usage_ingest_credentials
+(1 row)
+
+               has_table               
+---------------------------------------
+ ok 4 - Existe usage_ingest_rejections
+(1 row)
+
+          has_table           
+------------------------------
+ ok 5 - Existe m2m_jti_replay
+(1 row)
+
+                       is                        
+-------------------------------------------------
+ ok 6 - RLS habilitado y forzado en las 5 tablas
+(1 row)
+
+                          is                           
+-------------------------------------------------------
+ ok 7 - ingest_usage_events: EXECUTE solo service_role
+(1 row)
+
+                        is                         
+---------------------------------------------------
+ ok 8 - consume_m2m_jti: EXECUTE solo service_role
+(1 row)
+
+                            is                             
+-----------------------------------------------------------
+ ok 9 - usage_ingest_credential: EXECUTE solo service_role
+(1 row)
+
+                    is                     
+-------------------------------------------
+ ok 10 - RPCs DEFINER con search_path fijo
+(1 row)
+
+                                   is                                   
+------------------------------------------------------------------------
+ ok 11 - usage_events: sin escritura directa para anon ni authenticated
+(1 row)
+
+                                           is                                            
+-----------------------------------------------------------------------------------------
+ ok 12 - usage_events.internal (COGS): sin SELECT para authenticated (grant por columna)
+(1 row)
+
+                                     is                                      
+-----------------------------------------------------------------------------
+ ok 13 - usage_events.quantity: legible por authenticated (filtrado por RLS)
+(1 row)
+
+                is                
+----------------------------------
+ ok 14 - anon no lee usage_events
+(1 row)
+
+                   is                    
+-----------------------------------------
+ ok 15 - Nadie humano lee m2m_jti_replay
+(1 row)
+
+                                      is                                      
+------------------------------------------------------------------------------
+ ok 16 - usage_ingest_credentials.public_key_ref no se expone a authenticated
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                   throws_ok                   
+-----------------------------------------------
+ ok 17 - Un tenant admin no registra medidores
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                        isnt                         
+-----------------------------------------------------
+ ok 18 - El product admin registra un medidor ACTIVE
+(1 row)
+
+          upsert_usage_meter          
+--------------------------------------
+ 10b2245b-4476-4b19-a790-2db8e9c87251
+(1 row)
+
+          upsert_usage_meter          
+--------------------------------------
+ bd44c843-b585-4856-a3c5-6aec13b096c6
+(1 row)
+
+                                         is                                          
+-------------------------------------------------------------------------------------
+ ok 19 - Medidor nuevo: is_billable=false y allows_negative=false por defecto (D-06)
+(1 row)
+
+                         throws_ok                          
+------------------------------------------------------------
+ ok 20 - Código de medidor con formato inválido → rechazado
+(1 row)
+
+                        throws_ok                         
+----------------------------------------------------------
+ ok 21 - Solo finanzas decide si un medidor es facturable
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                              throws_ok                               
+----------------------------------------------------------------------
+ ok 22 - Ni el super admin ingesta uso (solo el servidor tras el M2M)
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+                         throws_ok                         
+-----------------------------------------------------------
+ ok 23 - Sin claim service_role (conexión directa) tampoco
+(1 row)
+
+ act_as_service 
+----------------
+ 
+(1 row)
+
+               is                
+---------------------------------
+ ok 24 - Evento nuevo → ACCEPTED
+(1 row)
+
+                        is                         
+---------------------------------------------------
+ ok 25 - Duplicado idéntico → DUPLICATE (aceptado)
+(1 row)
+
+                            is                            
+----------------------------------------------------------
+ ok 26 - Mismo event_id con contenido distinto → CONFLICT
+(1 row)
+
+                     is                      
+---------------------------------------------
+ ok 27 - Medidor inexistente → UNKNOWN_METER
+(1 row)
+
+                  is                   
+---------------------------------------
+ ok 28 - Medidor DRAFT → UNKNOWN_METER
+(1 row)
+
+                  is                   
+---------------------------------------
+ ok 29 - Cantidad negativa → rechazada
+(1 row)
+
+                                  is                                  
+----------------------------------------------------------------------
+ ok 30 - Negativa aceptada solo si el medidor declara allows_negative
+(1 row)
+
+                                is                                 
+-------------------------------------------------------------------
+ ok 31 - Tenant sin mapping ACTIVE → TENANT_NOT_MAPPED_FOR_PRODUCT
+(1 row)
+
+                               is                                
+-----------------------------------------------------------------
+ ok 32 - Tenant de OTRO producto → TENANT_NOT_MAPPED_FOR_PRODUCT
+(1 row)
+
+                            is                            
+----------------------------------------------------------
+ ok 33 - Unidad distinta a la del medidor → UNIT_MISMATCH
+(1 row)
+
+                               is                                
+-----------------------------------------------------------------
+ ok 34 - occurredAt en el futuro (más allá del skew) → rechazado
+(1 row)
+
+                         is                          
+-----------------------------------------------------
+ ok 35 - internal con contenido (prompt) → rechazado
+(1 row)
+
+                        is                         
+---------------------------------------------------
+ ok 36 - internal con tokens negativos → rechazado
+(1 row)
+
+                     is                     
+--------------------------------------------
+ ok 37 - Evento mal formado → INVALID_EVENT
+(1 row)
+
+                       is                        
+-------------------------------------------------
+ ok 38 - Cantidad decimal no negativa → ACCEPTED
+(1 row)
+
+                                is                                 
+-------------------------------------------------------------------
+ ok 39 - Conteos del lote: 3 aceptados, 1 duplicado, 11 rechazados
+(1 row)
+
+                                  is                                   
+-----------------------------------------------------------------------
+ ok 40 - Lote QAS para un tenant mapeado en DEV → ENVIRONMENT_MISMATCH
+(1 row)
+
+                   throws_ok                   
+-----------------------------------------------
+ ok 41 - Lote > 500 eventos → rechazado entero
+(1 row)
+
+              throws_ok               
+--------------------------------------
+ ok 42 - Producto desconocido → error
+(1 row)
+
+                             is                              
+-------------------------------------------------------------
+ ok 43 - Reenvío del mismo evento: DUPLICATE, sin fila nueva
+(1 row)
+
+ act_as_postgres 
+-----------------
+ 
+(1 row)
+
+                 is                 
+------------------------------------
+ ok 44 - Solo 3 eventos persistidos
+(1 row)
+
+                                is                                 
+-------------------------------------------------------------------
+ ok 45 - Evento persistido con hash, atribución y metadata interna
+(1 row)
+
+                        is                        
+--------------------------------------------------
+ ok 46 - El CONFLICT queda registrado como alerta
+(1 row)
+
+                        is                        
+--------------------------------------------------
+ ok 47 - La alerta no guarda contenido del evento
+(1 row)
+
+                          throws_ok                           
+--------------------------------------------------------------
+ ok 48 - usage_events: UPDATE prohibido incluso para postgres
+(1 row)
+
+               throws_ok                
+----------------------------------------
+ ok 49 - usage_events: DELETE prohibido
+(1 row)
+
+                throws_ok                 
+------------------------------------------
+ ok 50 - usage_events: TRUNCATE prohibido
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                       is                       
+------------------------------------------------
+ ok 51 - El tenant admin de alpha ve su consumo
+(1 row)
+
+                   throws_ok                    
+------------------------------------------------
+ ok 52 - El tenant admin NO lee internal (COGS)
+(1 row)
+
+                      throws_ok                      
+-----------------------------------------------------
+ ok 53 - usage_event_cogs: denegado a un no-finanzas
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+                            is                            
+----------------------------------------------------------
+ ok 54 - Finanzas lee la metadata interna de COGS por RPC
+(1 row)
+
+ act_as_service 
+----------------
+ 
+(1 row)
+
+              is               
+-------------------------------
+ ok 55 - jti nuevo → consumido
+(1 row)
+
+                is                
+----------------------------------
+ ok 56 - jti repetido → rechazado
+(1 row)
+
+                          is                          
+------------------------------------------------------
+ ok 57 - El mismo jti de otro emisor es independiente
+(1 row)
+
+ finish 
+--------
+(0 rows)
+

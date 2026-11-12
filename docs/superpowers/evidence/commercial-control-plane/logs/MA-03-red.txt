@@ -1,0 +1,123 @@
+Connecting to local database...
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/28_ccp_commercial_self_grant.test.sql .. 
+# Failed test 1: "No queda ninguna política de escritura en tenant_addons / tenant_features"
+#         have: 6
+#         want: 0
+# Failed test 2: "authenticated no tiene INSERT/UPDATE/DELETE en tenant_addons / tenant_features"
+# Failed test 4: "Existe platform.set_tenant_addon_active(tenant, addon_code, active, reason)"
+# Failed test 5: "RPCs DEFINER con search_path fijo, sin EXECUTE para PUBLIC ni anon"
+#         have: set_tenant_feature:true:false:false:true:true
+#         want: set_tenant_addon_active:true:false:false:true:true,set_tenant_feature:true:false:false:true:true
+# Failed test 7: "authenticated sin rol: escritura directa denegada"
+#         have: 42501,ok,ok,42501,ok,ok
+#         want: 42501,42501,42501,42501,42501,42501
+# Failed test 8: "TENANT_ADMIN de su propio tenant: escritura directa denegada"
+#         have: ok,ok,ok,ok,ok,ok
+#         want: 42501,42501,42501,42501,42501,42501
+# Failed test 9: "ORG_ADMIN del cliente: escritura directa denegada"
+#         have: ok,ok,ok,ok,ok,ok
+#         want: 42501,42501,42501,42501,42501,42501
+# Failed test 10: "PARTNER_ADMIN que gestiona el tenant: escritura directa denegada"
+#         have: ok,ok,ok,ok,ok,ok
+#         want: 42501,42501,42501,42501,42501,42501
+# Failed test 11: "Comercial con el tenant atribuido: escritura directa denegada"
+#         have: 42501,ok,ok,42501,ok,ok
+#         want: 42501,42501,42501,42501,42501,42501
+# Failed test 12: "EBIM_FINANCE: escritura directa denegada (solo por RPC)"
+#         have: 42501,ok,ok,42501,ok,ok
+#         want: 42501,42501,42501,42501,42501,42501
+# Failed test 13: "EBIM_PRODUCT_ADMIN: escritura directa denegada (solo por RPC)"
+#         have: ok,ok,ok,ok,ok,ok
+#         want: 42501,42501,42501,42501,42501,42501
+# Failed test 14: "Super admin: escritura directa denegada (solo por RPC)"
+#         have: ok,ok,ok,ok,ok,ok
+#         want: 42501,42501,42501,42501,42501,42501
+# Failed test 15: "TENANT_ADMIN sigue leyendo los features de su tenant"
+#         have: 0
+#         want: 3
+# Failed test 16: "TENANT_ADMIN sigue leyendo los add-ons de su tenant"
+#         have: 0
+#         want: 1
+# Failed test 19: "EBIM_FINANCE lee todos los add-ons"
+# Failed test 22: "TENANT_ADMIN no se otorga features a sí mismo"
+#       caught: no exception
+#       wanted: 42501
+# Failed test 23: "ORG_ADMIN del cliente no se otorga features"
+#       caught: no exception
+#       wanted: 42501
+# Failed test 24: "PARTNER_ADMIN no otorga features a los tenants que gestiona"
+#       caught: no exception
+#       wanted: 42501
+# Failed test 26: "EBIM_FINANCE otorga un feature por la RPC"
+#     died: 42501: NO_AUTORIZADO: no administra el tenant alpha-esupplier
+#         CONTEXT:
+#             PL/pgSQL function set_tenant_feature(uuid,text,boolean,jsonb) line 10 at RAISE
+#             SQL statement " select platform.set_tenant_feature('50000000-0000-4000-a000-000000000001', 'ocr', true) "
+#             PL/pgSQL function lives_ok(text,text) line 14 at EXECUTE
+# Failed test 28: "set_tenant_feature deja audit_logs con el actor"
+#         have: 0
+#         want: 1
+# Failed test 30: "authenticated sin rol no se otorga add-ons"
+#       caught: 42883: function platform.set_tenant_addon_active(unknown, unknown, boolean, unknown) does not exist
+#       wanted: 42501
+# Failed test 31: "TENANT_ADMIN no se otorga add-ons"
+#       caught: 42883: function platform.set_tenant_addon_active(unknown, unknown, boolean, unknown) does not exist
+#       wanted: 42501
+# Failed test 32: "ORG_ADMIN del cliente no se otorga add-ons"
+#       caught: 42883: function platform.set_tenant_addon_active(unknown, unknown, boolean, unknown) does not exist
+#       wanted: 42501
+# Failed test 33: "PARTNER_ADMIN no otorga add-ons a los tenants que gestiona"
+#       caught: 42883: function platform.set_tenant_addon_active(unknown, unknown, boolean, unknown) does not exist
+#       wanted: 42501
+# Failed test 34: "El comercial no otorga add-ons"
+#       caught: 42883: function platform.set_tenant_addon_active(unknown, unknown, boolean, unknown) does not exist
+#       wanted: 42501
+# Failed test 35: "EBIM_PRODUCT_ADMIN otorga un add-on disponible"
+#     died: 42883: function platform.set_tenant_addon_active(unknown, unknown, boolean, unknown) does not exist
+#         HINT:       No function matches the given name and argument types. You might need to add explicit type casts.
+#         CONTEXT:
+#             PL/pgSQL function lives_ok(text,text) line 14 at EXECUTE
+# Failed test 36: "EBIM_FINANCE revoca un add-on"
+#     died: 42883: function platform.set_tenant_addon_active(unknown, unknown, boolean, unknown) does not exist
+#         HINT:       No function matches the given name and argument types. You might need to add explicit type casts.
+#         CONTEXT:
+#             PL/pgSQL function lives_ok(text,text) line 14 at EXECUTE
+# Failed test 37: "Super admin reactiva un add-on"
+#     died: 42883: function platform.set_tenant_addon_active(unknown, unknown, boolean, unknown) does not exist
+#         HINT:       No function matches the given name and argument types. You might need to add explicit type casts.
+#         CONTEXT:
+#             PL/pgSQL function lives_ok(text,text) line 14 at EXECUTE
+# Failed test 38: "Estado resultante de los add-ons del tenant"
+#         have: NULL
+#         want: consolidation=true,licitaciones=true
+# Failed test 39: "Cada cambio de add-on queda en audit_logs con estado previo, nuevo y motivo"
+#         have: NULL
+#         want: consolidation:>true:Alta comercial QA,licitaciones:true>false:Baja comercial QA,licitaciones:false>true:Reactivación QA
+# Failed test 41: "Un item de catálogo no disponible no se otorga"
+#       caught: 42883: function platform.set_tenant_addon_active(unknown, unknown, boolean, unknown) does not exist
+#       wanted: 23514
+# Failed test 42: "Revocar siempre es posible"
+#     died: 42883: function platform.set_tenant_addon_active(unknown, unknown, boolean, unknown) does not exist
+#         HINT:       No function matches the given name and argument types. You might need to add explicit type casts.
+#         CONTEXT:
+#             PL/pgSQL function lives_ok(text,text) line 14 at EXECUTE
+# Failed test 43: "El motivo es obligatorio"
+#       caught: 42883: function platform.set_tenant_addon_active(unknown, unknown, boolean, unknown) does not exist
+#       wanted: 23502
+# Failed test 44: "Un add-on inexistente se rechaza"
+#       caught: 42883: function platform.set_tenant_addon_active(unknown, unknown, boolean, unknown) does not exist
+#       wanted: 23503
+# Failed test 45: "Un tenant inexistente se rechaza"
+#       caught: 42883: function platform.set_tenant_addon_active(unknown, unknown, boolean, unknown) does not exist
+#       wanted: 23503
+# Looks like you failed 35 tests of 46
+Failed 35/46 subtests 
+
+Test Summary Report
+-------------------
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/28_ccp_commercial_self_grant.test.sql (Wstat: 0 Tests: 46 Failed: 35)
+  Failed tests:  1-2, 4-5, 7-16, 19, 22-24, 26, 28, 30-39
+                41-45
+Files=1, Tests=46,  0 wallclock secs ( 0.01 usr +  0.00 sys =  0.01 CPU)
+Result: FAIL
+error running container: exit 1

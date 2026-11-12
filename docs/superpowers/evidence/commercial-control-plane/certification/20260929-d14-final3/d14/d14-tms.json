@@ -1,0 +1,46 @@
+{
+  "schema": "ebim.ccp.d14-cutover/v1",
+  "environment": "LOCAL_DEV",
+  "writtenAt": "2026-09-29T17:03:59.039Z",
+  "product": "tms",
+  "entitlements": {
+    "scope": "PRODUCT",
+    "productScopeMode": "PRIMARY",
+    "finalMode": "PRIMARY",
+    "transitions": [
+      "PRODUCT:SHADOW->DUAL_READ",
+      "PRODUCT:DUAL_READ->PRIMARY"
+    ],
+    "mappedTenants": 1,
+    "mappedTenantsPrimary": 1,
+    "getVerified": {
+      "appliedVersion": 3,
+      "appliedChecksum": "sha256:eb81f91cc5371e63be7357a2cd67612803950f1090f7657d1d6826737dcd8235",
+      "enforcementMode": "PRIMARY",
+      "desiredChecksum": "sha256:eb81f91cc5371e63be7357a2cd67612803950f1090f7657d1d6826737dcd8235"
+    },
+    "legacyWrite": {
+      "status": "NO_LEGACY_PATH",
+      "evidence": "TMS PlatformEntitlementsIntegrationTest.runtimeRoleIsLockedOut (PostgreSQL 17): tms_app gets 42501 on SELECT of the 6 V52 tables and on UPDATE/INSERT of tms.platform_entitlement_mode and UPDATE/DELETE of tms.platform_entitlement_applied; modes move only by operator SQL under the V52 guard trigger (modesMoveOneStep)"
+    },
+    "parityBlocking": 0
+  },
+  "appActiveFalse": {
+    "commercialDenied": true,
+    "operationalContinues": true,
+    "evidence": "X-07 pasos 6 y 11 (acceso de TMS: commercial=false, operational=true, APP_INACTIVE) y 12 (v3 restablece); TMS CommercialAccessSecurityTest.inactiveOrganizationStillOperates y CommercialAccessGateAdapterTest (el gate nunca rechaza por hechos comerciales)"
+  },
+  "legacyTenants": [
+    {
+      "id": "tms.organization code=DEMO",
+      "label": "DEMO - Demo Organization (TMS supabase/seeds/local_dev_seed.sql)",
+      "resolution": "UNRESOLVED",
+      "reason": "no deterministic MasterAdmin mapping evidence; NOT_UNDER_CONTROL_PLANE keeps legacy behavior"
+    }
+  ],
+  "billing": null,
+  "checks": {
+    "passed": 25,
+    "failed": 0
+  }
+}

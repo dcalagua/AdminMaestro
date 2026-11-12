@@ -32,7 +32,7 @@ export type Tone = 'accent' | 'ok' | 'warn' | 'danger' | 'neutral' | 'info';
 // ---------------------------------------------------------------------------
 
 export const INTEGRATION_TYPE_LABEL: Record<IntegrationType, string> = {
-  HTTP_M2M: 'API HTTP (M2M)',
+  HTTP_M2M: 'API HTTP (conexión segura)',
   EDGE_FUNCTION: 'Edge Function',
   MANUAL: 'Manual',
   MOCK: 'Simulada (solo DEV)',
@@ -104,7 +104,7 @@ export const PROVISIONING_POLICY_HINT: Record<ProvisioningPolicy, string> = {
 };
 
 export const CREDENTIAL_TYPE_LABEL: Record<CredentialProfileType, string> = {
-  M2M_ASYMMETRIC_JWT: 'JWT asimétrico M2M',
+  M2M_ASYMMETRIC_JWT: 'JWT asimétrico (conexión segura)',
   NONE: 'Sin credencial',
 };
 
@@ -116,9 +116,9 @@ export const PRODUCT_OWNER_ROLE_LABEL: Record<ProductOwnerRole, string> = {
 
 export const PROVISIONING_ROLE_LABEL: Record<ProvisioningRole, string> = {
   TECH_LEAD: 'Tech Lead',
-  PROVISIONING_ADMIN: 'Admin de provisioning',
+  PROVISIONING_ADMIN: 'Admin de altas',
   PRODUCT_OWNER: 'Propietario de producto',
-  PROVISIONING_VIEWER: 'Consulta de provisioning',
+  PROVISIONING_VIEWER: 'Consulta de altas',
 };
 
 /** Códigos de bloqueo devueltos por `check_provisioning_preconditions`. */
@@ -135,11 +135,11 @@ export const BLOCKER_LABEL: Record<string, string> = {
   MOCK_NOT_ALLOWED_IN_ENVIRONMENT: 'El adaptador simulado no puede usarse fuera de desarrollo',
   BASE_URL_MISSING: 'Falta la URL base del destino',
   BASE_URL_INSECURE: 'La URL base no cumple las reglas de seguridad del ambiente',
-  CREDENTIAL_PROFILE_MISSING: 'Falta el perfil de credencial M2M',
+  CREDENTIAL_PROFILE_MISSING: 'Falta el perfil de credencial de la conexión segura',
   CREDENTIAL_PROFILE_DISABLED: 'El perfil de credencial está deshabilitado',
   SECRET_REF_MISSING: 'El perfil no declara referencia de secreto',
   ALGORITHM_NOT_CONFIGURED: 'Falta configurar el algoritmo de firma',
-  POLICY_NOT_SATISFIED: 'La política de provisioning todavía no se cumple',
+  POLICY_NOT_SATISFIED: 'La política de altas todavía no se cumple',
 };
 
 export function blockerLabel(code: string): string {
@@ -357,7 +357,7 @@ export function describeTtlProblem(ttl: number | null | undefined): string | nul
   if (ttl == null) return null;
   if (!Number.isInteger(ttl)) return 'El TTL se expresa en segundos enteros';
   if (ttl < TOKEN_TTL_MIN || ttl > TOKEN_TTL_MAX) {
-    return `El TTL debe estar entre ${TOKEN_TTL_MIN} y ${TOKEN_TTL_MAX} segundos: un token de provisioning de vida larga es un token robado de vida larga`;
+    return `El TTL debe estar entre ${TOKEN_TTL_MIN} y ${TOKEN_TTL_MAX} segundos: un token de alta de vida larga es un token robado de vida larga`;
   }
   return null;
 }

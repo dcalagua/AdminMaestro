@@ -1,0 +1,368 @@
+{
+  "product": "ecommerce",
+  "legacyAuthority": "entitlements SHADOW (platform_entitlements); sin biller comercial local (los pagos Culqi son del storefront del tenant); sin precios EBIM locales",
+  "checks": {
+    "1": {
+      "label": "canonical MasterAdmin mapping",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:01:59Z",
+          "endedAt": "2026-09-29T08:02:03Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "ecommerce:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:41Z",
+          "endedAt": "2026-09-29T08:02:41Z",
+          "log": "logs/ecommerce-x07.txt"
+        }
+      ]
+    },
+    "2": {
+      "label": "desired entitlement generated",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:01:59Z",
+          "endedAt": "2026-09-29T08:02:03Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:05Z",
+          "endedAt": "2026-09-29T08:02:06Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "ecommerce:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:41Z",
+          "endedAt": "2026-09-29T08:02:41Z",
+          "log": "logs/ecommerce-x07.txt"
+        }
+      ]
+    },
+    "3": {
+      "label": "SaaS applied same version/checksum",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "ecommerce:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:41Z",
+          "endedAt": "2026-09-29T08:02:41Z",
+          "log": "logs/ecommerce-x07.txt"
+        }
+      ]
+    },
+    "4": {
+      "label": "GET same applied state",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:05Z",
+          "endedAt": "2026-09-29T08:02:06Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "ecommerce:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:41Z",
+          "endedAt": "2026-09-29T08:02:41Z",
+          "log": "logs/ecommerce-x07.txt"
+        }
+      ]
+    },
+    "5": {
+      "label": "tenant self-grant denied",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:01:59Z",
+          "endedAt": "2026-09-29T08:02:03Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "ecommerce:test-db",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:10Z",
+          "endedAt": "2026-09-29T08:02:41Z",
+          "log": "logs/ecommerce-test-db.txt"
+        }
+      ]
+    },
+    "6": {
+      "label": "add/remove/downgrade version transition",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "ecommerce:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:41Z",
+          "endedAt": "2026-09-29T08:02:41Z",
+          "log": "logs/ecommerce-x07.txt"
+        }
+      ]
+    },
+    "7": {
+      "label": "offline last-good",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "ecommerce:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:41Z",
+          "endedAt": "2026-09-29T08:02:41Z",
+          "log": "logs/ecommerce-x07.txt"
+        }
+      ]
+    },
+    "8": {
+      "label": "drift reconciled",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:05Z",
+          "endedAt": "2026-09-29T08:02:06Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "ecommerce:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:41Z",
+          "endedAt": "2026-09-29T08:02:41Z",
+          "log": "logs/ecommerce-x07.txt"
+        }
+      ]
+    },
+    "9": {
+      "label": "usage event accepted once",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:usage-x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:06Z",
+          "endedAt": "2026-09-29T08:02:10Z",
+          "log": "logs/masteradmin-usage-x07.txt"
+        },
+        {
+          "ref": "ecommerce:test-db",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:10Z",
+          "endedAt": "2026-09-29T08:02:41Z",
+          "log": "logs/ecommerce-test-db.txt"
+        }
+      ]
+    },
+    "10": {
+      "label": "duplicate deduped",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:usage-x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:06Z",
+          "endedAt": "2026-09-29T08:02:10Z",
+          "log": "logs/masteradmin-usage-x07.txt"
+        },
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:01:59Z",
+          "endedAt": "2026-09-29T08:02:03Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        }
+      ]
+    },
+    "11": {
+      "label": "allowance/credit arithmetic",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:01:59Z",
+          "endedAt": "2026-09-29T08:02:03Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "ecommerce:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:41Z",
+          "endedAt": "2026-09-29T08:02:41Z",
+          "log": "logs/ecommerce-x07.txt"
+        }
+      ],
+      "note": "asignación ecommerce.ai.credits: el hard gate corta la 3ª llamada"
+    },
+    "12": {
+      "label": "no duplicate billing",
+      "status": "N/A",
+      "reason": "sin biller comercial local; MasterAdmin reclama cada agregado una vez (pgTAP 41)"
+    },
+    "13": {
+      "label": "local price/billing authority stage explicit",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "ecommerce:test-db",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:10Z",
+          "endedAt": "2026-09-29T08:02:41Z",
+          "log": "logs/ecommerce-test-db.txt"
+        }
+      ],
+      "note": "entitlements SHADOW (platform_entitlements); sin biller comercial local (los pagos Culqi son del storefront del tenant); sin precios EBIM locales"
+    },
+    "14": {
+      "label": "technical configuration still works",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "ecommerce:test-db",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:10Z",
+          "endedAt": "2026-09-29T08:02:41Z",
+          "log": "logs/ecommerce-test-db.txt"
+        }
+      ]
+    },
+    "15": {
+      "label": "CREATE/REPLAY/GET provisioning regression green",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:provisioning-golden",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:03Z",
+          "endedAt": "2026-09-29T08:02:05Z",
+          "log": "logs/masteradmin-provisioning-golden.txt"
+        },
+        {
+          "ref": "ecommerce:test-db",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:10Z",
+          "endedAt": "2026-09-29T08:02:41Z",
+          "log": "logs/ecommerce-test-db.txt"
+        }
+      ]
+    }
+  },
+  "criteria": {
+    "1": {
+      "met": true,
+      "reason": "P0 del §1.4 cerrados en fases 03–06 con test"
+    },
+    "2": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "ecommerce:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:41Z",
+          "endedAt": "2026-09-29T08:02:41Z",
+          "log": "logs/ecommerce-x07.txt"
+        }
+      ]
+    },
+    "3": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:01:59Z",
+          "endedAt": "2026-09-29T08:02:03Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "ecommerce:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:41Z",
+          "endedAt": "2026-09-29T08:02:41Z",
+          "log": "logs/ecommerce-x07.txt"
+        }
+      ]
+    },
+    "4": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:05Z",
+          "endedAt": "2026-09-29T08:02:06Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "ecommerce:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:41Z",
+          "endedAt": "2026-09-29T08:02:41Z",
+          "log": "logs/ecommerce-x07.txt"
+        }
+      ]
+    },
+    "5": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "ecommerce:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:41Z",
+          "endedAt": "2026-09-29T08:02:41Z",
+          "log": "logs/ecommerce-x07.txt"
+        }
+      ]
+    },
+    "6": {
+      "met": false,
+      "reason": "entitlements sembrado en SHADOW, no MASTERADMIN_PRIMARY; avanzar requiere D-14 (ventanas de observación) y además: unificar criterio appActive=false (eCommerce cierra operación)"
+    },
+    "7": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:usage-x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:06Z",
+          "endedAt": "2026-09-29T08:02:10Z",
+          "log": "logs/masteradmin-usage-x07.txt"
+        }
+      ]
+    },
+    "8": {
+      "met": true,
+      "reason": "sin biller local: no aplica (spec §19.1(8))"
+    }
+  },
+  "gaps": [
+    {
+      "class": "PRE_EXISTING",
+      "text": "migración 20260827090600_storage_buckets (alter table storage.objects) no reconstruye desde cero en Supabase actual; la base de prueba real usa PGlite"
+    }
+  ],
+  "synchronized": false,
+  "blockers": [
+    "§19.1(6) entitlements sembrado en SHADOW, no MASTERADMIN_PRIMARY; avanzar requiere D-14 (ventanas de observación) y además: unificar criterio appActive=false (eCommerce cierra operación)"
+  ]
+}

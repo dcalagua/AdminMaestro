@@ -17,7 +17,7 @@
  */
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import {
-  json, resolvePaymentProvider, toAccountConfig, ProviderError,
+  json, resolvePaymentProvider, toAccountConfig, vaultSecretLoader, ProviderError,
   type ChargeSummary,
 } from '../_shared/payments/index.ts';
 
@@ -134,7 +134,13 @@ Deno.serve(async (req: Request) => {
 
   let provider;
   try {
-    provider = resolvePaymentProvider(account);
+    provider = await resolvePaymentProvider(account, {
+      // Llave cifrada (Vault) con la RPC de servicio; si no hay, `secret_key_ref` del entorno.
+      loadVaultSecret: vaultSecretLoader(async (fn, args) => {
+        const { data, error } = await admin.rpc(fn, args);
+        return { data, error };
+      }),
+    });
   } catch (error) {
     if (error instanceof ProviderError) {
       return json({ error: error.code, message: error.message }, error.httpStatus);
@@ -184,7 +190,20 @@ Deno.serve(async (req: Request) => {
         currency: charge.currency,
       });
 
-      if (body.apply_missing && charge.status === 'CONFIRMED' && charge.externalSubscriptionId) {
+      if (body.apply_missing && charge.status === 'CONFIRMED' && charge.invoiceId) {
+        // M1/M2 · Cargo del portal o de la tarjeta guardada: se imputa a su
+        // factura. Idempotente por reference: si ya entró, es DUPLICATE.
+        await admin.rpc('register_provider_invoice_payment', {
+          p_provider_account_id: account.id,
+          p_external_event_key: `reconcile:${charge.externalChargeId}`,
+          p_external_charge_id: charge.externalChargeId,
+          p_invoice_id: charge.invoiceId,
+          p_amount: charge.amount,
+          p_currency: charge.currency,
+          p_paid_at: charge.paidAt,
+          p_payload: { origin: 'payment-reconcile' },
+        });
+      } else if (body.apply_missing && charge.status === 'CONFIRMED' && charge.externalSubscriptionId) {
         // Incluso aquí se pasa por la RPC: idempotente y auditada.
         await admin.rpc('register_provider_payment', {
           p_provider_account_id: account.id,

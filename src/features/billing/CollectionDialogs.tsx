@@ -153,7 +153,7 @@ export function CollectionProfileDialog({
         <div>
           <span className="ebim-label">Cuenta de cobro</span>
           <div
-            className="ebim-input flex min-h-[var(--control-h)] items-center text-sm"
+            className="ebim-input flex min-h-[var(--control-h)] items-center text-body"
             aria-live="polite"
             data-testid="collection-route"
           >
@@ -165,14 +165,14 @@ export function CollectionProfileDialog({
                   ? `${route.account_code} · ${route.market_code ?? '—'} · ${(route.currencies ?? []).join('/')} (${route.environment})`
                   : 'Sin cuenta elegible'}
           </div>
-          <p className="mt-1 text-xs text-muted">
+          <p className="mt-1 text-caption text-muted">
             La asigna el servidor por mercado, moneda y método. No se elige a mano.
           </p>
         </div>
       </FieldRow>
 
       {needsProvider && !candidates.isLoading && !route ? (
-        <div className="rounded-lg bg-warn-soft px-3 py-2 text-xs text-warn" role="alert">
+        <div className="rounded-lg bg-warn-soft px-3 py-2 text-caption text-warn" role="alert">
           <p className="font-semibold">
             No hay cuenta de tarjeta para el mercado y la moneda de esta suscripción. La base
             rechazará el perfil (PROVEEDOR_NO_DISPONIBLE_EN_MERCADO): elige otro método.
@@ -189,13 +189,13 @@ export function CollectionProfileDialog({
         </div>
       ) : null}
       {needsProvider && route ? (
-        <p className="rounded-lg bg-info-soft px-3 py-2 text-xs text-info">
+        <p className="rounded-lg bg-info-soft px-3 py-2 text-caption text-info">
           El cargo automático queda activado. Si la cuenta no tiene credenciales configuradas, el
           adapter opera en modo MOCK y no se ejecuta ningún cobro real.
         </p>
       ) : null}
       {needsDocument ? (
-        <p className="rounded-lg bg-info-soft px-3 py-2 text-xs text-info">
+        <p className="rounded-lg bg-info-soft px-3 py-2 text-caption text-info">
           Este método exige documento del cliente. Recibirlo o aprobarlo habilita el trámite, pero{' '}
           <strong>no equivale a un cobro</strong> ni devenga comisión.
         </p>
@@ -242,7 +242,7 @@ export function CollectionProfileDialog({
         {...form.register('auto_suspend')}
       />
       {form.formState.errors.grace_period_days ? (
-        <p className="-mt-2 text-xs text-danger" role="alert">
+        <p className="-mt-2 text-caption text-danger" role="alert">
           {form.formState.errors.grace_period_days.message}
         </p>
       ) : null}
@@ -447,8 +447,8 @@ export function ReceiveDocumentDialog({
         error={form.formState.errors.amount} {...form.register('amount')}
       />
       <TextField
-        label="Referencia del archivo" placeholder="storage://os/2026/os-0455.pdf"
-        hint="Una referencia, no el archivo ni una URL firmada."
+        label="Referencia del archivo (texto, no se adjunta)" placeholder="storage://os/2026/os-0455.pdf"
+        hint="Escribe dónde está guardado el documento. La consola no sube ni guarda el archivo; tampoco uses una URL firmada."
         error={form.formState.errors.external_file_ref} {...form.register('external_file_ref')}
       />
       <TextAreaField label="Notas" error={form.formState.errors.notes} {...form.register('notes')} />

@@ -1,0 +1,32 @@
+PASS · 0. alta real de GMAO + IA legacy 50/mes; autoridad DUAL_READ decide legacy · {"plan":"active","used":1,"quota":50,"status":"active","allowed":true,"remaining":49}
+PASS · 1. receptor GMAO configurado (mismo M2M de provisioning, scopes propios)
+PASS · 2. MasterAdmin lee el manifiesto GMAO (gmao.core + gmao.ai.assist ACTIVE; créditos IA, límites y addons técnicos DRAFT) · 2026-10-10.1 · gmao.ai.assist,gmao.core
+PASS · 3. snapshot sin DRAFT ni precios (gmao.ai.requests no se emite: D-03 sin decidir)
+PASS · 4. emisor real → PUT M2M real → APPLIED · APPLIED 200
+PASS · 5. DUAL_READ: la IA sigue decidiéndose por legacy (50) aunque el snapshot no la conceda
+PASS · 6. DUAL_READ registra la diferencia legacy ↔ snapshot · SNAPSHOT_MISSING,CAPABILITY_MISMATCH
+PASS · 7. GET: misma versión y checksum; modo de contrato DUAL_READ · OBSERVED DUAL_READ
+PASS · 8. replay idempotente, versión vieja STALE, scope de provisioning rechazado · REPLAYED/APPLIED/STALE/REJECTED
+PASS · 9. con IA concedida pero sin asignación (D-03) la paridad queda BLOCKING ALLOWANCE_NOT_DEFINED · ALLOWANCE_NOT_DEFINED
+PASS · 10. la base impide MASTERADMIN_AUTHORITY sin paridad verde
+PASS · 11. SHADOW: la escritura legacy del plan IA se permite y deja alerta · 3 alertas
+PASS · 12. paridad verde (0 BLOCKING) con legacy y MasterAdmin alineados
+PASS · 13. MASTERADMIN_AUTHORITY: GET PRIMARY, versión 3 · PRIMARY
+PASS · 14. MASTERADMIN_AUTHORITY: re-habilitar la IA por la vía legacy queda BLOQUEADO en la base
+PASS · 15. el plan del tenant ya no se cambia en GMAO
+PASS · 16. el snapshot decide: sin gmao.ai.assist → IA apagada · {"reason":"DISABLED","status":"disabled","allowed":false}
+PASS · 17. BILLING LEGACY_AUTHORITY: cobra local (pasarela falsa 1 vez)
+PASS · 18. BILLING SHADOW: sigue cobrando local y registra la sombra (sin datos de tarjeta)
+PASS · 19. BILLING → MASTERADMIN_AUTHORITY exige comparación SHADOW verde
+PASS · 20. BILLING MASTERADMIN_AUTHORITY: charge 409 SIN llamar a la pasarela (nunca dos cobradores) · 409
+PASS · 21. y la base rechaza cualquier pago/factura local de ese tenant
+PASS · 22. GMAO sirve el export del hub por M2M (scope propio), sin precios ni secretos · 200
+PASS · 23. MasterAdmin valida checksum/lista blanca y mapea de forma determinista (códigos canónicos, sin inventar) · ecommerce.ai.assist,ecommerce.ai.catalog.copy
+PASS · 24. paridad dual-read en ROJO (MasterAdmin sin una capacidad del hub) → la base impide congelar el hub · CAPABILITY_ONLY_IN_HUB
+PASS · 25. paridad VERDE + atestación → hub:ecommerce en MASTERADMIN_AUTHORITY; reporte sin precios
+PASS · 26. el hub congela las escrituras comerciales de eCommerce (RPC y pre-chequeo de platform-register)
+PASS · 27. el congelamiento es POR PRODUCTO: eSupplier (LEGACY) sigue escribiendo
+PASS · 28. el hub sigue sirviendo el export (lectura) con el producto congelado; identidad intacta
+PASS · 29. rollback de un paso (MASTERADMIN_AUTHORITY → SHADOW) descongela al instante
+
+X-07 GMAO: 30/30 PASS

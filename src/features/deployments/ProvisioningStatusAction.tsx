@@ -47,7 +47,7 @@ export function ProvisioningStatusAction({ request }: { request: Record<string, 
       </button>
 
       {result ? (
-        <section aria-label="Estado en el producto" className="mt-3 rounded-field border border-border p-3 text-[13px]">
+        <section aria-label="Estado en el producto" className="mt-3 rounded-field border border-border p-3 text-compact">
           {result.found && result.remote ? (
             <dl className="space-y-1">
               <div className="flex justify-between gap-3">
@@ -56,11 +56,11 @@ export function ProvisioningStatusAction({ request }: { request: Record<string, 
               </div>
               <div className="flex justify-between gap-3">
                 <dt className="text-muted">Tenant externo</dt>
-                <dd className="font-mono text-xs text-fg">{result.remote.externalTenantId}</dd>
+                <dd className="font-mono text-caption text-fg">{result.remote.externalTenantId}</dd>
               </div>
               <div className="flex justify-between gap-3">
                 <dt className="text-muted">Organización externa</dt>
-                <dd className="font-mono text-xs text-fg">{result.remote.externalOrganizationId ?? '—'}</dd>
+                <dd className="font-mono text-caption text-fg">{result.remote.externalOrganizationId ?? '—'}</dd>
               </div>
               {admin ? (
                 <div className="flex justify-between gap-3">
@@ -68,7 +68,7 @@ export function ProvisioningStatusAction({ request }: { request: Record<string, 
                   <dd className="text-fg">{admin}</dd>
                 </div>
               ) : null}
-              <p className={result.mapping_consistent ? 'pt-1 text-success' : 'pt-1 font-semibold text-danger'}>
+              <p className={result.mapping_consistent ? 'pt-1 text-ok' : 'pt-1 font-semibold text-danger'}>
                 {result.mapping_consistent ? 'Coincide con el mapping' : 'No coincide con el mapping'}
               </p>
             </dl>
@@ -77,7 +77,7 @@ export function ProvisioningStatusAction({ request }: { request: Record<string, 
               {result.provider_http_status === 404
                 ? 'El producto no tiene este tenant.'
                 : 'La consulta no se pudo completar.'}{' '}
-              <span className="font-mono text-xs">
+              <span className="font-mono text-caption">
                 HTTP {String(result.provider_http_status ?? '—')} · {result.provider_code ?? '—'}
               </span>
             </p>

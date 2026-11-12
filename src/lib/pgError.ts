@@ -39,6 +39,10 @@ const SQLSTATE_MESSAGES: Record<string, string> = {
   '42501': 'No tienes permisos para realizar esta operación.',
   '22007': 'Una de las fechas no es válida.',
   PGRST301: 'Tu sesión expiró. Vuelve a iniciar sesión.',
+  // Errores de construcción de la consulta en PostgREST: son defectos de la
+  // pantalla, no del usuario. El texto técnico queda plegado en ErrorState.
+  PGRST200: 'El servidor no pudo relacionar los datos pedidos. Avisa al equipo de plataforma.',
+  PGRST201: 'El servidor no pudo relacionar los datos pedidos (relación ambigua). Avisa al equipo de plataforma.',
 };
 
 export function parseBusinessError(error: unknown): BusinessError {

@@ -1,12 +1,14 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import type { DashboardSummary, Enums, FinanceConsolidated } from '@/types/domain';
+import type { Database } from '@/types/database.types';
 import { toMarketOptions, type MarketRow } from '@/lib/regional';
 import type { SubscriptionBillingStatus } from '@/lib/billing';
 import {
   EMPTY_PROVISIONING_PERMISSIONS,
   type ProvisioningPermissions,
 } from '@/lib/provisioning';
+import { toAdminUser, type AdminUser } from '@/features/users/userModel';
 
 /**
  * Capa de acceso a datos.
@@ -58,9 +60,15 @@ export function useProduct(productId: string | undefined) {
   });
 }
 
-export function useOrganizations() {
+/** `enabled: false` difiere la lectura (p. ej. la paleta ⌘K solo lee al buscar). */
+interface LazyQueryOptions {
+  enabled?: boolean;
+}
+
+export function useOrganizations({ enabled = true }: LazyQueryOptions = {}) {
   return useQuery({
     queryKey: ['organizations'],
+    enabled,
     queryFn: async () =>
       unwrap(
         await supabase
@@ -144,9 +152,10 @@ export function usePartnerAgreements(organizationId?: string) {
   });
 }
 
-export function useTenantOverview() {
+export function useTenantOverview({ enabled = true }: LazyQueryOptions = {}) {
   return useQuery({
     queryKey: ['tenant-overview'],
+    enabled,
     queryFn: async () =>
       unwrap(await supabase.from('v_tenant_overview').select('*').order('name')),
   });
@@ -190,7 +199,9 @@ export function useAllFeatureFlags() {
       unwrap(
         await supabase
           .from('tenant_features')
-          .select('*, tenants(name, slug, saas_products(short_name))')
+          // FK explícita (A01): hay más de una relación tenants↔saas_products y
+          // PostgREST no puede elegir sola («more than one relationship»).
+          .select('*, tenants(name, slug, saas_products!tenants_saas_product_id_fkey(short_name))')
           .order('feature_key'),
       ),
   });
@@ -273,12 +284,19 @@ export function useExchangeRates() {
 }
 
 export interface FinanceConsolidatedParams {
+  /** Fecha de las TASAS FX (valuación). No es el período de operaciones. */
   asOf: string;
   groupBy: 'TOTAL' | 'MARKET' | 'PRODUCT' | 'PARTNER';
   marketCode?: string;
   currency?: string;
   saasProductId?: string;
   organizationId?: string;
+  /**
+   * Período transaccional (E03): filtra cobros, costos y comisiones por fecha de
+   * hecho. MRR/ARR son foto actual y el SQL no los filtra por período.
+   */
+  periodStart?: string;
+  periodEnd?: string;
 }
 
 /**
@@ -296,9 +314,519 @@ export function useFinanceConsolidated(params: FinanceConsolidatedParams) {
         p_currency: params.currency || undefined,
         p_saas_product_id: params.saasProductId || undefined,
         p_organization_id: params.organizationId || undefined,
+        p_period_start: params.periodStart || undefined,
+        p_period_end: params.periodEnd || undefined,
       });
       if (error) throw new Error(error.message);
       return data as unknown as FinanceConsolidated;
+    },
+  });
+}
+
+/* ==========================================================================
+   Series ejecutivas (S01–S05, docs/finance/EXECUTIVE_KPI_DICTIONARY.md)
+
+   MRR contratado reconstruido desde la vigencia de los ítems, en moneda de
+   reporte. Un importe NULL significa «falta una tasa» (`complete=false`,
+   `missingCurrencies`), nunca cero: la UI lo rotula, no lo rellena.
+   ========================================================================== */
+
+/** Importes nativos por moneda (`{"PEN": 2000, "USD": 1650}`). */
+export type NativeAmounts = Record<string, number>;
+
+function toNative(value: unknown): NativeAmounts {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const out: NativeAmounts = {};
+  for (const [currency, amount] of Object.entries(value)) {
+    const n = Number(amount);
+    if (Number.isFinite(n)) out[currency] = n;
+  }
+  return out;
+}
+
+function toAmount(value: unknown): number | null {
+  return value === null || value === undefined ? null : Number(value);
+}
+
+export interface ExecutiveMrrPoint {
+  /** Primer día del mes (YYYY-MM-01). */
+  month: string;
+  /** Fecha medida: cierre del mes, u hoy en el mes en curso. */
+  asOf: string;
+  isPartial: boolean;
+  reportingCurrency: string;
+  mrr: number | null;
+  arr: number | null;
+  activeCustomers: number;
+  activeSubscriptions: number;
+  native: NativeAmounts;
+  complete: boolean;
+  missingCurrencies: string[];
+  fxIsDemo: boolean;
+}
+
+export interface ExecutiveMrrSeriesParams {
+  /** Inclusive, cualquier día del mes inicial. Sin valor: 18 meses hasta el actual. */
+  from?: string;
+  to?: string;
+  reportingCurrency?: string;
+}
+
+/** S01 · MRR, ARR, clientes y contratos por mes. */
+export function useExecutiveMrrSeries(params: ExecutiveMrrSeriesParams = {}) {
+  return useQuery({
+    queryKey: ['executive', 'mrr-series', params.from ?? null, params.to ?? null, params.reportingCurrency ?? null],
+    placeholderData: keepPreviousData,
+    queryFn: async (): Promise<ExecutiveMrrPoint[]> => {
+      const { data, error } = await supabase.rpc('executive_mrr_series', {
+        p_from: params.from || undefined,
+        p_to: params.to || undefined,
+        p_reporting_currency: params.reportingCurrency || undefined,
+      });
+      if (error) throw new Error(error.message);
+      return (data ?? []).map((r) => ({
+        month: r.month,
+        asOf: r.as_of,
+        isPartial: r.is_partial,
+        reportingCurrency: r.reporting_currency,
+        mrr: toAmount(r.mrr),
+        arr: toAmount(r.arr),
+        activeCustomers: r.active_customers,
+        activeSubscriptions: r.active_subscriptions,
+        native: toNative(r.mrr_native),
+        complete: r.complete,
+        missingCurrencies: r.missing_currencies ?? [],
+        fxIsDemo: r.fx_is_demo,
+      }));
+    },
+  });
+}
+
+export interface ExecutiveMrrBridge {
+  month: string;
+  asOf: string;
+  reportingCurrency: string;
+  opening: number | null;
+  newMrr: number | null;
+  expansion: number | null;
+  contraction: number | null;
+  churn: number | null;
+  closing: number | null;
+  /** Punto de la serie del mes anterior, a su propia tasa. */
+  priorClosing: number | null;
+  /** opening − priorClosing: variación sólo por tipo de cambio. */
+  fxRevaluation: number | null;
+  newCustomers: number;
+  expansionCustomers: number;
+  contractionCustomers: number;
+  churnedCustomers: number;
+  complete: boolean;
+}
+
+export type MrrMovementKind = 'NEW' | 'EXPANSION' | 'CONTRACTION' | 'CHURN' | 'FLAT';
+
+export interface ExecutiveMrrMovementCustomer {
+  organizationId: string;
+  organizationName: string | null;
+  movement: MrrMovementKind;
+  opening: number | null;
+  closing: number | null;
+  delta: number | null;
+  complete: boolean;
+}
+
+/**
+ * S02 · Puente de MRR del mes (opening + new + expansion − contraction − churn =
+ * closing). `month` = cualquier día del mes; sin valor, el mes en curso.
+ */
+export function useExecutiveMrrMovements(month?: string, reportingCurrency?: string) {
+  return useQuery({
+    queryKey: ['executive', 'mrr-movements', month ?? null, reportingCurrency ?? null],
+    queryFn: async (): Promise<ExecutiveMrrBridge | null> => {
+      const { data, error } = await supabase.rpc('executive_mrr_movements', {
+        p_month: month || undefined,
+        p_reporting_currency: reportingCurrency || undefined,
+      });
+      if (error) throw new Error(error.message);
+      const r = (data ?? [])[0];
+      return r ? toBridge(r) : null;
+    },
+  });
+}
+
+type BridgeRow = Database['platform']['Functions']['executive_mrr_movements']['Returns'][number];
+
+function toBridge(r: BridgeRow): ExecutiveMrrBridge {
+  return {
+    month: r.month,
+    asOf: r.as_of,
+    reportingCurrency: r.reporting_currency,
+    opening: toAmount(r.opening_mrr),
+    newMrr: toAmount(r.new_mrr),
+    expansion: toAmount(r.expansion_mrr),
+    contraction: toAmount(r.contraction_mrr),
+    churn: toAmount(r.churn_mrr),
+    closing: toAmount(r.closing_mrr),
+    priorClosing: toAmount(r.prior_closing_mrr),
+    fxRevaluation: toAmount(r.fx_revaluation),
+    newCustomers: r.new_customers,
+    expansionCustomers: r.expansion_customers,
+    contractionCustomers: r.contraction_customers,
+    churnedCustomers: r.churned_customers,
+    complete: r.complete,
+  };
+}
+
+/** S07 · Puente de MRR de cada mes del rango (sin valor: 12 meses hasta el actual). Base de NRR y churn. */
+export function useExecutiveMrrMovementsSeries(params: ExecutiveMrrSeriesParams = {}) {
+  return useQuery({
+    queryKey: ['executive', 'mrr-movements-series', params.from ?? null, params.to ?? null, params.reportingCurrency ?? null],
+    placeholderData: keepPreviousData,
+    queryFn: async (): Promise<ExecutiveMrrBridge[]> => {
+      const { data, error } = await supabase.rpc('executive_mrr_movements_series', {
+        p_from: params.from || undefined,
+        p_to: params.to || undefined,
+        p_reporting_currency: params.reportingCurrency || undefined,
+      });
+      if (error) throw new Error(error.message);
+      return (data ?? []).map(toBridge);
+    },
+  });
+}
+
+/** S03 · Detalle del puente por organización facturada (drill-down del waterfall). */
+export function useExecutiveMrrMovementCustomers(
+  month: string | undefined,
+  reportingCurrency?: string,
+  { enabled = true }: LazyQueryOptions = {},
+) {
+  return useQuery({
+    queryKey: ['executive', 'mrr-movement-customers', month ?? null, reportingCurrency ?? null],
+    placeholderData: keepPreviousData,
+    enabled,
+    queryFn: async (): Promise<ExecutiveMrrMovementCustomer[]> => {
+      const { data, error } = await supabase.rpc('executive_mrr_movement_customers', {
+        p_month: month || undefined,
+        p_reporting_currency: reportingCurrency || undefined,
+      });
+      if (error) throw new Error(error.message);
+      return (data ?? []).map((r) => ({
+        organizationId: r.billed_organization_id,
+        organizationName: r.organization_name ?? null,
+        movement: r.movement as MrrMovementKind,
+        opening: toAmount(r.opening_mrr),
+        closing: toAmount(r.closing_mrr),
+        delta: toAmount(r.delta_mrr),
+        complete: r.complete,
+      }));
+    },
+  });
+}
+
+export type MrrMixDimension = 'PRODUCT' | 'MARKET' | 'PARTNER';
+
+export interface ExecutiveMrrMixRow {
+  key: string;
+  label: string;
+  mrr: number | null;
+  /** Razón 0–1 del total del mes; NULL si falta una tasa. */
+  share: number | null;
+  activeCustomers: number;
+  activeSubscriptions: number;
+  native: NativeAmounts;
+  complete: boolean;
+  missingCurrencies: string[];
+}
+
+/** S04 · Mix de MRR por producto, mercado o partner (S08) al cierre del mes (orden: mayor MRR primero). */
+export function useExecutiveMrrMix(dimension: MrrMixDimension, month?: string, reportingCurrency?: string) {
+  return useQuery({
+    queryKey: ['executive', 'mrr-mix', dimension, month ?? null, reportingCurrency ?? null],
+    placeholderData: keepPreviousData,
+    queryFn: async (): Promise<ExecutiveMrrMixRow[]> => {
+      const { data, error } = await supabase.rpc('executive_mrr_mix', {
+        p_dimension: dimension,
+        p_month: month || undefined,
+        p_reporting_currency: reportingCurrency || undefined,
+      });
+      if (error) throw new Error(error.message);
+      return (data ?? []).map((r) => ({
+        key: r.group_key,
+        label: r.group_label,
+        mrr: toAmount(r.mrr),
+        share: toAmount(r.share),
+        activeCustomers: r.active_customers,
+        activeSubscriptions: r.active_subscriptions,
+        native: toNative(r.mrr_native),
+        complete: r.complete,
+        missingCurrencies: r.missing_currencies ?? [],
+      }));
+    },
+  });
+}
+
+export type AgingBucket = 'VIGENTE' | 'D1_30' | 'D31_60' | 'D61_90' | 'D90_MAS' | 'SIN_FECHA';
+
+export interface ExecutiveAgingBucket {
+  bucket: AgingBucket;
+  invoiceCount: number;
+  balance: number | null;
+  native: NativeAmounts;
+  complete: boolean;
+  missingCurrencies: string[];
+}
+
+export interface ExecutiveAging {
+  asOf: string;
+  reportingCurrency: string;
+  /** Las 6 bandas, siempre presentes y en orden. */
+  buckets: ExecutiveAgingBucket[];
+  complete: boolean;
+  fxIsDemo: boolean;
+}
+
+/** S05 · Cartera por antigüedad a una fecha (por defecto hoy), en moneda de reporte. */
+export function useExecutiveAging(asOf?: string, reportingCurrency?: string) {
+  return useQuery({
+    queryKey: ['executive', 'aging', asOf ?? null, reportingCurrency ?? null],
+    placeholderData: keepPreviousData,
+    queryFn: async (): Promise<ExecutiveAging | null> => {
+      const { data, error } = await supabase.rpc('executive_receivables_aging', {
+        p_as_of: asOf || undefined,
+        p_reporting_currency: reportingCurrency || undefined,
+      });
+      if (error) throw new Error(error.message);
+      const rows = [...(data ?? [])].sort((a, b) => a.bucket_order - b.bucket_order);
+      if (rows.length === 0) return null;
+      return {
+        asOf: rows[0]!.as_of,
+        reportingCurrency: rows[0]!.reporting_currency,
+        buckets: rows.map((r) => ({
+          bucket: r.aging_bucket as AgingBucket,
+          invoiceCount: r.invoice_count,
+          balance: toAmount(r.balance),
+          native: toNative(r.balance_native),
+          complete: r.complete,
+          missingCurrencies: r.missing_currencies ?? [],
+        })),
+        complete: rows.every((r) => r.complete),
+        fxIsDemo: rows.some((r) => r.fx_is_demo),
+      };
+    },
+  });
+}
+
+export interface ExecutiveBillingPoint {
+  month: string;
+  asOf: string;
+  isPartial: boolean;
+  reportingCurrency: string;
+  invoiced: number | null;
+  collected: number | null;
+  /** cobrado / facturado del mes (razón 0–n); NULL sin facturación o sin tasa. */
+  collectionRate: number | null;
+  /** Saldo vencido (1 día o más) al cierre del mes. */
+  overdue: number | null;
+  invoiceCount: number;
+  paymentCount: number;
+  overdueInvoiceCount: number;
+  invoicedNative: NativeAmounts;
+  collectedNative: NativeAmounts;
+  complete: boolean;
+  missingCurrencies: string[];
+  fxIsDemo: boolean;
+}
+
+/** S06 · Facturado, cobrado, razón de cobro y vencida por mes en moneda de reporte. */
+export function useExecutiveBillingSeries(params: ExecutiveMrrSeriesParams = {}) {
+  return useQuery({
+    queryKey: ['executive', 'billing-series', params.from ?? null, params.to ?? null, params.reportingCurrency ?? null],
+    placeholderData: keepPreviousData,
+    queryFn: async (): Promise<ExecutiveBillingPoint[]> => {
+      const { data, error } = await supabase.rpc('executive_billing_series', {
+        p_from: params.from || undefined,
+        p_to: params.to || undefined,
+        p_reporting_currency: params.reportingCurrency || undefined,
+      });
+      if (error) throw new Error(error.message);
+      return (data ?? []).map((r) => ({
+        month: r.month,
+        asOf: r.as_of,
+        isPartial: r.is_partial,
+        reportingCurrency: r.reporting_currency,
+        invoiced: toAmount(r.invoiced),
+        collected: toAmount(r.collected),
+        collectionRate: toAmount(r.collection_rate),
+        overdue: toAmount(r.overdue),
+        invoiceCount: r.invoice_count,
+        paymentCount: r.payment_count,
+        overdueInvoiceCount: r.overdue_invoice_count,
+        invoicedNative: toNative(r.invoiced_native),
+        collectedNative: toNative(r.collected_native),
+        complete: r.complete,
+        missingCurrencies: r.missing_currencies ?? [],
+        fxIsDemo: r.fx_is_demo,
+      }));
+    },
+  });
+}
+
+export interface FinanceMonthlyPoint {
+  month: string;
+  asOf: string;
+  isPartial: boolean;
+  reportingCurrency: string;
+  collected: number | null;
+  /** Costo asignado del mes (K05: cost_allocations × peso, por fin de período). */
+  cost: number | null;
+  /** Comisión devengada en el mes (sin anuladas). */
+  commission: number | null;
+  /** Parte de `commission` que hoy está pagada. */
+  commissionPaid: number | null;
+  /** Parte de `commission` que hoy se debe (elegible + devengada). */
+  commissionPending: number | null;
+  /** Cobrado − costo − comisión; NULL si falta una tasa. */
+  margin: number | null;
+  collectedNative: NativeAmounts;
+  costNative: NativeAmounts;
+  commissionNative: NativeAmounts;
+  complete: boolean;
+  missingCurrencies: string[];
+  fxIsDemo: boolean;
+}
+
+/** S09 · Cobrado, costo, comisión y margen gerencial (K05) por mes en moneda de reporte. */
+export function useFinanceMonthlySeries(params: ExecutiveMrrSeriesParams = {}) {
+  return useQuery({
+    queryKey: ['finance', 'monthly-series', params.from ?? null, params.to ?? null, params.reportingCurrency ?? null],
+    placeholderData: keepPreviousData,
+    queryFn: async (): Promise<FinanceMonthlyPoint[]> => {
+      const { data, error } = await supabase.rpc('finance_monthly_series', {
+        p_from: params.from || undefined,
+        p_to: params.to || undefined,
+        p_reporting_currency: params.reportingCurrency || undefined,
+      });
+      if (error) throw new Error(error.message);
+      return (data ?? []).map((r) => ({
+        month: r.month,
+        asOf: r.as_of,
+        isPartial: r.is_partial,
+        reportingCurrency: r.reporting_currency,
+        collected: toAmount(r.collected),
+        cost: toAmount(r.cost),
+        commission: toAmount(r.commission),
+        commissionPaid: toAmount(r.commission_paid),
+        commissionPending: toAmount(r.commission_pending),
+        margin: toAmount(r.margin),
+        collectedNative: toNative(r.collected_native),
+        costNative: toNative(r.cost_native),
+        commissionNative: toNative(r.commission_native),
+        complete: r.complete,
+        missingCurrencies: r.missing_currencies ?? [],
+        fxIsDemo: r.fx_is_demo,
+      }));
+    },
+  });
+}
+
+export interface WeeklyCollectionPoint {
+  /** Lunes de la semana (YYYY-MM-DD). */
+  weekStart: string;
+  weekEnd: string;
+  asOf: string;
+  isPartial: boolean;
+  reportingCurrency: string;
+  collected: number | null;
+  paymentCount: number;
+  native: NativeAmounts;
+  complete: boolean;
+  missingCurrencies: string[];
+  fxIsDemo: boolean;
+}
+
+/** S10 · Cobrado por semana (lunes–domingo) en moneda de reporte, fórmula de K02. */
+export function useWeeklyCollections(weeks = 12, reportingCurrency?: string) {
+  return useQuery({
+    queryKey: ['finance', 'weekly-collections', weeks, reportingCurrency ?? null],
+    placeholderData: keepPreviousData,
+    queryFn: async (): Promise<WeeklyCollectionPoint[]> => {
+      const { data, error } = await supabase.rpc('collections_by_week', {
+        p_weeks: weeks,
+        p_reporting_currency: reportingCurrency || undefined,
+      });
+      if (error) throw new Error(error.message);
+      return (data ?? []).map((r) => ({
+        weekStart: r.week_start,
+        weekEnd: r.week_end,
+        asOf: r.as_of,
+        isPartial: r.is_partial,
+        reportingCurrency: r.reporting_currency,
+        collected: toAmount(r.collected),
+        paymentCount: r.payment_count,
+        native: toNative(r.collected_native),
+        complete: r.complete,
+        missingCurrencies: r.missing_currencies ?? [],
+        fxIsDemo: r.fx_is_demo,
+      }));
+    },
+  });
+}
+
+export interface AccountSeriesPoint {
+  month: string;
+  asOf: string;
+  isPartial: boolean;
+  reportingCurrency: string;
+  mrr: number | null;
+  invoiced: number | null;
+  collected: number | null;
+  mrrNative: NativeAmounts;
+  invoicedNative: NativeAmounts;
+  collectedNative: NativeAmounts;
+  complete: boolean;
+  missingCurrencies: string[];
+  fxIsDemo: boolean;
+}
+
+/**
+ * S11 · MRR, facturado y cobrado por mes de UNA cuenta (organización facturada
+ * o tenant) para las fichas 360. El filtro es de alcance: RLS decide qué suma.
+ */
+export function useAccountSeries(
+  account: { organizationId?: string; tenantId?: string },
+  params: ExecutiveMrrSeriesParams = {},
+) {
+  const id = account.organizationId ?? account.tenantId;
+  return useQuery({
+    queryKey: [
+      'executive', 'account-series', account.organizationId ?? null, account.tenantId ?? null,
+      params.from ?? null, params.to ?? null, params.reportingCurrency ?? null,
+    ],
+    enabled: Boolean(id),
+    queryFn: async (): Promise<AccountSeriesPoint[]> => {
+      const { data, error } = await supabase.rpc('executive_account_series', {
+        p_organization_id: account.organizationId || undefined,
+        p_tenant_id: account.organizationId ? undefined : account.tenantId || undefined,
+        p_from: params.from || undefined,
+        p_to: params.to || undefined,
+        p_reporting_currency: params.reportingCurrency || undefined,
+      });
+      if (error) throw new Error(error.message);
+      return (data ?? []).map((r) => ({
+        month: r.month,
+        asOf: r.as_of,
+        isPartial: r.is_partial,
+        reportingCurrency: r.reporting_currency,
+        mrr: toAmount(r.mrr),
+        invoiced: toAmount(r.invoiced),
+        collected: toAmount(r.collected),
+        mrrNative: toNative(r.mrr_native),
+        invoicedNative: toNative(r.invoiced_native),
+        collectedNative: toNative(r.collected_native),
+        complete: r.complete,
+        missingCurrencies: r.missing_currencies ?? [],
+        fxIsDemo: r.fx_is_demo,
+      }));
     },
   });
 }
@@ -319,9 +847,10 @@ export function usePlanPriceCatalog() {
   });
 }
 
-export function useSubscriptions() {
+export function useSubscriptions({ enabled = true }: LazyQueryOptions = {}) {
   return useQuery({
     queryKey: ['subscriptions'],
+    enabled,
     queryFn: async () =>
       unwrap(
         await supabase
@@ -331,6 +860,18 @@ export function useSubscriptions() {
           )
           .order('code'),
       ),
+  });
+}
+
+/**
+ * Sólo el estado de cada contrato (Centro de la suite): sin importes ni ítems.
+ * La pantalla lo pide únicamente a perfiles con vista financiera; RLS decide.
+ */
+export function useSubscriptionStatuses({ enabled = true }: LazyQueryOptions = {}) {
+  return useQuery({
+    queryKey: ['subscriptions', 'statuses'],
+    enabled,
+    queryFn: async () => unwrap(await supabase.from('subscriptions').select('id, code, status')),
   });
 }
 
@@ -350,12 +891,25 @@ export function useSubscriptionCollection(subscriptionId?: string) {
   });
 }
 
-/** Cuentas de proveedor de cobro. No contienen secretos, solo referencias. */
+/**
+ * Columnas de `payment_provider_accounts` que puede leer la consola. Lista
+ * explícita, no `*`: `secret_vault_id` está fuera del alcance de `authenticated`
+ * por privilegio de columna y un `select *` fallaría con 42501.
+ */
+const PROVIDER_ACCOUNT_COLUMNS =
+  'id, code, name, provider_kind, environment, owner_organization_id, country_code, currency, ' +
+  'public_key, secret_key_ref, rsa_public_key_ref, rsa_id_ref, webhook_endpoint, status, metadata, ' +
+  'market_id, routing_priority, secret_hint, secret_set_at, api_base_url, created_at, updated_at';
+
+/**
+ * Cuentas de proveedor de cobro. Sin secretos: de la llave cifrada solo llega su
+ * PISTA (`sk_test_…abcd`) y la fecha en que se configuró.
+ */
 export function useProviderAccounts() {
   return useQuery({
     queryKey: ['provider-accounts'],
     queryFn: async () =>
-      unwrap(await supabase.from('payment_provider_accounts').select('*').order('code')),
+      unwrap(await supabase.from('payment_provider_accounts').select(PROVIDER_ACCOUNT_COLUMNS).order('code')),
   });
 }
 
@@ -525,6 +1079,27 @@ export function useInvoices() {
   });
 }
 
+/**
+ * Facturas de UNA suscripción, con sus pagos. Acotada en el servidor por
+ * contrato: sin el tope de 200 del listado general, así el Contrato 360 no
+ * pierde facturas antiguas cuando el universo de la cuenta crece (E02).
+ */
+export function useSubscriptionInvoices(subscriptionId: string | undefined) {
+  return useQuery({
+    queryKey: ['invoices', 'subscription', subscriptionId],
+    enabled: Boolean(subscriptionId),
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('invoices')
+          .select('*, organizations(display_name), invoice_lines(*), payments(*)')
+          .eq('subscription_id', subscriptionId!)
+          .order('issue_date', { ascending: false, nullsFirst: false })
+          .order('id'),
+      ),
+  });
+}
+
 /* ==========================================================================
    Renovaciones y finanzas (Fases 11-13)
    ========================================================================== */
@@ -541,6 +1116,27 @@ export function useBillingAlerts(status: Enums<'billing_alert_status'> = 'OPEN')
           .eq('status', status)
           .order('due_at'),
       ),
+  });
+}
+
+/**
+ * Cuántas alertas de cobranza ABIERTAS son críticas (badge del menú lateral).
+ * Solo cuenta (`head: true`): no trae filas. La clave cuelga de `billing-alerts`
+ * para que las mutaciones que ya invalidan alertas también la refresquen.
+ */
+export function useCriticalBillingAlertCount({ enabled = true }: LazyQueryOptions = {}) {
+  return useQuery({
+    queryKey: ['billing-alerts', 'OPEN', 'critical-count'],
+    enabled,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('billing_alerts')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'OPEN')
+        .eq('severity', 'CRITICAL');
+      if (error) throw new Error(error.message);
+      return count ?? 0;
+    },
   });
 }
 
@@ -685,6 +1281,11 @@ export function useCommissionEvents() {
   });
 }
 
+/**
+ * Liquidaciones de comisiones visibles para el rol (RLS: finanzas ve todas; un
+ * comercial, solo las suyas), con el número de eventos que contienen. Una
+ * anulada ya no tiene eventos: los liberó para la próxima.
+ */
 export function useSettlements() {
   return useQuery({
     queryKey: ['settlements'],
@@ -692,9 +1293,60 @@ export function useSettlements() {
       unwrap(
         await supabase
           .from('commission_settlements')
-          .select('*, sales_agents(full_name, code)')
-          .order('period_start', { ascending: false }),
+          .select('*, sales_agents(full_name, code), commission_events(count)')
+          .order('period_start', { ascending: false })
+          .order('created_at', { ascending: false }),
+      ).map(({ commission_events: events, ...s }) => ({
+        ...s,
+        event_count: (events as unknown as Array<{ count: number }> | null)?.[0]?.count ?? 0,
+      })),
+  });
+}
+
+/** Comisiones de una liquidación, con su cálculo (`v_commission_detail`). */
+export function useSettlementEvents(settlementId: string | null) {
+  return useQuery({
+    queryKey: ['settlement-events', settlementId],
+    enabled: Boolean(settlementId),
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('v_commission_detail')
+          .select('*')
+          .eq('settlement_id', settlementId as string)
+          .order('earned_on', { ascending: true })
+          .order('commission_event_id', { ascending: true }),
       ),
+  });
+}
+
+/**
+ * Vista previa de «Generar liquidación»: las comisiones ELEGIBLES y libres del
+ * comercial, moneda y período que `settle_commissions` tomaría.
+ */
+export function useEligibleCommissions(params: {
+  agentId: string;
+  currency: string;
+  from: string;
+  to: string;
+}) {
+  const ready = Boolean(params.agentId && params.currency && params.from && params.to && params.from <= params.to);
+  return useQuery({
+    queryKey: ['commission-events', 'eligible-preview', params],
+    enabled: ready,
+    queryFn: async () => {
+      const { data, error, count } = await supabase
+        .from('v_commission_detail')
+        .select('commission_event_id, amount', { count: 'exact' })
+        .eq('sales_agent_id', params.agentId)
+        .eq('currency', params.currency)
+        .eq('status', 'ELIGIBLE')
+        .is('settlement_id', null)
+        .gte('earned_on', params.from)
+        .lte('earned_on', params.to);
+      if (error) throw error;
+      return { rows: data ?? [], count: count ?? 0 };
+    },
   });
 }
 
@@ -795,6 +1447,37 @@ export function useProductIntegrations() {
   });
 }
 
+/**
+ * Ejes de cutover (BILLING / ENTITLEMENTS) y `usage_ingest_enabled` por
+ * integración, SIN el contrato M2M. Lo leen finanzas, gestión comercial y
+ * quien lee la integración (`v_commercial_cutover_axes`): finanzas no necesita
+ * `platform.integration.read` para /billing-shadow ni para el Ingest.
+ */
+export function useCommercialCutoverAxes() {
+  return useQuery({
+    queryKey: ['commercial-cutover-axes'],
+    queryFn: async () =>
+      unwrap(
+        await supabase.from('v_commercial_cutover_axes').select('*').order('product_short_name').order('integration_code'),
+      ),
+  });
+}
+
+/** Historial del eje BILLING (append-only), del más reciente al más antiguo. */
+export function useCommercialCutoverHistory(limit = 50) {
+  return useQuery({
+    queryKey: ['commercial-cutover-history', limit],
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('v_commercial_cutover_history')
+          .select('*')
+          .order('occurred_at', { ascending: false })
+          .limit(limit),
+      ),
+  });
+}
+
 export function useProductIntegration(integrationId: string | undefined) {
   return useQuery({
     queryKey: ['product-integration', integrationId],
@@ -887,6 +1570,27 @@ export function useSaasProvisioningEvents(requestId: string | undefined) {
           .select('*')
           .eq('saas_provisioning_request_id', requestId!)
           .order('occurred_at'),
+      ),
+  });
+}
+
+/**
+ * Historial de altas de UNA app (Centro de la suite · ficha de app): los eventos
+ * de sus solicitudes, del más reciente al más antiguo. RLS decide qué se ve.
+ */
+export function useSaasProvisioningEventsForRequests(requestIds: readonly string[], limit = 200) {
+  const ids = [...requestIds].sort();
+  return useQuery({
+    queryKey: ['saas-provisioning-events', 'requests', ids, limit],
+    enabled: ids.length > 0,
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('saas_provisioning_events')
+          .select('*')
+          .in('saas_provisioning_request_id', ids)
+          .order('occurred_at', { ascending: false })
+          .limit(limit),
       ),
   });
 }
@@ -999,3 +1703,568 @@ export function usePlatformPeople() {
       unwrap(await supabase.from('profiles').select('id, full_name, email').order('email')),
   });
 }
+
+/* ==========================================================================
+   CCP fase 07 · Catálogo comercial y entitlements
+   --------------------------------------------------------------------------
+   Registro de capacidades, add-ons con su ciclo de vida y tarifas por
+   mercado, historia de add-ons por tenant y entitlements efectivos. Todo es
+   lectura: RLS (y las vistas `security_invoker`) decide qué filas ve cada rol.
+   ========================================================================== */
+
+/**
+ * Registro de capacidades de producto con sus alias. Dos lecturas planas que se
+ * unen aquí por `capability_id`: es presentación, no un filtro de seguridad.
+ */
+export function useProductCapabilities() {
+  return useQuery({
+    queryKey: ['capabilities'],
+    queryFn: async () => {
+      const [caps, aliases] = await Promise.all([
+        supabase.from('product_capabilities').select('*').order('code'),
+        supabase.from('capability_aliases').select('*').order('alias_code'),
+      ]);
+      const capabilityRows = unwrap(caps);
+      const aliasRows = unwrap(aliases);
+      return capabilityRows.map((c) => ({
+        ...c,
+        aliases: aliasRows.filter((a) => a.capability_id === c.id),
+      }));
+    },
+  });
+}
+
+/**
+ * Deseado frente a aplicado por tenant×producto (CCP fase 08). Vista SECURITY
+ * INVOKER: cada operador ve lo que su RLS le deja ver.
+ */
+export function useEntitlementSyncStatus() {
+  return useQuery({
+    queryKey: ['entitlement-sync-status'],
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('v_entitlement_sync_status')
+          .select('*')
+          .order('product_code')
+          .order('tenant_name'),
+      ),
+  });
+}
+
+/** Add-ons del catálogo central con su ciclo de vida y modelo de cobro. */
+export function useCatalogItemsWithLifecycle() {
+  return useQuery({
+    queryKey: ['catalog-items'],
+    queryFn: async () =>
+      unwrap(await supabase.from('catalog_items').select('*').order('name')),
+  });
+}
+
+/**
+ * Tarifas de add-on por mercado (vigentes, programadas e historia). La vista
+ * es `security_invoker`: quien no puede ver tarifas recibe cero filas, y eso
+ * se rotula «Sin precio definido», nunca «gratis».
+ */
+export function useCatalogItemPrices() {
+  return useQuery({
+    queryKey: ['catalog-item-prices'],
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('v_catalog_item_current_prices')
+          .select('*')
+          .order('catalog_item_code')
+          .order('market_code')
+          .order('valid_from', { ascending: false }),
+      ),
+  });
+}
+
+/** Historia de add-ons de UN tenant (solicitudes, altas, bajas, suspensiones). */
+export function useTenantAddonHistory(tenantId: string | undefined) {
+  return useQuery({
+    queryKey: ['tenant-addons', tenantId],
+    enabled: Boolean(tenantId),
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('v_tenant_addon_history')
+          .select('*')
+          .eq('tenant_id', tenantId!)
+          .order('requested_at', { ascending: false }),
+      ),
+  });
+}
+
+/** Entitlements efectivos de UN tenant (plan + add-ons), con marca de sincronización. */
+export function useTenantEntitlements(tenantId: string | undefined) {
+  return useQuery({
+    queryKey: ['tenant-entitlements', tenantId],
+    enabled: Boolean(tenantId),
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('v_tenant_entitlements')
+          .select('*')
+          .eq('tenant_id', tenantId!)
+          .order('product_code')
+          .order('capability_code'),
+      ),
+  });
+}
+
+/* ==========================================================================
+   M1 · Portal de pago por enlace · M2 · Tarjeta guardada
+   ========================================================================== */
+
+/**
+ * Enlaces de pago de una organización con su estado derivado (ACTIVE / EXPIRED /
+ * REVOKED). La vista no expone el token ni su hash; RLS la limita a finanzas.
+ */
+export function usePaymentLinks(organizationId: string | undefined) {
+  return useQuery({
+    queryKey: ['payment-links', organizationId],
+    enabled: Boolean(organizationId),
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('v_payment_links')
+          .select('*')
+          .eq('organization_id', organizationId!)
+          .order('created_at', { ascending: false }),
+      ),
+  });
+}
+
+/** Bitácora de un enlace (vistas, intentos, cobros, tarjeta guardada). */
+export function usePaymentLinkEvents(linkId: string | null) {
+  return useQuery({
+    queryKey: ['payment-link-events', linkId],
+    enabled: Boolean(linkId),
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('payment_link_events')
+          .select('id, kind, error_code, amount, currency, created_at, invoices(number)')
+          .eq('link_id', linkId!)
+          .order('created_at', { ascending: false })
+          .limit(50),
+      ),
+  });
+}
+
+/** Autorizaciones de tarjeta guardada (brand/last4, nunca PAN ni token). */
+export function useCardOnFileAuthorizations(organizationId: string | undefined) {
+  return useQuery({
+    queryKey: ['card-on-file', organizationId],
+    enabled: Boolean(organizationId),
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('v_card_on_file_authorizations')
+          .select('*')
+          .eq('organization_id', organizationId!)
+          .order('accepted_at', { ascending: false }),
+      ),
+  });
+}
+
+/** Historial de intentos de cobro con tarjeta guardada de una suscripción. */
+export function useChargeAttempts(subscriptionId: string | undefined) {
+  return useQuery({
+    queryKey: ['charge-attempts', subscriptionId],
+    enabled: Boolean(subscriptionId),
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('v_payment_charge_attempts')
+          .select('*')
+          .eq('subscription_id', subscriptionId!)
+          .order('created_at', { ascending: false })
+          .limit(100),
+      ),
+  });
+}
+
+/**
+ * Perfil de cobro VIGENTE con su modo recurrente y la cuenta resuelta (V3: la
+ * elige el servidor). Es lo que necesita el panel de tarjeta para decir si la
+ * cuenta tiene credenciales, sin depender de una suscripción del proveedor.
+ */
+export function useCurrentCollectionProfile(subscriptionId: string | undefined) {
+  return useQuery({
+    queryKey: ['subscription-collection', 'current-profile', subscriptionId],
+    enabled: Boolean(subscriptionId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('subscription_collection_profiles')
+        .select(
+          'id, collection_method, recurring_mode, payment_method_id, auto_charge, provider_account_id, payment_provider_accounts(code, environment, public_key, secret_key_ref, secret_hint, api_base_url, status)',
+        )
+        .eq('subscription_id', subscriptionId!)
+        .is('effective_to', null)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      return data;
+    },
+  });
+}
+
+/* ==========================================================================
+   CCP M4 · Uso, créditos IA y billing shadow (fases 17–18)
+
+   Lecturas de pantalla sobre el backend existente. RLS decide filas y GRANT
+   por columna decide columnas: `usage_events.internal` (COGS) y
+   `usage_ingest_credentials.public_key_ref` NO se piden nunca con `*`.
+   ========================================================================== */
+
+/** Tope de filas en listados de bitácoras append-only (eventos, rechazos, alertas, ledger). */
+export const USAGE_LIST_LIMIT = 500;
+
+export function useUsageMeters() {
+  return useQuery({
+    queryKey: ['usage-meters'],
+    queryFn: async () =>
+      unwrap(await supabase.from('usage_meters').select('*').order('code')),
+  });
+}
+
+/** Sin `public_key_ref`: es el NOMBRE de una variable de entorno y no tiene grant de columna. */
+const USAGE_INGEST_CREDENTIAL_COLUMNS =
+  'id, saas_product_id, environment, issuer, audience, algorithm, kid, enabled, created_at, updated_at';
+
+export function useUsageIngestCredentials() {
+  return useQuery({
+    queryKey: ['usage-ingest-credentials'],
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('usage_ingest_credentials')
+          .select(USAGE_INGEST_CREDENTIAL_COLUMNS)
+          .order('issuer'),
+      ),
+  });
+}
+
+/** Agregados por tenant × medidor × período. Sin `tenantId`, todos los que RLS deja ver. */
+export function useUsageAggregates(tenantId?: string) {
+  return useQuery({
+    queryKey: ['usage-aggregates', tenantId ?? 'all'],
+    queryFn: async () => {
+      let q = supabase.from('v_usage_period_aggregates').select('*');
+      if (tenantId) q = q.eq('tenant_id', tenantId);
+      return unwrap(
+        await q
+          .order('period_start', { ascending: false })
+          .order('product_code')
+          .order('meter_code')
+          .limit(2000),
+      );
+    },
+  });
+}
+
+/** Todo menos `internal` (COGS): sin grant de columna para `authenticated`. */
+const USAGE_EVENT_COLUMNS =
+  'id, saas_product_id, event_id, tenant_id, meter_id, meter_code, quantity, unit, occurred_at, received_at, environment, external_company_id, subject_ref, capability_code, event_hash, period_start, late, ingest_batch_id';
+
+export interface UsageEventsParams {
+  /** Tenant concreto o `null` para todos los visibles. */
+  tenantId: string | null;
+  /** Instante inicial (incluido), ISO. */
+  from: string;
+  /** Instante final (excluido), ISO. */
+  to: string;
+}
+
+export function useUsageEvents(params: UsageEventsParams) {
+  return useQuery({
+    queryKey: ['usage-events', params.tenantId ?? 'all', params.from, params.to],
+    queryFn: async () => {
+      let q = supabase
+        .from('usage_events')
+        .select(USAGE_EVENT_COLUMNS)
+        .gte('occurred_at', params.from)
+        .lt('occurred_at', params.to);
+      if (params.tenantId) q = q.eq('tenant_id', params.tenantId);
+      return unwrap(await q.order('occurred_at', { ascending: false }).limit(USAGE_LIST_LIMIT));
+    },
+  });
+}
+
+/**
+ * COGS interno (proveedor, modelo, tokens, costo) de los eventos de UN tenant.
+ * Solo EBIM_FINANCE: la RPC responde 42501 a cualquier otro rol.
+ */
+export function useUsageEventCogs(params: { tenantId: string; from: string; to: string } | null) {
+  return useQuery({
+    queryKey: ['usage-event-cogs', params?.tenantId, params?.from, params?.to],
+    enabled: Boolean(params),
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('usage_event_cogs', {
+        p_tenant_id: params!.tenantId,
+        p_from: params!.from,
+        p_to: params!.to,
+      });
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    },
+  });
+}
+
+export function useUsageIngestRejections() {
+  return useQuery({
+    queryKey: ['usage-ingest-rejections'],
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('usage_ingest_rejections')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(USAGE_LIST_LIMIT),
+      ),
+  });
+}
+
+/** Alertas de uso con su acuse (`v_usage_alerts`, security_invoker). */
+export function useUsageAlerts(tenantId?: string) {
+  return useQuery({
+    queryKey: ['usage-alerts', tenantId ?? 'all'],
+    queryFn: async () => {
+      let q = supabase.from('v_usage_alerts').select('*');
+      if (tenantId) q = q.eq('tenant_id', tenantId);
+      return unwrap(await q.order('created_at', { ascending: false }).limit(USAGE_LIST_LIMIT));
+    },
+  });
+}
+
+/** Saldo derivado por tenant × pool × período (vista SECURITY INVOKER). */
+export function useAiCreditBalances(tenantId?: string) {
+  return useQuery({
+    queryKey: ['ai-credit-balances', tenantId ?? 'all'],
+    queryFn: async () => {
+      let q = supabase.from('v_ai_credit_balances').select('*');
+      if (tenantId) q = q.eq('tenant_id', tenantId);
+      return unwrap(await q.order('period_start', { ascending: false }).order('pool_key'));
+    },
+  });
+}
+
+/** Ledger append-only de créditos IA, del más reciente al más antiguo. */
+export function useAiCreditLedger(tenantId?: string, limit = USAGE_LIST_LIMIT) {
+  return useQuery({
+    queryKey: ['ai-credit-ledger', tenantId ?? 'all', limit],
+    queryFn: async () => {
+      let q = supabase.from('ai_credit_ledger').select('*');
+      if (tenantId) q = q.eq('tenant_id', tenantId);
+      return unwrap(await q.order('created_at', { ascending: false }).limit(limit));
+    },
+  });
+}
+
+/** Pesos de crédito por capacidad AI_FEATURE, con su historia de versiones. */
+export function useAiCreditWeights() {
+  return useQuery({
+    queryKey: ['ai-credit-weights'],
+    queryFn: async () =>
+      unwrap(await supabase.from('ai_credit_weights').select('*').order('valid_from', { ascending: false })),
+  });
+}
+
+/** Políticas de créditos por plan o add-on. Campos comerciales nulos = no decidido. */
+export function useAiCreditPolicies() {
+  return useQuery({
+    queryKey: ['ai-credit-policies'],
+    queryFn: async () =>
+      unwrap(await supabase.from('ai_credit_policies').select('*').order('valid_from', { ascending: false })),
+  });
+}
+
+/** Reportes BILLING_SHADOW (append-only). Solo finanzas los ve (RLS). */
+export function useBillingShadowComparisons() {
+  return useQuery({
+    queryKey: ['billing-shadow-comparisons'],
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('billing_shadow_comparisons')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(USAGE_LIST_LIMIT),
+      ),
+  });
+}
+
+export interface BillingShadowExpectedParams {
+  productCode: string;
+  tenantId: string;
+  periodStart: string;
+}
+
+/**
+ * «Lo que MasterAdmin facturaría» al tenant en el mes. SOLO LECTURA: la RPC no
+ * emite facturas ni reserva números. Se ejecuta solo cuando hay parámetros.
+ */
+export function useBillingShadowExpected(params: BillingShadowExpectedParams | null) {
+  return useQuery({
+    queryKey: ['billing-shadow-expected', params?.productCode, params?.tenantId, params?.periodStart],
+    enabled: Boolean(params),
+    retry: false,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('billing_shadow_expected_lines', {
+        p_saas_product_code: params!.productCode,
+        p_tenant_id: params!.tenantId,
+        p_period_start: params!.periodStart,
+      });
+      if (error) throw new Error(error.message);
+      return data;
+    },
+  });
+}
+
+/* ==========================================================================
+   M3 · Tarifa de plataforma de partners (spec §4)
+   ========================================================================== */
+
+/** Acuerdos con tarifa de plataforma (modelo ≠ NONE): partners a calcular. */
+export function usePlatformFeeAgreements() {
+  return useQuery({
+    queryKey: ['platform-fee-agreements'],
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('organization_product_agreements')
+          .select(
+            'id, organization_id, saas_product_id, status, billing_responsibility, platform_fee_model, platform_fee_rate, platform_fee_fixed_amount, platform_fee_currency, organizations(display_name, slug), saas_products(code, short_name)',
+          )
+          .neq('platform_fee_model', 'NONE')
+          .order('organization_id'),
+      ),
+  });
+}
+
+/** Estados de cuenta del período (o de un partner). RLS: finanzas todos; el admin del partner, los suyos. */
+export function usePartnerFeeStatements(params: { periodStart?: string; partnerId?: string }) {
+  return useQuery({
+    queryKey: ['partner-fee-statements', params.periodStart ?? 'all', params.partnerId ?? 'all'],
+    queryFn: async () => {
+      let q = supabase.from('v_partner_fee_statements').select('*');
+      if (params.periodStart) q = q.eq('period_start', params.periodStart);
+      if (params.partnerId) q = q.eq('partner_organization_id', params.partnerId);
+      return unwrap(await q.order('period_start', { ascending: false }).order('partner_name').order('currency'));
+    },
+  });
+}
+
+/** Detalle por tenant de un estado de cuenta. */
+export function usePartnerFeeStatementLines(statementId: string | null) {
+  return useQuery({
+    queryKey: ['partner-fee-statement-lines', statementId],
+    enabled: Boolean(statementId),
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('v_partner_fee_statement_lines')
+          .select('*')
+          .eq('statement_id', statementId!)
+          .order('product_short_name')
+          .order('tenant_slug')
+          .order('line_kind'),
+      ),
+  });
+}
+
+/* ==========================================================================
+   M5 · Usuarios y perfiles (spec §6)
+   --------------------------------------------------------------------------
+   `admin_list_users` decide el alcance en la base: EBIM ve a todos; un admin
+   de organización solo a sus miembros (y nunca roles de consola). Aquí no hay
+   filtros de seguridad: igual que el resto de este archivo.
+   ========================================================================== */
+
+/** Lista de «Usuarios y accesos». `scopeOrgId` acota a una organización. */
+export function useAdminUsers(scopeOrgId?: string | null) {
+  return useQuery({
+    queryKey: ['admin-users', scopeOrgId ?? null],
+    retry: false,
+    queryFn: async (): Promise<AdminUser[]> => {
+      const { data, error } = await supabase.rpc(
+        'admin_list_users',
+        scopeOrgId ? { p_scope_org_id: scopeOrgId } : {},
+      );
+      if (error) throw error;
+      return (data ?? []).map(toAdminUser);
+    },
+  });
+}
+
+/** Ficha de un usuario (misma RPC, una fila). `null` = fuera de alcance o inexistente. */
+export function useAdminUser(userId: string | undefined) {
+  return useQuery({
+    queryKey: ['admin-user', userId],
+    enabled: Boolean(userId),
+    retry: false,
+    queryFn: async (): Promise<AdminUser | null> => {
+      const { data, error } = await supabase.rpc('admin_list_users', { p_user_id: userId! });
+      if (error) throw error;
+      const row = (data ?? [])[0];
+      return row ? toAdminUser(row) : null;
+    },
+  });
+}
+
+/**
+ * Actividad de/para un usuario: lo que hizo (actor) y lo que se hizo sobre él
+ * (entidad o `metadata.user_id`). RLS de audit_logs decide qué filas ve cada uno.
+ */
+export function useUserActivity(userId: string | undefined) {
+  return useQuery({
+    queryKey: ['user-activity', userId],
+    enabled: Boolean(userId),
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('audit_logs')
+          .select('id, action, entity_type, entity_id, actor_email, actor_user_id, metadata, occurred_at')
+          .or(`actor_user_id.eq.${userId},entity_id.eq.${userId},metadata->>user_id.eq.${userId}`)
+          .order('occurred_at', { ascending: false })
+          .limit(100),
+      ),
+  });
+}
+
+/** Invitaciones de un usuario (el enlace NUNCA se guarda: solo el rastro). */
+export function useUserInvitations(userId: string | undefined) {
+  return useQuery({
+    queryKey: ['user-invitations', userId],
+    enabled: Boolean(userId),
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('user_invitations')
+          .select('id, email, status, delivery, created_at, accepted_at, revoked_at, access_grant')
+          .eq('user_id', userId!)
+          .order('created_at', { ascending: false }),
+      ),
+  });
+}
+
+/** Perfil propio para «Mi perfil» (RLS: el propio usuario siempre se ve). */
+export function useMyProfile(userId: string | undefined) {
+  return useQuery({
+    queryKey: ['my-profile', userId],
+    enabled: Boolean(userId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, email, full_name, phone, job_title')
+        .eq('id', userId!)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      return data;
+    },
+  });
+}
+
+/* ---- fin M5 · Usuarios y perfiles ---------------------------------------- */

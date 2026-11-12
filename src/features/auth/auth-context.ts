@@ -11,6 +11,8 @@ export interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshRoles: () => Promise<void>;
+  /** M5: aviso para el login tras un cierre de sesión forzado (cuenta desactivada). */
+  notice?: string | null;
 }
 
 /**

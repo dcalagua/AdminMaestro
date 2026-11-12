@@ -1,0 +1,333 @@
+▸ Esquema base…
+▸ Migraciones nuevas…
+  · 20260827100000_location_connectivity_level.sql [32mOK[0m
+  · 20260827110000_offline_sync_operations.sql [32mOK[0m
+  · 20260827120000_plant_scope_write_rls.sql [32mOK[0m
+  · 20260910120000_harden_grants_p01.sql [32mOK[0m
+  · 20260910130000_wo_audit_and_attachment_guard.sql [32mOK[0m
+  · 20260910140000_wo_transition_matrix.sql [32mOK[0m
+  · 20260910150000_wo_transition_enforce_trigger.sql [32mOK[0m
+  · 20260910160000_erp_outbox.sql [32mOK[0m
+  · 20260910170000_reading_thresholds.sql [32mOK[0m
+  · 20260910180000_material_movements_wo_fk.sql [32mOK[0m
+▸ Datos semilla…
+
+[1mFASE 1 · Conectividad por ubicación[0m
+  [32m✓[0m connectivity_level existe con CHECK de 4 niveles
+  [32m✓[0m has_internet queda derivado del nivel (compatibilidad)
+  [32m✓[0m un integrador antiguo que solo escribe has_internet degrada el nivel
+  [32m✓[0m un INSERT con has_internet=false nace como "none"
+  [32m✓[0m el equipo y la OT heredan el nivel sin queries extra
+  [32m✓[0m las vistas conservan sus columnas previas y security_invoker
+
+[1mFASE 6 · Idempotencia server-side[0m
+  [32m✓[0m una operación nueva se aplica y deja marca
+  [32m✓[0m reenviar el MISMO client_operation_id no muta dos veces
+  [32m✓[0m la mano de obra tampoco se duplica al reintentar
+  [32m✓[0m dos usuarios pueden usar el mismo id sin bloquearse
+  [32m✓[0m el checklist creado offline devuelve su id de servidor
+  [32m✓[0m crear una OT offline no la duplica al reintentar
+  [32m✓[0m una ronda de lecturas reenviada no duplica registros
+  [32m✓[0m una acción desconocida se rechaza sin romper la sesión
+
+[1mFASE 7 · Conflictos[0m
+  [32m✓[0m una OT CANCELADA en el servidor NO se sobrescribe
+  [32m✓[0m una OT CERRADA rechaza cambios de contenido
+  [32m✓[0m la parada SÍ se puede registrar en una OT cerrada (regla de negocio)
+  [32m✓[0m si la OT cambió de estado, se detecta el conflicto por expected_status
+  [32m✓[0m una transición ya aplicada por la web es no-op, no conflicto
+  [32m✓[0m stock insuficiente da conflicto, no stock negativo
+  [32m✓[0m un permiso revocado se registra como rechazo
+  [32m✓[0m un conflicto registrado NO se re-muta al reenviarlo
+
+[1mFASE 11 · Aislamiento (tenant / planta / permisos)[0m
+  [32m✓[0m el tenant B no ve las OT del tenant A
+  [32m✓[0m el tenant B no puede mutar una OT del tenant A ni por la RPC offline
+  [32m✓[0m el tenant B no lee las marcas de idempotencia de A
+  [32m✓[0m un usuario no puede fabricar marcas de idempotencia a mano
+  [32m✓[0m la RPC offline y sus helpers no están abiertos a PUBLIC/anon
+  [32m✓[0m mobile_apply_offline_operation NO es SECURITY DEFINER
+  [32m✓[0m con el addon de plantas ENCENDIDO, el usuario acotado no ve la otra planta
+  [32m✓[0m el usuario acotado NO puede escribir en la planta ajena
+  [32m✓[0m el usuario acotado no puede consumir stock en una OT de otra planta
+  [32m✓[0m el usuario acotado sí trabaja normalmente en SU planta
+  [32m✓[0m con el addon APAGADO las políticas nuevas son no-op
+
+[1mFASE 3 · Paquete offline de la OT[0m
+  [32m✓[0m mobile_work_order_package trae todo lo necesario en una llamada
+  [32m✓[0m el catálogo de materiales se acota a la planta de la OT
+  [32m✓[0m el paquete de una OT de otro tenant no se puede pedir
+
+[1mFASE 13 · Inventario offline[0m
+  [32m✓[0m el consumo diferido descuenta exactamente una vez y deja kardex
+  [32m✓[0m una línea "pending" no toca el stock
+
+[1mFASE 14 · Adjuntos y firma[0m
+  [32m✓[0m confirmar un adjunto es idempotente
+  [32m✓[0m la firma se aplica una sola vez
+
+[1mEscenarios destructivos completos[0m
+  [32m✓[0m jornada completa offline de un técnico se aplica una sola vez
+
+[1mGMA-P03 · R1/R2 · Matriz de transición de OT[0m
+  [32m✓[0m una transición válida (planned→released) pasa
+  [32m✓[0m R1 · una transición inválida por la RPC se rechaza (planned→closed)
+  [32m✓[0m R2 · el trigger bloquea el UPDATE DIRECTO inválido (bypass del web)
+  [32m✓[0m R2 · un UPDATE directo VÁLIDO (planned→released) sí pasa
+  [32m✓[0m no se puede resucitar una OT cancelada (terminal)
+
+[1mGMA-P03 · R3 · Auditoría de estado de OT[0m
+  [32m✓[0m cada cambio de estado deja una fila en work_order_status_history
+
+[1mGMA-P01 · U3 · Propiedad de las marcas offline[0m
+  [32m✓[0m offline_op_claim rechaza reclamar en nombre de OTRO usuario
+
+[1mGMA-P06 · R7 · Outbox ERP (idempotencia / claim / backoff / DLQ)[0m
+  [32m✓[0m enqueue es idempotente por (tenant, idempotency_key)
+  [32m✓[0m claim reclama la entrada y settle aplica backoff / sent
+  [32m✓[0m tras max_attempts la entrada cae en DLQ (dead)
+  [32m✓[0m los helpers del outbox NO son ejecutables por authenticated/anon
+  [32m✓[0m el claim rescata una entrada "processing" atascada (>15 min)
+  [32m✓[0m el outbox de un tenant no es visible para otro (aislamiento RLS)
+  [32m✓[0m service_role SÍ puede ejecutar los helpers del outbox
+
+[1mGMA-R8 · Reglas de lectura (umbral → estado, servidor manda)[0m
+  [32m✓[0m el servidor calcula alarm/ok desde el umbral (D1: sobrescribe al cliente)
+  [32m✓[0m sin umbral configurado se respeta el status del cliente
+
+[1mGMA-P05 · R10 · Guarda de ruta de adjuntos por tenant[0m
+  [32m✓[0m un adjunto con prefijo de tenant correcto se acepta
+  [32m✓[0m un adjunto con prefijo de OTRO tenant se rechaza (FORBIDDEN_PATH)
+
+[1mGMA-R11 · FK de trazabilidad del ledger[0m
+  [32m✓[0m un movimiento con work_order_id inexistente viola la FK
+  [32m✓[0m un movimiento con work_order_id válido se inserta
+
+────────────────────────────────────────────────────────────
+[32m✓ 61 pruebas SQL OK[0m
+
+[1mMigración de captura (objetos vivos sin historia)[0m
+  [32m✓[0m se aplica sobre una base nueva
+  [32m✓[0m es idempotente (re-aplicarla es un no-op, como sobre el proyecto vivo)
+
+[1mMigración GENERIC v1 + admin PREPROVISIONED[0m
+  [32m✓[0m se aplica sobre la captura con una fila v1 existente (y es re-aplicable)
+  [32m✓[0m la firma vieja con identidad Auth y m2m_admin_identity ya no existen
+  [32m✓[0m alta: ACTIVE, tenant activo con roles, admin PREPROVISIONED
+  [32m✓[0m alta: NO crea usuario Auth ni tenant_users; el correo queda sólo en provisioning_requests
+  [32m✓[0m replay (misma key + mismo hash) → replayed=true con los mismos IDs, sin escrituras nuevas
+  [32m✓[0m misma key con otro hash → IDEMPOTENCY_CONFLICT
+  [32m✓[0m mismo controlPlaneTenantId con otra key → TENANT_ALREADY_PROVISIONED / TENANT_CONFLICT
+  [32m✓[0m slug ya usado por otro tenant → TENANT_CONFLICT (TENANT_SLUG_TAKEN)
+  [32m✓[0m correo de un usuario activo de otro tenant → ADMIN_EMAIL_CONFLICT (sin escribir)
+  [32m✓[0m dominio del operador (ebim.pe) → ADMIN_EMAIL_NOT_ALLOWED
+  [32m✓[0m payload inválido → INVALID_REQUEST sin escrituras
+  [32m✓[0m FAILED registrado y reintento con la misma key → ACTIVE sobre la misma fila
+  [32m✓[0m GET: existente → vista; inexistente → PROVISIONING_NOT_FOUND
+  [32m✓[0m auditoría: SUCCESS, REPLAY y REJECTED registrados; append-only
+  [32m✓[0m un provisioning ACTIVE es inmutable (tenant, key, hash, estado)
+  [32m✓[0m CHECK: ACTIVE sin identidad Auth sólo se admite si es PREPROVISIONED con correo
+  [32m✓[0m grants: anon/authenticated no ejecutan la RPC ni leen las tablas; service_role sí ejecuta
+
+[1mHardening de grants de las RPC de alta de tenant[0m
+  [32m✓[0m provision_or_attach_tenant / provision_tenant_schema: sólo service_role tras la migración
+
+20 OK · 0 FALLOS
+▸ Esquema base + captura + migraciones…
+  · 20260928200000_ccp_ai_consume_validation.sql [32mOK[0m
+  · 20260928200100_ccp_set_addon_technical_only.sql [32mOK[0m
+  · 20260928200200_ccp_reset_ai_usage_service_only.sql [32mOK[0m
+  · 20260928200300_ccp_secret_column_grants.sql [32mOK[0m
+
+[1mGM-01 · ai_consume valida la cantidad[0m
+  [32m✓[0m p_units 0 → P0001 CANTIDAD_INVALIDA y el uso no cambia
+  [32m✓[0m p_units negativo (-5) → P0001 CANTIDAD_INVALIDA y el uso no cambia
+  [32m✓[0m p_units NULL → P0001 CANTIDAD_INVALIDA y el uso no cambia
+  [32m✓[0m p_units > 10 000 → P0001 CANTIDAD_INVALIDA y el uso no cambia
+  [32m✓[0m NaN y desbordamiento de int se rechazan antes de ejecutar (tipado int)
+  [32m✓[0m un consumo negativo NO puede aumentar el saldo restante
+  [32m✓[0m p_feature inválida ("") → P0001 FEATURE_INVALIDA
+  [32m✓[0m p_feature inválida (null) → P0001 FEATURE_INVALIDA
+  [32m✓[0m p_feature inválida ("x; drop table") → P0001 FEATURE_INVALIDA
+  [32m✓[0m p_feature inválida ("AAAAAAAAAAAAAAAA") → P0001 FEATURE_INVALIDA
+  [32m✓[0m consumo válido sigue funcionando (1 unidad, features reales)
+  [32m✓[0m anon no puede ejecutar ai_consume ni ai_entitlement; authenticated sí
+
+[1mGM-02 · el tenant no reescribe el plan comercial de IA[0m
+  [32m✓[0m owner no puede subir plan/monthly_quota de ai_assist
+  [32m✓[0m owner no puede ampliar trial_quota
+  [32m✓[0m admin no puede subir plan/monthly_quota de ai_assist
+  [32m✓[0m admin no puede ampliar trial_quota
+  [32m✓[0m owner no puede activar/desactivar el entitlement ai_assist
+  [32m✓[0m owner no puede auto-otorgarse ai_assist si no lo tiene (fila inexistente)
+  [32m✓[0m guardar sin cambios (mismo estado) es un no-op permitido
+  [32m✓[0m los addons NO comerciales siguen siendo configuración técnica del tenant
+  [32m✓[0m authenticated no escribe directo tenant_addons ni ai_usage
+  [32m✓[0m service_role fija el entitlement IA vía platform.ccp_set_ai_entitlement (auditado)
+  [32m✓[0m ccp_set_ai_entitlement valida plan y cuotas
+  [32m✓[0m authenticated/anon no ejecutan ccp_set_ai_entitlement
+
+[1mGM-03 · el tenant no reinicia el uso facturable[0m
+  [32m✓[0m owner no puede reset_ai_usage y el uso se conserva
+  [32m✓[0m reset_ai_usage no es ejecutable por authenticated ni anon
+  [32m✓[0m service_role reinicia un periodo con motivo y queda auditado
+  [32m✓[0m reset sin motivo o con periodo inválido se rechaza
+  [32m✓[0m authenticated/anon no ejecutan ccp_reset_ai_usage
+
+[1mGM-06 · secretos de pasarela/correo/ERP fuera de los roles cliente[0m
+  [32m✓[0m platform.payment_config.secret_key: sin SELECT para authenticated/anon; service_role conserva
+  [32m✓[0m platform.email_config.smtp_pass: sin SELECT para authenticated/anon; service_role conserva
+  [32m✓[0m platform.einvoice_config.token: sin SELECT para authenticated/anon; service_role conserva
+  [32m✓[0m platform.erp_connections.auth_secret: sin SELECT para authenticated/anon; service_role conserva
+  [32m✓[0m platform.tenant_email_config.smtp_pass: sin SELECT para authenticated/anon; service_role conserva
+  [32m✓[0m platform.tenant_email_config.ms_client_secret: sin SELECT para authenticated/anon; service_role conserva
+  [32m✓[0m un usuario autenticado no puede leer secret_key ni con SELECT *
+  [32m✓[0m las columnas NO secretas siguen legibles (sin romper lecturas existentes)
+  [32m✓[0m la migración aborta si una función SECURITY INVOKER lee una columna secreta
+  [32m✓[0m las migraciones CCP son re-aplicables (idempotentes)
+
+[1mGM-05 · alta de tenant (P0-GM-3): sin EXECUTE para anon/authenticated[0m
+  [32m✓[0m provision_or_attach_tenant / provision_tenant_schema: has_function_privilege anon/authenticated = false
+
+────────────────────────────────────────────────────────────
+[32m✓ 40 pruebas CCP OK[0m
+▸ Esquema base + capturas + migraciones…
+  · 20261010100000_ccp_commercial_authority.sql [32mOK[0m
+  · 20261010110000_ccp_gmao_entitlements_receiver.sql [32mOK[0m
+  · 20261010120000_ccp_gmao_commercial_gate.sql [32mOK[0m
+  · 20261010130000_ccp_billing_authority_guard.sql [32mOK[0m
+  · 20261010140000_ccp_hub_commercial_freeze.sql [32mOK[0m
+
+[1mMigraciones fase 16[0m
+  [32m✓[0m las 5 migraciones de la fase 16 se aplican sobre el esquema capturado
+  [32m✓[0m son re-aplicables (idempotentes) sin cambiar el estado
+  [32m✓[0m las tablas de private no tienen grants para anon/authenticated/service_role y tienen RLS
+  [32m✓[0m ninguna función nueva es ejecutable por anon/authenticated (salvo ai_consume/ai_entitlement)
+  [32m✓[0m el registro SQL coincide con ENTITLEMENTS_MANIFEST.json (códigos, tipo, baseline, estado)
+
+[1mMáquina de autoridad: LEGACY_AUTHORITY → DUAL_READ → SHADOW → MASTERADMIN_AUTHORITY → READONLY → RETIRED[0m
+  [32m✓[0m estado al cerrar la fase: gmao ENTITLEMENTS = DUAL_READ, BILLING = LEGACY_AUTHORITY, hub = LEGACY_AUTHORITY
+  [32m✓[0m un tenant sin alta de MasterAdmin es SIEMPRE LEGACY_AUTHORITY (no puede recibir snapshots)
+  [32m✓[0m saltar estados se rechaza (un solo paso)
+  [32m✓[0m estado, eje o producto desconocidos se rechazan; actor y motivo son obligatorios
+  [32m✓[0m un tenant sin alta de MasterAdmin no admite estado propio
+  [32m✓[0m anon/authenticated no cambian la autoridad; los eventos son append-only
+
+[1mReceptor de snapshots (PUT/GET /tenants/{id}/entitlements) — RPC service_role[0m
+  [32m✓[0m tenant sin provisioning → 404 TENANT_NOT_PROVISIONED y GET null
+  [32m✓[0m snapshot inválido o de otro tenant → 422 SNAPSHOT_INVALID
+  [32m✓[0m GET antes de aplicar: NONE, modo de contrato y autoridad GMAO
+  [32m✓[0m primer PUT aplica; el mismo PUT es replay; versión menor 409 STALE; misma versión otro checksum 409 CONFLICT
+  [32m✓[0m capacidad desconocida → APPLIED_WITH_WARNINGS y nunca se concede
+  [32m✓[0m el cuerpo del PUT nunca devuelve el snapshot; la auditoría es append-only y sin token
+  [32m✓[0m jti de un solo uso
+  [32m✓[0m un usuario del tenant no puede leer el snapshot ni ejecutar el receptor
+
+[1mPuerta IA de GMAO (ai_consume / ai_entitlement) según la autoridad[0m
+  [32m✓[0m DUAL_READ: decide LEGACY (500 mensual) aunque el snapshot diga 3; se anota la diferencia
+  [32m✓[0m tenant legacy (sin MasterAdmin) sigue exactamente igual
+  [32m✓[0m SHADOW: sigue decidiendo LEGACY; escribir el plan IA a mano alerta pero se permite
+  [32m✓[0m MASTERADMIN_AUTHORITY exige paridad verde: plan legacy distinto / cuota distinta bloquean
+  [32m✓[0m con paridad verde pasa a MASTERADMIN_AUTHORITY y el snapshot decide (cuota 3)
+  [32m✓[0m MASTERADMIN_AUTHORITY: la escritura legacy del plan IA y el reinicio de uso se BLOQUEAN
+  [32m✓[0m MASTERADMIN_AUTHORITY: el snapshot sin gmao.ai.assist apaga la IA aunque legacy diga activo
+  [32m✓[0m MASTERADMIN_AUTHORITY: gmao.ai.assist sin asignación definida → ALLOWANCE_NOT_DEFINED (fail-closed)
+  [32m✓[0m MASTERADMIN_AUTHORITY: app inactiva en el snapshot → IA apagada
+  [32m✓[0m MASTERADMIN_AUTHORITY: el plan del tenant ya no se cambia en GMAO
+  [32m✓[0m GET refleja PRIMARY para el contrato y MASTERADMIN_AUTHORITY como autoridad
+  [32m✓[0m rollback de un paso siempre permitido: MASTERADMIN_AUTHORITY → SHADOW vuelve a legacy
+  [32m✓[0m RETIRED exige aprobación humana y un ciclo cerrado en READONLY; es irreversible
+
+[1mCobro local (charge / pay_subscription / request_invoice): nunca dos cobradores[0m
+  [32m✓[0m BILLING LEGACY_AUTHORITY: el cobro local sigue registrando pagos, suscripciones y facturas
+  [32m✓[0m BILLING a MASTERADMIN_AUTHORITY exige ENTITLEMENTS ≥ MASTERADMIN_AUTHORITY y comparación SHADOW verde
+  [32m✓[0m SHADOW: se registra el cálculo del cobro local (sin datos de tarjeta), el pago sigue siendo local
+  [32m✓[0m BILLING MASTERADMIN_AUTHORITY: pagos, activaciones y facturas locales se RECHAZAN
+  [32m✓[0m lectura de autoridad de cobro: sin fila o sin alta → LEGACY_AUTHORITY; solo service_role
+
+[1mHub GMAO: congelamiento de escrituras comerciales POR PRODUCTO[0m
+  [32m✓[0m LEGACY_AUTHORITY: set_addon del hub funciona como hoy
+  [32m✓[0m SHADOW del hub: la escritura se permite y deja alerta
+  [32m✓[0m MASTERADMIN_AUTHORITY del hub exige una atestación de paridad VERDE posterior a SHADOW
+  [32m✓[0m MASTERADMIN_AUTHORITY del hub: company_addons de eCommerce CONGELADO (RPC y directo, alta/baja/cambio)
+  [32m✓[0m el congelamiento es POR PRODUCTO: eSupplier (LEGACY) sigue escribiendo
+  [32m✓[0m código sin producto resoluble: se permite y deja alerta HUB_ADDON_PRODUCT_UNRESOLVED
+  [32m✓[0m suscripciones del marketplace a un ítem de un producto congelado también se rechazan
+  [32m✓[0m READONLY del hub: sigue congelado; volver a MASTERADMIN_AUTHORITY es un paso atrás válido
+  [32m✓[0m rollback del hub a SHADOW descongela (un paso atrás)
+
+[1mExport comercial del hub (inventario sin precios ni secretos)[0m
+  [32m✓[0m solo service_role; claves en lista blanca; sin price_month/currency; orden determinista
+
+[1mRollback docs/runbooks/ccp-rollback/16.sql (dry-run sobre esta base)[0m
+  [32m✓[0m quita triggers y funciones de la fase 16, conserva la evidencia y devuelve la decisión a legacy
+
+────────────────────────────────────────────────────────────
+[32m✓ 48 pruebas CCP fase 16 OK[0m
+▸ Esquema base + capturas + migraciones…
+  · 20261017100000_ccp_gmao_usage_outbox.sql [32mOK[0m
+
+[1mMigración fase 17[0m
+  [32m✓[0m la migración del outbox de uso se aplica sobre la base de la fase 16
+  [32m✓[0m es re-aplicable (idempotente) sin perder filas
+  [32m✓[0m platform.usage_outbox: RLS, cero grants para anon/authenticated y sin acceso directo de service_role
+  [32m✓[0m RPC del outbox: solo service_role; las funciones internas no son ejecutables por ningún rol de la API
+  [32m✓[0m CHECK: cantidad no negativa, estado válido, medidor/unidad con forma canónica, internal solo COGS
+
+[1mEscritura en la misma transacción que el ai_consume cobrado[0m
+  [32m✓[0m consumo cobrado → exactamente un evento gmao.ai.calls / call / 1 / gmao.ai.assist con el tenant de MasterAdmin
+  [32m✓[0m una llamada con p_units > 1 es UNA llamada (quantity 1); la cuota legacy sigue sumando p_units
+  [32m✓[0m misma transacción: si la transacción del consumo se revierte, no queda ni el cobro ni el evento
+  [32m✓[0m misma transacción: si el evento no se puede escribir, el consumo falla y no cobra
+  [32m✓[0m consumo rechazado (IA apagada, sin tenant, cantidad inválida, cuota agotada) → ningún evento
+  [32m✓[0m tenant sin mapping de provisioning ACTIVE → PENDING con TENANT_NOT_MAPPED (no se inventa tenant)
+  [32m✓[0m la respuesta de ai_consume es la de la fase 16 (mismas claves; sin event_id expuesto al cliente)
+  [32m✓[0m MASTERADMIN_AUTHORITY sin snapshot: el consumo se rechaza y no deja evento
+
+[1mHechos inmutables[0m
+  [32m✓[0m las columnas del hecho no cambian; el outbox no se borra ni se trunca
+
+[1mClaim con lease + mark (SENT / DEAD / RETRY con backoff)[0m
+  [32m✓[0m claim: solo PENDING mapeadas y vencidas; lease nuevo; orden estable; forma del row
+  [32m✓[0m lease: un segundo claim mientras dura el lease no devuelve las mismas filas
+  [32m✓[0m lease vencido (emisor caído): se vuelven a reclamar; el mark del lease viejo no aplica
+  [32m✓[0m mark: SENT (ACCEPTED/DUPLICATE) → sent_at; DEAD → código terminal; RETRY → attempts+1 y backoff 30 s
+  [32m✓[0m backoff min(30·2^(n−1), 21600): 60, 120 … 15360, 21600, 21600
+  [32m✓[0m SENT y DEAD son terminales: no se reclaman ni se re-marcan ni vuelven a PENDING
+  [32m✓[0m mark valida la entrada (resultado desconocido, DEAD sin código, código fuera de forma, uuid inválido)
+  [32m✓[0m TENANT_NOT_MAPPED nunca se reclama ni se envía
+  [32m✓[0m sin cron en la migración (el emisor lo invoca un operador/servidor)
+
+[1mRollback docs/runbooks/ccp-rollback/17.sql (dry-run sobre esta base)[0m
+  [32m✓[0m quita el enganche y las RPC, conserva el outbox como evidencia y ai_consume vuelve a la fase 16
+
+────────────────────────────────────────────────────────────
+[32m✓ 24 pruebas CCP fase 17 OK[0m
+▸ Esquema base + capturas + migraciones 16/17/18…
+  · 20261018100000_ccp_d14_app_active_commercial_only.sql [32mOK[0m
+  · 20261018110000_ccp_d14_billing_comparison_masteradmin.sql [32mOK[0m
+
+[1mMigraciones fase 18[0m
+  [32m✓[0m las 2 migraciones de la fase 18 se aplican sobre 16+17 y son re-aplicables
+
+[1mD-14 regla 2: appActive=false retira lo comercial, no la operación[0m
+  [32m✓[0m el snapshot con appActive=false sigue concediendo el baseline (gmao.core) y niega lo vendible
+  [32m✓[0m paridad: MasterAdmin app inactiva + tenant local activo → APP_ACTIVE_MISMATCH WARNING (no bloquea)
+  [32m✓[0m con esa paridad ENTITLEMENTS llega a MASTERADMIN_AUTHORITY; la IA queda negada y la operación sigue
+  [32m✓[0m dirección contraria (MasterAdmin activa, GMAO suspendido) sigue BLOCKING
+
+[1mD-14 regla 5: la comparación BILLING SHADOW es la de MasterAdmin (sin literales)[0m
+  [32m✓[0m la firma vieja (entero suelto sin id de MasterAdmin) ya no existe
+  [32m✓[0m fuera de SHADOW no se registra comparación
+  [32m✓[0m en SHADOW sin cálculo local de sombra: NO_LOCAL_SHADOW_CALCULATION
+  [32m✓[0m rechaza: sin id de MasterAdmin, checksum degenerado (sha256:ddd…), mismatches negativo, período inválido
+  [32m✓[0m rojo de MasterAdmin (mismatches > 0) bloquea SHADOW → MASTERADMIN_AUTHORITY
+  [32m✓[0m una fila sin id de MasterAdmin (formato previo) nunca cuenta como verde
+  [32m✓[0m verde de MasterAdmin (con id y checksum) habilita el paso; se guarda el id
+  [32m✓[0m solo service_role registra comparaciones
+
+[1mRollback docs/runbooks/ccp-rollback/18.sql (dry-run)[0m
+  [32m✓[0m restaura la firma de la fase 16, appActive=false vuelve a negar todo y APP_ACTIVE_MISMATCH a BLOCKING
+
+────────────────────────────────────────────────────────────
+[32m✓ 14 pruebas CCP fase 18 OK[0m

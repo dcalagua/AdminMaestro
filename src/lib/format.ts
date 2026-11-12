@@ -36,6 +36,15 @@ export function formatMoney(amount: number | null | undefined, currency: string 
 }
 
 /** Compacta montos grandes para las tarjetas del dashboard (`USD 27.6 K`). */
+/**
+ * Importe sin la moneda (2 decimales), para cifras grandes donde el código ISO
+ * va aparte como prefijo pequeño (KPI, total del portal de pago).
+ */
+export function formatAmount(amount: number | null | undefined): string {
+  if (amount === null || amount === undefined || Number.isNaN(amount)) return '—';
+  return new Intl.NumberFormat(LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
+}
+
 export function formatMoneyCompact(amount: number | null | undefined, currency: string | null | undefined): string {
   if (amount === null || amount === undefined || Number.isNaN(amount)) return '—';
   if (!currency || Math.abs(amount) < 10_000) return formatMoney(amount, currency);
@@ -46,6 +55,31 @@ export function formatMoneyCompact(amount: number | null | undefined, currency: 
     notation: 'compact',
     maximumFractionDigits: 1,
   }).format(amount);
+}
+
+/**
+ * Cifra compacta SIN moneda para KPIs, ejes y etiquetas (§6.5): `50.1 K`,
+ * `1.2 M`; por debajo de 1 000 se muestra entera (`980`), nunca «0.0 K».
+ * El código ISO va aparte (prefijo del KpiTile o subtítulo del gráfico).
+ */
+export function formatCompactAmount(amount: number | null | undefined): string {
+  if (amount === null || amount === undefined || Number.isNaN(amount)) return '—';
+  if (Math.abs(amount) < 1000) {
+    return new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 0 }).format(amount).replace('-', '−');
+  }
+  // `currencyDisplay: 'code'` da los sufijos en mayúscula (K, M) en es-PE; se quita el código.
+  return new Intl.NumberFormat(LOCALE, {
+    style: 'currency',
+    currency: 'USD',
+    currencyDisplay: 'code',
+    notation: 'compact',
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })
+    .format(amount)
+    .replace(/USD\s?/, '')
+    .replace('-', '−')
+    .trim();
 }
 
 /**
@@ -95,6 +129,29 @@ export function formatPercent(value: number | null | undefined, digits = 1): str
 }
 
 /**
+ * Variación con signo siempre visible (VISUAL_SYSTEM_V2 §6.5): `+4.1%`,
+ * `−2.3%` (signo menos tipográfico U+2212), `+1.2 pp`, `+12`. Cero sin signo.
+ * - `percent`: `value` es una razón (0.041 → +4.1%), igual que `formatPercent`.
+ * - `pp`: puntos porcentuales ya en puntos (1.2 → +1.2 pp).
+ * - `number`: conteo sin decimales.
+ */
+export function formatDelta(
+  value: number | null | undefined,
+  kind: 'percent' | 'pp' | 'number' = 'percent',
+): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '—';
+  const text = new Intl.NumberFormat(LOCALE, {
+    style: kind === 'percent' ? 'percent' : 'decimal',
+    signDisplay: 'exceptZero',
+    minimumFractionDigits: kind === 'number' ? 0 : 1,
+    maximumFractionDigits: kind === 'number' ? 0 : 1,
+  })
+    .format(value)
+    .replace('-', '−');
+  return kind === 'pp' ? `${text} pp` : text;
+}
+
+/**
  * Una fecha SIN hora (`2026-09-13`) es un día de calendario, no un instante:
  * `new Date('2026-09-13')` la interpreta como medianoche UTC y en Lima (UTC−5)
  * se pintaba el día anterior. Se construye en hora local.
@@ -130,4 +187,16 @@ export function formatCurrencyMap(map: Record<string, number | string> | null | 
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([currency, amount]) => formatMoneyCompact(Number(amount), currency))
     .join(' · ');
+}
+
+const REGION_NAMES = typeof Intl.DisplayNames === 'function' ? new Intl.DisplayNames(['es'], { type: 'region' }) : null;
+
+/** «PE» → «Perú». Si el código no es una región conocida, se devuelve tal cual. */
+export function countryName(code: string | null | undefined): string {
+  if (!code) return '—';
+  try {
+    return REGION_NAMES?.of(code.toUpperCase()) ?? code;
+  } catch {
+    return code;
+  }
 }

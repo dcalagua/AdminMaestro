@@ -1,0 +1,10 @@
+
+ RUN  v3.2.7 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.claude/worktrees/agent-aa00cf8474767114e
+
+ ✓ supabase/functions/_shared/entitlements/hub/hub-parity.test.ts (19 tests) 18ms
+
+ Test Files  1 passed (1)
+      Tests  19 passed (19)
+   Start at  12:32:57
+   Duration  513ms (transform 53ms, setup 42ms, collect 55ms, tests 18ms, environment 169ms, prepare 30ms)
+

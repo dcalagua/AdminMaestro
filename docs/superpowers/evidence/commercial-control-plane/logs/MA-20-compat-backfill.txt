@@ -1,0 +1,26 @@
+## tenant_addons backfill
+alpha-esupplier|licitaciones|ACTIVE|t|LEGACY_BACKFILL|t|f
+omega-esupplier|licitaciones|ACTIVE|t|LEGACY_BACKFILL|t|f
+omega-esupplier|multi_country|CANCELLED|f|LEGACY_BACKFILL|t|t
+omega-esupplier|sla_premium|ACTIVE|t|LEGACY_BACKFILL|t|f
+omega-esupplier|white_label|ACTIVE|t|LEGACY_BACKFILL|t|f
+titan-ewm|sla_premium|ACTIVE|t|LEGACY_BACKFILL|t|f
+## catalog_items backfill
+compras_repuestos|f|COMING_SOON|org-wide|FLAT
+consolidation|t|AVAILABLE|org-wide|FLAT
+echange_desk|f|COMING_SOON|org-wide|FLAT
+extra_company|t|AVAILABLE|per-company|PER_COMPANY
+licitaciones|t|AVAILABLE|per-company|PER_COMPANY
+multi_country|t|AVAILABLE|org-wide|FLAT
+sla_premium|t|AVAILABLE|org-wide|FLAT
+white_label|t|AVAILABLE|org-wide|FLAT
+## subscription_items source
+MANUAL|35
+## temporary RPC retired
+0
+## tenant_features ENTITLEMENT rows (no grants loaded)
+0
+## MANUAL feature untouched
+MANUAL|t
+## desired state rows
+0

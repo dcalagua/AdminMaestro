@@ -1,0 +1,16 @@
+✔ acepta el stack local por 127.0.0.1 y localhost (9.328583ms)
+✔ aborta con exit 2 si no hay destino declarado (8.614458ms)
+✔ aborta con exit 2 ante una URL remota de Supabase (9.072333ms)
+✔ aborta con exit 2 ante el ref remoto conocido jivgwrczgdpsuvqcwqku (9.375ms)
+✔ aborta con exit 2 ante el ref remoto conocido uvjmdphlnpyhtohobvzx (8.551667ms)
+✔ aborta con exit 2 ante el ref remoto conocido xikbhkfeaosasdltartg (7.612042ms)
+✔ aborta si el ref aparece aunque el host sea local (p. ej. en la ruta) (7.498833ms)
+✔ no imprime el valor completo de las variables (7.116541ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 120.720375

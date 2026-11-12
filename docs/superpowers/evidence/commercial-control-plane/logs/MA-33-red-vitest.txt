@@ -1,0 +1,32 @@
+
+ RUN  v3.2.7 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1
+
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  supabase/functions/_shared/entitlements/states.test.ts [ supabase/functions/_shared/entitlements/states.test.ts ]
+Error: Failed to resolve import "./states" from "supabase/functions/_shared/entitlements/states.test.ts". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/functions/_shared/entitlements/states.test.ts:14:7
+  10 |    verifyFailureTransition,
+  11 |    verifyVerdict
+  12 |  } from "./states";
+     |          ^
+  13 |  const CASES = JSON.parse(
+  14 |    readFileSync(resolve(process.cwd(), "supabase/functions/_shared/entitlements/sync-state-cases.json"), "utf8")
+ ❯ TransformPluginContext._formatLog node_modules/vite/dist/node/chunks/config.js:29079:43
+ ❯ TransformPluginContext.error node_modules/vite/dist/node/chunks/config.js:29076:14
+ ❯ normalizeUrl node_modules/vite/dist/node/chunks/config.js:27199:18
+ ❯ node_modules/vite/dist/node/chunks/config.js:27257:32
+ ❯ TransformPluginContext.transform node_modules/vite/dist/node/chunks/config.js:27225:4
+ ❯ EnvironmentPluginContainer.transform node_modules/vite/dist/node/chunks/config.js:28877:14
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/config.js:22746:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  23:53:00
+   Duration  617ms (transform 22ms, setup 40ms, collect 0ms, tests 0ms, environment 201ms, prepare 36ms)
+

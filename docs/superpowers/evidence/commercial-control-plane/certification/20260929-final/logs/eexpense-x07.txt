@@ -1,0 +1,33 @@
+(node:45740) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS · 0. alta real de eExpense (CREATED); en SHADOW decide legacy (fraude sí; IA sin puerta previa sí; marca blanca no) · CREATED
+PASS · 1. receptor eExpense configurado (fail-closed si faltara algo; sujeto M2M exacto)
+PASS · 2. MasterAdmin lee el manifiesto (8 vendibles + 3 incluidos ACTIVE; módulos solo-UI, límite y créditos DRAFT) · 2026-10-08.1 · 11 ACTIVE
+PASS · 3. el snapshot lista las 8 vendibles ACTIVE con enabled explícito, sin DRAFT ni baseline, sin precios
+PASS · 4. emisor real → PUT M2M real → APPLIED (en SHADOW: guarda y compara) · APPLIED 200
+PASS · 5. SHADOW no cambia la decisión: fraude sigue permitido por legacy
+PASS · 6. SHADOW registra la diferencia legacy vs snapshot (fraude) · eexpense.fraud_vision
+PASS · 7. paridad local vs MasterAdmin: ADDON_ONLY_LOCAL fraud_vision → sin paridad; reporte sin precios
+PASS · 8. billing SHADOW: calcula y guarda la corrida, sin factura ni pasarela · {"period":"2026-10","generated":0,"charged":0,"failed":0,"skipped":0,"demo":0,"tenants":1,"shadow":1,"shadowFailed":0,"external":0}
+PASS · 9. paridad en rojo: MASTERADMIN_AUTHORITY bloqueado por la base
+PASS · 10. GET: misma versión y checksum, PRIMARY · 1 PRIMARY
+PASS · 11. PRIMARY: decide el snapshot — fraude negado aunque tenant_addons lo tenga; conciliación e incluidos sí
+PASS · 12. función IA con capacidad negada → 403 y el proveedor NO se invoca; nada se mide · 403
+PASS · 13. v2 concede conciliación + fraude → APPLIED; la puerta lo ve · APPLIED
+PASS · 14. función IA permitida → proveedor invocado una vez y UN evento en el outbox (tokens reales, no facturable, sin contenido) · 9f150000-0000-4000-8000-000000000001|eexpense.ai.calls|false|PENDING|321|false
+PASS · 15. replay idempotente → REPLAYED · REPLAYED
+PASS · 16. v1 tras v2 → STALE (409) · STALE STALE_SNAPSHOT
+PASS · 17. misma versión, otro contenido → CONFLICT (409) · CONFLICT VERSION_CONFLICT
+PASS · 18. credencial con scope de provisioning → 403 REJECTED · 403 INSUFFICIENT_SCOPE
+PASS · 19. PRIMARY: una escritura legacy de add-ons queda bloqueada en servidor
+PASS · 20. modelo local = MasterAdmin (paridad) y la corrida SHADOW nueva cuadra ítem por ítem · []
+PASS · 21. MASTERADMIN_AUTHORITY con paridad DEV verde: el biller local ya no factura ni cobra (nunca dos cobradores) · {"period":"2026-10","generated":0,"charged":0,"failed":0,"skipped":0,"demo":0,"tenants":1,"shadow":0,"shadowFailed":0,"external":1}
+PASS · 22. rollback del eje de facturación a LEGACY_AUTHORITY (un paso por vez)
+PASS · 23. SaaS no disponible → RETRYABLE, nada aplicado · RETRYABLE 503
+PASS · 24. reconciliación: el GET delata deriva (aplicado v2 ≠ deseado v3)
+PASS · 25. offline: sin MasterAdmin ni receptor HTTP, la puerta sigue con el last-good v2
+PASS · 26. v3 appActive=false: conciliación, fraude y hasta los incluidos quedan retirados
+PASS · 27. rollback PRIMARY → DUAL_READ → SHADOW: legacy intacto (fraude sí por tenant_addons)
+PASS · 28. limpieza: el tenant X-07 no queda en la base desechable (el outbox es historia inmutable y se conserva)
+
+29/29 PASS

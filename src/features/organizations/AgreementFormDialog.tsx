@@ -229,7 +229,7 @@ export function AgreementFormDialog({
       </FieldRow>
 
       <fieldset className="rounded-lg border border-border p-3">
-        <legend className="px-1 text-xs font-bold uppercase tracking-wider text-muted">
+        <legend className="px-1 text-micro uppercase text-muted">
           Modelos de despliegue permitidos
         </legend>
         <div className="grid gap-2.5 sm:grid-cols-3">
@@ -239,18 +239,18 @@ export function AgreementFormDialog({
           ))}
         </div>
         {form.formState.errors.mode_SHARED ? (
-          <p className="mt-2 text-xs text-danger" role="alert">
+          <p className="mt-2 text-caption text-danger" role="alert">
             {form.formState.errors.mode_SHARED.message}
           </p>
         ) : null}
-        <p className="mt-2 text-xs text-muted">
+        <p className="mt-2 text-caption text-muted">
           Un partner con 20 tenants en «Compartido» sigue siendo Shared: tener muchos clientes
           no lo convierte en Dedicado.
         </p>
       </fieldset>
 
       <fieldset className="rounded-lg border border-border p-3">
-        <legend className="px-1 text-xs font-bold uppercase tracking-wider text-muted">
+        <legend className="px-1 text-micro uppercase text-muted">
           Tipos de tenant que puede dar de alta
         </legend>
         <div className="grid gap-2.5 sm:grid-cols-4">
@@ -260,7 +260,7 @@ export function AgreementFormDialog({
           ))}
         </div>
         {form.formState.errors.type_PRODUCTION ? (
-          <p className="mt-2 text-xs text-danger" role="alert">
+          <p className="mt-2 text-caption text-danger" role="alert">
             {form.formState.errors.type_PRODUCTION.message}
           </p>
         ) : null}

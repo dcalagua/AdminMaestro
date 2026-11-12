@@ -1,0 +1,114 @@
+{
+  "label": "fase10",
+  "generatedAt": "2026-10-05T11:35:17.075Z",
+  "shots": [
+    {
+      "file": "01-billing-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "02-costs-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "03-commissions-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "04-commission-plans-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "05-renewals-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "06-reconciliation-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "07-regional-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "08-ai-credits-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "09-billing-shadow-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "10-partner-fees-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "11-subscription-cobros-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "12-subscription-cobranza-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "13-billing-1280-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "14-costs-1280-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "15-commissions-1280-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "16-billing-1440-oscuro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "dark"
+    },
+    {
+      "file": "17-costs-1440-oscuro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "dark"
+    },
+    {
+      "file": "18-commissions-1440-oscuro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "dark"
+    }
+  ]
+}

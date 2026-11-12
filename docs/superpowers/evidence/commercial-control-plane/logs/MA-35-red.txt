@@ -1,0 +1,31 @@
+
+ RUN  v3.2.7 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1
+
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  supabase/functions/_shared/entitlements/sync-client.test.ts [ supabase/functions/_shared/entitlements/sync-client.test.ts ]
+Error: Failed to resolve import "./sync-client" from "supabase/functions/_shared/entitlements/sync-client.test.ts". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/functions/_shared/entitlements/sync-client.test.ts:2:92
+  1  |  import { describe, it, expect, vi, beforeAll } from "vitest";
+  2  |  import { classifyPutResponse, EntitlementSyncClient } from "./sync-client";
+     |                                                              ^
+  3  |  import { buildSnapshot } from "./snapshot";
+  4  |  import { canonicalize } from "./jcs";
+ ❯ TransformPluginContext._formatLog node_modules/vite/dist/node/chunks/config.js:29079:43
+ ❯ TransformPluginContext.error node_modules/vite/dist/node/chunks/config.js:29076:14
+ ❯ normalizeUrl node_modules/vite/dist/node/chunks/config.js:27199:18
+ ❯ node_modules/vite/dist/node/chunks/config.js:27257:32
+ ❯ TransformPluginContext.transform node_modules/vite/dist/node/chunks/config.js:27225:4
+ ❯ EnvironmentPluginContainer.transform node_modules/vite/dist/node/chunks/config.js:28877:14
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/config.js:22746:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  00:11:58
+   Duration  921ms (transform 24ms, setup 53ms, collect 0ms, tests 0ms, environment 353ms, prepare 58ms)
+

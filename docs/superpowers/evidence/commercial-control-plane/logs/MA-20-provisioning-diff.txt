@@ -1,0 +1,2 @@
+git diff 346aa72 -- supabase/functions e2e/v4-* (INV-1)
+lines:        0

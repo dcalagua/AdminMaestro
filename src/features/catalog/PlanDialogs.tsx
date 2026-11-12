@@ -159,7 +159,7 @@ export function PlanFormDialog({
 
       <FieldRow>
         <NumberField label="Sociedades incluidas" required min={1} step={1}
-          hint="Nombre canónico del contrato §11.1: included_companies."
+          hint="Cuántas sociedades del cliente cubre el plan."
           error={form.formState.errors.included_companies} {...form.register('included_companies')} />
         <NumberField label="Orden" min={0} step={1}
           error={form.formState.errors.sort_order} {...form.register('sort_order')} />
@@ -172,7 +172,7 @@ export function PlanFormDialog({
         hint="Solo para Dedicado partner: es la licencia del canal, no la de un tenant."
         {...form.register('is_partner_base')} />
       {form.formState.errors.is_partner_base ? (
-        <p className="-mt-2 text-xs text-danger" role="alert">
+        <p className="-mt-2 text-caption text-danger" role="alert">
           {form.formState.errors.is_partner_base.message}
         </p>
       ) : null}

@@ -1,0 +1,92 @@
+{
+  "schema": "ebim.ccp.d14-cutover/v1",
+  "environment": "LOCAL_DEV",
+  "writtenAt": "2026-09-29T17:03:54.459Z",
+  "product": "comerza",
+  "entitlements": {
+    "scope": "COHORT",
+    "productScopeMode": "SHADOW",
+    "finalMode": "PRIMARY",
+    "transitions": [
+      "9f110000-0000-4000-8000-000000000001: SHADOW→DUAL_READ",
+      "9f110000-0000-4000-8000-000000000001: DUAL_READ→PRIMARY",
+      "00000000-0000-4ccc-8000-000000000001: SHADOW→DUAL_READ",
+      "00000000-0000-4ccc-8000-000000000001: DUAL_READ→PRIMARY",
+      "00000000-0000-4ccc-8000-000000000002: SHADOW→DUAL_READ",
+      "00000000-0000-4ccc-8000-000000000002: DUAL_READ→PRIMARY",
+      "00000000-0000-4ccc-8000-000000000003: SHADOW→DUAL_READ",
+      "00000000-0000-4ccc-8000-000000000003: DUAL_READ→PRIMARY",
+      "00000000-0000-4ccc-8000-000000000004: SHADOW→DUAL_READ",
+      "00000000-0000-4ccc-8000-000000000004: DUAL_READ→PRIMARY",
+      "00000000-0000-4ccc-8000-000000000005: SHADOW→DUAL_READ",
+      "00000000-0000-4ccc-8000-000000000005: DUAL_READ→PRIMARY",
+      "00000000-0000-4ccc-8000-000000000006: SHADOW→DUAL_READ",
+      "00000000-0000-4ccc-8000-000000000006: DUAL_READ→PRIMARY",
+      "00000000-0000-4ccc-8000-000000000007: SHADOW→DUAL_READ",
+      "00000000-0000-4ccc-8000-000000000007: DUAL_READ→PRIMARY",
+      "00000000-0000-4ccc-8000-000000000008: SHADOW→DUAL_READ",
+      "00000000-0000-4ccc-8000-000000000008: DUAL_READ→PRIMARY",
+      "00000000-0000-4ccc-8000-000000000009: SHADOW→DUAL_READ",
+      "00000000-0000-4ccc-8000-000000000009: DUAL_READ→PRIMARY"
+    ],
+    "mappedTenants": 10,
+    "mappedTenantsPrimary": 10,
+    "excludedFromCohort": [
+      {
+        "id": "00000000-0000-4ccc-8000-00000000000a",
+        "reason": "alta ACTIVE sin snapshot aplicado: MasterAdmin nunca la sincronizó; queda en el modo del PRODUCTO (SHADOW)"
+      },
+      {
+        "id": "00000000-0000-4ccc-8000-00000000000b",
+        "reason": "alta ACTIVE sin snapshot aplicado: MasterAdmin nunca la sincronizó; queda en el modo del PRODUCTO (SHADOW)"
+      },
+      {
+        "id": "00000000-0000-4ccc-8000-00000000000c",
+        "reason": "alta ACTIVE sin snapshot aplicado: MasterAdmin nunca la sincronizó; queda en el modo del PRODUCTO (SHADOW)"
+      },
+      {
+        "id": "c17d0000-0000-4000-8000-00000000c001",
+        "reason": "alta ACTIVE sin snapshot aplicado: MasterAdmin nunca la sincronizó; queda en el modo del PRODUCTO (SHADOW)"
+      },
+      {
+        "id": "f0f0cccc-0000-4000-8000-00000000c001",
+        "reason": "alta ACTIVE sin snapshot aplicado: MasterAdmin nunca la sincronizó; queda en el modo del PRODUCTO (SHADOW)"
+      }
+    ],
+    "getVerified": {
+      "appliedVersion": 5,
+      "appliedChecksum": "sha256:8dd0871b32d7825b4d650570e4687e893690e47442fd88f8452589e46b43bc7c",
+      "enforcementMode": "PRIMARY",
+      "desiredChecksum": "sha256:8dd0871b32d7825b4d650570e4687e893690e47442fd88f8452589e46b43bc7c"
+    },
+    "legacyWrite": {
+      "status": "BLOCKED",
+      "evidence": "D14.5 (estado final PRIMARY): flags del tenant vitrina/erp_connector=true en config_layers no conceden (decisión SNAPSHOT, commercial=false); el rol authenticated recibe permission denied al fijar el modo y al escribir operator.entitlement_snapshot_applied y operator.entitlement_capabilities.legacy_grant; check 15: los flags no reviven un agente revocado."
+    },
+    "parityBlocking": 0
+  },
+  "appActiveFalse": {
+    "commercialDenied": true,
+    "operationalContinues": true,
+    "evidence": "D14.1: v4 appActive=false con el agente → comerza_ai_admit reason=APP_INACTIVA; app_active solo lo leen commercial_capability_decision,platform_apply_entitlements; policies RLS que lo leen=0; sociedad y configuración intactas."
+  },
+  "legacyTenants": [
+    {
+      "id": "d1000000-0000-4000-8000-000000000002",
+      "label": "Andina Retail Ecuador Cía. Ltda.",
+      "resolution": "UNRESOLVED",
+      "reason": "Sin alta en operator.platform_provisionings ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4): sigue en legacy (legacy_grant) bajo el modo del PRODUCTO (SHADOW)."
+    },
+    {
+      "id": "d1000000-0000-4000-8000-000000000001",
+      "label": "Andina Retail Perú S.A.C.",
+      "resolution": "UNRESOLVED",
+      "reason": "Sin alta en operator.platform_provisionings ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4): sigue en legacy (legacy_grant) bajo el modo del PRODUCTO (SHADOW)."
+    }
+  ],
+  "billing": null,
+  "checks": {
+    "passed": 26,
+    "failed": 0
+  }
+}

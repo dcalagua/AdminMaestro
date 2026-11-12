@@ -133,7 +133,7 @@ export function BillingContactPanel({ organizationId }: { organizationId: string
             ].map(([label, value]) => (
               <div
                 key={label as string}
-                className="flex items-center justify-between gap-4 px-4 py-2.5 text-sm"
+                className="flex items-center justify-between gap-4 px-4 py-2.5 text-body"
               >
                 <dt className="text-muted">{label as string}</dt>
                 <dd className="text-right font-medium">
@@ -149,12 +149,12 @@ export function BillingContactPanel({ organizationId }: { organizationId: string
 
           {!ready ? (
             <div className="border-t border-border px-4 py-3">
-              <p className="text-sm text-muted">
+              <p className="text-body text-muted">
                 Mientras falten estos datos, el alta de cobro con tarjeta se detiene con el error{' '}
-                <span className="font-mono text-xs">DATOS_FACTURACION_INCOMPLETOS</span>. No es un
+                <span className="font-mono text-caption">DATOS_FACTURACION_INCOMPLETOS</span>. No es un
                 fallo de la pantalla: es la pasarela, que no crea el cliente sin ellos.
               </p>
-              <ul className="mt-2 list-disc space-y-0.5 pl-5 text-xs text-muted">
+              <ul className="mt-2 list-disc space-y-0.5 pl-5 text-caption text-muted">
                 {missing.map((f) => (
                   <li key={f}>{CAMPOS[f] ?? f}</li>
                 ))}

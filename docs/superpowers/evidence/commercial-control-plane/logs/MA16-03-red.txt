@@ -1,0 +1,32 @@
+
+ RUN  v3.2.7 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.claude/worktrees/agent-aa00cf8474767114e
+
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  supabase/functions/_shared/entitlements/hub/hub-parity.test.ts [ supabase/functions/_shared/entitlements/hub/hub-parity.test.ts ]
+Error: Failed to resolve import "./hub-parity" from "supabase/functions/_shared/entitlements/hub/hub-parity.test.ts". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.claude/worktrees/agent-aa00cf8474767114e/supabase/functions/_shared/entitlements/hub/hub-parity.test.ts:17:7
+  13 |    renderHubParityReport,
+  14 |    summarizeHubParity
+  15 |  } from "./hub-parity";
+     |          ^
+  16 |  const MQ = "d0000000-0000-4000-8000-000000000001";
+  17 |  const MQC = "d0000000-0000-4000-8000-0000000000c1";
+ ❯ TransformPluginContext._formatLog ../../../.worktrees/ebim-commercial-control-plane-v1/node_modules/vite/dist/node/chunks/config.js:29079:43
+ ❯ TransformPluginContext.error ../../../.worktrees/ebim-commercial-control-plane-v1/node_modules/vite/dist/node/chunks/config.js:29076:14
+ ❯ normalizeUrl ../../../.worktrees/ebim-commercial-control-plane-v1/node_modules/vite/dist/node/chunks/config.js:27199:18
+ ❯ ../../../.worktrees/ebim-commercial-control-plane-v1/node_modules/vite/dist/node/chunks/config.js:27257:32
+ ❯ TransformPluginContext.transform ../../../.worktrees/ebim-commercial-control-plane-v1/node_modules/vite/dist/node/chunks/config.js:27225:4
+ ❯ EnvironmentPluginContainer.transform ../../../.worktrees/ebim-commercial-control-plane-v1/node_modules/vite/dist/node/chunks/config.js:28877:14
+ ❯ loadAndTransform ../../../.worktrees/ebim-commercial-control-plane-v1/node_modules/vite/dist/node/chunks/config.js:22746:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  12:28:08
+   Duration  677ms (transform 18ms, setup 43ms, collect 0ms, tests 0ms, environment 254ms, prepare 54ms)
+

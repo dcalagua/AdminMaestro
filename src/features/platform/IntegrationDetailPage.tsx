@@ -19,7 +19,6 @@ import {
 import { formatDateTime } from '@/lib/format';
 import {
   CREDENTIAL_TYPE_LABEL,
-  DEPLOYMENT_HEALTH_LABEL,
   DEPLOYMENT_TARGET_STATUS_LABEL,
   INTEGRATION_STATUS_LABEL,
   INTEGRATION_TYPE_HINT,
@@ -28,11 +27,9 @@ import {
   PROVISIONING_ENVIRONMENT_LABEL,
   PROVISIONING_POLICY_HINT,
   PROVISIONING_POLICY_LABEL,
-  healthTone,
   integrationStatusTone,
   targetStatusTone,
   type CredentialProfileType,
-  type DeploymentHealth,
   type DeploymentTargetStatus,
   type IntegrationStatus,
   type IntegrationType,
@@ -49,24 +46,30 @@ import {
 } from './IntegrationDialogs';
 import { RevealSecretRefButton } from './RevealSecretRef';
 import { contractAdapterFor } from '@/features/deployments/contractAdapters';
+import { environmentLabel, isEvaluable, notEvaluatedReason, observedHealth, summarizeByEnvironment } from './targetHealth';
+import { EnvironmentHealthList, HealthBadge, ObservationDate } from './EnvironmentHealth';
+import { CutoverStepper } from './CutoverStepper';
+import { Avatar } from '@/components/ui/Avatar';
+import { AuditTimeline } from '@/features/settings/AuditTimeline';
+import { AuditDetail } from '@/features/settings/AuditPage';
 
 /** Fila etiqueta/valor para las fichas de configuración. */
 function Row({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string }) {
   return (
     <div className="flex flex-col gap-0.5 border-b border-border py-2.5 last:border-b-0 sm:flex-row sm:items-baseline sm:gap-4">
-      <span className="w-56 shrink-0 text-xs font-semibold uppercase tracking-wide text-muted">
+      <span className="w-56 shrink-0 text-micro text-muted">
         {label}
       </span>
-      <div className="min-w-0 flex-1 text-sm text-fg">
+      <div className="min-w-0 flex-1 text-body text-fg">
         {value}
-        {hint ? <p className="mt-0.5 text-xs text-muted">{hint}</p> : null}
+        {hint ? <p className="mt-0.5 text-caption text-muted">{hint}</p> : null}
       </div>
     </div>
   );
 }
 
 function Mono({ children }: { children: React.ReactNode }) {
-  return <span className="font-mono text-[13px]">{children}</span>;
+  return <span className="font-mono text-compact">{children}</span>;
 }
 
 const NOT_SET = <span className="text-muted">Sin configurar</span>;
@@ -90,7 +93,7 @@ export function IntegrationDetailPage() {
   const [ownerDialogOpen, setOwnerDialogOpen] = useState(false);
   const [ownerToRemove, setOwnerToRemove] = useState<{ id: string; name: string } | null>(null);
 
-  if (integration.isLoading) return <LoadingState />;
+  if (integration.isLoading) return <LoadingState variant="page" />;
   if (integration.error) {
     return <ErrorState error={integration.error} onRetry={() => void integration.refetch()} />;
   }
@@ -102,7 +105,7 @@ export function IntegrationDetailPage() {
             title="No existe o no tiene acceso"
             description="Un propietario técnico sólo ve las integraciones de su producto."
             action={
-              <Link to="/integrations" className="ebim-btn-secondary">
+              <Link to="/apps?tab=integraciones" className="ebim-btn-secondary">
                 Volver a integraciones
               </Link>
             }
@@ -113,7 +116,9 @@ export function IntegrationDetailPage() {
   }
 
   const data = integration.data;
-  const product = data.saas_products as { id: string; code: string; short_name: string } | null;
+  const product = data.saas_products as
+    | { id: string; code: string; short_name: string; accent_color?: string | null }
+    | null;
   const productId = data.saas_product_id;
   const type = data.integration_type as IntegrationType;
   const isHttp = type === 'HTTP_M2M' || type === 'EDGE_FUNCTION';
@@ -127,6 +132,12 @@ export function IntegrationDetailPage() {
     (c) => c.saas_product_id === productId || c.saas_product_id === null,
   );
   const productOwners = (owners.data ?? []).filter((o) => o.saas_product_id === productId);
+  const enabledTargets = relatedTargets.filter(isEvaluable);
+  const readyCredentials = productCredentials.filter((c) => c.enabled && c.secret_configured);
+  const responsible =
+    data.owner_name ??
+    (data.profiles as { full_name: string | null; email: string } | null)?.full_name ??
+    null;
 
   const draft: IntegrationDraft = {
     id: data.id,
@@ -168,7 +179,17 @@ export function IntegrationDetailPage() {
   return (
     <PageContainer
       title={data.name}
-      description={`${product?.short_name ?? 'Producto'} · contrato ${data.contract_version}`}
+      description={`${product?.short_name ?? 'Producto'} · ${INTEGRATION_TYPE_LABEL[type]} · contrato ${data.contract_version}`}
+      leading={<Avatar name={product?.short_name ?? data.name} size="lg" ringColor={product?.accent_color} />}
+      titleAside={
+        <>
+          <Badge tone={integrationStatusTone(data.status as IntegrationStatus)}>
+            {INTEGRATION_STATUS_LABEL[data.status as IntegrationStatus]}
+          </Badge>
+          {data.enabled ? <Badge tone="ok" dot>Habilitada</Badge> : <Badge>Deshabilitada</Badge>}
+        </>
+      }
+      meta={<span className="font-mono">{data.code}</span>}
       actions={
         canManage ? (
           <button type="button" className="ebim-btn-primary" onClick={() => setEditOpen(true)}>
@@ -177,20 +198,87 @@ export function IntegrationDetailPage() {
         ) : null
       }
     >
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <Badge tone="accent">{product?.short_name ?? '—'}</Badge>
-        <Badge>{INTEGRATION_TYPE_LABEL[type]}</Badge>
-        <Badge tone={integrationStatusTone(data.status as IntegrationStatus)}>
-          {INTEGRATION_STATUS_LABEL[data.status as IntegrationStatus]}
-        </Badge>
-        {data.enabled ? <Badge tone="ok">Habilitada</Badge> : <Badge>Deshabilitada</Badge>}
-      </div>
-
       <SectionTabs
         tabs={[
           {
+            id: 'summary',
+            label: 'Resumen',
+            content: (
+              <div className="grid gap-4 lg:grid-cols-2">
+                <Card
+                  title="Resumen operativo"
+                  description="Lo necesario para saber si se puede operar. Los parámetros técnicos están en las pestañas siguientes."
+                >
+                  <div className="px-4 pb-2">
+                    <Row
+                      label="Estado"
+                      value={
+                        <span className="flex flex-wrap gap-2">
+                          <Badge tone={integrationStatusTone(data.status as IntegrationStatus)}>
+                            {INTEGRATION_STATUS_LABEL[data.status as IntegrationStatus]}
+                          </Badge>
+                          {data.enabled ? <Badge tone="ok">Habilitada</Badge> : <Badge>Deshabilitada</Badge>}
+                        </span>
+                      }
+                    />
+                    <Row
+                      label="Política de altas"
+                      value={PROVISIONING_POLICY_LABEL[data.provisioning_policy as ProvisioningPolicy]}
+                      hint={PROVISIONING_POLICY_HINT[data.provisioning_policy as ProvisioningPolicy]}
+                    />
+                    <Row label="Responsable técnico" value={responsible ?? NOT_SET} />
+                    <Row
+                      label="Destinos habilitados"
+                      value={`${enabledTargets.length} de ${relatedTargets.length}`}
+                      hint="Un destino deshabilitado o en borrador queda «No evaluado»."
+                    />
+                    <Row
+                      label="Credenciales listas"
+                      value={
+                        credentials.isLoading
+                          ? 'Leyendo…'
+                          : `${readyCredentials.length} de ${productCredentials.length} con referencia configurada y habilitadas`
+                      }
+                      hint="Sólo se sabe si la referencia existe; el valor del secreto nunca llega a la consola."
+                    />
+                    <Row
+                      label="Certificación"
+                      value={<span className="text-muted">Sin fuente verificable en la consola</span>}
+                      hint="No se deduce de que la integración esté lista ni de que un alta haya quedado activa."
+                    />
+                  </div>
+                </Card>
+                <div className="flex flex-col gap-4">
+                  <Card
+                    title="Salud observada por entorno"
+                    description="Última comprobación guardada de cada entorno. No es monitoreo en tiempo real: se actualiza con «Verificar conexión» en Entornos y despliegues."
+                  >
+                    <div className="p-4">
+                      {targets.isLoading ? (
+                        <LoadingState label="Leyendo destinos…" />
+                      ) : targets.error ? (
+                        <ErrorState error={targets.error} onRetry={() => void targets.refetch()} />
+                      ) : (
+                        <EnvironmentHealthList summaries={summarizeByEnvironment(relatedTargets)} />
+                      )}
+                    </div>
+                  </Card>
+                  <Card
+                    title="Migración de cobro"
+                    description="Quién manda en cada eje para este producto. Se mueve paso a paso, con motivo, desde Configuración › Avanzado; aquí solo se muestra."
+                  >
+                    <div className="grid gap-5 p-4 sm:grid-cols-2">
+                      <CutoverStepper axis="entitlements" state={data.cutover_state_entitlements} />
+                      <CutoverStepper axis="billing" state={data.cutover_state_billing} />
+                    </div>
+                  </Card>
+                </div>
+              </div>
+            ),
+          },
+          {
             id: 'general',
-            label: 'General',
+            label: 'Contrato',
             content: (
               <Card title="Identidad y contrato">
                 <div className="px-4 pb-2">
@@ -203,20 +291,7 @@ export function IntegrationDetailPage() {
                   />
                   <Row label="Versión del contrato" value={<Mono>{data.contract_version}</Mono>} />
                   <Row label="Forma del contrato" value={contractAdapterFor(data.adapter_key).label} />
-                  <Row
-                    label="Responsable técnico"
-                    value={
-                      data.owner_name ??
-                      (data.profiles as { full_name: string | null; email: string } | null)
-                        ?.full_name ??
-                      NOT_SET
-                    }
-                  />
-                  <Row
-                    label="Política de provisioning"
-                    value={PROVISIONING_POLICY_LABEL[data.provisioning_policy as ProvisioningPolicy]}
-                    hint={PROVISIONING_POLICY_HINT[data.provisioning_policy as ProvisioningPolicy]}
-                  />
+                  <Row label="Responsable técnico" value={responsible ?? NOT_SET} />
                   <Row label="Actualizada" value={formatDateTime(data.updated_at)} />
                 </div>
               </Card>
@@ -227,7 +302,7 @@ export function IntegrationDetailPage() {
             label: 'Seguridad',
             content: (
               <>
-                <Card title="Contrato M2M">
+                <Card title="Conexión segura">
                   <div className="px-4 pb-2">
                     {isHttp ? (
                       <>
@@ -256,7 +331,7 @@ export function IntegrationDetailPage() {
                           value={
                             data.token_ttl_seconds ? `${data.token_ttl_seconds} segundos` : NOT_SET
                           }
-                          hint="Máximo 300 s. Un token de provisioning de vida larga es un token robado de vida larga."
+                          hint="Máximo 300 s. Un token de alta de vida larga es un token robado de vida larga."
                         />
                         <Row
                           label="Hosts permitidos"
@@ -273,9 +348,9 @@ export function IntegrationDetailPage() {
                         />
                       </>
                     ) : (
-                      <p className="py-6 text-sm text-muted">
+                      <p className="py-6 text-body text-muted">
                         Una integración {INTEGRATION_TYPE_LABEL[type].toLowerCase()} no firma tokens
-                        M2M: no arrastra issuer, audience, algoritmo ni TTL.
+                        de conexión segura: no arrastra issuer, audience, algoritmo ni TTL.
                       </p>
                     )}
                   </div>
@@ -340,7 +415,7 @@ export function IntegrationDetailPage() {
                     }
                   />
                 </div>
-                <p className="px-4 pb-4 text-xs text-muted">
+                <p className="px-4 pb-4 text-caption text-muted">
                   El orquestador rechaza firmar un token sin scope: un token sin alcance declarado
                   es un token con todos.
                 </p>
@@ -349,32 +424,26 @@ export function IntegrationDetailPage() {
           },
           {
             id: 'deployments',
-            label: `Deployments (${relatedTargets.length})`,
+            label: `Destinos (${relatedTargets.length})`,
             content: (
               <Card title="Destinos que usan esta integración">
                 {relatedTargets.length === 0 ? (
                   <EmptyState
                     title="Sin destinos asociados"
-                    description="Configure un destino en Infraestructura → Deployments para indicar a qué URL se llama en cada ambiente."
+                    description="Configure un destino en Entornos y despliegues para indicar a qué URL se llama en cada entorno."
                   />
                 ) : (
                   <DataTable
-                    columns={['Destino', 'Ambiente', 'Modo', 'URL base', 'Estado', 'Salud', 'Timeout']}
+                    columns={['Destino', 'Entorno', 'Modo', 'URL base', 'Estado', 'Salud observada', 'Timeout']}
                   >
                     {relatedTargets.map((t) => (
                       <tr key={t.deployment_target_id}>
                         <td className="ebim-td">
-                          <Link to="/deployments" className="font-mono text-[13px] text-accent-deep hover:underline">
+                          <Link to="/apps?tab=entornos" className="font-mono text-compact text-accent-deep hover:underline">
                             {t.code}
                           </Link>
                         </td>
-                        <td className="ebim-td">
-                          {
-                            PROVISIONING_ENVIRONMENT_LABEL[
-                              t.provisioning_environment as ProvisioningEnvironment
-                            ]
-                          }
-                        </td>
+                        <td className="ebim-td">{environmentLabel(t.provisioning_environment)}</td>
                         <td className="ebim-td">{t.deployment_mode}</td>
                         <td className="ebim-td">
                           {t.base_url ? (
@@ -395,9 +464,14 @@ export function IntegrationDetailPage() {
                           </Badge>
                         </td>
                         <td className="ebim-td">
-                          <Badge tone={healthTone(t.health_status as DeploymentHealth)}>
-                            {DEPLOYMENT_HEALTH_LABEL[t.health_status as DeploymentHealth]}
-                          </Badge>
+                          <HealthBadge health={observedHealth(t)} />
+                          <p className="mt-1 text-caption">
+                            {isEvaluable(t) ? (
+                              <ObservationDate at={t.health_checked_at} />
+                            ) : (
+                              <span className="text-muted">{notEvaluatedReason(t)}</span>
+                            )}
+                          </p>
                         </td>
                         <td className="ebim-td tabular-nums">{t.timeout_ms} ms</td>
                       </tr>
@@ -425,7 +499,7 @@ export function IntegrationDetailPage() {
                   ) : null
                 }
               >
-                <p className="px-4 pb-3 text-xs text-muted">
+                <p className="px-4 pb-3 text-caption text-muted">
                   Un perfil guarda la <strong>referencia</strong> del secreto de firma, nunca su
                   valor. El valor vive en el almacén de secretos del servidor y esta base no puede
                   conocerlo.
@@ -440,7 +514,7 @@ export function IntegrationDetailPage() {
                       <tr key={c.id}>
                         <td className="ebim-td">
                           <Mono>{c.code}</Mono>
-                          <p className="text-xs text-muted">{c.name}</p>
+                          <p className="text-caption text-muted">{c.name}</p>
                         </td>
                         <td className="ebim-td">
                           {PROVISIONING_ENVIRONMENT_LABEL[c.environment as ProvisioningEnvironment]}
@@ -512,8 +586,8 @@ export function IntegrationDetailPage() {
                   ) : null
                 }
               >
-                <p className="px-4 pb-3 text-xs text-muted">
-                  Un propietario ve y opera el provisioning de <strong>este</strong> producto, y de
+                <p className="px-4 pb-3 text-caption text-muted">
+                  Un propietario ve y opera las altas de <strong>este</strong> producto, y de
                   ningún otro. No es un rol de plataforma: repartir la propiedad exige alcance
                   transversal, para que nadie pueda auto-nombrarse en el producto del vecino.
                 </p>
@@ -563,40 +637,22 @@ export function IntegrationDetailPage() {
             id: 'audit',
             label: 'Auditoría',
             content: (
-              <Card title="Cambios de configuración">
-                <p className="px-4 pb-3 text-xs text-muted">
-                  Cada cambio guarda el antes, el después y quién lo hizo. Los valores de secreto no
-                  aparecen: esta configuración no contiene ninguno.
-                </p>
+              <Card
+                title="Eventos de la integración"
+                description="Cada cambio guarda el antes, el después y quién lo hizo. Los valores de secreto no aparecen: esta configuración no contiene ninguno."
+              >
                 {audit.isLoading ? (
-                  <LoadingState />
+                  <LoadingState label="Cargando eventos…" />
+                ) : audit.error ? (
+                  <ErrorState error={audit.error} onRetry={() => void audit.refetch()} />
                 ) : (audit.data ?? []).length === 0 ? (
-                  <EmptyState title="Sin cambios registrados" />
+                  <EmptyState title="Sin cambios registrados" description="Aún no hay eventos de configuración para esta integración." />
                 ) : (
-                  <DataTable columns={['Cuándo', 'Acción', 'Actor', 'Campos modificados']}>
-                    {(audit.data ?? []).map((entry) => {
-                      const metadata = (entry.metadata ?? {}) as Record<string, unknown>;
-                      const changed = (metadata.changed_fields ?? []) as string[];
-                      return (
-                        <tr key={entry.id}>
-                          <td className="ebim-td whitespace-nowrap">
-                            {formatDateTime(entry.occurred_at)}
-                          </td>
-                          <td className="ebim-td">
-                            <Mono>{entry.action}</Mono>
-                          </td>
-                          <td className="ebim-td">{entry.actor_email ?? '—'}</td>
-                          <td className="ebim-td">
-                            {changed.length === 0 ? (
-                              <span className="text-muted">Alta</span>
-                            ) : (
-                              <Mono>{changed.join(', ')}</Mono>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </DataTable>
+                  <AuditTimeline
+                    label="Eventos de la integración"
+                    rows={audit.data ?? []}
+                    renderDetail={(row) => <AuditDetail row={row} embedded />}
+                  />
                 )}
               </Card>
             ),
@@ -624,9 +680,9 @@ export function IntegrationDetailPage() {
       <ConfirmDialog
         open={Boolean(ownerToRemove)}
         title="Retirar propietario técnico"
-        message={`${ownerToRemove?.name ?? ''} dejará de ver el provisioning de este producto. La asignación se desactiva; no se borra el historial.`}
+        message={`${ownerToRemove?.name ?? ''} dejará de ver las altas de este producto. La asignación se desactiva; no se borra el historial.`}
         confirmLabel="Retirar"
-        onConfirm={() => void confirmRemoveOwner()}
+        onConfirm={confirmRemoveOwner}
         onCancel={() => setOwnerToRemove(null)}
       />
     </PageContainer>

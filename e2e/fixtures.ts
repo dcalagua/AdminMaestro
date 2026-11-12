@@ -25,5 +25,11 @@ export async function login(page: Page, email: string) {
   await page.getByLabel('Contraseña', { exact: true }).fill(DEMO_PASSWORD);
   await page.getByRole('button', { name: 'Ingresar' }).click();
   // El shell aparece cuando la sesión quedó establecida.
-  await expect(page.getByRole('button', { name: 'Salir' })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole('button', { name: 'Menú de cuenta' })).toBeVisible({ timeout: 20_000 });
+}
+
+/** Cierra la sesión desde el menú de cuenta del topbar. */
+export async function logout(page: Page) {
+  await page.getByRole('button', { name: 'Menú de cuenta' }).click();
+  await page.getByRole('menuitem', { name: 'Salir' }).click();
 }

@@ -1,0 +1,32 @@
+
+ RUN  v3.2.7 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1
+
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  supabase/functions/usage-ingest/core.test.ts [ supabase/functions/usage-ingest/core.test.ts ]
+Error: Failed to resolve import "./core" from "supabase/functions/usage-ingest/core.test.ts". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/functions/usage-ingest/core.test.ts:4:49
+  2  |  import { readFileSync } from "node:fs";
+  3  |  import { resolve } from "node:path";
+  4  |  import { buildIngestDeps, isIngestEnabled } from "./core";
+     |                                                    ^
+  5  |  const MIGRATION = readFileSync(
+  6  |    resolve(__dirname, "../../migrations/20261005000100_ccp_usage_meters_events.sql"),
+ ❯ TransformPluginContext._formatLog node_modules/vite/dist/node/chunks/config.js:29079:43
+ ❯ TransformPluginContext.error node_modules/vite/dist/node/chunks/config.js:29076:14
+ ❯ normalizeUrl node_modules/vite/dist/node/chunks/config.js:27199:18
+ ❯ node_modules/vite/dist/node/chunks/config.js:27257:32
+ ❯ TransformPluginContext.transform node_modules/vite/dist/node/chunks/config.js:27225:4
+ ❯ EnvironmentPluginContainer.transform node_modules/vite/dist/node/chunks/config.js:28877:14
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/config.js:22746:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  12:55:13
+   Duration  936ms (transform 20ms, setup 49ms, collect 0ms, tests 0ms, environment 356ms, prepare 44ms)
+

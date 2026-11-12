@@ -1,0 +1,23 @@
+
+ RUN  v3.2.7 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1
+
+ ✓ supabase/functions/_shared/provisioning/actions.test.ts (13 tests) 2ms
+ ✓ supabase/functions/_shared/provisioning/replay.test.ts (8 tests) 3ms
+ ✓ supabase/functions/_shared/provisioning/status.test.ts (11 tests) 2ms
+ ✓ supabase/functions/_shared/provisioning/retry.test.ts (33 tests) 3ms
+ ✓ supabase/functions/_shared/provisioning/fingerprint.test.ts (2 tests) 2ms
+ ✓ supabase/functions/_shared/provisioning/cors.test.ts (10 tests) 9ms
+ ✓ supabase/functions/_shared/provisioning/errors.test.ts (30 tests) 4ms
+ ✓ supabase/functions/_shared/provisioning/response.test.ts (32 tests) 4ms
+ ✓ supabase/functions/_shared/provisioning/url-guard.test.ts (60 tests) 9ms
+ ✓ supabase/functions/_shared/provisioning/adapters/http-m2m.generic-golden.test.ts (12 tests) 24ms
+ ✓ supabase/functions/_shared/provisioning/m2m.test.ts (33 tests) 33ms
+ ✓ supabase/functions/_shared/provisioning/registry.test.ts (30 tests) 4ms
+ ✓ supabase/functions/_shared/provisioning/adapters/ewm-v1.test.ts (62 tests) 46ms
+ ✓ supabase/functions/_shared/provisioning/adapters/http-m2m.test.ts (24 tests) 55ms
+
+ Test Files  14 passed (14)
+      Tests  360 passed (360)
+   Start at  03:02:04
+   Duration  1.37s (transform 471ms, setup 1.40s, collect 991ms, tests 199ms, environment 9.83s, prepare 905ms)
+

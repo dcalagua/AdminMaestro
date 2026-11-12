@@ -1,0 +1,673 @@
+{
+  "format": "gmao-hub-mapping-context.v1",
+  "products": [
+    {
+      "code": "ecommerce",
+      "hubAppCode": "ecommerce"
+    },
+    {
+      "code": "esupplier",
+      "hubAppCode": "esupplier"
+    }
+  ],
+  "registry": {
+    "ecommerce": [
+      {
+        "code": "ecommerce.ai.assist",
+        "kind": "AI_FEATURE",
+        "isBaseline": false,
+        "scopeLevel": "COMPANY",
+        "unit": null,
+        "meterCode": "ai.credits",
+        "status": "ACTIVE"
+      },
+      {
+        "code": "ecommerce.ai.catalog.copy",
+        "kind": "AI_FEATURE",
+        "isBaseline": false,
+        "scopeLevel": "COMPANY",
+        "unit": null,
+        "meterCode": "ai.credits",
+        "status": "ACTIVE"
+      },
+      {
+        "code": "ecommerce.ai.insights",
+        "kind": "AI_FEATURE",
+        "isBaseline": false,
+        "scopeLevel": "COMPANY",
+        "unit": null,
+        "meterCode": "ai.credits",
+        "status": "ACTIVE"
+      },
+      {
+        "code": "ecommerce.analytics.advanced",
+        "kind": "FEATURE",
+        "isBaseline": false,
+        "scopeLevel": "COMPANY",
+        "unit": null,
+        "meterCode": null,
+        "status": "ACTIVE"
+      },
+      {
+        "code": "ecommerce.catalog",
+        "kind": "FEATURE",
+        "isBaseline": true,
+        "scopeLevel": "TENANT",
+        "unit": null,
+        "meterCode": null,
+        "status": "ACTIVE"
+      },
+      {
+        "code": "ecommerce.catalog.advanced",
+        "kind": "FEATURE",
+        "isBaseline": false,
+        "scopeLevel": "COMPANY",
+        "unit": null,
+        "meterCode": null,
+        "status": "ACTIVE"
+      },
+      {
+        "code": "ecommerce.content.cms",
+        "kind": "FEATURE",
+        "isBaseline": false,
+        "scopeLevel": "COMPANY",
+        "unit": null,
+        "meterCode": null,
+        "status": "ACTIVE"
+      },
+      {
+        "code": "ecommerce.content.white_label",
+        "kind": "FEATURE",
+        "isBaseline": false,
+        "scopeLevel": "COMPANY",
+        "unit": null,
+        "meterCode": null,
+        "status": "ACTIVE"
+      },
+      {
+        "code": "ecommerce.credit.management",
+        "kind": "FEATURE",
+        "isBaseline": false,
+        "scopeLevel": "COMPANY",
+        "unit": null,
+        "meterCode": null,
+        "status": "ACTIVE"
+      },
+      {
+        "code": "ecommerce.customers.b2b",
+        "kind": "FEATURE",
+        "isBaseline": false,
+        "scopeLevel": "COMPANY",
+        "unit": null,
+        "meterCode": null,
+        "status": "ACTIVE"
+      },
+      {
+        "code": "ecommerce.fulfillment",
+        "kind": "FEATURE",
+        "isBaseline": false,
+        "scopeLevel": "COMPANY",
+        "unit": null,
+        "meterCode": null,
+        "status": "ACTIVE"
+      },
+      {
+        "code": "ecommerce.fulfillment.routing",
+        "kind": "FEATURE",
+        "isBaseline": false,
+        "scopeLevel": "COMPANY",
+        "unit": null,
+        "meterCode": null,
+        "status": "ACTIVE"
+      },
+      {
+        "code": "ecommerce.integrations.enterprise",
+        "kind": "FEATURE",
+        "isBaseline": false,
+        "scopeLevel": "COMPANY",
+        "unit": null,
+        "meterCode": null,
+        "status": "ACTIVE"
+      },
+      {
+        "code": "ecommerce.inventory.multiwarehouse",
+        "kind": "FEATURE",
+        "isBaseline": false,
+        "scopeLevel": "COMPANY",
+        "unit": null,
+        "meterCode": null,
+        "status": "ACTIVE"
+      },
+      {
+        "code": "ecommerce.invoicing",
+        "kind": "FEATURE",
+        "isBaseline": false,
+        "scopeLevel": "COMPANY",
+        "unit": null,
+        "meterCode": null,
+        "status": "ACTIVE"
+      },
+      {
+        "code": "ecommerce.orders.advanced",
+        "kind": "FEATURE",
+        "isBaseline": false,
+        "scopeLevel": "COMPANY",
+        "unit": null,
+        "meterCode": null,
+        "status": "ACTIVE"
+      },
+      {
+        "code": "ecommerce.payments",
+        "kind": "FEATURE",
+        "isBaseline": false,
+        "scopeLevel": "COMPANY",
+        "unit": null,
+        "meterCode": null,
+        "status": "ACTIVE"
+      },
+      {
+        "code": "ecommerce.planning.demand",
+        "kind": "FEATURE",
+        "isBaseline": false,
+        "scopeLevel": "COMPANY",
+        "unit": null,
+        "meterCode": null,
+        "status": "DRAFT"
+      },
+      {
+        "code": "ecommerce.pricing.lists",
+        "kind": "FEATURE",
+        "isBaseline": false,
+        "scopeLevel": "COMPANY",
+        "unit": null,
+        "meterCode": null,
+        "status": "ACTIVE"
+      },
+      {
+        "code": "ecommerce.promotions",
+        "kind": "FEATURE",
+        "isBaseline": false,
+        "scopeLevel": "COMPANY",
+        "unit": null,
+        "meterCode": null,
+        "status": "ACTIVE"
+      },
+      {
+        "code": "ecommerce.sales.force",
+        "kind": "FEATURE",
+        "isBaseline": false,
+        "scopeLevel": "COMPANY",
+        "unit": null,
+        "meterCode": null,
+        "status": "ACTIVE"
+      },
+      {
+        "code": "ecommerce.sales.performance",
+        "kind": "FEATURE",
+        "isBaseline": false,
+        "scopeLevel": "COMPANY",
+        "unit": null,
+        "meterCode": null,
+        "status": "ACTIVE"
+      },
+      {
+        "code": "ecommerce.sales.territory",
+        "kind": "FEATURE",
+        "isBaseline": false,
+        "scopeLevel": "COMPANY",
+        "unit": null,
+        "meterCode": null,
+        "status": "ACTIVE"
+      },
+      {
+        "code": "ecommerce.storefront",
+        "kind": "FEATURE",
+        "isBaseline": true,
+        "scopeLevel": "TENANT",
+        "unit": null,
+        "meterCode": null,
+        "status": "ACTIVE"
+      },
+      {
+        "code": "ecommerce.trade.assortments",
+        "kind": "FEATURE",
+        "isBaseline": false,
+        "scopeLevel": "COMPANY",
+        "unit": null,
+        "meterCode": null,
+        "status": "ACTIVE"
+      },
+      {
+        "code": "ecommerce.trade.quotes",
+        "kind": "FEATURE",
+        "isBaseline": false,
+        "scopeLevel": "COMPANY",
+        "unit": null,
+        "meterCode": null,
+        "status": "ACTIVE"
+      }
+    ],
+    "esupplier": [
+      {
+        "code": "esupplier.ai.dorothy_copilot",
+        "kind": "AI_FEATURE",
+        "isBaseline": false,
+        "scopeLevel": "COMPANY",
+        "unit": null,
+        "meterCode": "ai.credits",
+        "status": "ACTIVE"
+      },
+      {
+        "code": "esupplier.companies.extra",
+        "kind": "FEATURE",
+        "isBaseline": false,
+        "scopeLevel": "TENANT",
+        "unit": null,
+        "meterCode": null,
+        "status": "ACTIVE"
+      },
+      {
+        "code": "esupplier.core",
+        "kind": "FEATURE",
+        "isBaseline": true,
+        "scopeLevel": "TENANT",
+        "unit": null,
+        "meterCode": null,
+        "status": "ACTIVE"
+      },
+      {
+        "code": "esupplier.sourcing.events",
+        "kind": "FEATURE",
+        "isBaseline": false,
+        "scopeLevel": "COMPANY",
+        "unit": null,
+        "meterCode": null,
+        "status": "ACTIVE"
+      }
+    ]
+  },
+  "aliases": [
+    {
+      "productCode": "ecommerce",
+      "aliasSource": "GMAO_HUB",
+      "aliasCode": "ecommerce.promotions",
+      "capabilityCode": "ecommerce.promotions"
+    },
+    {
+      "productCode": "esupplier",
+      "aliasSource": "GMAO_HUB",
+      "aliasCode": "esupplier_dorothy_copilot",
+      "capabilityCode": "esupplier.ai.dorothy_copilot"
+    },
+    {
+      "productCode": "esupplier",
+      "aliasSource": "GMAO_HUB",
+      "aliasCode": "esupplier_extra_company",
+      "capabilityCode": "esupplier.companies.extra"
+    },
+    {
+      "productCode": "esupplier",
+      "aliasSource": "GMAO_HUB",
+      "aliasCode": "esupplier_sourcing_events",
+      "capabilityCode": "esupplier.sourcing.events"
+    },
+    {
+      "productCode": "esupplier",
+      "aliasSource": "LOCAL_ADDON",
+      "aliasCode": "esupplier_legacy_portal",
+      "capabilityCode": "esupplier.sourcing.events"
+    }
+  ],
+  "tenantLinks": [
+    {
+      "productCode": "ecommerce",
+      "organizationId": "d0000000-0000-4000-8000-000000000001",
+      "tenantId": "a0000000-0000-4000-8000-000000000001"
+    },
+    {
+      "productCode": "esupplier",
+      "organizationId": "e0000000-0000-4000-8000-000000000001",
+      "tenantId": "a0000000-0000-4000-8000-000000000002"
+    }
+  ],
+  "snapshots": [
+    {
+      "productCode": "ecommerce",
+      "controlPlaneTenantId": "a0000000-0000-4000-8000-000000000001",
+      "appActive": true,
+      "capabilities": [
+        {
+          "code": "ecommerce.ai.assist",
+          "enabled": true,
+          "scope": {
+            "level": "COMPANY",
+            "companyIds": [
+              "d0000000-0000-4000-8000-0000000000c1"
+            ]
+          },
+          "sources": [
+            "ADDON"
+          ]
+        },
+        {
+          "code": "ecommerce.ai.catalog.copy",
+          "enabled": false,
+          "scope": {
+            "level": "COMPANY"
+          },
+          "sources": []
+        },
+        {
+          "code": "ecommerce.ai.insights",
+          "enabled": false,
+          "scope": {
+            "level": "COMPANY"
+          },
+          "sources": []
+        },
+        {
+          "code": "ecommerce.analytics.advanced",
+          "enabled": true,
+          "scope": {
+            "level": "COMPANY",
+            "companyIds": [
+              "d0000000-0000-4000-8000-0000000000c1"
+            ]
+          },
+          "sources": [
+            "ADDON"
+          ]
+        },
+        {
+          "code": "ecommerce.catalog.advanced",
+          "enabled": true,
+          "scope": {
+            "level": "COMPANY",
+            "companyIds": [
+              "d0000000-0000-4000-8000-0000000000c1"
+            ]
+          },
+          "sources": [
+            "ADDON"
+          ]
+        },
+        {
+          "code": "ecommerce.content.cms",
+          "enabled": true,
+          "scope": {
+            "level": "COMPANY",
+            "companyIds": [
+              "d0000000-0000-4000-8000-0000000000c1"
+            ]
+          },
+          "sources": [
+            "ADDON"
+          ]
+        },
+        {
+          "code": "ecommerce.content.white_label",
+          "enabled": true,
+          "scope": {
+            "level": "COMPANY",
+            "companyIds": [
+              "d0000000-0000-4000-8000-0000000000c1"
+            ]
+          },
+          "sources": [
+            "ADDON"
+          ]
+        },
+        {
+          "code": "ecommerce.credit.management",
+          "enabled": true,
+          "scope": {
+            "level": "COMPANY",
+            "companyIds": [
+              "d0000000-0000-4000-8000-0000000000c1"
+            ]
+          },
+          "sources": [
+            "ADDON"
+          ]
+        },
+        {
+          "code": "ecommerce.customers.b2b",
+          "enabled": true,
+          "scope": {
+            "level": "COMPANY",
+            "companyIds": [
+              "d0000000-0000-4000-8000-0000000000c1"
+            ]
+          },
+          "sources": [
+            "ADDON"
+          ]
+        },
+        {
+          "code": "ecommerce.fulfillment",
+          "enabled": true,
+          "scope": {
+            "level": "COMPANY",
+            "companyIds": [
+              "d0000000-0000-4000-8000-0000000000c1"
+            ]
+          },
+          "sources": [
+            "ADDON"
+          ]
+        },
+        {
+          "code": "ecommerce.fulfillment.routing",
+          "enabled": true,
+          "scope": {
+            "level": "COMPANY",
+            "companyIds": [
+              "d0000000-0000-4000-8000-0000000000c1"
+            ]
+          },
+          "sources": [
+            "ADDON"
+          ]
+        },
+        {
+          "code": "ecommerce.integrations.enterprise",
+          "enabled": true,
+          "scope": {
+            "level": "COMPANY",
+            "companyIds": [
+              "d0000000-0000-4000-8000-0000000000c1"
+            ]
+          },
+          "sources": [
+            "ADDON"
+          ]
+        },
+        {
+          "code": "ecommerce.inventory.multiwarehouse",
+          "enabled": true,
+          "scope": {
+            "level": "COMPANY",
+            "companyIds": [
+              "d0000000-0000-4000-8000-0000000000c1"
+            ]
+          },
+          "sources": [
+            "ADDON"
+          ]
+        },
+        {
+          "code": "ecommerce.invoicing",
+          "enabled": true,
+          "scope": {
+            "level": "COMPANY",
+            "companyIds": [
+              "d0000000-0000-4000-8000-0000000000c1"
+            ]
+          },
+          "sources": [
+            "ADDON"
+          ]
+        },
+        {
+          "code": "ecommerce.orders.advanced",
+          "enabled": true,
+          "scope": {
+            "level": "COMPANY",
+            "companyIds": [
+              "d0000000-0000-4000-8000-0000000000c1"
+            ]
+          },
+          "sources": [
+            "ADDON"
+          ]
+        },
+        {
+          "code": "ecommerce.payments",
+          "enabled": true,
+          "scope": {
+            "level": "COMPANY",
+            "companyIds": [
+              "d0000000-0000-4000-8000-0000000000c1"
+            ]
+          },
+          "sources": [
+            "ADDON"
+          ]
+        },
+        {
+          "code": "ecommerce.pricing.lists",
+          "enabled": true,
+          "scope": {
+            "level": "COMPANY",
+            "companyIds": [
+              "d0000000-0000-4000-8000-0000000000c1"
+            ]
+          },
+          "sources": [
+            "ADDON"
+          ]
+        },
+        {
+          "code": "ecommerce.promotions",
+          "enabled": true,
+          "scope": {
+            "level": "COMPANY",
+            "companyIds": [
+              "d0000000-0000-4000-8000-0000000000c1"
+            ]
+          },
+          "sources": [
+            "ADDON"
+          ]
+        },
+        {
+          "code": "ecommerce.sales.force",
+          "enabled": true,
+          "scope": {
+            "level": "COMPANY",
+            "companyIds": [
+              "d0000000-0000-4000-8000-0000000000c1"
+            ]
+          },
+          "sources": [
+            "ADDON"
+          ]
+        },
+        {
+          "code": "ecommerce.sales.performance",
+          "enabled": true,
+          "scope": {
+            "level": "COMPANY",
+            "companyIds": [
+              "d0000000-0000-4000-8000-0000000000c1"
+            ]
+          },
+          "sources": [
+            "ADDON"
+          ]
+        },
+        {
+          "code": "ecommerce.sales.territory",
+          "enabled": true,
+          "scope": {
+            "level": "COMPANY",
+            "companyIds": [
+              "d0000000-0000-4000-8000-0000000000c1"
+            ]
+          },
+          "sources": [
+            "ADDON"
+          ]
+        },
+        {
+          "code": "ecommerce.trade.assortments",
+          "enabled": true,
+          "scope": {
+            "level": "COMPANY",
+            "companyIds": [
+              "d0000000-0000-4000-8000-0000000000c1"
+            ]
+          },
+          "sources": [
+            "ADDON"
+          ]
+        },
+        {
+          "code": "ecommerce.trade.quotes",
+          "enabled": true,
+          "scope": {
+            "level": "COMPANY",
+            "companyIds": [
+              "d0000000-0000-4000-8000-0000000000c1"
+            ]
+          },
+          "sources": [
+            "ADDON"
+          ]
+        }
+      ],
+      "limits": [],
+      "allowances": []
+    },
+    {
+      "productCode": "esupplier",
+      "controlPlaneTenantId": "a0000000-0000-4000-8000-000000000002",
+      "appActive": true,
+      "capabilities": [
+        {
+          "code": "esupplier.ai.dorothy_copilot",
+          "enabled": true,
+          "scope": {
+            "level": "COMPANY"
+          },
+          "sources": [
+            "ADDON"
+          ]
+        },
+        {
+          "code": "esupplier.companies.extra",
+          "enabled": false,
+          "scope": {
+            "level": "TENANT"
+          },
+          "sources": []
+        },
+        {
+          "code": "esupplier.sourcing.events",
+          "enabled": true,
+          "scope": {
+            "level": "COMPANY",
+            "companyIds": [
+              "e0000000-0000-4000-8000-0000000000c1"
+            ]
+          },
+          "sources": [
+            "ADDON"
+          ]
+        }
+      ],
+      "limits": [],
+      "allowances": []
+    }
+  ]
+}

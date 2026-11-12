@@ -1,0 +1,27 @@
+(node:58810) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS · ecommerce: evidencia SaaS D-14 en verde
+PASS · ecommerce: eje de entitlements de MasterAdmin en MASTERADMIN_PRIMARY · LEGACY_ONLY → MASTERADMIN_PRIMARY
+PASS · ecommerce: eje de facturación BILLING_LEGACY (sin biller local) · BILLING_LEGACY
+PASS · ewm: evidencia SaaS D-14 en verde
+PASS · ewm: eje de entitlements de MasterAdmin en MASTERADMIN_PRIMARY · LEGACY_ONLY → MASTERADMIN_PRIMARY
+PASS · ewm: eje de facturación BILLING_LEGACY (sin biller local) · BILLING_LEGACY
+PASS · comerza: evidencia SaaS D-14 en verde
+PASS · comerza: eje de entitlements de MasterAdmin en MASTERADMIN_PRIMARY · LEGACY_ONLY → MASTERADMIN_PRIMARY
+PASS · comerza: eje de facturación BILLING_LEGACY (sin biller local) · BILLING_LEGACY
+PASS · tms: evidencia SaaS D-14 en verde
+PASS · tms: eje de entitlements de MasterAdmin en MASTERADMIN_PRIMARY · LEGACY_ONLY → MASTERADMIN_PRIMARY
+PASS · tms: eje de facturación BILLING_LEGACY (sin biller local) · BILLING_LEGACY
+PASS · esupplier: evidencia SaaS D-14 en verde
+PASS · esupplier: eje de entitlements de MasterAdmin en MASTERADMIN_PRIMARY · SHADOW → MASTERADMIN_PRIMARY
+PASS · esupplier: eje de facturación BILLING_LEGACY (sin biller local) · BILLING_LEGACY
+PASS · echange: evidencia SaaS D-14 en verde
+PASS · echange: eje de entitlements de MasterAdmin en MASTERADMIN_PRIMARY · LEGACY_ONLY → MASTERADMIN_PRIMARY
+PASS · echange: eje de facturación BILLING_LEGACY (sin biller local) · BILLING_LEGACY
+PASS · eexpense: evidencia SaaS D-14 en verde
+PASS · eexpense: eje de entitlements de MasterAdmin en MASTERADMIN_PRIMARY · LEGACY_ONLY → MASTERADMIN_PRIMARY
+PASS · eexpense: eje de facturación BILLING_SHADOW (nunca más allá) · BILLING_SHADOW
+PASS · gmao: evidencia SaaS D-14 en verde
+PASS · gmao: eje de entitlements de MasterAdmin en MASTERADMIN_PRIMARY · LEGACY_ONLY → MASTERADMIN_PRIMARY
+PASS · gmao: eje de facturación BILLING_SHADOW (nunca más allá) · BILLING_SHADOW
+24/24 PASS

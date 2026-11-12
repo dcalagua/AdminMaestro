@@ -1,0 +1,48 @@
+{
+  "label": "fase14",
+  "generatedAt": "2026-10-05T14:27:32.782Z",
+  "shots": [
+    {
+      "file": "01-ejecutivo-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "03-ejecutivo-1280-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "04-finanzas-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "05-operacion-1440-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "06-ejecutivo-mes-en-curso-claro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "light"
+    },
+    {
+      "file": "07-ejecutivo-1440-oscuro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "dark"
+    },
+    {
+      "file": "08-ejecutivo-1280-oscuro.png",
+      "overflow": false,
+      "alerts": [],
+      "theme": "dark"
+    }
+  ]
+}

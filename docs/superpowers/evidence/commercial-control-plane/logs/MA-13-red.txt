@@ -1,0 +1,18 @@
+Connecting to local database...
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/30_ccp_catalog_item_prices.test.sql:96: ERROR:  relation "platform.catalog_item_prices" does not exist
+LINE 3:     where oid = 'platform.catalog_item_prices'::regclass),
+                        ^
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/30_ccp_catalog_item_prices.test.sql .. 
+# Failed test 13: "Existe platform.catalog_item_prices"
+Dubious, test returned 3 (wstat 768, 0x300)
+Failed 29/41 subtests 
+
+Test Summary Report
+-------------------
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/30_ccp_catalog_item_prices.test.sql (Wstat: 768 (exited 3) Tests: 13 Failed: 1)
+  Failed test:  13
+  Non-zero exit status: 3
+  Parse errors: Bad plan.  You planned 41 tests but ran 13.
+Files=1, Tests=13,  0 wallclock secs ( 0.01 usr  0.03 sys +  0.00 cusr  0.02 csys =  0.06 CPU)
+Result: FAIL
+error running container: exit 1

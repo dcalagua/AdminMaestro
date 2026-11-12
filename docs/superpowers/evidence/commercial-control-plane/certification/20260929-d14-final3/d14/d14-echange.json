@@ -1,0 +1,120 @@
+{
+  "schema": "ebim.ccp.d14-cutover/v1",
+  "environment": "LOCAL_DEV",
+  "writtenAt": "2026-09-29T17:04:19.442Z",
+  "product": "echange",
+  "entitlements": {
+    "scope": "PRODUCT",
+    "productScopeMode": "PRIMARY",
+    "finalMode": "PRIMARY",
+    "transitions": [
+      "PRODUCT: SHADOW→DUAL_READ",
+      "PRODUCT: DUAL_READ→PRIMARY",
+      "9f140000-0000-4000-8000-000000000001: SHADOW→DUAL_READ",
+      "9f140000-0000-4000-8000-000000000001: DUAL_READ→PRIMARY"
+    ],
+    "mappedTenants": 1,
+    "mappedTenantsPrimary": 1,
+    "getVerified": {
+      "appliedVersion": 4,
+      "appliedChecksum": "sha256:5c126597bbd6f592a9bd74b787fdf0c710356cb3881596decbc148bd018e97f9",
+      "enforcementMode": "PRIMARY",
+      "desiredChecksum": "sha256:5c126597bbd6f592a9bd74b787fdf0c710356cb3881596decbc148bd018e97f9"
+    },
+    "legacyWrite": {
+      "status": "BLOCKED",
+      "evidence": "D14.4 (estado final PRIMARY): update public.channels set commercially_entitled = true (type=phone, org X-07) como service_role → LEGACY_WRITE_BLOCKED (trigger privado.ccp_escritura_legacy_del_derecho) y la puerta sigue negando echange.channels.phone."
+    },
+    "parityBlocking": 0
+  },
+  "appActiveFalse": {
+    "commercialDenied": true,
+    "operationalContinues": true,
+    "evidence": "check 21: v3 appActive=false → echange.ai.report_writer y echange.channels.whatsapp negados; echange.ai.triage y echange.channels.portal (incluidos) siguen concedidos."
+  },
+  "legacyTenants": [
+    {
+      "id": "f1e00000-0000-4000-8000-000000000001",
+      "label": "Fixture 0",
+      "resolution": "UNRESOLVED",
+      "reason": "Sin alta ACTIVE en privado.platform_provisioning_requests ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4); sin controlPlaneTenantId la puerta decide en LEGACY aunque el PRODUCTO esté en PRIMARY."
+    },
+    {
+      "id": "f1e00000-0000-4000-8000-000000000002",
+      "label": "Fixture 1",
+      "resolution": "UNRESOLVED",
+      "reason": "Sin alta ACTIVE en privado.platform_provisioning_requests ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4); sin controlPlaneTenantId la puerta decide en LEGACY aunque el PRODUCTO esté en PRIMARY."
+    },
+    {
+      "id": "f1e00000-0000-4000-8000-000000000011",
+      "label": "Fixture 10",
+      "resolution": "UNRESOLVED",
+      "reason": "Sin alta ACTIVE en privado.platform_provisioning_requests ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4); sin controlPlaneTenantId la puerta decide en LEGACY aunque el PRODUCTO esté en PRIMARY."
+    },
+    {
+      "id": "f1e00000-0000-4000-8000-000000000012",
+      "label": "Fixture 11",
+      "resolution": "UNRESOLVED",
+      "reason": "Sin alta ACTIVE en privado.platform_provisioning_requests ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4); sin controlPlaneTenantId la puerta decide en LEGACY aunque el PRODUCTO esté en PRIMARY."
+    },
+    {
+      "id": "f1e00000-0000-4000-8000-000000000003",
+      "label": "Fixture 2",
+      "resolution": "UNRESOLVED",
+      "reason": "Sin alta ACTIVE en privado.platform_provisioning_requests ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4); sin controlPlaneTenantId la puerta decide en LEGACY aunque el PRODUCTO esté en PRIMARY."
+    },
+    {
+      "id": "f1e00000-0000-4000-8000-000000000004",
+      "label": "Fixture 3",
+      "resolution": "UNRESOLVED",
+      "reason": "Sin alta ACTIVE en privado.platform_provisioning_requests ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4); sin controlPlaneTenantId la puerta decide en LEGACY aunque el PRODUCTO esté en PRIMARY."
+    },
+    {
+      "id": "f1e00000-0000-4000-8000-000000000005",
+      "label": "Fixture 4",
+      "resolution": "UNRESOLVED",
+      "reason": "Sin alta ACTIVE en privado.platform_provisioning_requests ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4); sin controlPlaneTenantId la puerta decide en LEGACY aunque el PRODUCTO esté en PRIMARY."
+    },
+    {
+      "id": "f1e00000-0000-4000-8000-000000000006",
+      "label": "Fixture 5",
+      "resolution": "UNRESOLVED",
+      "reason": "Sin alta ACTIVE en privado.platform_provisioning_requests ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4); sin controlPlaneTenantId la puerta decide en LEGACY aunque el PRODUCTO esté en PRIMARY."
+    },
+    {
+      "id": "f1e00000-0000-4000-8000-000000000007",
+      "label": "Fixture 6",
+      "resolution": "UNRESOLVED",
+      "reason": "Sin alta ACTIVE en privado.platform_provisioning_requests ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4); sin controlPlaneTenantId la puerta decide en LEGACY aunque el PRODUCTO esté en PRIMARY."
+    },
+    {
+      "id": "f1e00000-0000-4000-8000-000000000008",
+      "label": "Fixture 7",
+      "resolution": "UNRESOLVED",
+      "reason": "Sin alta ACTIVE en privado.platform_provisioning_requests ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4); sin controlPlaneTenantId la puerta decide en LEGACY aunque el PRODUCTO esté en PRIMARY."
+    },
+    {
+      "id": "f1e00000-0000-4000-8000-000000000009",
+      "label": "Fixture 8",
+      "resolution": "UNRESOLVED",
+      "reason": "Sin alta ACTIVE en privado.platform_provisioning_requests ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4); sin controlPlaneTenantId la puerta decide en LEGACY aunque el PRODUCTO esté en PRIMARY."
+    },
+    {
+      "id": "f1e00000-0000-4000-8000-000000000010",
+      "label": "Fixture 9",
+      "resolution": "UNRESOLVED",
+      "reason": "Sin alta ACTIVE en privado.platform_provisioning_requests ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4); sin controlPlaneTenantId la puerta decide en LEGACY aunque el PRODUCTO esté en PRIMARY."
+    },
+    {
+      "id": "55555555-5555-4555-8555-555555555555",
+      "label": "Joltech (Demo)",
+      "resolution": "UNRESOLVED",
+      "reason": "Sin alta ACTIVE en privado.platform_provisioning_requests ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4); sin controlPlaneTenantId la puerta decide en LEGACY aunque el PRODUCTO esté en PRIMARY."
+    }
+  ],
+  "billing": null,
+  "checks": {
+    "passed": 30,
+    "failed": 0
+  }
+}

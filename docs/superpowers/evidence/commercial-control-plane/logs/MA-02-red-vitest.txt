@@ -1,0 +1,122 @@
+
+ RUN  v3.2.7 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1
+
+ ❯ src/features/executive/executive-contracts.test.ts (22 tests | 2 failed) 14ms
+   ✓ DataState: error, vacío y cero son cosas distintas > un error de consulta es error, no una lista vacía 1ms
+   ✓ DataState: error, vacío y cero son cosas distintas > permiso denegado se presenta como sin acceso 0ms
+   ✓ DataState: error, vacío y cero son cosas distintas > función ausente en el backend = no disponible (entorno sin migración), no cero 0ms
+   ✓ DataState: error, vacío y cero son cosas distintas > un cero real es un dato completo; un array vacío es «sin actividad» 0ms
+   ✓ DataState: error, vacío y cero son cosas distintas > sin data y sin error = cargando 0ms
+   ✓ Margen gerencial (K05) no se completa con fuentes ausentes > error de costos → margen parcial, nunca completo 0ms
+   ✓ Margen gerencial (K05) no se completa con fuentes ausentes > con las tres fuentes, calcula por moneda sin mezclar 0ms
+   ✓ Margen gerencial (K05) no se completa con fuentes ausentes > todas las fuentes en error → error, no margen cero 0ms
+   ✓ FX faltante no produce cero (AC09) > conversión incompleta → parcial con la moneda que falta 0ms
+   ✓ FX faltante no produce cero (AC09) > conversión completa → dato 0ms
+   ✓ Período, FX y foto actual separados (AC08) > seleccionar un mes pasado no mueve la foto actual del MRR 0ms
+   ✓ Período, FX y foto actual separados (AC08) > cambiar la fecha FX no cambia el período 0ms
+   ✓ Período, FX y foto actual separados (AC08) > el mes en curso se rotula parcial 0ms
+   ✓ Período, FX y foto actual separados (AC08) > lastMonths cruza el año correctamente 0ms
+   ✓ Comparación con el período anterior (K02) > base anterior cero → no comparable, nunca infinito 0ms
+   ✓ Comparación con el período anterior (K02) > mes parcial → no comparable 0ms
+   ✓ Comparación con el período anterior (K02) > dos meses completos → variación 0ms
+   ✓ Cartera vencida (K04) > sólo bandas vencidas; «Sin fecha» y vigente no cuentan; saldo negativo se conserva 0ms
+   ✓ Diccionario KPI > K01–K06 definidos con fuente y detalle 0ms
+   × Diccionario KPI > K01 MRR resta el DISCOUNT recurrente una sola vez (CCP P-01), no lo excluye 4ms
+     → expected 'ONE_TIME, DISCOUNT, suscripciones no …' not to match /DISCOUNT/
+   × Diccionario KPI > la documentación financiera describe el mismo signo de DISCOUNT 6ms
+     → expected '# Diccionario de indicadores ejecutiv…' to contain 'DISCOUNT resta de MRR y de la factura…'
+   ✓ Diccionario KPI > el documento legible nombra cada KPI y su fuente 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/executive/executive-contracts.test.ts > Diccionario KPI > K01 MRR resta el DISCOUNT recurrente una sola vez (CCP P-01), no lo excluye
+AssertionError: expected 'ONE_TIME, DISCOUNT, suscripciones no …' not to match /DISCOUNT/
+
+[32m- Expected:[39m 
+/DISCOUNT/
+
+[31m+ Received:[39m 
+"ONE_TIME, DISCOUNT, suscripciones no ACTIVE, ítems fuera de vigencia, tenants DEMO"
+
+ ❯ src/features/executive/executive-contracts.test.ts:154:45
+    152| 
+    153|   it('K01 MRR resta el DISCOUNT recurrente una sola vez (CCP P-01), no…
+    154|     expect(KPI_DICTIONARY.K01.excludes).not.toMatch(/DISCOUNT/);
+       |                                             ^
+    155|     expect(KPI_DICTIONARY.K01.includes).toMatch(/DISCOUNT recurrente v…
+    156|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/features/executive/executive-contracts.test.ts > Diccionario KPI > la documentación financiera describe el mismo signo de DISCOUNT
+AssertionError: expected '# Diccionario de indicadores ejecutiv…' to contain 'DISCOUNT resta de MRR y de la factura…'
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- DISCOUNT resta de MRR y de la factura una sola vez[39m
+[31m+ # Diccionario de indicadores ejecutivos (K01–K06)[39m
+[31m+[39m
+[31m+ Fuente única en código: `src/features/executive/kpis.ts` (`KPI_DICTIONARY`); un test comprueba[39m
+[31m+ que este documento nombra cada indicador y su fuente. Spec: §8 de[39m
+[31m+ `docs/superpowers/specs/2026-09-25-masteradmin-executive-experience-design.md`.[39m
+[31m+[39m
+[31m+ Reglas comunes (spec §8.2):[39m
+[31m+[39m
+[31m+ - **Período transaccional**, **fecha FX** y **foto actual** son parámetros distintos. Cambiar la[39m
+[31m+   fecha de tasas no mueve el período; elegir un mes pasado no cambia MRR, saldo ni antigüedad.[39m
+[31m+ - Nunca se suman monedas: todo se presenta por moneda nativa; el equivalente en moneda de reporte[39m
+[31m+   sólo aparece si `finance_consolidated` convirtió TODAS las monedas.[39m
+[31m+ - FX faltante → cobertura parcial rotulada, nunca cero.[39m
+[31m+ - Error de una fuente → «No se pudo leer» / «Parcial», nunca cero.[39m
+[31m+ - Las fórmulas son las existentes; ninguna se redefine aquí.[39m
+[31m+[39m
+[31m+ | KPI | Temporalidad | Fuente real (consulta) | Incluye | Excluye | Precisión | Cobertura | Detalle |[39m
+[31m+ |---|---|---|---|---|---|---|---|[39m
+[31m+ | K01 — MRR vigente | Foto actual | `platform.finance_consolidated` métrica `MRR` ← `v_subscription_mrr` | Ítems recurrentes vigentes hoy de suscripciones ACTIVE (MONTHLY ×1, QUARTERLY ÷3, YEARLY ÷12) | ONE_TIME, DISCOUNT, suscripciones no ACTIVE, ítems fuera de vigencia, tenants DEMO | numeric(14,2), redondeo por ítem | Sin serie histórica (deuda #2 de COST_MARGIN_MODEL) | `/subscriptions` |[39m
+[31m+ | K02 — Cobrado del período | Período | `platform.collections_by_month` ← `v_collected_payments` | Pagos CONFIRMED con `paid_at` en el período sobre facturas ISSUED/PARTIALLY_PAID/PAID | PENDING, REVERSED; facturas DRAFT/VOID/UNCOLLECTIBLE o total 0 | Prorrateo por línea a 2 decimales, idéntico a `v_collected_revenue` | Mes en curso = parcial; base cero ⇒ sin comparación | `/billing` |[39m
+[31m+ | K03 — Saldo por cobrar | Foto actual | `platform.invoice_summary` (`receivable`) ← `v_invoice_balances` | total − pagos CONFIRMED de facturas ISSUED/PARTIALLY_PAID/PAID | DRAFT, VOID, UNCOLLECTIBLE (informadas aparte) | numeric(14,2); sobrepago negativo sin recorte (banda «Saldo a favor») | No reconstruye saldos pasados | `/billing` |[39m
+[31m+ | K04 — Cartera vencida | Foto actual | `platform.receivables_aging` ← `v_invoice_balances.aging_bucket` | Bandas 1–30, 31–60, 61–90, >90 días con saldo positivo | Vigente, «Sin fecha» y «Saldo a favor» (se muestran aparte) | numeric(14,2) | Clasificación visual a hoy; no es política de cobro | `/billing?estado=OPEN` |[39m
+[31m+ | K05 — Margen gerencial | Período | `platform.finance_consolidated` (`native_margin`/`margin`) ← `v_finance_facts` | Cobrado − costo asignado − comisión no anulada | No es utilidad neta, EBITDA ni resultado contable; plataforma no se reparte | Suma por moneda antes de convertir | Fuente ausente ⇒ «No calculable» | `/costs` |[39m
+[31m+ | K06 — Renovaciones próximas | Foto actual (ventana desde hoy) | `platform.v_renewal_pipeline` ← `v_renewal_dashboard` + `v_subscription_mrr` | ACTIVE/PAST_DUE con renovación en 7/15/30/45/60 días | Sin fecha de renovación; no es churn | MRR vigente de la suscripción (NULL si no tiene) | Ventana contada desde hoy | `/renewals` |[39m
+[31m+[39m
+[31m+ ## Notas de conciliación[39m
+[31m+[39m
+[31m+ - `Σ v_collected_payments.collected_amount = Σ v_collected_revenue.collected_amount` por moneda[39m
+[31m+   (pgTAP `25_executive_read_models`). La serie mensual (G01) suma exactamente el cobrado total.[39m
+[31m+ - `invoice_summary.row_count` = filas de la tabla con los mismos filtros (buscador + estado).[39m
+[31m+ - Comisión «pendiente» = ELIGIBLE + ACCRUED (definición de `finance_reporting_rows`). Antes la[39m
+[31m+   página de comisiones sumaba también PENDING bajo la etiqueta «Elegible + devengada»; ahora PENDING[39m
+[31m+   se muestra por separado como «En espera» y no se pierde.[39m
+[31m+ - «Costo registrado» (Σ `cost_entries.amount`) ≠ costo del margen (Σ asignaciones × peso). La[39m
+[31m+   diferencia se explica como «Plataforma» (asignaciones PLATFORM) y «Sin asignar».[39m
+[31m+[39m
+[31m+ ## Métricas auxiliares (perspectiva correspondiente)[39m
+[31m+[39m
+[31m+ Facturado (no DRAFT/VOID), comisiones pagadas, costos por categoría, cartera por partner,[39m
+[31m+ solicitudes de infraestructura (`provisioning_requests`) y solicitudes SaaS[39m
+[31m+ (`saas_provisioning_requests`). «Falla de infraestructura» y «Falla de alta SaaS» son indicadores[39m
+[31m+ distintos.[39m
+[31m+[39m
+[31m+ ## No disponibles (sin fuente)[39m
+[31m+[39m
+[31m+ Serie histórica de MRR, churn/NRR/GRR, CAC/LTV, embudo ponderado, MAU/consumo por SaaS, NPS,[39m
+[31m+ uptime/SLA histórico. La consola lo dice; no rellena.[39m
+[31m+[39m
+
+ ❯ src/features/executive/executive-contracts.test.ts:161:19
+    159|     for (const path of ['docs/finance/EXECUTIVE_KPI_DICTIONARY.md', 'd…
+    160|       const doc = readFileSync(resolve(process.cwd(), path), 'utf8');
+    161|       expect(doc).toContain('DISCOUNT resta de MRR y de la factura una…
+       |                   ^
+    162|     }
+    163|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 20 passed (22)
+   Start at  20:04:28
+   Duration  1.34s (transform 57ms, setup 82ms, collect 40ms, tests 14ms, environment 609ms, prepare 56ms)
+

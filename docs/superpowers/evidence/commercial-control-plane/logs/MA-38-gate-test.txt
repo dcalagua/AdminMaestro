@@ -1,0 +1,118 @@
+
+> ebim-control-plane@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1
+
+ ✓ src/features/commercial/capabilities/CapabilitiesPage.test.tsx (5 tests) 606ms
+   ✓ CapabilitiesPage > agrupa por producto y muestra tipo, base, alcance, combinación, medidor y alias  492ms
+ ✓ src/features/deployments/ProductConfigurationForm.test.tsx (7 tests) 489ms
+ ✓ src/features/billing/PeriodInvoiceAction.test.tsx (13 tests) 775ms
+   ✓ PeriodInvoiceAction · copy > habla de período, no de mes, y muestra la moneda del contrato  400ms
+ ✓ src/features/organizations/OrganizationsPage.test.tsx (4 tests) 588ms
+ ✓ src/features/deployments/SaasProvisioningPage.test.tsx (2 tests) 531ms
+   ✓ SaasProvisioningPage > renderizar y abrir el detalle no ejecuta ninguna acción ni Edge Function  359ms
+ ✓ src/features/catalog/AddonsPage.test.tsx (8 tests) 666ms
+   ✓ AddonsPage > lista add-ons con ciclo de vida, modelo de cobro y tarifa por mercado  415ms
+ ✓ src/features/catalog/ProductsPage.test.tsx (4 tests) 712ms
+   ✓ ProductsPage > deriva los conteos de los datos y nunca muestra un 8/8 fijo  405ms
+ ✓ src/features/commercial/capabilities/ImportManifestDialog.test.tsx (2 tests) 829ms
+   ✓ Importar manifiesto > envía el manifiesto y muestra conteos y drift de registro  548ms
+ ✓ src/components/ui/dialogs-tabs.test.tsx (12 tests) 1118ms
+   ✓ ConfirmDialog > Tab y Shift+Tab no salen del modal  571ms
+ ✓ src/features/tenants/TenantAddonsPanel.test.tsx (8 tests) 1622ms
+   ✓ TenantAddonsPanel > «Aprobar» sólo aparece en filas REQUESTED  796ms
+   ✓ TenantAddonsPanel > aprobar exige motivo y llama a la RPC con él  362ms
+stderr | src/app/AppearanceProvider.test.tsx > Apariencia compartida > cambiar el modo desde Configuración actualiza el Shell y el documento
+An update to AppearanceProvider inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+stderr | src/app/AppearanceProvider.test.tsx > Apariencia compartida > cambiar la densidad conserva los controles y actualiza data-density
+An update to AppearanceProvider inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ ✓ src/features/catalog/PlansPage.test.tsx (4 tests) 274ms
+ ✓ src/features/deployments/ProvisioningStatusAction.test.tsx (9 tests) 300ms
+ ✓ src/app/AppearanceProvider.test.tsx (7 tests) 205ms
+ ✓ supabase/functions/_shared/provisioning/adapters/http-m2m.test.ts (24 tests) 85ms
+ ✓ supabase/functions/_shared/entitlements/sync-client.test.ts (36 tests) 150ms
+ ✓ src/features/auth/session-isolation.test.tsx (2 tests) 102ms
+ ✓ supabase/functions/_shared/provisioning/adapters/ewm-v1.test.ts (62 tests) 80ms
+ ✓ src/features/auth/session.test.ts (16 tests) 3ms
+ ✓ src/lib/regional.test.ts (15 tests) 8ms
+ ✓ supabase/functions/_shared/provisioning/m2m.test.ts (33 tests) 77ms
+ ✓ supabase/functions/_shared/entitlements/snapshot.test.ts (34 tests) 190ms
+ ✓ src/lib/multicurrency.regression.test.ts (7 tests) 16ms
+ ✓ src/features/auth/LoginPage.test.tsx (4 tests) 361ms
+ ✓ src/features/commercial/CommissionsPage.test.tsx (3 tests) 317ms
+ ✓ src/components/ui/PagedTable.test.tsx (7 tests) 780ms
+   ✓ PagedTable > ordenar por una columna pide el orden al servidor y declara aria-sort  357ms
+ ✓ src/features/settings/AuditPage.test.tsx (5 tests) 516ms
+ ✓ src/features/dashboard/DashboardPage.test.tsx (8 tests) 649ms
+ ✓ src/features/billing/BillingPage.test.tsx (5 tests) 586ms
+ ✓ supabase/functions/_shared/provisioning/url-guard.test.ts (60 tests) 9ms
+ ✓ src/features/executive/executive-contracts.test.ts (22 tests) 9ms
+ ✓ supabase/functions/_shared/provisioning/adapters/http-m2m.generic-golden.test.ts (12 tests) 124ms
+ ✓ src/services/financeConsolidated.test.tsx (3 tests) 79ms
+ ✓ src/features/deployments/contractAdapters.test.ts (9 tests) 39ms
+ ✓ src/app/AppShell.test.tsx (7 tests) 1588ms
+   ✓ AppShell > usuario técnico EBIM no recibe el grupo Finanzas  327ms
+   ✓ AppShell > grupos plegables con aria-expanded; el grupo activo no se oculta  473ms
+ ✓ src/lib/format.test.ts (17 tests) 28ms
+ ✓ supabase/functions/_shared/provisioning/fingerprint.test.ts (2 tests) 15ms
+ ✓ supabase/functions/_shared/entitlements/sync-store.test.ts (16 tests) 18ms
+ ✓ supabase/functions/_shared/payments/money.test.ts (34 tests) 55ms
+ ✓ src/features/organizations/Organization360.test.tsx (3 tests) 430ms
+ ✓ src/lib/consolidated.test.ts (8 tests) 11ms
+ ✓ src/lib/export.test.ts (10 tests) 4ms
+ ✓ contracts/entitlements/v1/reference-receiver.test.ts (45 tests) 61ms
+ ✓ src/lib/provisioning.test.ts (39 tests) 8ms
+ ✓ supabase/functions/entitlement-sync/core.test.ts (20 tests) 12ms
+ ✓ supabase/functions/_shared/entitlements/jcs.test.ts (23 tests) 93ms
+ ✓ src/features/commercial/commissionRuleText.test.ts (3 tests) 9ms
+ ✓ src/features/platform/targetHealth.test.ts (4 tests) 3ms
+ ✓ src/features/platform/IntegrationsPage.test.tsx (4 tests) 410ms
+   ✓ IntegrationsPage > resume por entorno: QAS sano con fecha; PRD en borrador «No evaluado», nunca «Caído»  349ms
+ ✓ supabase/functions/_shared/provisioning/cors.test.ts (10 tests) 8ms
+ ✓ src/features/deployments/DeploymentsPage.test.tsx (1 test) 338ms
+   ✓ DeploymentsPage > un destino en borrador es «No evaluado», no «Caído», y nada se verifica al renderizar  337ms
+ ✓ supabase/functions/_shared/payments/culqi-mapping.test.ts (23 tests) 8ms
+ ✓ supabase/functions/_shared/entitlements/sync-flow.test.ts (12 tests) 57ms
+ ✓ src/features/billing/CostsPage.test.tsx (3 tests) 454ms
+   ✓ CostsPage > un fallo del resumen se ve como error, no como costo cero  343ms
+ ✓ supabase/functions/_shared/provisioning/retry.test.ts (33 tests) 3ms
+ ✓ supabase/functions/_shared/provisioning/registry.test.ts (30 tests) 5ms
+ ✓ src/app/tokens.test.ts (38 tests) 14ms
+ ✓ supabase/functions/_shared/payments/recurring-amount.test.ts (24 tests) 4ms
+ ✓ src/features/tenants/tenantDimensions.test.ts (8 tests) 3ms
+ ✓ supabase/functions/_shared/provisioning/errors.test.ts (30 tests) 3ms
+ ✓ supabase/functions/_shared/provisioning/response.test.ts (32 tests) 3ms
+ ✓ supabase/functions/_shared/provisioning/replay.test.ts (8 tests) 2ms
+ ✓ src/lib/billing.test.ts (6 tests) 2ms
+ ✓ supabase/functions/_shared/provisioning/actions.test.ts (13 tests) 3ms
+ ✓ supabase/functions/_shared/entitlements/states.test.ts (40 tests) 3ms
+ ✓ supabase/functions/_shared/provisioning/status.test.ts (11 tests) 17ms
+ ✓ src/app/navigation.test.ts (24 tests) 4ms
+
+ Test Files  66 passed (66)
+      Tests  1033 passed (1033)
+   Start at  00:37:40
+   Duration  12.42s (transform 5.24s, setup 9.93s, collect 72.42s, tests 16.57s, environment 66.63s, prepare 6.98s)
+

@@ -46,7 +46,7 @@ async function sellRegional(page: Page, sale: RegionalSale) {
   // 2 · canal y tenant
   if (sale.channel) await page.getByLabel('Canal / partner que administra').selectOption({ label: sale.channel });
   await page.getByLabel('Nombre del tenant').fill(sale.tenantName);
-  await page.getByLabel('Slug').fill(sale.slug);
+  await page.getByLabel(/^Código( \*)?$/).fill(sale.slug);
   await page.getByLabel('Correo del administrador del cliente').fill(`admin-${sale.slug}@regional-e2e.com`);
   await page.getByRole('button', { name: 'Continuar' }).click();
 
@@ -65,7 +65,7 @@ async function sellRegional(page: Page, sale: RegionalSale) {
   await expect(page.getByText('Moneda contractual')).toBeVisible();
   await page.getByRole('button', { name: 'Crear cliente' }).click();
   await expect(page.getByText('Alta completada')).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByRole('heading', { name: sale.tenantName })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('heading', { level: 1, name: sale.tenantName })).toBeVisible({ timeout: 15_000 });
 
   await page.getByRole('tab', { name: 'Suscripción' }).click();
   await page.locator('a[href^="/subscriptions/"]').first().click();
@@ -81,7 +81,7 @@ async function invoiceAndCollect(page: Page, currency: string, total: RegExp, re
 
   const row = page.getByRole('row').filter({ hasText: 'INV-' }).first();
   await expect(row).toContainText(total);
-  await expect(row).toContainText('ISSUED');
+  await expect(row).toContainText(/Emitida|ISSUED/);
 
   await row.getByRole('button', { name: 'Registrar cobro' }).click();
   const dialog = page.getByRole('dialog');
@@ -90,11 +90,12 @@ async function invoiceAndCollect(page: Page, currency: string, total: RegExp, re
   await field(dialog, 'Referencia').fill(reference);
   await dialog.getByRole('button', { name: 'Confirmar cobro' }).click();
   await expect(page.getByText('Cobro registrado')).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByRole('row').filter({ hasText: 'INV-' }).first()).toContainText('PAID', { timeout: 15_000 });
+  await expect(page.getByRole('row').filter({ hasText: 'INV-' }).first()).toContainText(/Pagada|PAID/, { timeout: 15_000 });
 }
 
 async function regionalPanel(page: Page) {
-  await page.goto('/');
+  // Desde la spec 2026-09-25 el panel regional vive en la perspectiva Finanzas.
+  await page.goto('/#finanzas');
   const panel = page.locator('section').filter({ hasText: 'Finanzas regionales' });
   await expect(panel).toBeVisible();
   return panel;
@@ -206,7 +207,7 @@ test.describe('Fase 17 · Journeys regionales', () => {
     await page.getByLabel('Producto SaaS').selectOption({ label: 'eSupplier (esupplier)' });
     await page.getByRole('button', { name: 'Continuar' }).click();
     await page.getByLabel('Nombre del tenant').fill(`Dif ${RUN}`);
-    await page.getByLabel('Slug').fill(`dif-${RUN}`);
+    await page.getByLabel(/^Código( \*)?$/).fill(`dif-${RUN}`);
     await page.getByLabel('Correo del administrador del cliente').fill(`dif-${RUN}@regional-e2e.com`);
     await page.getByRole('button', { name: 'Continuar' }).click();
 
@@ -215,7 +216,8 @@ test.describe('Fase 17 · Journeys regionales', () => {
     await expect(page.getByText(/Tarifa PE\/USD: USD\s850\.00/)).toBeVisible();
 
     // Mismo cliente, mismo plan, misma moneda: al cambiar el mercado a Ecuador cambia la tarifa.
-    await page.getByRole('button', { name: /^1\./ }).click();
+    // Paso 1 del stepper (fase 11: número en círculo + nombre del paso).
+    await page.getByRole('button', { name: /Cliente, mercado y producto/ }).click();
     await field(page, 'País / mercado de la venta').selectOption('EC');
     await page.getByRole('button', { name: 'Continuar' }).click();
     await page.getByRole('button', { name: 'Continuar' }).click();
@@ -226,7 +228,11 @@ test.describe('Fase 17 · Journeys regionales', () => {
     await page.goto('/regional#prices');
     await page.getByRole('tab', { name: 'Tarifas por mercado' }).click();
     await page.getByRole('searchbox').fill('esupplier-shared-standard');
-    const licenses = page.getByRole('row').filter({ hasText: 'LICENSE' }).filter({ hasText: 'MONTHLY' });
+    // Las celdas muestran «Licencia» / «mes» y guardan el código en `title` (fase 10).
+    const licenses = page
+      .getByRole('row')
+      .filter({ has: page.locator('td[title="LICENSE"]') })
+      .filter({ has: page.locator('td[title="MONTHLY"]') });
     const market = (code: string) => page.getByRole('cell', { name: code, exact: true });
     await expect(licenses.filter({ has: market('PE') }).filter({ hasText: /USD\s850\.00/ })).toHaveCount(1);
     await expect(licenses.filter({ has: market('EC') }).filter({ hasText: /USD\s700\.00/ })).toHaveCount(1);
@@ -240,9 +246,10 @@ test.describe('Fase 17 · Journeys regionales', () => {
     await field(panel, 'Fecha de las tasas').fill(DEMO_FX_DATE);
     await expect(panel.getByRole('alert')).toHaveCount(0);
 
-    // ...pero 60 días después ya no hay tasa dentro de la tolerancia de 31 días:
+    // ...pero meses después de la última tasa publicada (seed o demo gerencia-v4,
+    // que llega a oct-2026) ya no hay tasa dentro de la tolerancia de 31 días:
     // PEN y BOB quedan sin convertir y el tablero lo dice.
-    await field(panel, 'Fecha de las tasas').fill('2026-10-31');
+    await field(panel, 'Fecha de las tasas').fill('2027-01-31');
     const alert = panel.getByRole('alert');
     await expect(alert).toContainText('Consolidado incompleto');
     await expect(alert).toContainText('BOB');

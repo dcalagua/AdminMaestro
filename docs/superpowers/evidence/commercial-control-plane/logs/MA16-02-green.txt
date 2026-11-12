@@ -1,0 +1,10 @@
+
+ RUN  v3.2.7 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.claude/worktrees/agent-aa00cf8474767114e
+
+ ✓ supabase/functions/_shared/entitlements/hub/hub-mapping.test.ts (23 tests) 24ms
+
+ Test Files  1 passed (1)
+      Tests  23 passed (23)
+   Start at  12:26:20
+   Duration  438ms (transform 35ms, setup 24ms, collect 30ms, tests 24ms, environment 147ms, prepare 32ms)
+

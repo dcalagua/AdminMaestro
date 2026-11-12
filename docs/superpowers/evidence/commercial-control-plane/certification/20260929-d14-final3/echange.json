@@ -1,0 +1,499 @@
+{
+  "product": "echange",
+  "legacyAuthority": "sin biller local (no hay funciones ni tablas de facturación)",
+  "d14": {
+    "entitlements": {
+      "scope": "PRODUCT",
+      "saasFinalMode": "PRIMARY",
+      "productScopeMode": "PRIMARY",
+      "masteradminAxis": "MASTERADMIN_PRIMARY",
+      "getVerified": {
+        "appliedVersion": 4,
+        "appliedChecksum": "sha256:5c126597bbd6f592a9bd74b787fdf0c710356cb3881596decbc148bd018e97f9",
+        "enforcementMode": "PRIMARY",
+        "desiredChecksum": "sha256:5c126597bbd6f592a9bd74b787fdf0c710356cb3881596decbc148bd018e97f9"
+      },
+      "legacyWrite": {
+        "status": "BLOCKED",
+        "evidence": "D14.4 (estado final PRIMARY): update public.channels set commercially_entitled = true (type=phone, org X-07) como service_role → LEGACY_WRITE_BLOCKED (trigger privado.ccp_escritura_legacy_del_derecho) y la puerta sigue negando echange.channels.phone."
+      }
+    },
+    "billing": null,
+    "appActiveFalse": {
+      "commercialDenied": true,
+      "operationalContinues": true,
+      "evidence": "check 21: v3 appActive=false → echange.ai.report_writer y echange.channels.whatsapp negados; echange.ai.triage y echange.channels.portal (incluidos) siguen concedidos."
+    },
+    "legacyTenants": [
+      {
+        "id": "f1e00000-0000-4000-8000-000000000001",
+        "label": "Fixture 0",
+        "resolution": "UNRESOLVED",
+        "reason": "Sin alta ACTIVE en privado.platform_provisioning_requests ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4); sin controlPlaneTenantId la puerta decide en LEGACY aunque el PRODUCTO esté en PRIMARY."
+      },
+      {
+        "id": "f1e00000-0000-4000-8000-000000000002",
+        "label": "Fixture 1",
+        "resolution": "UNRESOLVED",
+        "reason": "Sin alta ACTIVE en privado.platform_provisioning_requests ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4); sin controlPlaneTenantId la puerta decide en LEGACY aunque el PRODUCTO esté en PRIMARY."
+      },
+      {
+        "id": "f1e00000-0000-4000-8000-000000000011",
+        "label": "Fixture 10",
+        "resolution": "UNRESOLVED",
+        "reason": "Sin alta ACTIVE en privado.platform_provisioning_requests ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4); sin controlPlaneTenantId la puerta decide en LEGACY aunque el PRODUCTO esté en PRIMARY."
+      },
+      {
+        "id": "f1e00000-0000-4000-8000-000000000012",
+        "label": "Fixture 11",
+        "resolution": "UNRESOLVED",
+        "reason": "Sin alta ACTIVE en privado.platform_provisioning_requests ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4); sin controlPlaneTenantId la puerta decide en LEGACY aunque el PRODUCTO esté en PRIMARY."
+      },
+      {
+        "id": "f1e00000-0000-4000-8000-000000000003",
+        "label": "Fixture 2",
+        "resolution": "UNRESOLVED",
+        "reason": "Sin alta ACTIVE en privado.platform_provisioning_requests ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4); sin controlPlaneTenantId la puerta decide en LEGACY aunque el PRODUCTO esté en PRIMARY."
+      },
+      {
+        "id": "f1e00000-0000-4000-8000-000000000004",
+        "label": "Fixture 3",
+        "resolution": "UNRESOLVED",
+        "reason": "Sin alta ACTIVE en privado.platform_provisioning_requests ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4); sin controlPlaneTenantId la puerta decide en LEGACY aunque el PRODUCTO esté en PRIMARY."
+      },
+      {
+        "id": "f1e00000-0000-4000-8000-000000000005",
+        "label": "Fixture 4",
+        "resolution": "UNRESOLVED",
+        "reason": "Sin alta ACTIVE en privado.platform_provisioning_requests ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4); sin controlPlaneTenantId la puerta decide en LEGACY aunque el PRODUCTO esté en PRIMARY."
+      },
+      {
+        "id": "f1e00000-0000-4000-8000-000000000006",
+        "label": "Fixture 5",
+        "resolution": "UNRESOLVED",
+        "reason": "Sin alta ACTIVE en privado.platform_provisioning_requests ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4); sin controlPlaneTenantId la puerta decide en LEGACY aunque el PRODUCTO esté en PRIMARY."
+      },
+      {
+        "id": "f1e00000-0000-4000-8000-000000000007",
+        "label": "Fixture 6",
+        "resolution": "UNRESOLVED",
+        "reason": "Sin alta ACTIVE en privado.platform_provisioning_requests ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4); sin controlPlaneTenantId la puerta decide en LEGACY aunque el PRODUCTO esté en PRIMARY."
+      },
+      {
+        "id": "f1e00000-0000-4000-8000-000000000008",
+        "label": "Fixture 7",
+        "resolution": "UNRESOLVED",
+        "reason": "Sin alta ACTIVE en privado.platform_provisioning_requests ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4); sin controlPlaneTenantId la puerta decide en LEGACY aunque el PRODUCTO esté en PRIMARY."
+      },
+      {
+        "id": "f1e00000-0000-4000-8000-000000000009",
+        "label": "Fixture 8",
+        "resolution": "UNRESOLVED",
+        "reason": "Sin alta ACTIVE en privado.platform_provisioning_requests ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4); sin controlPlaneTenantId la puerta decide en LEGACY aunque el PRODUCTO esté en PRIMARY."
+      },
+      {
+        "id": "f1e00000-0000-4000-8000-000000000010",
+        "label": "Fixture 9",
+        "resolution": "UNRESOLVED",
+        "reason": "Sin alta ACTIVE en privado.platform_provisioning_requests ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4); sin controlPlaneTenantId la puerta decide en LEGACY aunque el PRODUCTO esté en PRIMARY."
+      },
+      {
+        "id": "55555555-5555-4555-8555-555555555555",
+        "label": "Joltech (Demo)",
+        "resolution": "UNRESOLVED",
+        "reason": "Sin alta ACTIVE en privado.platform_provisioning_requests ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4); sin controlPlaneTenantId la puerta decide en LEGACY aunque el PRODUCTO esté en PRIMARY."
+      }
+    ]
+  },
+  "checks": {
+    "1": {
+      "label": "canonical MasterAdmin mapping",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:01:54Z",
+          "endedAt": "2026-09-29T17:01:58Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "echange:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:04:15Z",
+          "endedAt": "2026-09-29T17:04:19Z",
+          "log": "logs/echange-x07.txt"
+        }
+      ]
+    },
+    "2": {
+      "label": "desired entitlement generated",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:01:54Z",
+          "endedAt": "2026-09-29T17:01:58Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:00Z",
+          "endedAt": "2026-09-29T17:02:01Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "echange:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:04:15Z",
+          "endedAt": "2026-09-29T17:04:19Z",
+          "log": "logs/echange-x07.txt"
+        }
+      ]
+    },
+    "3": {
+      "label": "SaaS applied same version/checksum",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "echange:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:04:15Z",
+          "endedAt": "2026-09-29T17:04:19Z",
+          "log": "logs/echange-x07.txt"
+        }
+      ]
+    },
+    "4": {
+      "label": "GET same applied state",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:00Z",
+          "endedAt": "2026-09-29T17:02:01Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "echange:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:04:15Z",
+          "endedAt": "2026-09-29T17:04:19Z",
+          "log": "logs/echange-x07.txt"
+        }
+      ]
+    },
+    "5": {
+      "label": "tenant self-grant denied",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:01:54Z",
+          "endedAt": "2026-09-29T17:01:58Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "echange:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:04:15Z",
+          "endedAt": "2026-09-29T17:04:19Z",
+          "log": "logs/echange-x07.txt"
+        }
+      ],
+      "note": "X-07 14: escritura legacy del derecho bloqueada en PRIMARY; pgTAP del repo con 10 fallas PREEXISTENTES ajenas"
+    },
+    "6": {
+      "label": "add/remove/downgrade version transition",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "echange:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:04:15Z",
+          "endedAt": "2026-09-29T17:04:19Z",
+          "log": "logs/echange-x07.txt"
+        }
+      ]
+    },
+    "7": {
+      "label": "offline last-good",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "echange:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:04:15Z",
+          "endedAt": "2026-09-29T17:04:19Z",
+          "log": "logs/echange-x07.txt"
+        }
+      ]
+    },
+    "8": {
+      "label": "drift reconciled",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:00Z",
+          "endedAt": "2026-09-29T17:02:01Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "echange:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:04:15Z",
+          "endedAt": "2026-09-29T17:04:19Z",
+          "log": "logs/echange-x07.txt"
+        }
+      ]
+    },
+    "9": {
+      "label": "usage event accepted once",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:usage-x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:01Z",
+          "endedAt": "2026-09-29T17:02:05Z",
+          "log": "logs/masteradmin-usage-x07.txt"
+        },
+        {
+          "ref": "echange:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:04:15Z",
+          "endedAt": "2026-09-29T17:04:19Z",
+          "log": "logs/echange-x07.txt"
+        }
+      ]
+    },
+    "10": {
+      "label": "duplicate deduped",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:usage-x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:01Z",
+          "endedAt": "2026-09-29T17:02:05Z",
+          "log": "logs/masteradmin-usage-x07.txt"
+        },
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:01:54Z",
+          "endedAt": "2026-09-29T17:01:58Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        }
+      ]
+    },
+    "11": {
+      "label": "allowance/credit arithmetic",
+      "status": "N/A",
+      "reason": "eChange no aplica créditos en el SaaS (D-03)"
+    },
+    "12": {
+      "label": "no duplicate billing",
+      "status": "N/A",
+      "reason": "sin biller local"
+    },
+    "13": {
+      "label": "local price/billing authority stage explicit",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "echange:golden-parity",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:04:11Z",
+          "endedAt": "2026-09-29T17:04:15Z",
+          "log": "logs/echange-golden-parity.txt"
+        },
+        {
+          "ref": "echange:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:04:15Z",
+          "endedAt": "2026-09-29T17:04:19Z",
+          "log": "logs/echange-x07.txt"
+        }
+      ],
+      "note": "sin biller local"
+    },
+    "14": {
+      "label": "technical configuration still works",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "echange:golden-parity",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:04:11Z",
+          "endedAt": "2026-09-29T17:04:15Z",
+          "log": "logs/echange-golden-parity.txt"
+        },
+        {
+          "ref": "echange:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:04:15Z",
+          "endedAt": "2026-09-29T17:04:19Z",
+          "log": "logs/echange-x07.txt"
+        }
+      ]
+    },
+    "15": {
+      "label": "CREATE/REPLAY/GET provisioning regression green",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:provisioning-golden",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:01:58Z",
+          "endedAt": "2026-09-29T17:02:00Z",
+          "log": "logs/masteradmin-provisioning-golden.txt"
+        },
+        {
+          "ref": "echange:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:04:15Z",
+          "endedAt": "2026-09-29T17:04:19Z",
+          "log": "logs/echange-x07.txt"
+        }
+      ],
+      "note": "X-07 0: alta real (CREATED) con la RPC de provisioning de eChange"
+    }
+  },
+  "criteria": {
+    "1": {
+      "met": true,
+      "reason": "P0 del §1.4 cerrados en fases 03–06 con test"
+    },
+    "2": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "echange:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:04:15Z",
+          "endedAt": "2026-09-29T17:04:19Z",
+          "log": "logs/echange-x07.txt"
+        }
+      ]
+    },
+    "3": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:01:54Z",
+          "endedAt": "2026-09-29T17:01:58Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "echange:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:04:15Z",
+          "endedAt": "2026-09-29T17:04:19Z",
+          "log": "logs/echange-x07.txt"
+        }
+      ]
+    },
+    "4": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:00Z",
+          "endedAt": "2026-09-29T17:02:01Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "echange:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:04:15Z",
+          "endedAt": "2026-09-29T17:04:19Z",
+          "log": "logs/echange-x07.txt"
+        }
+      ]
+    },
+    "5": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "echange:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:04:15Z",
+          "endedAt": "2026-09-29T17:04:19Z",
+          "log": "logs/echange-x07.txt"
+        }
+      ]
+    },
+    "6": {
+      "met": true,
+      "reason": "MASTERADMIN_PRIMARY (SaaS y MasterAdmin) verificado por GET; escritura legacy negada server-side",
+      "evidence": [
+        {
+          "ref": "echange:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:04:15Z",
+          "endedAt": "2026-09-29T17:04:19Z",
+          "log": "logs/echange-x07.txt"
+        },
+        {
+          "ref": "masteradmin:d14-axes",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:37Z",
+          "endedAt": "2026-09-29T17:05:39Z",
+          "log": "logs/masteradmin-d14-axes.txt"
+        }
+      ]
+    },
+    "7": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:usage-x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:01Z",
+          "endedAt": "2026-09-29T17:02:05Z",
+          "log": "logs/masteradmin-usage-x07.txt"
+        }
+      ]
+    },
+    "8": {
+      "met": true,
+      "reason": "sin biller local: no aplica (spec §19.1(8))"
+    },
+    "D14-2": {
+      "met": true,
+      "reason": "appActive=false retira lo comercial, no la operación",
+      "evidence": [
+        {
+          "ref": "echange:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:04:15Z",
+          "endedAt": "2026-09-29T17:04:19Z",
+          "log": "logs/echange-x07.txt"
+        }
+      ]
+    }
+  },
+  "gaps": [
+    {
+      "class": "PRE_EXISTING",
+      "text": "10 aserciones pgTAP: EXECUTE de anon/authenticated sobre 5 funciones DEFINER de portal/adjuntos/línea de tiempo (idénticas en la base 3d6f34e)"
+    }
+  ],
+  "synchronized": true,
+  "blockers": []
+}

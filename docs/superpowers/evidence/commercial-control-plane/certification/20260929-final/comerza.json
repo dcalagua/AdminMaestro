@@ -1,0 +1,355 @@
+{
+  "product": "comerza",
+  "legacyAuthority": "entitlements SHADOW (operator.*); sin biller ni precio local; billable=false por CHECK",
+  "checks": {
+    "1": {
+      "label": "canonical MasterAdmin mapping",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:01:59Z",
+          "endedAt": "2026-09-29T08:02:03Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "comerza:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:03:54Z",
+          "endedAt": "2026-09-29T08:03:56Z",
+          "log": "logs/comerza-x07.txt"
+        }
+      ]
+    },
+    "2": {
+      "label": "desired entitlement generated",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:01:59Z",
+          "endedAt": "2026-09-29T08:02:03Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:05Z",
+          "endedAt": "2026-09-29T08:02:06Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "comerza:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:03:54Z",
+          "endedAt": "2026-09-29T08:03:56Z",
+          "log": "logs/comerza-x07.txt"
+        }
+      ]
+    },
+    "3": {
+      "label": "SaaS applied same version/checksum",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "comerza:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:03:54Z",
+          "endedAt": "2026-09-29T08:03:56Z",
+          "log": "logs/comerza-x07.txt"
+        }
+      ]
+    },
+    "4": {
+      "label": "GET same applied state",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:05Z",
+          "endedAt": "2026-09-29T08:02:06Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "comerza:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:03:54Z",
+          "endedAt": "2026-09-29T08:03:56Z",
+          "log": "logs/comerza-x07.txt"
+        }
+      ]
+    },
+    "5": {
+      "label": "tenant self-grant denied",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:01:59Z",
+          "endedAt": "2026-09-29T08:02:03Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "comerza:test-db",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:45Z",
+          "endedAt": "2026-09-29T08:03:20Z",
+          "log": "logs/comerza-test-db.txt"
+        },
+        {
+          "ref": "comerza:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:03:54Z",
+          "endedAt": "2026-09-29T08:03:56Z",
+          "log": "logs/comerza-x07.txt"
+        }
+      ],
+      "note": "X-07 15: flags del tenant en true no reviven un agente revocado"
+    },
+    "6": {
+      "label": "add/remove/downgrade version transition",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "comerza:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:03:54Z",
+          "endedAt": "2026-09-29T08:03:56Z",
+          "log": "logs/comerza-x07.txt"
+        }
+      ]
+    },
+    "7": {
+      "label": "offline last-good",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "comerza:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:03:54Z",
+          "endedAt": "2026-09-29T08:03:56Z",
+          "log": "logs/comerza-x07.txt"
+        }
+      ]
+    },
+    "8": {
+      "label": "drift reconciled",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:05Z",
+          "endedAt": "2026-09-29T08:02:06Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "comerza:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:03:54Z",
+          "endedAt": "2026-09-29T08:03:56Z",
+          "log": "logs/comerza-x07.txt"
+        }
+      ]
+    },
+    "9": {
+      "label": "usage event accepted once",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:usage-x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:06Z",
+          "endedAt": "2026-09-29T08:02:10Z",
+          "log": "logs/masteradmin-usage-x07.txt"
+        },
+        {
+          "ref": "comerza:test-db",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:45Z",
+          "endedAt": "2026-09-29T08:03:20Z",
+          "log": "logs/comerza-test-db.txt"
+        }
+      ]
+    },
+    "10": {
+      "label": "duplicate deduped",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:usage-x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:06Z",
+          "endedAt": "2026-09-29T08:02:10Z",
+          "log": "logs/masteradmin-usage-x07.txt"
+        },
+        {
+          "ref": "comerza:test-db",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:45Z",
+          "endedAt": "2026-09-29T08:03:20Z",
+          "log": "logs/comerza-test-db.txt"
+        }
+      ]
+    },
+    "11": {
+      "label": "allowance/credit arithmetic",
+      "status": "N/A",
+      "reason": "sin ALLOWANCE ni créditos registrados para Comerza (D-03/D-05)"
+    },
+    "12": {
+      "label": "no duplicate billing",
+      "status": "N/A",
+      "reason": "sin biller local"
+    },
+    "13": {
+      "label": "local price/billing authority stage explicit",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "comerza:test-db",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:45Z",
+          "endedAt": "2026-09-29T08:03:20Z",
+          "log": "logs/comerza-test-db.txt"
+        }
+      ],
+      "note": "entitlements SHADOW (operator.*); sin biller ni precio local; billable=false por CHECK"
+    },
+    "14": {
+      "label": "technical configuration still works",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "comerza:test-db",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:45Z",
+          "endedAt": "2026-09-29T08:03:20Z",
+          "log": "logs/comerza-test-db.txt"
+        }
+      ]
+    },
+    "15": {
+      "label": "CREATE/REPLAY/GET provisioning regression green",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:provisioning-golden",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:03Z",
+          "endedAt": "2026-09-29T08:02:05Z",
+          "log": "logs/masteradmin-provisioning-golden.txt"
+        },
+        {
+          "ref": "comerza:test-db",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:45Z",
+          "endedAt": "2026-09-29T08:03:20Z",
+          "log": "logs/comerza-test-db.txt"
+        }
+      ]
+    }
+  },
+  "criteria": {
+    "1": {
+      "met": true,
+      "reason": "P0 del §1.4 cerrados en fases 03–06 con test"
+    },
+    "2": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "comerza:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:03:54Z",
+          "endedAt": "2026-09-29T08:03:56Z",
+          "log": "logs/comerza-x07.txt"
+        }
+      ]
+    },
+    "3": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:01:59Z",
+          "endedAt": "2026-09-29T08:02:03Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "comerza:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:03:54Z",
+          "endedAt": "2026-09-29T08:03:56Z",
+          "log": "logs/comerza-x07.txt"
+        }
+      ]
+    },
+    "4": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:05Z",
+          "endedAt": "2026-09-29T08:02:06Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "comerza:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:03:54Z",
+          "endedAt": "2026-09-29T08:03:56Z",
+          "log": "logs/comerza-x07.txt"
+        }
+      ]
+    },
+    "5": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "comerza:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:03:54Z",
+          "endedAt": "2026-09-29T08:03:56Z",
+          "log": "logs/comerza-x07.txt"
+        }
+      ]
+    },
+    "6": {
+      "met": false,
+      "reason": "entitlements sembrado en SHADOW, no MASTERADMIN_PRIMARY; avanzar requiere D-14 (ventanas de observación) y además: decidir tope del proveedor compartido; unificar appActive=false"
+    },
+    "7": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:usage-x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T08:02:06Z",
+          "endedAt": "2026-09-29T08:02:10Z",
+          "log": "logs/masteradmin-usage-x07.txt"
+        }
+      ]
+    },
+    "8": {
+      "met": true,
+      "reason": "sin biller local: no aplica (spec §19.1(8))"
+    }
+  },
+  "gaps": [],
+  "synchronized": false,
+  "blockers": [
+    "§19.1(6) entitlements sembrado en SHADOW, no MASTERADMIN_PRIMARY; avanzar requiere D-14 (ventanas de observación) y además: decidir tope del proveedor compartido; unificar appActive=false"
+  ]
+}

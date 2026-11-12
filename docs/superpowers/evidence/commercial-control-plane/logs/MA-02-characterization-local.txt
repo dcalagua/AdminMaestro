@@ -1,0 +1,3 @@
+-- MA-02 caracterización local (post db reset, seed 346aa72 + 20260928000100)
+-- invoice_lines DISCOUNT | facturas con DISCOUNT | v_discount_sign_legacy_invoices | subscription_items DISCOUNT
+0|0|0|0

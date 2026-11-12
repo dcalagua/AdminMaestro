@@ -1,0 +1,11 @@
+
+ RUN  v3.2.7 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1
+
+ ✓ supabase/functions/usage-ingest/core.test.ts (12 tests) 3ms
+ ✓ supabase/functions/_shared/usage/ingest.test.ts (31 tests) 15ms
+
+ Test Files  2 passed (2)
+      Tests  43 passed (43)
+   Start at  12:55:50
+   Duration  557ms (transform 40ms, setup 67ms, collect 44ms, tests 18ms, environment 437ms, prepare 74ms)
+

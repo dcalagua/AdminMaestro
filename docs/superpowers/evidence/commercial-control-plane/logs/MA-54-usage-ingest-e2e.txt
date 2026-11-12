@@ -1,0 +1,34 @@
+PASS · setup: integración de eSupplier existente para el kill-switch
+PASS · flag global apagado → todo RETRY USAGE_INGEST_DISABLED
+PASS · flag global on + kill-switch del producto off → RETRY USAGE_INGEST_DISABLED
+PASS · nada persistido mientras está apagado · 0 filas
+PASS · HTTP 200 · 200
+PASS · fixture accepted-with-provider-tokens · ACCEPTED (esperado ACCEPTED)
+PASS · fixture duplicate-identical · DUPLICATE (esperado DUPLICATE)
+PASS · fixture conflict-same-id-different-content · REJECTED:CONFLICT (esperado REJECTED:CONFLICT)
+PASS · fixture accepted-provider-returned-no-tokens · ACCEPTED (esperado ACCEPTED)
+PASS · fixture accepted-decimal-quantity · ACCEPTED (esperado ACCEPTED)
+PASS · fixture accepted-late-past-period · ACCEPTED (esperado ACCEPTED)
+PASS · fixture accepted-negative-on-compensating-meter · ACCEPTED (esperado ACCEPTED)
+PASS · fixture rejected-negative-quantity · REJECTED:NEGATIVE_QUANTITY (esperado REJECTED:NEGATIVE_QUANTITY)
+PASS · fixture rejected-unknown-meter · REJECTED:UNKNOWN_METER (esperado REJECTED:UNKNOWN_METER)
+PASS · fixture rejected-draft-meter · REJECTED:UNKNOWN_METER (esperado REJECTED:UNKNOWN_METER)
+PASS · fixture rejected-unit-mismatch · REJECTED:UNIT_MISMATCH (esperado REJECTED:UNIT_MISMATCH)
+PASS · fixture rejected-tenant-not-mapped · REJECTED:TENANT_NOT_MAPPED_FOR_PRODUCT (esperado REJECTED:TENANT_NOT_MAPPED_FOR_PRODUCT)
+PASS · fixture rejected-tenant-of-other-product · REJECTED:TENANT_NOT_MAPPED_FOR_PRODUCT (esperado REJECTED:TENANT_NOT_MAPPED_FOR_PRODUCT)
+PASS · fixture rejected-occurred-in-future · REJECTED:OCCURRED_AT_IN_FUTURE (esperado REJECTED:OCCURRED_AT_IN_FUTURE)
+PASS · fixture rejected-internal-with-content · REJECTED:INTERNAL_METADATA_INVALID (esperado REJECTED:INTERNAL_METADATA_INVALID)
+PASS · fixture rejected-internal-negative-tokens · REJECTED:INTERNAL_METADATA_INVALID (esperado REJECTED:INTERNAL_METADATA_INVALID)
+PASS · fixture rejected-invalid-event · REJECTED:INVALID_EVENT (esperado REJECTED:INVALID_EVENT)
+PASS · fixture rejected-extra-field · REJECTED:INVALID_EVENT (esperado REJECTED:INVALID_EVENT)
+PASS · conteos = expected · 5/1/12
+PASS · reenvío de lo aceptado → SENT (DUPLICATE), sin filas nuevas
+PASS · mismo token otra vez → RETRY JTI_REPLAYED
+PASS · exactamente una fila por evento aceptado · 5/5
+PASS · evento persistido con tenant, medidor, cantidad y tokens reales · 50000000-0000-4000-a000-000000000001|fixture.ai.calls|1.000000|1200|2026-09-01
+PASS · sin tokens del proveedor → internal sin claves de tokens · {"model": "fixture-stt", "provider": "deepgram"}
+PASS · cada rechazo del lote queda en la bitácora · 12
+PASS · la bitácora no guarda contenido
+PASS · estado final: kill-switch del producto apagado de nuevo
+
+32/32 PASS

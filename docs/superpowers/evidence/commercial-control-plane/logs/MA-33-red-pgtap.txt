@@ -1,0 +1,14 @@
+Connecting to local database...
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/36_ccp_entitlement_sync_state.test.sql:46: ERROR:  type "platform.entitlement_sync_state" does not exist
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/36_ccp_entitlement_sync_state.test.sql .. 
+Dubious, test returned 3 (wstat 768, 0x300)
+Failed 84/84 subtests 
+
+Test Summary Report
+-------------------
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/36_ccp_entitlement_sync_state.test.sql (Wstat: 768 (exited 3) Tests: 0 Failed: 0)
+  Non-zero exit status: 3
+  Parse errors: Bad plan.  You planned 84 tests but ran 0.
+Files=1, Tests=0,  0 wallclock secs ( 0.01 usr +  0.00 sys =  0.01 CPU)
+Result: FAIL
+error running container: exit 1

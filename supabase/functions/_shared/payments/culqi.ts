@@ -5,8 +5,9 @@ import {
 } from './culqi-mapping.ts';
 import {
   ProviderError,
-  type ChargeSummary, type NormalizedWebhookEvent, type PaymentProvider,
-  type ProviderAccountConfig, type SetupInput, type SetupResult,
+  type ChargeInput, type ChargeSummary, type CustomerInput, type NormalizedWebhookEvent,
+  type PaymentProvider, type ProviderAccountConfig, type SaveCardInput, type SaveCardResult,
+  type SetupInput, type SetupResult,
 } from './types.ts';
 
 /**
@@ -82,11 +83,16 @@ export class CulqiPaymentProvider implements PaymentProvider {
   // HTTP
   // -------------------------------------------------------------------------
 
-  private async call<T>(
+  /**
+   * Petición cruda: devuelve estado y cuerpo parseado sin interpretar el error.
+   * El cargo (M1/M2) la necesita para distinguir un rechazo de tarjeta de un
+   * fallo de la pasarela; el resto de operaciones usa `call`.
+   */
+  private async request(
     method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
     path: string,
     body?: unknown,
-  ): Promise<T> {
+  ): Promise<{ ok: boolean; status: number; body: Record<string, unknown> }> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
@@ -123,20 +129,29 @@ export class CulqiPaymentProvider implements PaymentProvider {
     } catch {
       parsed = {};
     }
+    return { ok: response.ok, status: response.status, body: parsed };
+  }
 
-    if (!response.ok) {
+  private async call<T>(
+    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+    path: string,
+    body?: unknown,
+  ): Promise<T> {
+    const { ok, status, body: parsed } = await this.request(method, path, body);
+
+    if (!ok) {
       // Se propaga el mensaje del proveedor pero NO el cuerpo crudo: puede traer
       // datos del titular que no tenemos por qué registrar.
       throw new ProviderError(
         typeof parsed.merchant_message === 'string'
           ? 'PROVEEDOR_RECHAZO'
-          : `PROVEEDOR_HTTP_${response.status}`,
+          : `PROVEEDOR_HTTP_${status}`,
         typeof parsed.user_message === 'string'
           ? parsed.user_message
           : typeof parsed.merchant_message === 'string'
             ? parsed.merchant_message
             : 'El proveedor de pago rechazó la operación',
-        response.status,
+        status,
       );
     }
 
@@ -206,111 +221,11 @@ export class CulqiPaymentProvider implements PaymentProvider {
       }
     }
 
-    // (2) Customer. Culqi exige SIETE campos; ninguno se inventa.
-    let externalCustomerId = input.customer.externalCustomerId ?? null;
-    if (!externalCustomerId) {
-      const faltantes = (
-        [
-          ['first_name', input.customer.firstName],
-          ['last_name', input.customer.lastName],
-          ['email', input.customer.email],
-          ['address', input.customer.address],
-          ['address_city', input.customer.addressCity],
-          ['country_code', input.customer.countryCode],
-          ['phone_number', input.customer.phoneNumber],
-        ] as const
-      )
-        .filter(([, v]) => !v || String(v).trim() === '')
-        .map(([k]) => k);
-
-      if (faltantes.length > 0) {
-        // Se detiene con la lista exacta en vez de rellenar con literales: un
-        // domicilio inventado viaja a la pasarela y acaba en el recibo del
-        // cliente. Los datos se completan desde la consola (migración 23).
-        throw new ProviderError(
-          'DATOS_FACTURACION_INCOMPLETOS',
-          `Faltan datos de facturación exigidos por la pasarela: ${faltantes.join(', ')}. ` +
-            'Complétalos en la ficha de la organización antes de domiciliar el cobro.',
-          409,
-        );
-      }
-
-      try {
-        const customer = await this.call<{ id?: string; data?: { id?: string } }>('POST', '/customers', {
-          first_name: input.customer.firstName,
-          last_name: input.customer.lastName,
-          email: input.customer.email,
-          address: input.customer.address,
-          address_city: input.customer.addressCity,
-          country_code: input.customer.countryCode,
-          phone_number: input.customer.phoneNumber,
-          metadata: { organization_id: input.customer.organizationId },
-        });
-        externalCustomerId = customer.id ?? customer.data?.id ?? null;
-      } catch (error) {
-        /*
-         * El proveedor impone UN cliente por correo, y responde «Un cliente está
-         * registrado actualmente con este email».
-         *
-         * Esto no es hipotético: ocurre en cuanto un primer intento crea el
-         * Customer y luego falla en la tarjeta (rechazo del emisor, 3-D Secure).
-         * El mapeo local se persiste al final, así que en ese escenario el
-         * cliente existe en la pasarela y NO en nuestra base — y todos los
-         * reintentos posteriores fallarían para siempre con un mensaje que
-         * habla de un cliente que el operador no ve por ninguna parte.
-         *
-         * Se recupera el existente por correo. Es reconciliar, no ignorar: si
-         * la búsqueda tampoco lo encuentra, el error original se propaga.
-         */
-        if (!esCorreoDuplicado(error)) throw error;
-        externalCustomerId = await this.buscarClientePorCorreo(input.customer.email);
-        if (!externalCustomerId) throw error;
-      }
-
-      if (!externalCustomerId) {
-        throw new ProviderError('CLIENTE_SIN_ID', 'El proveedor no devolvió el identificador del cliente', 502);
-      }
-    }
-
-    // (3) Card. Aquí se consume el token efímero. No se registra en ningún sitio.
-    const card = await this.call<{
-      id?: string;
-      source?: { iin?: { card_brand?: string }; last_four?: string };
-    }>('POST', '/cards', {
-      customer_id: externalCustomerId,
-      token_id: input.token,
-      metadata: input.metadata ?? {},
-    });
-
-    const externalPaymentMethodId = card.id ?? null;
-    if (!externalPaymentMethodId) {
-      throw new ProviderError('TARJETA_SIN_ID', 'El proveedor no devolvió el identificador de la tarjeta', 502);
-    }
-
-    /*
-     * 3-D Secure / acción adicional.
-     *
-     * En TEST con la tarjeta de prueba, la respuesta trae `active: true` y la
-     * tarjeta queda operativa. Pero si el emisor exige autenticación, Culqi
-     * puede devolver la tarjeta NO activa o con un bloque de autenticación
-     * pendiente. En ese caso NO se puede dar por buena la domiciliación: se
-     * marcaría como activa una tarjeta que todavía no puede cobrar.
-     */
-    const cardRecord = card as unknown as Record<string, unknown>;
-    const requiere3ds =
-      cardRecord.active === false ||
-      Boolean(cardRecord.three_ds) ||
-      Boolean(cardRecord.authentication_required) ||
-      (typeof cardRecord.action_code === 'string' && cardRecord.action_code !== '');
-
-    if (requiere3ds) {
-      throw new ProviderError(
-        'TARJETA_REQUIERE_AUTENTICACION',
-        'El emisor exige autenticación adicional (3-D Secure) para esta tarjeta. ' +
-          'La domiciliación queda pendiente: no se activa hasta completarla.',
-        409,
-      );
-    }
+    // (2) Customer y (3) Card: compartidos con el alta de tarjeta guardada (M2).
+    const externalCustomerId = await this.ensureCustomer(input.customer);
+    const saved = await this.createCard(externalCustomerId, input.token, input.metadata ?? {});
+    const externalPaymentMethodId = saved.externalPaymentMethodId;
+    const card = saved.raw;
 
     // (4) Subscription. Campos verbatim de la documentación oficial.
     // Endpoint verificado: POST /recurrent/subscriptions/create.
@@ -398,6 +313,200 @@ export class CulqiPaymentProvider implements PaymentProvider {
     };
   }
 
+  // -------------------------------------------------------------------------
+  // Customer + Card (compartido por la suscripción V2 y la tarjeta guardada M2)
+  // -------------------------------------------------------------------------
+
+  /** Customer existente, recuperado por correo, o nuevo. Culqi exige SIETE campos; ninguno se inventa. */
+  private async ensureCustomer(customer: CustomerInput): Promise<string> {
+    let externalCustomerId = customer.externalCustomerId ?? null;
+    if (externalCustomerId) return externalCustomerId;
+
+    const faltantes = (
+      [
+        ['first_name', customer.firstName],
+        ['last_name', customer.lastName],
+        ['email', customer.email],
+        ['address', customer.address],
+        ['address_city', customer.addressCity],
+        ['country_code', customer.countryCode],
+        ['phone_number', customer.phoneNumber],
+      ] as const
+    )
+      .filter(([, v]) => !v || String(v).trim() === '')
+      .map(([k]) => k);
+
+    if (faltantes.length > 0) {
+      // Se detiene con la lista exacta en vez de rellenar con literales: un
+      // domicilio inventado viaja a la pasarela y acaba en el recibo del
+      // cliente. Los datos se completan desde la consola (migración 23).
+      throw new ProviderError(
+        'DATOS_FACTURACION_INCOMPLETOS',
+        `Faltan datos de facturación exigidos por la pasarela: ${faltantes.join(', ')}. ` +
+          'Complétalos en la ficha de la organización antes de domiciliar el cobro.',
+        409,
+      );
+    }
+
+    try {
+      const created = await this.call<{ id?: string; data?: { id?: string } }>('POST', '/customers', {
+        first_name: customer.firstName,
+        last_name: customer.lastName,
+        email: customer.email,
+        address: customer.address,
+        address_city: customer.addressCity,
+        country_code: customer.countryCode,
+        phone_number: customer.phoneNumber,
+        metadata: { organization_id: customer.organizationId },
+      });
+      externalCustomerId = created.id ?? created.data?.id ?? null;
+    } catch (error) {
+      /*
+       * El proveedor impone UN cliente por correo, y responde «Un cliente está
+       * registrado actualmente con este email».
+       *
+       * Esto no es hipotético: ocurre en cuanto un primer intento crea el
+       * Customer y luego falla en la tarjeta (rechazo del emisor, 3-D Secure).
+       * El mapeo local se persiste al final, así que en ese escenario el
+       * cliente existe en la pasarela y NO en nuestra base — y todos los
+       * reintentos posteriores fallarían para siempre con un mensaje que
+       * habla de un cliente que el operador no ve por ninguna parte.
+       *
+       * Se recupera el existente por correo. Es reconciliar, no ignorar: si
+       * la búsqueda tampoco lo encuentra, el error original se propaga.
+       */
+      if (!esCorreoDuplicado(error)) throw error;
+      externalCustomerId = await this.buscarClientePorCorreo(customer.email);
+      if (!externalCustomerId) throw error;
+    }
+
+    if (!externalCustomerId) {
+      throw new ProviderError('CLIENTE_SIN_ID', 'El proveedor no devolvió el identificador del cliente', 502);
+    }
+    return externalCustomerId;
+  }
+
+  /** Card con el token efímero. Aquí se consume el token; no se registra en ningún sitio. */
+  private async createCard(
+    externalCustomerId: string,
+    token: string,
+    metadata: Record<string, string>,
+  ): Promise<{
+    externalPaymentMethodId: string;
+    raw: { id?: string; source?: { iin?: { card_brand?: string }; last_four?: string } };
+  }> {
+    const card = await this.call<{
+      id?: string;
+      source?: { iin?: { card_brand?: string }; last_four?: string };
+    }>('POST', '/cards', {
+      customer_id: externalCustomerId,
+      token_id: token,
+      metadata,
+    });
+
+    const externalPaymentMethodId = card.id ?? null;
+    if (!externalPaymentMethodId) {
+      throw new ProviderError('TARJETA_SIN_ID', 'El proveedor no devolvió el identificador de la tarjeta', 502);
+    }
+
+    /*
+     * 3-D Secure / acción adicional.
+     *
+     * En TEST con la tarjeta de prueba, la respuesta trae `active: true` y la
+     * tarjeta queda operativa. Pero si el emisor exige autenticación, Culqi
+     * puede devolver la tarjeta NO activa o con un bloque de autenticación
+     * pendiente. En ese caso NO se puede dar por buena la domiciliación: se
+     * marcaría como activa una tarjeta que todavía no puede cobrar.
+     */
+    if (requiereAutenticacion(card as unknown as Record<string, unknown>, true)) {
+      throw new ProviderError(
+        'TARJETA_REQUIERE_AUTENTICACION',
+        'El emisor exige autenticación adicional (3-D Secure) para esta tarjeta. ' +
+          'La domiciliación queda pendiente: no se activa hasta completarla.',
+        409,
+      );
+    }
+
+    return { externalPaymentMethodId, raw: card };
+  }
+
+  async saveCard(input: SaveCardInput): Promise<SaveCardResult> {
+    const externalCustomerId = await this.ensureCustomer(input.customer);
+    const { externalPaymentMethodId, raw } = await this.createCard(
+      externalCustomerId,
+      input.token,
+      input.metadata ?? {},
+    );
+    return {
+      externalCustomerId,
+      externalPaymentMethodId,
+      // La caducidad no la devuelve el objeto Card (ver setupSubscription).
+      card: {
+        brand: raw.source?.iin?.card_brand ?? null,
+        last4: raw.source?.last_four ?? null,
+        expMonth: null,
+        expYear: null,
+      },
+    };
+  }
+
+  // -------------------------------------------------------------------------
+  // M1/M2 · Cargo único: POST /charges + verificación GET /charges/{id}
+  // -------------------------------------------------------------------------
+
+  async createCharge(input: ChargeInput): Promise<ChargeSummary> {
+    let amount: number;
+    try {
+      // Mismas reglas que el Plan: entero positivo en céntimos y moneda que Culqi cobra.
+      amount = toCulqiPlanAmount(input.amountMinor, input.currency);
+    } catch (error) {
+      throw new ProviderError(
+        'IMPORTE_INVALIDO',
+        error instanceof Error ? error.message : 'Importe o moneda no válidos para el cargo',
+        409,
+      );
+    }
+
+    const { ok, status, body } = await this.request('POST', '/charges', {
+      amount,
+      currency_code: input.currency,
+      email: input.email,
+      source_id: input.sourceId,
+      ...(input.description ? { description: toCulqiText(input.description, 80) } : {}),
+      metadata: input.metadata,
+    });
+
+    if (!ok) throw mapChargeError(status, body);
+
+    // 3-D Secure: Culqi responde 200 con un `action_code` en vez de un cargo.
+    // Fuera de v1 (spec §2.3): se informa y se ofrece transferencia.
+    if (requiereAutenticacion(body, false)) {
+      throw new ProviderError(
+        'TARJETA_REQUIERE_AUTENTICACION',
+        'Tu banco pide una verificación adicional (3-D Secure) que este portal todavía no admite. ' +
+          'Puedes pagar por transferencia.',
+        409,
+      );
+    }
+
+    const chargeId = typeof body.id === 'string' ? body.id : null;
+    if (!chargeId) {
+      throw new ProviderError('CARGO_SIN_ID', 'El proveedor no devolvió el identificador del cargo', 502);
+    }
+
+    // Defensa server-to-server: el cargo se da por bueno solo si una consulta
+    // directa lo confirma. Importe y moneda salen de esa consulta.
+    const verified = await this.verifyCharge(chargeId);
+    if (!verified || verified.status !== 'CONFIRMED') {
+      throw new ProviderError(
+        'TARJETA_RECHAZADA',
+        'El pago no fue aprobado por el emisor de la tarjeta.',
+        402,
+      );
+    }
+    return verified;
+  }
+
   async cancelSubscription(externalSubscriptionId: string): Promise<{ providerStatus: string }> {
     await this.call('DELETE', `/recurrent/subscriptions/${encodeURIComponent(externalSubscriptionId)}`);
     return { providerStatus: 'canceled' };
@@ -439,6 +548,7 @@ export class CulqiPaymentProvider implements PaymentProvider {
           typeof charge.metadata?.subscription_id === 'string'
             ? charge.metadata.subscription_id
             : null,
+        invoiceId: invoiceIdFrom(charge.metadata),
         amount: fromCulqiAmount(charge.amount ?? 0),
         currency: charge.currency_code ?? this.account.currency,
         paidAt: normalizeCulqiTimestamp(charge.creation_date) ?? new Date().toISOString(),
@@ -466,6 +576,7 @@ export class CulqiPaymentProvider implements PaymentProvider {
         typeof (c.metadata as Record<string, unknown> | undefined)?.subscription_id === 'string'
           ? ((c.metadata as Record<string, unknown>).subscription_id as string)
           : null,
+      invoiceId: invoiceIdFrom(c.metadata as Record<string, unknown> | undefined),
       amount: fromCulqiAmount(Number(c.amount ?? 0)),
       currency: String(c.currency_code ?? this.account.currency),
       paidAt: normalizeCulqiTimestamp(c.creation_date) ?? new Date().toISOString(),
@@ -536,6 +647,7 @@ export class CulqiPaymentProvider implements PaymentProvider {
         data.id,
         (data.charge as Record<string, unknown> | undefined)?.id,
       ),
+      externalInvoiceId: invoiceIdFrom(metadata),
       amount: typeof data.amount === 'number' ? fromCulqiAmount(data.amount) : null,
       currency: typeof data.currency_code === 'string' ? data.currency_code : null,
       occurredAt: normalizeCulqiTimestamp(body.creation_date) ?? new Date().toISOString(),
@@ -551,6 +663,7 @@ export class CulqiPaymentProvider implements PaymentProvider {
           metadata.subscription_id,
         ),
         charge_id: data.id ?? null,
+        invoice_id: invoiceIdFrom(metadata),
         amount: data.amount ?? null,
         currency_code: data.currency_code ?? null,
         outcome_type: (data.outcome as { type?: string } | undefined)?.type ?? null,
@@ -578,4 +691,59 @@ function primerTexto(...valores: unknown[]): string | null {
     if (typeof v === 'string' && v.trim() !== '') return v;
   }
   return null;
+}
+
+/**
+ * ¿Pide el emisor una autenticación adicional (3-D Secure)?
+ *
+ * Para una Card, `active === false` también lo indica. Para un cargo, Culqi
+ * responde 200 con `action_code` (p. ej. REVIEW) en lugar del objeto `charge`.
+ */
+export function requiereAutenticacion(body: Record<string, unknown>, isCard: boolean): boolean {
+  return (
+    (isCard && body.active === false) ||
+    Boolean(body.three_ds) ||
+    Boolean(body.authentication_required) ||
+    (typeof body.action_code === 'string' && body.action_code !== '')
+  );
+}
+
+/**
+ * Traduce el error de POST /charges a un código estable del portal.
+ *
+ * `card_error` (o un `decline_code`) es un rechazo del emisor: el titular puede
+ * probar otra tarjeta. Cualquier otra cosa es un fallo de la pasarela o de
+ * configuración y no se le atribuye a la tarjeta.
+ */
+export function mapChargeError(status: number, body: Record<string, unknown>): ProviderError {
+  const type = typeof body.type === 'string' ? body.type : '';
+  const userMessage = typeof body.user_message === 'string' ? body.user_message : null;
+  if (type === 'card_error' || typeof body.decline_code === 'string' || status === 402) {
+    if (/autentic|3ds|3-d|secure/i.test(String(body.decline_code ?? '')) || /autentic/i.test(userMessage ?? '')) {
+      return new ProviderError(
+        'TARJETA_REQUIERE_AUTENTICACION',
+        'Tu banco pide una verificación adicional (3-D Secure) que este portal todavía no admite. ' +
+          'Puedes pagar por transferencia.',
+        409,
+      );
+    }
+    return new ProviderError(
+      'TARJETA_RECHAZADA',
+      userMessage ?? 'La tarjeta fue rechazada por el emisor. Prueba con otra tarjeta.',
+      402,
+    );
+  }
+  return new ProviderError(
+    typeof body.merchant_message === 'string' ? 'PROVEEDOR_RECHAZO' : `PROVEEDOR_HTTP_${status}`,
+    'El proveedor de pago no pudo procesar el cargo. Inténtalo más tarde.',
+    status >= 500 ? 502 : status,
+  );
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** `metadata.invoice_id` solo si tiene forma de UUID: un metadato arbitrario no se pasa a la base. */
+export function invoiceIdFrom(metadata: Record<string, unknown> | undefined | null): string | null {
+  const value = metadata?.invoice_id;
+  return typeof value === 'string' && UUID_RE.test(value) ? value : null;
 }

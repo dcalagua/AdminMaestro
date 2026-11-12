@@ -1,0 +1,106 @@
+[
+  {
+    "file": "role-partner-.jpg",
+    "case": "perfil partner en /"
+  },
+  {
+    "file": "role-partner-costs.jpg",
+    "case": "perfil partner en /costs"
+  },
+  {
+    "file": "role-partner-billing.jpg",
+    "case": "perfil partner en /billing"
+  },
+  {
+    "file": "role-tecnico-ewm-.jpg",
+    "case": "perfil tecnico-ewm en /"
+  },
+  {
+    "file": "role-tecnico-ewm-billing.jpg",
+    "case": "perfil tecnico-ewm en /billing"
+  },
+  {
+    "file": "role-comercial-.jpg",
+    "case": "perfil comercial en /"
+  },
+  {
+    "file": "role-tenant-.jpg",
+    "case": "perfil tenant en /"
+  },
+  {
+    "file": "state-error-billing-summary.jpg",
+    "case": "error de la agregación: error explícito, nunca 0"
+  },
+  {
+    "file": "state-error-dashboard-k03-k04.jpg",
+    "case": "error en K03/K04 sin afectar al resto"
+  },
+  {
+    "file": "state-unavailable-without-migration.jpg",
+    "case": "entorno sin migración: «No disponible», no totales inventados"
+  },
+  {
+    "file": "state-loading-dashboard.jpg",
+    "case": "carga del consolidado"
+  },
+  {
+    "file": "state-empty-billing-search.jpg",
+    "case": "vacío por búsqueda"
+  },
+  {
+    "file": "state-many-records-billing.jpg",
+    "case": "más de 200 facturas: total real y paginación"
+  },
+  {
+    "file": "components-settings-light-comoda.jpg",
+    "case": "componentes light comoda"
+  },
+  {
+    "file": "components-billing-light-comoda.jpg",
+    "case": "tabla light comoda"
+  },
+  {
+    "file": "components-settings-light-equilibrada.jpg",
+    "case": "componentes light equilibrada"
+  },
+  {
+    "file": "components-billing-light-equilibrada.jpg",
+    "case": "tabla light equilibrada"
+  },
+  {
+    "file": "components-settings-light-compacta.jpg",
+    "case": "componentes light compacta"
+  },
+  {
+    "file": "components-billing-light-compacta.jpg",
+    "case": "tabla light compacta"
+  },
+  {
+    "file": "components-settings-dark-comoda.jpg",
+    "case": "componentes dark comoda"
+  },
+  {
+    "file": "components-billing-dark-comoda.jpg",
+    "case": "tabla dark comoda"
+  },
+  {
+    "file": "components-settings-dark-equilibrada.jpg",
+    "case": "componentes dark equilibrada"
+  },
+  {
+    "file": "components-billing-dark-equilibrada.jpg",
+    "case": "tabla dark equilibrada"
+  },
+  {
+    "file": "components-settings-dark-compacta.jpg",
+    "case": "componentes dark compacta"
+  },
+  {
+    "file": "components-billing-dark-compacta.jpg",
+    "case": "tabla dark compacta"
+  },
+  {
+    "file": "session-b-after-a.jpg",
+    "case": "sesión B tras A: sin filas ni identidad de A"
+  }
+]

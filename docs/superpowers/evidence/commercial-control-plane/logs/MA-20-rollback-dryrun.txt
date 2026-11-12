@@ -1,0 +1,15 @@
+BEGIN
+REVOKE
+REVOKE
+CREATE FUNCTION
+REVOKE
+GRANT
+authenticated_exec_new_rpcs|0
+authenticated_select_views|0
+authenticated
+{"sub" : "10000000-0000-4000-a000-000000000002", "role" : "authenticated"}
+postgres
+alpha_addons|consolidation=ACTIVE:true,licitaciones=CANCELLED:false
+data_kept|0/0/0
+ROLLBACK
+after rollback of the dry-run transaction, set_tenant_addon_active count = 0

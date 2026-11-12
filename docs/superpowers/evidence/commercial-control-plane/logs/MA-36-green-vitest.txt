@@ -1,0 +1,16 @@
+
+ RUN  v3.2.7 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1
+
+ ✓ supabase/functions/_shared/entitlements/sync-flow.test.ts (12 tests) 6ms
+ ✓ supabase/functions/_shared/provisioning/actions.test.ts (13 tests) 2ms
+ ✓ supabase/functions/_shared/entitlements/states.test.ts (40 tests) 3ms
+ ✓ supabase/functions/_shared/entitlements/sync-store.test.ts (16 tests) 25ms
+ ✓ supabase/functions/_shared/entitlements/jcs.test.ts (23 tests) 26ms
+ ✓ supabase/functions/_shared/entitlements/snapshot.test.ts (34 tests) 106ms
+ ✓ supabase/functions/_shared/entitlements/sync-client.test.ts (36 tests) 69ms
+
+ Test Files  7 passed (7)
+      Tests  174 passed (174)
+   Start at  00:20:14
+   Duration  1.32s (transform 407ms, setup 639ms, collect 685ms, tests 238ms, environment 3.47s, prepare 332ms)
+

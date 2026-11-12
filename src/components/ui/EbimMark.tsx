@@ -14,6 +14,8 @@ interface EbimMarkProps {
   color?: string;
   animated?: boolean;
   className?: string;
+  /** Uso decorativo (marca de agua): se oculta a lectores de pantalla. */
+  decorative?: boolean;
 }
 
 export function EbimMark({
@@ -21,6 +23,7 @@ export function EbimMark({
   color = 'currentColor',
   animated = false,
   className = '',
+  decorative = false,
 }: EbimMarkProps) {
   return (
     <svg
@@ -28,8 +31,7 @@ export function EbimMark({
       height={size}
       viewBox="0 0 200 200"
       fill={color}
-      role="img"
-      aria-label="EBIM"
+      {...(decorative ? { 'aria-hidden': true } : { role: 'img', 'aria-label': 'EBIM' })}
       className={`${animated ? 'animate-spin-stop' : ''} ${className}`.trim()}
     >
       <circle cx="100" cy="38" r="26" />
@@ -47,7 +49,7 @@ export function EbimMark({
  * El nombre de app varía; "by EBIM" es fijo (contrato §4.6 y §4.5 punto 14).
  */
 export function EbimLockup({
-  appName = 'Control Plane',
+  appName = 'Admin Maestro',
   color,
   markColor,
   size = 30,

@@ -1,0 +1,186 @@
+{
+  "schema": "ebim.ccp.d14-masteradmin/v1",
+  "environment": "LOCAL_DEV",
+  "writtenAt": "2026-09-29T17:05:39.875Z",
+  "reason": "D-14 DEV/LOCAL aprobado por el humano (2026-09-29)",
+  "products": {
+    "ecommerce": {
+      "integrationId": "14c08246-b847-4378-94d5-3a715c5d11d6",
+      "before": {
+        "entitlements": "LEGACY_ONLY",
+        "billing": "BILLING_LEGACY"
+      },
+      "after": {
+        "entitlements": "MASTERADMIN_PRIMARY",
+        "billing": "BILLING_LEGACY"
+      },
+      "transitions": [
+        "LEGACY_ONLY->SHADOW",
+        "SHADOW->DUAL_READ",
+        "DUAL_READ->MASTERADMIN_PRIMARY"
+      ],
+      "blockers": [],
+      "masteradminCohort": {
+        "mapped": 0,
+        "inSync": 0
+      },
+      "note": "MasterAdmin LOCAL no tiene tenants mapeados a esta integración: la guarda de cohorte de la RPC no tiene a quién exigir IN_SYNC; el IN_SYNC por GET del tenant certificado es el del X-07 (evidencia SaaS)."
+    },
+    "ewm": {
+      "integrationId": "357ee1de-896f-4905-b2fa-d77e20492fb6",
+      "before": {
+        "entitlements": "LEGACY_ONLY",
+        "billing": "BILLING_LEGACY"
+      },
+      "after": {
+        "entitlements": "MASTERADMIN_PRIMARY",
+        "billing": "BILLING_LEGACY"
+      },
+      "transitions": [
+        "LEGACY_ONLY->SHADOW",
+        "SHADOW->DUAL_READ",
+        "DUAL_READ->MASTERADMIN_PRIMARY"
+      ],
+      "blockers": [],
+      "masteradminCohort": {
+        "mapped": 0,
+        "inSync": 0
+      },
+      "note": "MasterAdmin LOCAL no tiene tenants mapeados a esta integración: la guarda de cohorte de la RPC no tiene a quién exigir IN_SYNC; el IN_SYNC por GET del tenant certificado es el del X-07 (evidencia SaaS)."
+    },
+    "comerza": {
+      "integrationId": "d85b052f-8d70-4783-b6ae-fd68ba360f4c",
+      "before": {
+        "entitlements": "LEGACY_ONLY",
+        "billing": "BILLING_LEGACY"
+      },
+      "after": {
+        "entitlements": "MASTERADMIN_PRIMARY",
+        "billing": "BILLING_LEGACY"
+      },
+      "transitions": [
+        "LEGACY_ONLY->SHADOW",
+        "SHADOW->DUAL_READ",
+        "DUAL_READ->MASTERADMIN_PRIMARY"
+      ],
+      "blockers": [],
+      "masteradminCohort": {
+        "mapped": 0,
+        "inSync": 0
+      },
+      "note": "MasterAdmin LOCAL no tiene tenants mapeados a esta integración: la guarda de cohorte de la RPC no tiene a quién exigir IN_SYNC; el IN_SYNC por GET del tenant certificado es el del X-07 (evidencia SaaS)."
+    },
+    "tms": {
+      "integrationId": "5471c551-ed90-4042-8eb3-d1dc88ed6528",
+      "before": {
+        "entitlements": "LEGACY_ONLY",
+        "billing": "BILLING_LEGACY"
+      },
+      "after": {
+        "entitlements": "MASTERADMIN_PRIMARY",
+        "billing": "BILLING_LEGACY"
+      },
+      "transitions": [
+        "LEGACY_ONLY->SHADOW",
+        "SHADOW->DUAL_READ",
+        "DUAL_READ->MASTERADMIN_PRIMARY"
+      ],
+      "blockers": [],
+      "masteradminCohort": {
+        "mapped": 0,
+        "inSync": 0
+      },
+      "note": "MasterAdmin LOCAL no tiene tenants mapeados a esta integración: la guarda de cohorte de la RPC no tiene a quién exigir IN_SYNC; el IN_SYNC por GET del tenant certificado es el del X-07 (evidencia SaaS)."
+    },
+    "esupplier": {
+      "integrationId": "70000000-0000-4000-a000-0000000000e2",
+      "before": {
+        "entitlements": "SHADOW",
+        "billing": "BILLING_LEGACY"
+      },
+      "after": {
+        "entitlements": "MASTERADMIN_PRIMARY",
+        "billing": "BILLING_LEGACY"
+      },
+      "transitions": [
+        "SHADOW->DUAL_READ",
+        "DUAL_READ->MASTERADMIN_PRIMARY"
+      ],
+      "blockers": [],
+      "masteradminCohort": {
+        "mapped": 1,
+        "inSync": 1
+      }
+    },
+    "echange": {
+      "integrationId": "05a28b88-d0e6-449e-b0b9-040483be93e0",
+      "before": {
+        "entitlements": "LEGACY_ONLY",
+        "billing": "BILLING_LEGACY"
+      },
+      "after": {
+        "entitlements": "MASTERADMIN_PRIMARY",
+        "billing": "BILLING_LEGACY"
+      },
+      "transitions": [
+        "LEGACY_ONLY->SHADOW",
+        "SHADOW->DUAL_READ",
+        "DUAL_READ->MASTERADMIN_PRIMARY"
+      ],
+      "blockers": [],
+      "masteradminCohort": {
+        "mapped": 0,
+        "inSync": 0
+      },
+      "note": "MasterAdmin LOCAL no tiene tenants mapeados a esta integración: la guarda de cohorte de la RPC no tiene a quién exigir IN_SYNC; el IN_SYNC por GET del tenant certificado es el del X-07 (evidencia SaaS)."
+    },
+    "eexpense": {
+      "integrationId": "2457c781-7f73-401f-89b8-4f844cb9eb80",
+      "before": {
+        "entitlements": "LEGACY_ONLY",
+        "billing": "BILLING_SHADOW"
+      },
+      "after": {
+        "entitlements": "MASTERADMIN_PRIMARY",
+        "billing": "BILLING_SHADOW"
+      },
+      "transitions": [
+        "LEGACY_ONLY->SHADOW",
+        "SHADOW->DUAL_READ",
+        "DUAL_READ->MASTERADMIN_PRIMARY"
+      ],
+      "blockers": [],
+      "masteradminCohort": {
+        "mapped": 0,
+        "inSync": 0
+      },
+      "note": "MasterAdmin LOCAL no tiene tenants mapeados a esta integración: la guarda de cohorte de la RPC no tiene a quién exigir IN_SYNC; el IN_SYNC por GET del tenant certificado es el del X-07 (evidencia SaaS)."
+    },
+    "gmao": {
+      "integrationId": "cb64d6f5-b6e0-4eef-bf41-29508bb67fa6",
+      "before": {
+        "entitlements": "LEGACY_ONLY",
+        "billing": "BILLING_SHADOW"
+      },
+      "after": {
+        "entitlements": "MASTERADMIN_PRIMARY",
+        "billing": "BILLING_SHADOW"
+      },
+      "transitions": [
+        "LEGACY_ONLY->SHADOW",
+        "SHADOW->DUAL_READ",
+        "DUAL_READ->MASTERADMIN_PRIMARY"
+      ],
+      "blockers": [],
+      "masteradminCohort": {
+        "mapped": 0,
+        "inSync": 0
+      },
+      "note": "MasterAdmin LOCAL no tiene tenants mapeados a esta integración: la guarda de cohorte de la RPC no tiene a quién exigir IN_SYNC; el IN_SYNC por GET del tenant certificado es el del X-07 (evidencia SaaS)."
+    }
+  },
+  "checks": {
+    "passed": 24,
+    "failed": 0
+  }
+}

@@ -1,0 +1,104 @@
+
+ RUN  v3.2.7 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1
+
+ ❯ src/app/navigation.test.ts (25 tests | 2 failed) 9ms
+   ✓ navegación por perfil > EBIM ve todas las entradas 1ms
+   ✓ navegación por perfil > un partner NO ve la sección de costos de EBIM 0ms
+   ✓ navegación por perfil > un comercial sólo ve su dominio comercial 0ms
+   ✓ navegación por perfil > un usuario de tenant no ve gestión de partners ni comerciales 0ms
+   ✓ navegación por perfil > todos los perfiles conservan el dashboard 0ms
+   ✓ navegación por perfil > agrupa por arquitectura de negocio (spec §5) 0ms
+   × navegación por perfil > conserva exactamente las 28 rutas existentes 3ms
+     → expected [ '/', '/attributions', …(25) ] to deeply equal [ '/', '/attributions', …(26) ]
+   ✓ navegación por perfil > etiquetas de negocio de la spec 0ms
+   ✓ navegación por perfil > la reconciliación financiera es solo de EBIM 0ms
+   ✓ navegación por perfil > el alta de cliente es solo de EBIM 0ms
+   ✓ navegación por perfil > monedas, FX y moneda de reporte son administración de EBIM 0ms
+   ✓ navegación por perfil > el registro de capacidades es de EBIM; add-ons y tarifas es financiero 0ms
+   ✓ navegación por perfil > un partner sí ve las renovaciones de su cartera 0ms
+   ✓ navegación del plano de provisioning > EBIM ve integraciones y provisioning SaaS 0ms
+   ✓ navegación del plano de provisioning > un partner NO ve la configuración de integraciones 0ms
+   ✓ navegación del plano de provisioning > un SALES_AGENT no ve nada del plano de provisioning 0ms
+   ✓ navegación del plano de provisioning > un TENANT no ve nada del plano de provisioning 0ms
+   ✓ navegación del plano de provisioning > los dos ejes de provisioning conviven con nombres distinguibles 0ms
+   ✓ finanzas y perfil técnico (spec §4) > un propietario técnico (EBIM sin rol de plataforma) no obtiene el menú de finanzas 0ms
+   ✓ finanzas y perfil técnico (spec §4) > super admin y finanzas sí la obtienen; partner conserva su cartera 0ms
+   ✓ migas y títulos humanos > listado 0ms
+   ✓ migas y títulos humanos > fichas de detalle 0ms
+   × migas y títulos humanos > la sincronización de entitlements es operación de EBIM (CCP fase 08) 1ms
+     → expected [ '/', '/customers', …(25) ] to include '/commercial/entitlement-sync'
+   ✓ migas y títulos humanos > rutas de dos segmentos del catálogo comercial (CCP fase 07) 0ms
+   ✓ migas y títulos humanos > inicio y no encontrado 0ms
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/commercial/sync/EntitlementSyncPage.test.tsx [ src/features/commercial/sync/EntitlementSyncPage.test.tsx ]
+Error: Failed to resolve import "./EntitlementSyncPage" from "src/features/commercial/sync/EntitlementSyncPage.test.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/src/features/commercial/sync/EntitlementSyncPage.test.tsx:28:0
+  10 |  const __vi_import_2__ = await import("@testing-library/user-event");
+  11 |  const __vi_import_3__ = await import("react-router-dom");
+  12 |  const __vi_import_4__ = await import("./EntitlementSyncPage");
+     |                                       ^
+  13 |  
+  14 |  import { describe, it, expect, vi, beforeEach } from "vitest";
+ ❯ TransformPluginContext._formatLog node_modules/vite/dist/node/chunks/config.js:29079:43
+ ❯ TransformPluginContext.error node_modules/vite/dist/node/chunks/config.js:29076:14
+ ❯ normalizeUrl node_modules/vite/dist/node/chunks/config.js:27199:18
+ ❯ node_modules/vite/dist/node/chunks/config.js:27257:32
+ ❯ TransformPluginContext.transform node_modules/vite/dist/node/chunks/config.js:27225:4
+ ❯ EnvironmentPluginContainer.transform node_modules/vite/dist/node/chunks/config.js:28877:14
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/config.js:22746:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/app/navigation.test.ts > navegación por perfil > conserva exactamente las 28 rutas existentes
+AssertionError: expected [ '/', '/attributions', …(25) ] to deeply equal [ '/', '/attributions', …(26) ]
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[33m@@ -3,11 +3,10 @@[39m
+[2m    "/attributions",[22m
+[2m    "/audit",[22m
+[2m    "/billing",[22m
+[2m    "/catalog/addons",[22m
+[2m    "/commercial/capabilities",[22m
+[32m-   "/commercial/entitlement-sync",[39m
+[2m    "/commission-plans",[22m
+[2m    "/commissions",[22m
+[2m    "/costs",[22m
+[2m    "/customers",[22m
+[2m    "/deployments",[22m
+
+ ❯ src/app/navigation.test.ts:55:47
+     53|     // CCP fase 07 añade `/catalog/addons` y `/commercial/capabilities…
+     54|     // CCP fase 08 añade `/commercial/entitlement-sync`.
+     55|     expect(NAV_ITEMS.map((i) => i.to).sort()).toEqual([
+       |                                               ^
+     56|       '/', '/attributions', '/audit', '/billing', '/catalog/addons', '…
+     57|       '/commercial/entitlement-sync',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/app/navigation.test.ts > migas y títulos humanos > la sincronización de entitlements es operación de EBIM (CCP fase 08)
+AssertionError: expected [ '/', '/customers', …(25) ] to include '/commercial/entitlement-sync'
+ ❯ src/app/navigation.test.ts:184:50
+    182|   });
+    183|   it('la sincronización de entitlements es operación de EBIM (CCP fase…
+    184|     expect(navItemsFor('EBIM').map((i) => i.to)).toContain('/commercia…
+       |                                                  ^
+    185|     for (const persona of ['PARTNER', 'SALES_AGENT', 'TENANT'] as cons…
+    186|       expect(navItemsFor(persona).map((i) => i.to)).not.toContain('/co…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  2 failed | 23 passed (25)
+   Start at  00:39:56
+   Duration  2.28s (transform 61ms, setup 141ms, collect 1.23s, tests 9ms, environment 691ms, prepare 149ms)
+

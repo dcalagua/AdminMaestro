@@ -1,0 +1,10 @@
+
+ RUN  v3.2.7 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eExpenses/.worktrees/ebim-commercial-control-plane-v1/web
+
+ ✓ src/edge/platformEntitlementsGolden.test.ts (14 tests) 3207ms
+
+ Test Files  1 passed (1)
+      Tests  14 passed (14)
+   Start at  03:04:20
+   Duration  3.42s (transform 41ms, setup 0ms, collect 48ms, tests 3.21s, environment 0ms, prepare 44ms)
+

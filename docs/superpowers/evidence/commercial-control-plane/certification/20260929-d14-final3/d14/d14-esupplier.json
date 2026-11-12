@@ -1,0 +1,52 @@
+{
+  "schema": "ebim.ccp.d14-cutover/v1",
+  "environment": "LOCAL_DEV",
+  "writtenAt": "2026-09-29T17:04:07.200Z",
+  "product": "esupplier",
+  "entitlements": {
+    "scope": "COHORT",
+    "productScopeMode": "SHADOW",
+    "finalMode": "PRIMARY",
+    "transitions": [
+      "9f130000-0000-4000-8000-000000000001: SHADOW→DUAL_READ",
+      "9f130000-0000-4000-8000-000000000001: DUAL_READ→PRIMARY"
+    ],
+    "mappedTenants": 1,
+    "mappedTenantsPrimary": 1,
+    "excludedFromCohort": [
+      {
+        "id": "cccccccc-0000-4000-8000-000000070001",
+        "reason": "alta ACTIVE sin snapshot aplicado: MasterAdmin nunca la sincronizó; queda en el modo del PRODUCTO (SHADOW)"
+      }
+    ],
+    "getVerified": {
+      "appliedVersion": 4,
+      "appliedChecksum": "sha256:ec87d149e8da4476d78363ebb71b767605c0dd3dffeccfdc73f26b5d562ec751",
+      "enforcementMode": "PRIMARY",
+      "desiredChecksum": "sha256:ec87d149e8da4476d78363ebb71b767605c0dd3dffeccfdc73f26b5d562ec751"
+    },
+    "legacyWrite": {
+      "status": "BLOCKED",
+      "evidence": "D14.4 (estado final PRIMARY): esup_grant_commercial_addon(91301, 'invoice_3way', 'OPERATOR') → LEGACY_WRITE_BLOCKED y esup_tenant_has_addon(invoice_3way)=false; authenticated → permission denied en platform_set_entitlement_enforcement_mode."
+    },
+    "parityBlocking": 0
+  },
+  "appActiveFalse": {
+    "commercialDenied": true,
+    "operationalContinues": true,
+    "evidence": "check 17: v3 appActive=false → dorothy_copilot y tender_copilot negados; incluidos ai_capture y ai_auditor siguen concedidos (la puerta no toca el acceso operativo al portal)."
+  },
+  "legacyTenants": [
+    {
+      "id": "70002",
+      "label": "ZZT Legacy Archived",
+      "resolution": "UNRESOLVED",
+      "reason": "Sin alta ACTIVE en platform_provisioning_requests ni evidencia determinista de plan/precio/cupo/add-on (D-14 regla 4); sigue en legacy bajo el modo del PRODUCTO (SHADOW). P-08 (LEGACY_BACKFILL) pendiente: solo afecta a estos tenants."
+    }
+  ],
+  "billing": null,
+  "checks": {
+    "passed": 26,
+    "failed": 0
+  }
+}

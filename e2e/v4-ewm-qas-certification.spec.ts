@@ -39,7 +39,7 @@ async function loginAsOperator(page: Page): Promise<void> {
   await page.getByLabel('Correo corporativo').fill(email);
   await page.getByLabel('Contraseña', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Ingresar' }).click();
-  await expect(page.getByRole('button', { name: 'Salir' })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole('button', { name: 'Menú de cuenta' })).toBeVisible({ timeout: 20_000 });
 
   const supabaseUrl = await page.evaluate(
     async () => (await import('/src/lib/env.ts')).env.supabaseUrl as string,

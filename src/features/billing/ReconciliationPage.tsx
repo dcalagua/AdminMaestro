@@ -6,9 +6,18 @@ import {
 import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { SectionTabs, StatusTabs } from '@/components/ui/SectionTabs';
 import {
-  PageContainer, Card, DataTable, SearchBar, StatCard, LoadingState, ErrorState, EmptyState, Badge,
+  PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge, KpiTile, type DataColumn,
 } from '@/components/ui/primitives';
 import { formatMoney, formatPercent, formatNumber, formatDateTime } from '@/lib/format';
+import { InfoNote } from './listing';
+import { KpiStrip } from './financeUi';
+
+const R = (label: string): DataColumn => ({ label, align: 'right' });
+
+/** Solo una pérdida se marca; un margen positivo no se pinta de verde (A09). */
+function lossClass(value: unknown): string {
+  return Number(value ?? 0) < 0 ? 'text-danger' : 'text-fg';
+}
 
 /**
  * Reconciliación financiera.
@@ -17,9 +26,9 @@ import { formatMoney, formatPercent, formatNumber, formatDateTime } from '@/lib/
  * automáticamente hace que el número cierre y que nadie sepa por qué, que es
  * justo lo contrario de lo que necesita un cierre contable.
  *
- * Todo se agrupa POR MONEDA. No hay tabla de tipos de cambio, así que consolidar
- * PEN y USD produciría un total que nadie puede auditar. Está documentado como
- * fuera de alcance de V2.
+ * Todo se agrupa POR MONEDA. Aquí no se convierte: el consolidado con tipo de
+ * cambio explícito vive en el inicio ejecutivo. Entrar a esta pantalla sólo LEE
+ * (vistas y ledger); no existe ninguna acción que corrija un hallazgo.
  */
 
 const FINDING_LABEL: Record<string, string> = {
@@ -37,6 +46,32 @@ const SEVERITY_TONE: Record<string, 'ok' | 'warn' | 'danger'> = {
   ERROR: 'danger',
 };
 
+const SEVERITY_LABEL: Record<string, string> = {
+  OK: 'Cuadra',
+  REVIEW: 'Revisar',
+  ERROR: 'Error',
+};
+
+/** Prioridad de la bandeja: primero los errores, luego lo que hay que revisar. */
+const SEVERITY_RANK: Record<string, number> = { ERROR: 0, REVIEW: 1, OK: 2 };
+
+/** Dónde nace cada tipo de hallazgo: ayuda a saber a quién preguntar. */
+const FINDING_SOURCE: Record<string, string> = {
+  PROVIDER_DRIFT: 'Proveedor de pagos vs. suscripción',
+  OPEN_INVOICE: 'Facturas',
+  EXPIRED_DOCUMENT: 'Documentos del cliente',
+  REVERSED_PAYMENT: 'Cobros',
+  REJECTED_WEBHOOK: 'Ledger de webhooks',
+  MISSING_COLLECTION_PROFILE: 'Perfil de cobro',
+};
+
+const EVENT_STATUS_LABEL: Record<string, string> = {
+  RECEIVED: 'Recibido',
+  PROCESSED: 'Procesado',
+  IGNORED: 'Ignorado (repetido)',
+  REJECTED: 'Rechazado',
+};
+
 type Filter = 'ALL' | 'ERROR' | 'REVIEW';
 
 export function ReconciliationPage() {
@@ -50,8 +85,11 @@ export function ReconciliationPage() {
     f.subject, f.organization_name, f.detail, f.finding_type,
   ]);
 
-  const rows = filtered.filter((f) => (filter === 'ALL' ? true : f.severity === filter));
+  const rows = filtered
+    .filter((f) => (filter === 'ALL' ? true : f.severity === filter))
+    .sort((a, b) => (SEVERITY_RANK[a.severity ?? ''] ?? 9) - (SEVERITY_RANK[b.severity ?? ''] ?? 9));
   const all = findings.data ?? [];
+  const rejectedEvents = (events.data ?? []).filter((e) => e.status === 'REJECTED').length;
 
   const errors = all.filter((f) => f.severity === 'ERROR').length;
   const reviews = all.filter((f) => f.severity === 'REVIEW').length;
@@ -61,15 +99,59 @@ export function ReconciliationPage() {
       title="Reconciliación"
       description="Diferencias entre lo que dice el proveedor, lo que dice la factura y lo que dice el cobro. La pantalla diagnostica; las correcciones las decide una persona."
       actions={
-        <Badge tone={errors > 0 ? 'danger' : reviews > 0 ? 'warn' : 'ok'}>
-          {errors > 0 ? 'ERROR' : reviews > 0 ? 'REVIEW' : 'OK'}
-        </Badge>
+        findings.data ? (
+          <Badge tone={errors > 0 ? 'danger' : reviews > 0 ? 'warn' : 'ok'}>
+            {errors > 0 ? 'Con errores' : reviews > 0 ? 'Hay que revisar' : 'Todo cuadra'}
+          </Badge>
+        ) : null
       }
     >
-      <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <StatCard label="Hallazgos con error" value={formatNumber(errors)} tone={errors > 0 ? 'danger' : 'ok'} />
-        <StatCard label="Para revisar" value={formatNumber(reviews)} tone={reviews > 0 ? 'warn' : 'ok'} />
-        <StatCard label="Total de hallazgos" value={formatNumber(all.length)} />
+      <KpiStrip label="Indicadores de reconciliación">
+        <KpiTile
+          label="Hallazgos con error"
+          info="Diferencias que no deberían existir: hay que corregirlas desde el contrato o la factura."
+          value={findings.data ? formatNumber(errors) : null}
+          tone={errors > 0 ? 'danger' : 'neutral'}
+          footer="Foto actual"
+          loading={findings.isLoading}
+          error={findings.error}
+          onRetry={() => void findings.refetch()}
+        />
+        <KpiTile
+          label="Para revisar"
+          info="Situaciones que pueden ser correctas pero piden una mirada (OS/OC vencida, factura abierta vencida…)."
+          value={findings.data ? formatNumber(reviews) : null}
+          tone={reviews > 0 ? 'warn' : 'neutral'}
+          footer="Foto actual"
+          loading={findings.isLoading}
+          error={findings.error}
+          onRetry={() => void findings.refetch()}
+        />
+        <KpiTile
+          label="Total de hallazgos"
+          value={findings.data ? formatNumber(all.length) : null}
+          footer={all.length === 0 ? 'Todo cuadra' : 'Proveedor, facturas y cobros'}
+          loading={findings.isLoading}
+          error={findings.error}
+          onRetry={() => void findings.refetch()}
+        />
+        <KpiTile
+          label="Webhooks rechazados"
+          info="Eventos del proveedor que el ledger rechazó. Un evento IGNORADO (repetido) no es un fallo."
+          value={events.data ? formatNumber(rejectedEvents) : null}
+          tone={rejectedEvents > 0 ? 'warn' : 'neutral'}
+          footer={events.data ? `de los últimos ${formatNumber(events.data.length)} eventos` : undefined}
+          loading={events.isLoading}
+          error={events.error}
+          onRetry={() => void events.refetch()}
+        />
+      </KpiStrip>
+
+      <div className="mb-4">
+        <InfoNote>
+          <strong>Sólo diagnóstico.</strong> Abrir esta pantalla no corrige, reintenta ni registra nada. Cada hallazgo indica
+          su causa y su fuente; la corrección la decide una persona desde el contrato o la factura.
+        </InfoNote>
       </div>
 
       <SectionTabs
@@ -105,31 +187,53 @@ export function ReconciliationPage() {
                     description="No hay diferencias entre el proveedor, las facturas y los cobros registrados."
                   />
                 ) : (
-                  <DataTable columns={['Tipo', 'Sujeto', 'Organización', 'Detalle', 'Importe', '']}>
+                  <DataTable
+                    maxHeight={640}
+                    label="Hallazgos"
+                    columns={['Prioridad', 'Hallazgo', 'Sujeto · organización', 'Detalle', R('Importe')]}
+                  >
                     {rows.map((f, idx) => (
                       <tr key={`${f.finding_type}-${f.subject}-${idx}`}>
                         <td className="ebim-td">
                           <Badge tone={SEVERITY_TONE[f.severity as string] ?? 'neutral'}>
-                            {FINDING_LABEL[f.finding_type as string] ?? f.finding_type}
+                            {SEVERITY_LABEL[f.severity as string] ?? f.severity}
                           </Badge>
                         </td>
-                        <td className="ebim-td font-mono text-xs font-semibold">{f.subject}</td>
-                        <td className="ebim-td text-muted">{f.organization_name}</td>
-                        <td className="ebim-td text-xs text-muted">{f.detail}</td>
-                        <td className="ebim-td tabular-nums">
+                        <td className="ebim-td">
+                          <span className="block whitespace-nowrap font-semibold">{FINDING_LABEL[f.finding_type as string] ?? f.finding_type}</span>
+                          <span className="block max-w-[220px] truncate text-compact text-fg-2" title={`Fuente: ${FINDING_SOURCE[f.finding_type as string] ?? 'Sin clasificar'}`}>
+                            {FINDING_SOURCE[f.finding_type as string] ?? 'Sin clasificar'}
+                          </span>
+                        </td>
+                        <td className="ebim-td">
+                          {/* El sujeto lleva al contrato: la corrección se decide ahí (acción primaria de la fila). */}
+                          {f.subscription_id ? (
+                            <Link
+                              className="ebim-link block max-w-[180px] truncate whitespace-nowrap font-mono text-compact"
+                              title={`${f.subject ?? ''} · abrir el contrato`}
+                              to={`/subscriptions/${f.subscription_id}`}
+                            >
+                              {f.subject}
+                            </Link>
+                          ) : (
+                            <span className="block max-w-[180px] truncate whitespace-nowrap font-mono text-compact font-semibold" title={f.subject ?? undefined}>
+                              {f.subject}
+                            </span>
+                          )}
+                          {/* La organización va bajo el sujeto (en columna propia la tabla no cabía a 1280). */}
+                          <span className="block max-w-[180px] truncate text-compact text-fg-2" title={f.organization_name ?? undefined}>
+                            {f.organization_name}
+                          </span>
+                        </td>
+                        <td className="ebim-td">
+                          <span className="line-clamp-2 block min-w-[220px] max-w-[340px] text-compact text-fg-2" title={f.detail ?? undefined}>
+                            {f.detail}
+                          </span>
+                        </td>
+                        <td className="ebim-td ebim-num whitespace-nowrap">
                           {f.amount !== null
                             ? formatMoney(Number(f.amount), f.currency as string | null)
                             : '—'}
-                        </td>
-                        <td className="ebim-td text-right">
-                          {f.subscription_id ? (
-                            <Link
-                              className="ebim-link text-[13px]"
-                              to={`/subscriptions/${f.subscription_id}`}
-                            >
-                              Ver
-                            </Link>
-                          ) : null}
                         </td>
                       </tr>
                     ))}
@@ -144,52 +248,57 @@ export function ReconciliationPage() {
             content: (
               <Card
                 title="Panel gerencial por producto"
-                description="Agrupado por moneda: sin tabla de tipos de cambio, consolidar PEN y USD daría un número no auditable."
+                description="Una fila por producto y moneda: aquí no se convierte. El consolidado con tipo de cambio explícito está en el inicio. Margen gerencial, no contable."
               >
                 {products.isLoading ? (
                   <LoadingState />
+                ) : products.error ? (
+                  <ErrorState error={products.error} onRetry={() => void products.refetch()} />
                 ) : (products.data ?? []).length === 0 ? (
                   <EmptyState title="Sin datos financieros" />
                 ) : (
                   <DataTable
+                    label="Panel gerencial por producto"
                     columns={[
-                      'Producto', 'Moneda', 'MRR', 'Licencia cobrada', 'Implementación',
-                      'Infraestructura', 'Costo', 'Comisiones', 'Margen', '%',
+                      'Producto', R('MRR'), R('Licencia cobrada'), R('Implementación · infraestructura'),
+                      R('Costo'), R('Comisiones'), R('Margen gerencial'),
                     ]}
                   >
                     {(products.data ?? [])
                       .filter((p) => Number(p.collected_revenue) > 0 || Number(p.mrr) > 0)
                       .map((p) => (
                         <tr key={`${p.saas_product_id}-${p.currency}`}>
-                          <td className="ebim-td font-semibold">{p.short_name}</td>
-                          <td className="ebim-td text-muted">{p.currency}</td>
-                          <td className="ebim-td tabular-nums">
+                          {/* Moneda bajo el producto, implementación con infraestructura y el %
+                              bajo el margen: con diez columnas la matriz no cabía a 1280. */}
+                          <td className="ebim-td">
+                            <span className="block font-semibold">{p.short_name}</span>
+                            <span className="block text-caption text-muted">{p.currency}</span>
+                          </td>
+                          <td className="ebim-td ebim-num whitespace-nowrap">
                             {formatMoney(Number(p.mrr), p.currency)}
                           </td>
-                          <td className="ebim-td tabular-nums">
+                          <td className="ebim-td ebim-num whitespace-nowrap">
                             {formatMoney(Number(p.collected_license), p.currency)}
                           </td>
-                          <td className="ebim-td tabular-nums">
+                          <td className="ebim-td ebim-num whitespace-nowrap">
                             {formatMoney(Number(p.collected_implementation), p.currency)}
+                            <span className="block text-caption text-muted">
+                              infra. {formatMoney(Number(p.collected_infrastructure), p.currency)}
+                            </span>
                           </td>
-                          <td className="ebim-td tabular-nums">
-                            {formatMoney(Number(p.collected_infrastructure), p.currency)}
-                          </td>
-                          <td className="ebim-td tabular-nums text-warn">
+                          <td className="ebim-td ebim-num whitespace-nowrap">
                             {formatMoney(Number(p.direct_cost), p.currency)}
                           </td>
-                          <td className="ebim-td tabular-nums text-warn">
+                          <td className="ebim-td ebim-num whitespace-nowrap">
                             {formatMoney(Number(p.commission_total), p.currency)}
                           </td>
                           <td
-                            className={`ebim-td tabular-nums font-semibold ${
-                              Number(p.gross_margin) >= 0 ? 'text-ok' : 'text-danger'
-                            }`}
+                            className={`ebim-td ebim-num whitespace-nowrap font-semibold ${lossClass(p.gross_margin)}`}
                           >
                             {formatMoney(Number(p.gross_margin), p.currency)}
-                          </td>
-                          <td className="ebim-td tabular-nums text-muted">
-                            {p.margin_rate !== null ? formatPercent(Number(p.margin_rate)) : '—'}
+                            <span className="block text-caption font-normal text-fg-2">
+                              {p.margin_rate !== null ? `${formatPercent(Number(p.margin_rate))} sobre cobrado` : '—'}
+                            </span>
                           </td>
                         </tr>
                       ))}
@@ -208,13 +317,16 @@ export function ReconciliationPage() {
               >
                 {partners.isLoading ? (
                   <LoadingState />
+                ) : partners.error ? (
+                  <ErrorState error={partners.error} onRetry={() => void partners.refetch()} />
                 ) : (partners.data ?? []).length === 0 ? (
                   <EmptyState title="Sin canales con actividad" />
                 ) : (
                   <DataTable
+                    label="Panel por partner"
                     columns={[
-                      'Organización', 'Moneda', 'MRR', 'Cobrado', 'Costo directo',
-                      'Margen bruto', 'Margen de canal', 'Comisión a comerciales', 'Tenants',
+                      'Organización', R('MRR'), R('Cobrado'), R('Costo directo'),
+                      R('Margen gerencial'), R('Margen de canal'), R('Comisión a comerciales'),
                     ]}
                   >
                     {(partners.data ?? []).map((p) => (
@@ -223,33 +335,34 @@ export function ReconciliationPage() {
                           <Link className="ebim-link" to={`/organizations/${p.organization_id}`}>
                             {p.organization_name}
                           </Link>
+                          {/* Moneda y tenants gestionados bajo el nombre (la matriz no cabía a 1280). */}
+                          <span className="block text-caption text-muted">
+                            {p.currency} · {formatNumber(Number(p.managed_tenants))}{' '}
+                            {Number(p.managed_tenants) === 1 ? 'tenant' : 'tenants'}
+                          </span>
                         </td>
-                        <td className="ebim-td text-muted">{p.currency}</td>
-                        <td className="ebim-td tabular-nums">
+                        <td className="ebim-td ebim-num whitespace-nowrap">
                           {formatMoney(Number(p.mrr), p.currency)}
                         </td>
-                        <td className="ebim-td tabular-nums">
+                        <td className="ebim-td ebim-num whitespace-nowrap">
                           {formatMoney(Number(p.collected_revenue), p.currency)}
                         </td>
-                        <td className="ebim-td tabular-nums text-warn">
+                        <td className="ebim-td ebim-num whitespace-nowrap">
                           {formatMoney(Number(p.direct_cost), p.currency)}
                         </td>
                         <td
-                          className={`ebim-td tabular-nums font-semibold ${
-                            Number(p.gross_margin) >= 0 ? 'text-ok' : 'text-danger'
-                          }`}
+                          className={`ebim-td ebim-num whitespace-nowrap font-semibold ${lossClass(p.gross_margin)}`}
                         >
                           {formatMoney(Number(p.gross_margin), p.currency)}
                         </td>
-                        <td className="ebim-td tabular-nums">
+                        <td className="ebim-td ebim-num whitespace-nowrap">
                           {p.weighted_channel_margin_rate !== null
                             ? formatPercent(Number(p.weighted_channel_margin_rate))
                             : '—'}
                         </td>
-                        <td className="ebim-td tabular-nums">
+                        <td className="ebim-td ebim-num whitespace-nowrap">
                           {formatMoney(Number(p.agent_commissions), p.currency)}
                         </td>
-                        <td className="ebim-td tabular-nums">{formatNumber(Number(p.managed_tenants))}</td>
                       </tr>
                     ))}
                   </DataTable>
@@ -267,17 +380,19 @@ export function ReconciliationPage() {
               >
                 {events.isLoading ? (
                   <LoadingState />
+                ) : events.error ? (
+                  <ErrorState error={events.error} onRetry={() => void events.refetch()} />
                 ) : (events.data ?? []).length === 0 ? (
                   <EmptyState
                     title="Sin eventos registrados"
                     description="No se ha recibido ningún webhook del proveedor todavía."
                   />
                 ) : (
-                  <DataTable columns={['Recibido', 'Cuenta', 'Tipo', 'Estado', 'Resultado']}>
+                  <DataTable label="Últimos eventos de webhook" columns={['Recibido', 'Cuenta', 'Tipo', 'Estado', 'Resultado']}>
                     {(events.data ?? []).map((e) => (
                       <tr key={e.id}>
-                        <td className="ebim-td text-xs text-muted">{formatDateTime(e.received_at)}</td>
-                        <td className="ebim-td font-mono text-xs">
+                        <td className="ebim-td whitespace-nowrap text-compact text-fg-2">{formatDateTime(e.received_at)}</td>
+                        <td className="ebim-td whitespace-nowrap font-mono text-compact">
                           {(e.payment_provider_accounts as { code: string } | null)?.code}
                         </td>
                         <td className="ebim-td">{e.event_type}</td>
@@ -291,10 +406,10 @@ export function ReconciliationPage() {
                                   : 'neutral'
                             }
                           >
-                            {e.status}
+                            {EVENT_STATUS_LABEL[e.status] ?? e.status}
                           </Badge>
                         </td>
-                        <td className="ebim-td text-xs text-muted">
+                        <td className="ebim-td text-compact text-fg-2">
                           {e.error_message ?? (e.payment_id ? 'Cobro registrado' : '—')}
                         </td>
                       </tr>

@@ -1,7 +1,9 @@
+import { useCallback, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { QueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types/database.types';
+import type { InviteGrant } from '@/features/users/userModel';
 
 /**
  * Capa de ESCRITURA del Control Plane.
@@ -82,6 +84,24 @@ export function useUpsertCatalogItem() {
   return useRpc('upsert_catalog_item', ['catalog-items']);
 }
 
+/*
+ * CCP fase 07 · catálogo comercial. Importar un manifiesto es de producto
+ * (EBIM_PRODUCT_ADMIN); cambiar el ciclo de vida de un add-on, también; fijar
+ * su tarifa es de finanzas. La base decide y audita; la UI solo ofrece.
+ */
+export function useImportCapabilityManifest() {
+  return useRpc('import_capability_manifest', ['capabilities', 'tenant-entitlements']);
+}
+
+export function useSetCatalogItemLifecycle() {
+  return useRpc('set_catalog_item_lifecycle', ['catalog-items', 'catalog-item-prices']);
+}
+
+/** Versiona la tarifa del add-on en un mercado: cierra la vigente y abre otra. */
+export function useSetCatalogItemPrice() {
+  return useRpc('set_catalog_item_price', ['catalog-item-prices']);
+}
+
 /* ==========================================================================
    Organizaciones, partners y sociedades
    ========================================================================== */
@@ -155,6 +175,48 @@ export function useSetTenantFeature() {
   return useRpc('set_tenant_feature', ['tenant-features', 'feature-flags']);
 }
 
+/*
+ * Ciclo de vida de add-ons de tenant (CCP fase 07, spec §6.2). `tenant_addons`
+ * no admite escritura directa: solicitar nunca activa, aprobar/cancelar es
+ * comercial y suspender/reanudar/baja inmediata es de finanzas. El backend
+ * decide la autoridad y audita cada transición; la UI solo muestra.
+ */
+const TENANT_ADDON_KEYS = [
+  'tenant-addons', 'tenant-entitlements', 'tenant-features', 'feature-flags', 'subscription-items',
+];
+
+export function useRequestTenantAddon() {
+  return useRpc('request_tenant_addon', TENANT_ADDON_KEYS);
+}
+
+export function useApproveTenantAddon() {
+  return useRpc('approve_tenant_addon', TENANT_ADDON_KEYS);
+}
+
+export function useRejectTenantAddon() {
+  return useRpc('reject_tenant_addon', TENANT_ADDON_KEYS);
+}
+
+export function useScheduleCancelTenantAddon() {
+  return useRpc('schedule_cancel_tenant_addon', TENANT_ADDON_KEYS);
+}
+
+export function useReactivateTenantAddon() {
+  return useRpc('reactivate_tenant_addon', TENANT_ADDON_KEYS);
+}
+
+export function useSuspendTenantAddon() {
+  return useRpc('suspend_tenant_addon', TENANT_ADDON_KEYS);
+}
+
+export function useResumeTenantAddon() {
+  return useRpc('resume_tenant_addon', TENANT_ADDON_KEYS);
+}
+
+export function useCancelTenantAddon() {
+  return useRpc('cancel_tenant_addon', TENANT_ADDON_KEYS);
+}
+
 /** Suspende el tenant Y encola el trabajo de infraestructura, en una transacción. */
 export function useRequestTenantSuspension() {
   return useRpc('request_tenant_suspension', [
@@ -196,8 +258,26 @@ export function useDeactivateCommissionRule() {
   return useRpc('deactivate_commission_rule', ['commission-plans']);
 }
 
+const SETTLEMENT_KEYS = ['commission-events', 'commission-detail', 'settlements', 'settlement-events', 'finance'];
+
+/** Agrupa las comisiones ELEGIBLES de un comercial, período y moneda en una liquidación OPEN. */
 export function useSettleCommissions() {
-  return useRpc('settle_commissions', ['commission-events', 'settlements']);
+  return useRpc('settle_commissions', SETTLEMENT_KEYS);
+}
+
+/** OPEN → APPROVED (finanzas). Desde aquí la liquidación no gana ni pierde comisiones. */
+export function useApproveCommissionSettlement() {
+  return useRpc('approve_commission_settlement', SETTLEMENT_KEYS);
+}
+
+/** APPROVED → PAID con fecha, referencia y medio. Repetir con la misma referencia no hace nada. */
+export function usePayCommissionSettlement() {
+  return useRpc('pay_commission_settlement', SETTLEMENT_KEYS);
+}
+
+/** OPEN/APPROVED → CANCELLED con motivo: sus comisiones vuelven a elegibles. */
+export function useCancelCommissionSettlement() {
+  return useRpc('cancel_commission_settlement', SETTLEMENT_KEYS);
 }
 
 /* ==========================================================================
@@ -230,6 +310,46 @@ const COLLECTION_KEYS = [
 
 export function useUpsertProviderAccount() {
   return useRpc('upsert_payment_provider_account', ['provider-accounts', ...COLLECTION_KEYS]);
+}
+
+const PROVIDER_SECRET_KEYS = ['provider-accounts', ...COLLECTION_KEYS];
+
+/**
+ * Configura o reemplaza la llave secreta de una cuenta Culqi (se guarda CIFRADA
+ * en Vault; la RPC solo devuelve la pista).
+ *
+ * Deliberadamente NO usa `useMutation`: React Query conserva las `variables` de
+ * cada mutación en su MutationCache (y en las devtools) hasta el GC, y la llave
+ * quedaría en memoria del cliente de queries. Aquí el valor solo existe durante
+ * la llamada; no se guarda, no se registra y el error no lo contiene.
+ */
+export function useSetPaymentProviderSecret() {
+  const qc = useQueryClient();
+  const [isPending, setIsPending] = useState(false);
+  const mutateAsync = useCallback(
+    async (args: Args<'set_payment_provider_secret'>) => {
+      setIsPending(true);
+      try {
+        const data = await callRpc('set_payment_provider_secret', args);
+        invalidate(qc, [...PROVIDER_SECRET_KEYS, ...AGGREGATE_KEYS]);
+        return data;
+      } finally {
+        setIsPending(false);
+      }
+    },
+    [qc],
+  );
+  return { mutateAsync, isPending };
+}
+
+/** Quita la llave cifrada (motivo obligatorio). La cuenta TEST vuelve a MOCK. */
+export function useClearPaymentProviderSecret() {
+  return useRpc('clear_payment_provider_secret', PROVIDER_SECRET_KEYS);
+}
+
+/** URL base de la API del proveedor en la cuenta (no es secreta). */
+export function useSetPaymentProviderApiBase() {
+  return useRpc('set_payment_provider_api_base', PROVIDER_SECRET_KEYS);
 }
 
 /** Versiona el perfil de cobro. Configurar cómo se cobra NO registra ningún cobro. */
@@ -411,7 +531,8 @@ export function useDeactivateProductOwner() {
 }
 
 export function useGrantProvisioningRole() {
-  return useRpc('grant_provisioning_role', ['provisioning-permissions']);
+  // M5: la ficha de usuario también muestra los roles de provisioning.
+  return useRpc('grant_provisioning_role', ['provisioning-permissions', 'admin-users', 'admin-user', 'user-activity']);
 }
 
 export function useCreateSaasProvisioningRequest() {
@@ -479,12 +600,13 @@ export interface OrchestratorResult {
  * resuelve el servidor (fase 39). Si el cliente pudiera elegirlo, podría
  * reapuntar la llamada a cualquier sitio y ampliar el alcance del token.
  */
-async function invokeOrchestrator(body: {
-  action: 'PROVISION' | 'CHECK_HEALTH' | 'GET_STATUS';
+async function invokeOrchestrator<T = OrchestratorResult>(body: {
+  action: 'PROVISION' | 'CHECK_HEALTH' | 'GET_STATUS' | 'SYNC_ENTITLEMENTS' | 'GET_ENTITLEMENTS';
   request_id?: string;
   deployment_target_id?: string;
-}): Promise<OrchestratorResult> {
-  const { data, error } = await supabase.functions.invoke<OrchestratorResult>(
+  tenant_id?: string;
+}): Promise<T> {
+  const { data, error } = await supabase.functions.invoke<T>(
     'provisioning-orchestrator',
     { body },
   );
@@ -509,7 +631,43 @@ async function invokeOrchestrator(body: {
     throw new Error(error.message);
   }
 
-  return data ?? {};
+  return (data ?? {}) as T;
+}
+
+/**
+ * Resumen que devuelve el orquestador para SYNC_ENTITLEMENTS / GET_ENTITLEMENTS
+ * (CCP fase 08): estado que decidió la base, y códigos del push y del GET.
+ * Nunca incluye el snapshot ni cuerpos del SaaS.
+ */
+export interface EntitlementSyncSummary {
+  tenant_id: string;
+  saas_product_id: string;
+  state: string;
+  skipped?: string;
+  issued?: boolean;
+  desired_version?: number;
+  push?: { result: string; errorCode: string | null; httpStatus: number | null };
+  verify?: { result: string; errorCode: string | null; httpStatus: number | null; appliedVersion: number | null; status: string | null };
+}
+
+/** «Sincronizar ahora»: emite si hace falta, empuja y verifica por GET. */
+export function useSyncEntitlements() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (tenantId: string) =>
+      invokeOrchestrator<EntitlementSyncSummary>({ action: 'SYNC_ENTITLEMENTS', tenant_id: tenantId }),
+    onSettled: () => invalidate(qc, ['entitlement-sync-status']),
+  });
+}
+
+/** «Verificar»: solo el GET aplicado; no emite ni empuja. */
+export function useVerifyEntitlements() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (tenantId: string) =>
+      invokeOrchestrator<EntitlementSyncSummary>({ action: 'GET_ENTITLEMENTS', tenant_id: tenantId }),
+    onSettled: () => invalidate(qc, ['entitlement-sync-status']),
+  });
 }
 
 export function useProvisionTenant() {
@@ -543,3 +701,360 @@ export function useCheckDeploymentHealth() {
       invalidate(qc, ['provisioning-targets', 'deployment-targets', ...PROVISIONING_KEYS]),
   });
 }
+
+/* ==========================================================================
+   M1 · Portal de pago por enlace · M2 · Tarjeta guardada
+   ========================================================================== */
+
+const PAYMENT_LINK_KEYS = ['payment-links', 'payment-link-events'];
+
+/** Devuelve el token en claro UNA sola vez: la base solo guarda su hash. */
+export function useCreatePaymentLink() {
+  return useRpc('create_payment_link', PAYMENT_LINK_KEYS);
+}
+
+export function useRevokePaymentLink() {
+  return useRpc('revoke_payment_link', PAYMENT_LINK_KEYS);
+}
+
+const CARD_ON_FILE_KEYS = [
+  'card-on-file', 'provider-payment-methods', 'charge-attempts', ...COLLECTION_KEYS,
+];
+
+/** Revoca la autorización: la tarjeta queda inactiva y el perfil pasa a cobro manual. */
+export function useRevokeCardOnFile() {
+  return useRpc('revoke_card_on_file_authorization', CARD_ON_FILE_KEYS);
+}
+
+export interface AutochargeResult {
+  invoice_number?: string | null;
+  status: 'SUCCEEDED' | 'FAILED' | 'SKIPPED' | 'REVIEW';
+  error_code?: string | null;
+  amount?: number | null;
+  currency?: string | null;
+}
+
+export interface AutochargeSummary {
+  mode?: string;
+  processed: number;
+  succeeded: number;
+  failed: number;
+  skipped: number;
+  /** Cobrado en la pasarela pero sin confirmar, o fallo ambiguo: queda en revisión. */
+  review?: number;
+  results: AutochargeResult[];
+}
+
+/**
+ * Cobro con tarjeta guardada (Edge Function `payment-autocharge`, JWT de
+ * finanzas). `{ invoiceId }` = «Cobrar ahora»; `{ run: true }` = «Ejecutar
+ * cobros pendientes» según la política de reintentos.
+ */
+export function useAutocharge() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { invoiceId: string } | { run: true }): Promise<AutochargeSummary> => {
+      const body = 'invoiceId' in input ? { invoice_id: input.invoiceId } : { run: true };
+      const { data, error } = await supabase.functions.invoke<AutochargeSummary>('payment-autocharge', { body });
+      if (error) {
+        const context = (error as { context?: Response }).context;
+        if (context && typeof context.json === 'function') {
+          try {
+            const payload = (await context.json()) as { error?: string; message?: string };
+            throw new Error(payload.message ?? payload.error ?? error.message);
+          } catch (parsed) {
+            if (parsed instanceof Error && parsed.message !== error.message) throw parsed;
+          }
+        }
+        throw new Error(error.message);
+      }
+      return data ?? { processed: 0, succeeded: 0, failed: 0, skipped: 0, results: [] };
+    },
+    onSettled: () =>
+      invalidate(qc, [
+        'invoices', 'charge-attempts', 'billing-alerts', 'renewal-dashboard', 'finance-reconciliation',
+        'commission-events', ...AGGREGATE_KEYS,
+      ]),
+  });
+}
+
+/* ==========================================================================
+   CCP M4 · Uso, créditos IA y billing shadow (fases 17–18)
+
+   Toda escritura es una RPC `SECURITY DEFINER` con motivo y auditoría. La UI
+   ofrece cada acción según `usePermissions`, pero la RPC es la autoridad:
+   medidores → EBIM_PRODUCT_ADMIN; facturable, finalizar, créditos y shadow →
+   EBIM_FINANCE; eje BILLING → `can_manage_commercial`.
+   ========================================================================== */
+
+const USAGE_AGGREGATE_KEYS = ['usage-aggregates', 'usage-alerts', 'ai-credit-ledger', 'ai-credit-balances'];
+const AI_CREDIT_KEYS = ['ai-credit-ledger', 'ai-credit-balances', 'usage-alerts'];
+
+export function useUpsertUsageMeter() {
+  return useRpc('upsert_usage_meter', ['usage-meters']);
+}
+
+/** D-06: solo finanzas decide si un medidor es facturable, con motivo. */
+export function useSetUsageMeterBillable() {
+  return useRpc('set_usage_meter_billable', ['usage-meters']);
+}
+
+export function useConfigureUsageIngestCredential() {
+  return useRpc('configure_usage_ingest_credential', ['usage-ingest-credentials']);
+}
+
+/** Kill-switch por producto (`product_integrations.usage_ingest_enabled`). */
+export function useSetUsageIngestEnabled() {
+  return useRpc('set_usage_ingest_enabled', ['product-integrations', 'product-integration', 'commercial-cutover-axes']);
+}
+
+/** CLOSING → FINALIZED. Recalcula desde los eventos y, si es IA, consume créditos. */
+export function useFinalizeUsageAggregate() {
+  return useRpc('finalize_usage_aggregate', USAGE_AGGREGATE_KEYS);
+}
+
+export function useReverseAiCreditEntry() {
+  return useRpc('reverse_ai_credit_entry', AI_CREDIT_KEYS);
+}
+
+/** Versiona el peso: cierra el vigente y abre uno nuevo. Re-emite snapshots del producto. */
+export function useSetAiCreditWeight() {
+  return useRpc('set_ai_credit_weight', ['ai-credit-weights', 'entitlement-sync-status']);
+}
+
+/**
+ * Los campos comerciales de la política admiten NULL = «no decidido» (D-03).
+ * El tipo generado no lo refleja (los argumentos sin default salen no nulos),
+ * así que se declara aquí explícitamente.
+ */
+export type CreateAiCreditPolicyArgs = Omit<
+  Args<'create_ai_credit_policy'>,
+  'p_pool_scope' | 'p_included_credits' | 'p_overage_mode'
+> & {
+  p_pool_scope: string | null;
+  p_included_credits: number | null;
+  p_overage_mode: string | null;
+};
+
+export function useCreateAiCreditPolicy() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: CreateAiCreditPolicyArgs) =>
+      callRpc('create_ai_credit_policy', args as unknown as Args<'create_ai_credit_policy'>),
+    onSuccess: () => invalidate(qc, ['ai-credit-policies', ...AGGREGATE_KEYS]),
+  });
+}
+
+/** GRANT_PERIOD de los incluidos. Idempotente por política × período. */
+export function useOpenAiCreditPeriod() {
+  return useRpc('open_ai_credit_period', AI_CREDIT_KEYS);
+}
+
+/** Movimiento manual de finanzas. La UI lo limita a GRANT_BONUS / ADJUST. */
+export function useRecordAiCreditEntry() {
+  return useRpc('record_ai_credit_entry', AI_CREDIT_KEYS);
+}
+
+/** CREDIT_PURCHASE (ítem ONE_TIME en el contrato) + GRANT_PURCHASE en el ledger. */
+export function usePurchaseAiCredits() {
+  return useRpc('purchase_ai_credits', [...AI_CREDIT_KEYS, 'subscriptions', 'subscription']);
+}
+
+export function useSetCatalogItemCreditPack() {
+  return useRpc('set_catalog_item_credit_pack', ['catalog-items']);
+}
+
+/** Para `AI_CREDIT` el medidor DEBE ir nulo; el tipo generado no lo admite. */
+export type SetCatalogItemUsageBindingArgs = Omit<Args<'set_catalog_item_usage_binding'>, 'p_meter_code'> & {
+  p_meter_code: string | null;
+};
+
+export function useSetCatalogItemUsageBinding() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: SetCatalogItemUsageBindingArgs) =>
+      callRpc('set_catalog_item_usage_binding', args as unknown as Args<'set_catalog_item_usage_binding'>),
+    onSuccess: () => invalidate(qc, ['catalog-items', ...AGGREGATE_KEYS]),
+  });
+}
+
+/** Mueve un eje de cutover un paso (adelante o atrás), con motivo. */
+export function useSetCommercialCutoverState() {
+  return useRpc('set_commercial_cutover_state', [
+    'product-integrations', 'product-integration', 'commercial-cutover-axes', 'commercial-cutover-history',
+  ]);
+}
+
+/** Compara el biller local con lo que MasterAdmin facturaría y guarda el reporte. */
+export function useRecordBillingShadowComparison() {
+  return useRpc('record_billing_shadow_comparison', ['billing-shadow-comparisons']);
+}
+
+/* ===================================================================
+
+   M4 · Complementos de consola (migración 20261012000100, spec §5)
+   ========================================================================== */
+
+/** OPEN → CLOSING de un período terminado (finanzas, con motivo). */
+export function useCloseUsageAggregate() {
+  return useRpc('close_usage_aggregate', USAGE_AGGREGATE_KEYS);
+}
+
+/** Acuse de una alerta (finanzas o admin de producto). La alerta no cambia. */
+export function useAcknowledgeUsageAlert() {
+  return useRpc('acknowledge_usage_alert', ['usage-alerts']);
+}
+
+/** Cierra la vigencia de una política de créditos (una sola vez, sin retroactivo). */
+export function useEndAiCreditPolicy() {
+  return useRpc('end_ai_credit_policy', ['ai-credit-policies']);
+}
+
+/** Quita el vínculo METER/AI_CREDIT de un ítem PER_UNIT. */
+export function useClearCatalogItemUsageBinding() {
+  return useRpc('clear_catalog_item_usage_binding', ['catalog-items']);
+}
+
+/* ==========================================================================
+   M3 · Tarifa de plataforma de partners (spec §4). Finanzas o super admin.
+   ========================================================================== */
+
+const PARTNER_FEE_KEYS = ['partner-fee-statements', 'partner-fee-statement-lines'];
+
+/** Términos de la tarifa del acuerdo; NONE si factura EBIM (la base lo exige). */
+export function useSetAgreementPlatformFee() {
+  return useRpc('set_agreement_platform_fee', ['agreements', 'partner-agreements', 'platform-fee-agreements']);
+}
+
+/** DIRECT ↔ PARTNER_STATEMENT para corregir un contrato existente. */
+export function useSetSubscriptionBillingChannel() {
+  return useRpc('set_subscription_billing_channel', ['subscriptions', 'subscription']);
+}
+
+export function useComputePartnerFeeStatement() {
+  return useRpc('compute_partner_fee_statement', PARTNER_FEE_KEYS);
+}
+
+export function useComputeAllPartnerFeeStatements() {
+  return useRpc('compute_all_partner_fee_statements', PARTNER_FEE_KEYS);
+}
+
+export function useIssuePartnerFeeStatement() {
+  return useRpc('issue_partner_fee_statement', [...PARTNER_FEE_KEYS, 'invoices']);
+}
+
+export function useVoidPartnerFeeStatement() {
+  return useRpc('void_partner_fee_statement', [...PARTNER_FEE_KEYS, 'invoices']);
+}
+
+/* ==========================================================================
+   M5 · Usuarios y perfiles (spec §6)
+   --------------------------------------------------------------------------
+   Toda escritura es una RPC `SECURITY DEFINER` con auditoría; la Edge Function
+   `user-admin` (invitar, reenviar, desactivar con baneo) autoriza llamando esas
+   mismas RPC con el JWT del operador. La UI ofrece según `usePermissions`, pero
+   la base es la autoridad.
+   ========================================================================== */
+
+const USER_KEYS = ['admin-users', 'admin-user', 'user-activity', 'user-invitations', 'platform-people'];
+
+export function useAdminUpdateProfile() {
+  return useRpc('admin_update_profile', [...USER_KEYS, 'my-profile']);
+}
+
+/** Super admin. Nunca EBIM_SUPER_ADMIN (la base lo rechaza igualmente). */
+export function useGrantPlatformRole() {
+  return useRpc('grant_platform_role', USER_KEYS);
+}
+
+export function useRevokePlatformRole() {
+  return useRpc('revoke_platform_role', USER_KEYS);
+}
+
+export function useUpsertOrganizationMembership() {
+  return useRpc('upsert_organization_membership', USER_KEYS);
+}
+
+export function useSetOrganizationMembershipActive() {
+  return useRpc('set_organization_membership_active', USER_KEYS);
+}
+
+export function useUpsertTenantMembership() {
+  return useRpc('upsert_tenant_membership', USER_KEYS);
+}
+
+export function useSetTenantMembershipActive() {
+  return useRpc('set_tenant_membership_active', USER_KEYS);
+}
+
+/** Revoca un rol transversal de provisioning (RPC existente, super admin). */
+export function useRevokeProvisioningRole() {
+  return useRpc('revoke_provisioning_role', ['provisioning-permissions', ...USER_KEYS]);
+}
+
+/** Vincula (o desvincula con `p_user_id` vacío) un usuario a un comercial. */
+export function useLinkUserSalesAgent() {
+  return useRpc('link_user_sales_agent', [...USER_KEYS, 'sales-agents']);
+}
+
+/** /bienvenida: marca aceptadas las invitaciones del usuario recién activado. */
+export function useAcceptMyInvitations() {
+  return useRpc('accept_my_invitations', ['user-invitations']);
+}
+
+export type UserAdminRequest =
+  | { action: 'invite'; email: string; full_name?: string; grant: InviteGrant }
+  | { action: 'resend'; user_id: string }
+  | { action: 'ban'; user_id: string; reason: string }
+  | { action: 'unban'; user_id: string; reason?: string };
+
+export interface UserAdminResult {
+  status: 'INVITED' | 'EXISTING_USER' | 'RESENT' | 'DEACTIVATED' | 'REACTIVATED';
+  user_id: string;
+  delivery?: 'EMAIL' | 'LINK';
+  /** Enlace de invitación de un solo uso. Solo cuando no hubo correo; no se guarda. */
+  action_link?: string;
+  grant_applied?: boolean;
+  grant_error?: string;
+  grant_message?: string;
+  auth_updated?: boolean;
+  summary?: Record<string, unknown>;
+}
+
+/** Error de la Edge Function con su código canónico (`NO_AUTORIZADO`, …). */
+export class UserAdminError extends Error {
+  constructor(public readonly code: string, message: string) {
+    super(`${code}: ${message}`);
+    this.name = 'UserAdminError';
+  }
+}
+
+export async function invokeUserAdmin(body: UserAdminRequest): Promise<UserAdminResult> {
+  const { data, error } = await supabase.functions.invoke<UserAdminResult>('user-admin', { body });
+  if (error) {
+    const context = (error as { context?: Response }).context;
+    if (context && typeof context.json === 'function') {
+      let payload: { error?: string; message?: string } | null = null;
+      try {
+        payload = (await context.json()) as { error?: string; message?: string };
+      } catch {
+        payload = null;
+      }
+      if (payload?.error) throw new UserAdminError(payload.error, payload.message ?? 'Operación rechazada.');
+    }
+    throw new Error(error.message);
+  }
+  if (!data) throw new Error('Respuesta vacía del servicio de usuarios.');
+  return data;
+}
+
+/** invite / resend / ban / unban (Edge Function `user-admin`). */
+export function useUserAdminAction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: invokeUserAdmin,
+    onSettled: () => invalidate(qc, [...USER_KEYS, 'audit-logs']),
+  });
+}
+
+/* ---- fin M5 · Usuarios y perfiles ---------------------------------------- */

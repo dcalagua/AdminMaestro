@@ -15,7 +15,29 @@ export default defineConfig({
   // Mismo criterio que el blocker B-01 del baseline: se mueve NUESTRO puerto,
   // no se mata el servidor de otro proyecto.
   server: { port: 5199, host: '127.0.0.1', strictPort: true },
-  build: { outDir: 'dist', sourcemap: false },
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        /*
+         * V5 · F0: las librerías base van a chunks propios. Cambian mucho menos
+         * que la consola, así que el navegador las conserva en caché entre
+         * despliegues; las pantallas ya se cargan por ruta (`App.tsx`).
+         * Recharts NO entra aquí: lo pide solo el resumen ejecutivo.
+         */
+        manualChunks(id: string) {
+          if (!id.includes('node_modules')) return undefined;
+          if (/[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/.test(id)) return 'vendor-react';
+          if (id.includes('/node_modules/@supabase/')) return 'vendor-supabase';
+          if (id.includes('/node_modules/@tanstack/')) return 'vendor-query';
+          if (/[\\/]node_modules[\\/](zod|react-hook-form|@hookform)[\\/]/.test(id)) return 'vendor-forms';
+          if (id.includes('/node_modules/@phosphor-icons/')) return 'vendor-icons';
+          return undefined;
+        },
+      },
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom',
@@ -31,6 +53,8 @@ export default defineConfig({
     include: [
       'src/**/*.{test,spec}.{ts,tsx}',
       'supabase/functions/**/*.{test,spec}.ts',
+      // Contratos publicados (FIX-ENT-v1): receptor de referencia y pin.
+      'contracts/**/*.test.ts',
     ],
     coverage: { provider: 'v8', reporter: ['text', 'json-summary'] },
   },

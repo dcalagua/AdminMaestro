@@ -71,3 +71,34 @@ describe('buildExecutionContext', () => {
     expect(buildExecutionContext.length).toBe(2);
   });
 });
+
+/*
+ * Fase 08 (Commercial Control Plane, MA-36): acciones de entitlements.
+ * SOLO se añaden casos: los de arriba no cambian.
+ */
+describe('acciones de entitlements (aditivas)', () => {
+  it.each([
+    ['SYNC_ENTITLEMENTS', 'SYNC_ENTITLEMENTS'],
+    ['GET_ENTITLEMENTS', 'GET_ENTITLEMENTS'],
+  ])('%s → %s', (raw, expected) => {
+    expect(routeAction(raw)).toBe(expected);
+  });
+
+  it('en minúsculas siguen yendo a PROVISION, con la misma regla de siempre', () => {
+    expect(routeAction('sync_entitlements')).toBe('PROVISION');
+    expect(routeAction('get_entitlements')).toBe('PROVISION');
+  });
+
+  it('se autorizan con un booleano propio sobre el tenant, no con los de provisioning', () => {
+    expect(permissionRpcFor('SYNC_ENTITLEMENTS')).toEqual({
+      rpc: 'can_sync_entitlements',
+      arg: 'p_tenant_id',
+      bodyField: 'tenant_id',
+    });
+    expect(permissionRpcFor('GET_ENTITLEMENTS')).toEqual({
+      rpc: 'can_read_entitlement_sync',
+      arg: 'p_tenant_id',
+      bodyField: 'tenant_id',
+    });
+  });
+});

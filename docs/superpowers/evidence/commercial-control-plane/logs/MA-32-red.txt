@@ -1,0 +1,14 @@
+Connecting to local database...
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/35_ccp_entitlement_snapshots.test.sql:53: ERROR:  type "platform.entitlement_snapshots" does not exist
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/35_ccp_entitlement_snapshots.test.sql .. 
+Dubious, test returned 3 (wstat 768, 0x300)
+Failed 46/46 subtests 
+
+Test Summary Report
+-------------------
+/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/35_ccp_entitlement_snapshots.test.sql (Wstat: 768 (exited 3) Tests: 0 Failed: 0)
+  Non-zero exit status: 3
+  Parse errors: Bad plan.  You planned 46 tests but ran 0.
+Files=1, Tests=0,  0 wallclock secs ( 0.01 usr +  0.01 sys =  0.02 CPU)
+Result: FAIL
+error running container: exit 1

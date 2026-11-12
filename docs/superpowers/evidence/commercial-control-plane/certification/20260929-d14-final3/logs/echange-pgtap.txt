@@ -1,0 +1,53 @@
+aislamiento_de_ambientes_test plan=1..48 ok=48 not_ok=0 rc=0
+asistente_ingreso_test plan=1..21 ok=21 not_ok=0 rc=0
+asset_documents_test plan=1..36 ok=36 not_ok=0 rc=0
+catalogo_formularios_test plan=1..29 ok=29 not_ok=0 rc=0
+ccp_agent_entitlement_test plan=1..24 ok=24 not_ok=0 rc=0
+ccp_channel_entitlement_test plan=1..29 ok=29 not_ok=0 rc=0
+ccp_commercial_parity_test plan=1..18 ok=18 not_ok=0 rc=0
+ccp_definer_public_test plan=1..27 ok=27 not_ok=0 rc=0
+ccp_usage_delivery_test plan=1..52 ok=52 not_ok=0 rc=0
+ccp_usage_outbox_test plan=1..30 ok=30 not_ok=0 rc=0
+entrega_firma_remota_test plan=1..22 ok=22 not_ok=0 rc=0
+incidentes_masivos_test plan=1..51 ok=51 not_ok=0 rc=0
+intake_durable_test plan=1..38 ok=38 not_ok=0 rc=0
+kb_feedback_test plan=1..44 ok=44 not_ok=0 rc=0
+linea_de_tiempo_test plan=1..36 ok=34 not_ok=2 rc=0
+     not ok 20 - `anon` no puede pedir la linea de tiempo de un caso cualquiera con la llave publica        +
+     # Failed test 20: "`anon` no puede pedir la linea de tiempo de un caso cualquiera con la llave publica"
+     not ok 21 - Ni `authenticated`: es `security definer`, asi que RLS no la frena y solo la usa el portal        +
+     # Failed test 21: "Ni `authenticated`: es `security definer`, asi que RLS no la frena y solo la usa el portal"
+mis_casos_portal_test plan=1..47 ok=47 not_ok=0 rc=0
+participantes_test plan=1..67 ok=67 not_ok=0 rc=0
+platform_entitlements_gate_test plan=1..34 ok=34 not_ok=0 rc=0
+platform_entitlements_test plan=1..74 ok=74 not_ok=0 rc=0
+platform_provisioning_test plan=1..31 ok=31 not_ok=0 rc=0
+portal_autorizaciones_test plan=1..37 ok=37 not_ok=0 rc=0
+portal_mutaciones_test plan=1..41 ok=41 not_ok=0 rc=0
+portal_visibility_test plan=1..26 ok=23 not_ok=3 rc=0
+     not ok 22 - GRANT· authenticated NO puede: la Mesa tiene la suya, con su propia puerta        +
+     # Failed test 22: "GRANT· authenticated NO puede: la Mesa tiene la suya, con su propia puerta"
+     not ok 23 - GRANT· anon NO puede        +
+     # Failed test 23: "GRANT· anon NO puede"
+     not ok 26 - GRANT· anon NO puede: no la necesita y es parte de una frontera de seguridad        +
+     # Failed test 26: "GRANT· anon NO puede: no la necesita y es parte de una frontera de seguridad"
+preferencias_aviso_test plan=1..78 ok=78 not_ok=0 rc=0
+requester_activation_test plan=1..46 ok=46 not_ok=0 rc=0
+rls_aislamiento_tenant_test plan=1..45 ok=45 not_ok=0 rc=0
+ticket_activos_test plan=1..30 ok=30 not_ok=0 rc=0
+ticket_attachments_test plan=1..55 ok=50 not_ok=5 rc=0
+     not ok 49 - authenticated NO puede listar pendientes vencidos        +
+     # Failed test 49: "authenticated NO puede listar pendientes vencidos"
+     not ok 50 - anon NO puede listar pendientes vencidos        +
+     # Failed test 50: "anon NO puede listar pendientes vencidos"
+     not ok 51 - authenticated NO puede purgar        +
+     # Failed test 51: "authenticated NO puede purgar"
+     not ok 52 - anon NO puede purgar        +
+     # Failed test 52: "anon NO puede purgar"
+     not ok 55 - llamar el barrido con el rol de un usuario da permission denied        +
+     # Failed test 55: "llamar el barrido con el rol de un usuario da permission denied"+
+     #         have: SIN_ERROR                                                          +
+     #         want: 42501
+TOTAL ok=1106 not_ok=10
+---- baseline: 10 conocidas · observadas: 10 · ok: 1106
+BASELINE_OK

@@ -1,0 +1,32 @@
+
+ RUN  v3.2.7 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.claude/worktrees/agent-aa00cf8474767114e
+
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  supabase/functions/_shared/entitlements/hub/hub-export.test.ts [ supabase/functions/_shared/entitlements/hub/hub-export.test.ts ]
+Error: Failed to resolve import "./hub-export" from "supabase/functions/_shared/entitlements/hub/hub-export.test.ts". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.claude/worktrees/agent-aa00cf8474767114e/supabase/functions/_shared/entitlements/hub/hub-export.test.ts:5:66
+  3  |  import { resolve } from "node:path";
+  4  |  import { entitlementChecksum } from "../jcs";
+  5  |  import { HUB_EXPORT_FORMAT, HubExportError, parseHubExport } from "./hub-export";
+     |                                                                     ^
+  6  |  const FIXTURE = resolve(__dirname, "fixtures/hub-export.synthetic.json");
+  7  |  function fixture() {
+ ❯ TransformPluginContext._formatLog ../../../.worktrees/ebim-commercial-control-plane-v1/node_modules/vite/dist/node/chunks/config.js:29079:43
+ ❯ TransformPluginContext.error ../../../.worktrees/ebim-commercial-control-plane-v1/node_modules/vite/dist/node/chunks/config.js:29076:14
+ ❯ normalizeUrl ../../../.worktrees/ebim-commercial-control-plane-v1/node_modules/vite/dist/node/chunks/config.js:27199:18
+ ❯ ../../../.worktrees/ebim-commercial-control-plane-v1/node_modules/vite/dist/node/chunks/config.js:27257:32
+ ❯ TransformPluginContext.transform ../../../.worktrees/ebim-commercial-control-plane-v1/node_modules/vite/dist/node/chunks/config.js:27225:4
+ ❯ EnvironmentPluginContainer.transform ../../../.worktrees/ebim-commercial-control-plane-v1/node_modules/vite/dist/node/chunks/config.js:28877:14
+ ❯ loadAndTransform ../../../.worktrees/ebim-commercial-control-plane-v1/node_modules/vite/dist/node/chunks/config.js:22746:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  12:21:56
+   Duration  701ms (transform 16ms, setup 49ms, collect 0ms, tests 0ms, environment 301ms, prepare 40ms)
+

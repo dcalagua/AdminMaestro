@@ -1,0 +1,50 @@
+{
+  "schema": "ebim.ccp.d14-billing-cert/v1",
+  "synthetic": true,
+  "notice": "SYNTHETIC certification dataset for D-14 BILLING_SHADOW (DEV/LOCAL only). NOT a price list: amounts are arbitrary test values, never copied from any legacy price list. It never touches real plans: it creates its OWN certification plan/catalog rows in disposable local databases and a SANDBOX (non-production, non-billable) tenant in the local MasterAdmin (DEMO cannot hold an ACTIVE recurring contract, rule 2.2). The same file configures BOTH engines; each one then computes from its own tables.",
+  "period": "2026-10",
+  "masteradmin": {
+    "customerOrganizationId": "30000000-0000-4000-a000-000000000002",
+    "market": "PE"
+  },
+  "products": {
+    "eexpense": {
+      "currency": "PEN",
+      "masteradmin": {
+        "tenant": { "id": "9f150000-0000-4000-8000-000000000001", "slug": "d14-cert-eexpense", "name": "D-14 certificación eExpense (sintético)", "adminEmail": "d14-cert-eexpense@ebim.test" },
+        "plan": { "id": "d1400000-0000-4000-8000-0000000000e1", "code": "eexpense-cert-d14", "name": "eExpense · certificación D-14 (sintético)" },
+        "subscription": { "id": "d1400000-0000-4000-8000-0000000000e2", "code": "SUB-D14-CERT-EEXPENSE", "startedOn": "2026-10-01" },
+        "items": [
+          { "chargeKind": "LICENSE", "description": "Licencia certificación D-14 (sintético)", "quantity": 1, "unitAmount": 123.45, "billingInterval": "MONTHLY", "catalogItemCode": null, "validFrom": "2026-10-01" }
+        ]
+      },
+      "local": {
+        "plan": { "code": "eexpense-cert-d14", "name": "Certificación D-14 (sintético)", "monthlyPrice": 123.45, "currency": "PEN" },
+        "addons": [],
+        "addonNote": "eExpense's local biller prices add-ons only from the legacy public.addons price list (real prices) and every sellable add-on is a registry capability; a synthetic add-on would either copy a real price or be an unregistered item. The certification dataset therefore has no add-on line for eExpense."
+      },
+      "itemMap": { "plan:eexpense-cert-d14": "plan:eexpense-cert-d14" }
+    },
+    "gmao": {
+      "currency": "PEN",
+      "masteradmin": {
+        "tenant": { "id": "9f160000-0000-4000-8000-000000000001", "slug": "d14-cert-gmao", "name": "D-14 certificación GMAO (sintético)", "adminEmail": "d14-cert-gmao@ebim.test" },
+        "plan": { "id": "d1400000-0000-4000-8000-0000000000a1", "code": "gmao-cert-d14", "name": "GMAO · certificación D-14 (sintético)" },
+        "subscription": { "id": "d1400000-0000-4000-8000-0000000000a2", "code": "SUB-D14-CERT-GMAO", "startedOn": "2026-10-01" },
+        "items": [
+          { "chargeKind": "LICENSE", "description": "Licencia certificación D-14 (sintético)", "quantity": 1, "unitAmount": 123.45, "billingInterval": "MONTHLY", "catalogItemCode": null, "validFrom": "2026-10-01" },
+          { "chargeKind": "SUPPORT_FEE", "description": "Soporte certificación D-14 (sintético)", "quantity": 1, "unitAmount": 10.00, "billingInterval": "MONTHLY", "catalogItemCode": null, "validFrom": "2026-10-01" }
+        ]
+      },
+      "local": {
+        "appCode": "gmao",
+        "catalogItems": [
+          { "code": "gmao_cert_d14_plan", "name": "Plan certificación D-14 (sintético)", "category": "module", "priceMonth": 123.45, "currency": "PEN" },
+          { "code": "gmao_cert_d14_support", "name": "Soporte certificación D-14 (sintético)", "category": "addon", "priceMonth": 10.00, "currency": "PEN" }
+        ],
+        "paymentConfig": { "provider": "culqi", "currency": "PEN", "secretKey": "fixture-not-a-secret" }
+      },
+      "itemMap": { "gmao_cert_d14_plan": "plan:gmao-cert-d14", "gmao_cert_d14_support": "charge:SUPPORT_FEE" }
+    }
+  }
+}

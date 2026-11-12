@@ -1,20 +1,56 @@
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   useProduct, useTenantOverview, usePartnerAgreements, usePlans,
-  useProductMargin, useDeploymentTargets, useSubscriptions,
+  useProductMargin, useDeploymentTargets, useSubscriptions, useProductIntegrations,
 } from '@/services/queries';
 import { SectionTabs } from '@/components/ui/SectionTabs';
 import {
-  PageContainer, Card, DataTable, LoadingState, ErrorState, EmptyState, Badge, StatCard,
+  PageContainer, Card, DataTable, LoadingState, ErrorState, EmptyState, Badge, KpiTile,
 } from '@/components/ui/primitives';
+import { KpiStrip, NativeAmountTile } from '@/features/billing/financeUi';
+import { initialsOf } from '@/lib/initials';
 import { usePermissions } from '@/hooks/usePermissions';
-import { formatMoney, formatPercent, formatNumber, formatDate } from '@/lib/format';
-import { DEPLOYMENT_MODE_LABEL, TENANT_TYPE_LABEL } from '@/types/domain';
+import { formatMoney, formatPercent, formatNumber, formatDateTime, sumByCurrency } from '@/lib/format';
+import { DEPLOYMENT_MODE_LABEL, TENANT_STATUS_LABEL, TENANT_TYPE_LABEL } from '@/types/domain';
+import { StateMessage } from '@/features/executive/components/StateView';
+import { fromQuery } from '@/features/executive/dataState';
+import { billingUnitLabel, countText, entityStatusLabel, entityStatusTone, summarizeIntegration } from './catalogLabels';
+import type { PriceRow } from './catalogLabels';
 import { ProductFormDialog } from './ProductFormDialog';
 import { RegionalPriceList } from './RegionalPriceList';
+import { ActionMenu } from '@/components/ui/ActionMenu';
+import { BILLING_RESPONSIBILITY_TEXT } from '@/features/organizations/organizationLabels';
 import { PlanFormDialog, PlanPriceDialog } from './PlanDialogs';
 import type { PlanDraft } from './PlanDialogs';
+
+interface ReadLike {
+  data?: unknown;
+  error?: unknown;
+  isLoading?: boolean;
+  dataUpdatedAt?: number;
+  refetch?: () => unknown;
+}
+
+/**
+ * Guarda de lectura por pestaña: mientras carga o si la lectura falla (o no hay
+ * acceso) se dice eso — nunca se pinta como lista vacía ni como cero.
+ */
+function guard(query: ReadLike): ReactNode | null {
+  if (query.isLoading) return <LoadingState variant="page" />;
+  if (query.error) {
+    return (
+      <div className="px-4">
+        <StateMessage
+          state={fromQuery(query, { isEmpty: () => false })}
+          onRetry={query.refetch ? () => void query.refetch!() : undefined}
+        />
+      </div>
+    );
+  }
+  return null;
+}
 
 /**
  * Vista 360 de un SaaS de la suite.
@@ -32,6 +68,7 @@ export function ProductDetailPage() {
   const margins = useProductMargin();
   const targets = useDeploymentTargets();
   const subs = useSubscriptions();
+  const integrations = useProductIntegrations();
   const perms = usePermissions();
 
   const [editing, setEditing] = useState(false);
@@ -41,8 +78,24 @@ export function ProductDetailPage() {
   });
   const [priceDialog, setPriceDialog] = useState<{ id: string; name: string } | null>(null);
 
-  if (product.isLoading) return <LoadingState />;
-  if (product.error) return <ErrorState error={product.error} />;
+  if (product.isLoading) {
+    return (
+      <PageContainer title="Producto">
+        <LoadingState label="Cargando producto…" />
+      </PageContainer>
+    );
+  }
+  if (product.error) {
+    return (
+      <PageContainer
+        title="Producto"
+      >
+        <Card>
+          <ErrorState error={product.error} onRetry={() => void product.refetch()} />
+        </Card>
+      </PageContainer>
+    );
+  }
   if (!product.data) {
     return (
       <PageContainer title="Producto no encontrado">
@@ -67,14 +120,41 @@ export function ProductDetailPage() {
   // El margen viene agrupado por moneda: no se suman PEN y USD sin FX explícito.
   // V3 · una fila por moneda; la fila sin moneda es «sin actividad», no «USD 0».
   const productMargins = (margins.data ?? []).filter((m) => m.saas_product_id === p.id && m.currency);
+  const productIntegrations = ((integrations.data ?? []) as Array<Record<string, unknown>>).filter(
+    (i) => i.saas_product_id === p.id,
+  );
+  const integration = summarizeIntegration(productIntegrations);
+  const integrationText = integrations.error
+    ? countText(integrations, 0)
+    : integrations.isLoading
+      ? '…'
+      : integration.label;
 
   return (
     <PageContainer
       title={p.lockup_name ?? p.name}
       description={p.description ?? undefined}
-      breadcrumbs={
-        <Link className="text-xs text-muted hover:text-fg" to="/products">← SaaS Products</Link>
+      leading={
+        <span
+          aria-hidden
+          className="relative inline-flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-accent-soft text-h3 font-bold text-accent-deep"
+        >
+          {initialsOf(p.short_name)}
+          {/* Color de marca del producto (dato del catálogo) como franja inferior. */}
+          <span className="absolute inset-x-0 bottom-0 h-1.5 bg-accent" style={p.accent_color ? { background: p.accent_color } : undefined} />
+        </span>
       }
+      titleAside={
+        <>
+          <Badge tone={entityStatusTone(p.status)} dot>
+            {entityStatusLabel(p.status)}
+          </Badge>
+          {integrations.error || integrations.isLoading ? null : (
+            <Badge tone={integration.tone}>Integración: {integration.label.toLowerCase()}</Badge>
+          )}
+        </>
+      }
+      meta={`${billingUnitLabel(p.billing_unit)} · ${p.is_billable ? 'facturable' : 'no facturable'} · código ${p.code}`}
       actions={
         perms.canManagePlatform ? (
           <button type="button" className="ebim-btn-ghost" onClick={() => setEditing(true)}>
@@ -83,12 +163,32 @@ export function ProductDetailPage() {
         ) : null
       }
     >
-      <div className="mb-5 grid gap-3 sm:grid-cols-4">
-        <StatCard label="Tenants" value={formatNumber(productTenants.length)} />
-        <StatCard label="Canales habilitados" value={formatNumber(productAgreements.length)} />
-        <StatCard label="Planes" value={formatNumber(productPlans.length)} />
-        <StatCard label="Unidad de cobro" value={p.billing_unit} />
-      </div>
+      <KpiStrip label="Indicadores del producto">
+        <NativeAmountTile
+          label="MRR vigente"
+          info="MRR de los tenants del producto por moneda (foto actual); nunca se suman monedas"
+          amounts={sumByCurrency(productTenants, (t) => t.mrr, (t) => t.currency)}
+          state={fromQuery(tenants, { isEmpty: () => false })}
+          onRetry={() => void tenants.refetch()}
+          emptyLabel="Sin recurrente vigente"
+          footer="Foto actual de los contratos"
+        />
+        <KpiTile
+          label="Tenants"
+          value={countText(tenants, productTenants.length)}
+          footer={
+            tenants.data
+              ? `${formatNumber(productTenants.filter((t) => t.tenant_type === 'PRODUCTION').length)} productivos`
+              : undefined
+          }
+        />
+        <KpiTile
+          label="Canales habilitados"
+          value={countText(agreements, productAgreements.length)}
+          footer="Partners con acuerdo para este producto"
+        />
+        <KpiTile label="Planes" value={countText(plans, productPlans.length)} footer="En el catálogo, todos los estados" />
+      </KpiStrip>
 
       <SectionTabs
         tabs={[
@@ -100,16 +200,17 @@ export function ProductDetailPage() {
                 <Card title="Identidad del producto">
                   <dl className="divide-y divide-border">
                     {[
-                      ['Código', p.code],
                       ['Nombre completo', p.name],
                       ['Nombre corto', p.short_name],
                       ['Lockup', p.lockup_name ?? '—'],
-                      ['Color de acento', p.accent_color ?? 'Hereda de EBIM'],
-                      ['Unidad de cobro', p.billing_unit],
+                      ['Estado comercial', entityStatusLabel(p.status)],
+                      ['Integración técnica', integrationText],
+                      ['Unidad de cobro', billingUnitLabel(p.billing_unit)],
                       ['Facturable', p.is_billable ? 'Sí' : 'No'],
-                      ['Estado', p.status],
+                      ['Color de marca', p.accent_color ? 'Propio del producto' : 'Hereda de EBIM'],
+                      ['Código técnico', p.code],
                     ].map(([k, v]) => (
-                      <div key={k as string} className="flex justify-between gap-4 px-4 py-2.5 text-sm">
+                      <div key={k as string} className="flex justify-between gap-4 px-5 py-2.5 text-body">
                         <dt className="text-muted">{k}</dt>
                         <dd className="text-right font-medium">{v as string}</dd>
                       </div>
@@ -121,9 +222,10 @@ export function ProductDetailPage() {
                   title="Distribución de tenants"
                   description="Los tres modelos conviven sin ramas de código."
                 >
+                  {guard(tenants) ?? (
                   <dl className="divide-y divide-border">
                     {(['SHARED', 'PARTNER_DEDICATED', 'TENANT_DEDICATED'] as const).map((mode) => (
-                      <div key={mode} className="flex justify-between gap-4 px-4 py-2.5 text-sm">
+                      <div key={mode} className="flex justify-between gap-4 px-5 py-2.5 text-body">
                         <dt className="text-muted">{DEPLOYMENT_MODE_LABEL[mode]}</dt>
                         <dd className="text-right font-medium tabular-nums">
                           {formatNumber(
@@ -132,13 +234,14 @@ export function ProductDetailPage() {
                         </dd>
                       </div>
                     ))}
-                    <div className="flex justify-between gap-4 px-4 py-2.5 text-sm">
+                    <div className="flex justify-between gap-4 px-5 py-2.5 text-body">
                       <dt className="text-muted">Suscripciones activas</dt>
                       <dd className="text-right font-medium tabular-nums">
-                        {formatNumber(productSubs.filter((s) => s.status === 'ACTIVE').length)}
+                        {countText(subs, productSubs.filter((s) => s.status === 'ACTIVE').length)}
                       </dd>
                     </div>
                   </dl>
+                  )}
                 </Card>
               </div>
             ),
@@ -161,14 +264,17 @@ export function ProductDetailPage() {
                   ) : null
                 }
               >
-                {productPlans.length === 0 ? (
+                {guard(plans) ?? (productPlans.length === 0 ? (
                   <EmptyState
                     title="Sin planes definidos"
                     description="Sin plan no se puede vender este producto."
                   />
                 ) : (
                   <DataTable
-                    columns={['Plan', 'Modelo', 'Sociedades incluidas', 'Precios vigentes', '']}
+                    columns={[
+                      'Plan', 'Modelo', { label: 'Sociedades incluidas', align: 'right' }, 'Precio recurrente', 'Cargos únicos',
+                      { label: 'Acciones', srOnly: true },
+                    ]}
                   >
                     {productPlans.map((pl) => (
                       <tr key={pl.id as string}>
@@ -179,7 +285,7 @@ export function ProductDetailPage() {
                               <Badge tone="accent">Licencia base partner</Badge>
                             ) : null}
                           </div>
-                          <div className="text-xs text-muted">{pl.description}</div>
+                          <div className="text-compact text-fg-2">{pl.description}</div>
                         </td>
                         <td className="ebim-td">
                           {pl.deployment_mode
@@ -188,51 +294,47 @@ export function ProductDetailPage() {
                               ]
                             : 'Cualquiera'}
                         </td>
-                        <td className="ebim-td tabular-nums">{pl.included_companies}</td>
+                        <td className="ebim-td ebim-num">{pl.included_companies}</td>
                         <td className="ebim-td">
-                          <RegionalPriceList prices={pl.plan_prices as Array<Record<string, unknown>>} />
+                          <RegionalPriceList prices={pl.plan_prices as PriceRow[]} kind="recurring" />
                         </td>
                         <td className="ebim-td">
+                          <RegionalPriceList prices={pl.plan_prices as PriceRow[]} kind="one-time" />
+                        </td>
+                        <td className="ebim-td w-12 text-right">
                           {perms.canManagePlatform ? (
-                            <div className="flex items-center justify-end gap-3">
-                              <button
-                                type="button"
-                                className="ebim-link text-[13px]"
-                                onClick={() =>
-                                  setPlanDialog({
-                                    open: true,
-                                    plan: {
-                                      id: pl.id,
-                                      code: pl.code,
-                                      name: pl.name,
-                                      saas_product_id: pl.saas_product_id,
-                                      deployment_mode: pl.deployment_mode,
-                                      included_companies: pl.included_companies,
-                                      multi_country: pl.multi_country,
-                                      is_partner_base: pl.is_partner_base,
-                                      description: pl.description,
-                                      status: pl.status,
-                                      sort_order: pl.sort_order,
-                                    },
-                                  })
-                                }
-                              >
-                                Editar
-                              </button>
-                              <button
-                                type="button"
-                                className="ebim-link text-[13px]"
-                                onClick={() => setPriceDialog({ id: pl.id, name: pl.name })}
-                              >
-                                Fijar precio
-                              </button>
-                            </div>
+                            <ActionMenu
+                              label={`Acciones del plan ${pl.name}`}
+                              items={[
+                                { label: 'Fijar precio…', onSelect: () => setPriceDialog({ id: pl.id, name: pl.name }) },
+                                {
+                                  label: 'Editar plan',
+                                  onSelect: () =>
+                                    setPlanDialog({
+                                      open: true,
+                                      plan: {
+                                        id: pl.id,
+                                        code: pl.code,
+                                        name: pl.name,
+                                        saas_product_id: pl.saas_product_id,
+                                        deployment_mode: pl.deployment_mode,
+                                        included_companies: pl.included_companies,
+                                        multi_country: pl.multi_country,
+                                        is_partner_base: pl.is_partner_base,
+                                        description: pl.description,
+                                        status: pl.status,
+                                        sort_order: pl.sort_order,
+                                      },
+                                    }),
+                                },
+                              ]}
+                            />
                           ) : null}
                         </td>
                       </tr>
                     ))}
                   </DataTable>
-                )}
+                ))}
               </Card>
             ),
           },
@@ -241,7 +343,7 @@ export function ProductDetailPage() {
             label: 'Partners',
             content: (
               <Card description="Quién puede comercializar este SaaS y bajo qué condiciones. Un mismo partner puede tener otro margen en otro producto.">
-                {productAgreements.length === 0 ? (
+                {guard(agreements) ?? (productAgreements.length === 0 ? (
                   <EmptyState
                     title="Ninguna organización habilitada"
                     description="Nadie puede comercializar este producto todavía. Los acuerdos se crean desde el detalle de la organización."
@@ -283,14 +385,16 @@ export function ProductDetailPage() {
                             <span className="text-muted"> / {a.max_tenants}</span>
                           ) : null}
                         </td>
-                        <td className="ebim-td text-xs text-muted">{a.billing_responsibility}</td>
+                        <td className="ebim-td text-compact text-fg-2">{BILLING_RESPONSIBILITY_TEXT[a.billing_responsibility as string] ?? a.billing_responsibility}</td>
                         <td className="ebim-td">
-                          <Badge tone={a.status === 'ACTIVE' ? 'ok' : 'neutral'}>{a.status}</Badge>
+                          <Badge tone={entityStatusTone(a.status as string)}>
+                            {entityStatusLabel(a.status as string)}
+                          </Badge>
                         </td>
                       </tr>
                     ))}
                   </DataTable>
-                )}
+                ))}
               </Card>
             ),
           },
@@ -299,7 +403,7 @@ export function ProductDetailPage() {
             label: 'Tenants',
             content: (
               <Card>
-                {productTenants.length === 0 ? (
+                {guard(tenants) ?? (productTenants.length === 0 ? (
                   <EmptyState title="Sin tenants para este producto" />
                 ) : (
                   <DataTable
@@ -331,11 +435,13 @@ export function ProductDetailPage() {
                         <td className="ebim-td tabular-nums">
                           {formatMoney(Number(t.mrr), t.currency as string | null)}
                         </td>
-                        <td className="ebim-td text-muted">{t.status}</td>
+                        <td className="ebim-td text-muted">
+                          {TENANT_STATUS_LABEL[t.status as keyof typeof TENANT_STATUS_LABEL] ?? t.status}
+                        </td>
                       </tr>
                     ))}
                   </DataTable>
-                )}
+                ))}
               </Card>
             ),
           },
@@ -348,55 +454,44 @@ export function ProductDetailPage() {
                 title="Margen del producto"
                 description="Agrupado por moneda: no se consolidan PEN y USD sin un tipo de cambio auditable."
               >
-                {productMargins.length === 0 ? (
+                {guard(margins) ?? (productMargins.length === 0 ? (
                   <EmptyState
                     title="Sin margen calculable"
                     description="Aparece en cuanto el producto tenga suscripciones con cobros registrados."
                   />
                 ) : (
-                  <div className="space-y-4 p-4">
+                  <DataTable
+                    label="Margen del producto por moneda"
+                    columns={[
+                      'Moneda',
+                      { label: 'MRR', align: 'right' },
+                      { label: 'Cobrado total', align: 'right' },
+                      { label: 'One-time cobrado', align: 'right' },
+                      { label: 'Costo directo', align: 'right' },
+                      { label: 'Comisiones', align: 'right' },
+                      { label: 'Margen bruto', align: 'right' },
+                    ]}
+                  >
                     {productMargins.map((m) => (
-                      <div key={m.currency as string | null}>
-                        <p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted">
-                          Moneda {m.currency}
-                        </p>
-                        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                          <StatCard
-                            label="MRR"
-                            value={formatMoney(Number(m.mrr), m.currency)}
-                            hint="Solo lo recurrente"
-                          />
-                          <StatCard
-                            label="Cobrado total"
-                            value={formatMoney(Number(m.collected_revenue), m.currency)}
-                            tone="ok"
-                          />
-                          <StatCard
-                            label="One-time cobrado"
-                            value={formatMoney(Number(m.collected_one_time), m.currency)}
-                            hint="Implementación y servicios"
-                          />
-                          <StatCard
-                            label="Costo directo"
-                            value={formatMoney(Number(m.direct_cost), m.currency)}
-                            tone="warn"
-                          />
-                          <StatCard
-                            label="Comisiones"
-                            value={formatMoney(Number(m.commission_total), m.currency)}
-                            hint={`${formatMoney(Number(m.commission_pending), m.currency)} pendiente`}
-                            tone="warn"
-                          />
-                          <StatCard
-                            label="Margen bruto"
-                            value={formatMoney(Number(m.gross_margin), m.currency)}
-                            tone={Number(m.gross_margin) >= 0 ? 'ok' : 'danger'}
-                          />
-                        </div>
-                      </div>
+                      <tr key={m.currency as string}>
+                        <td className="ebim-td font-semibold">{m.currency}</td>
+                        <td className="ebim-td ebim-num">{formatMoney(Number(m.mrr), m.currency)}</td>
+                        <td className="ebim-td ebim-num">{formatMoney(Number(m.collected_revenue), m.currency)}</td>
+                        <td className="ebim-td ebim-num">{formatMoney(Number(m.collected_one_time), m.currency)}</td>
+                        <td className="ebim-td ebim-num">{formatMoney(Number(m.direct_cost), m.currency)}</td>
+                        <td className="ebim-td ebim-num">
+                          {formatMoney(Number(m.commission_total), m.currency)}
+                          <span className="block text-compact text-muted">
+                            {formatMoney(Number(m.commission_pending), m.currency)} pendiente
+                          </span>
+                        </td>
+                        <td className={`ebim-td ebim-num font-semibold ${Number(m.gross_margin) < 0 ? 'text-danger' : ''}`}>
+                          {formatMoney(Number(m.gross_margin), m.currency)}
+                        </td>
+                      </tr>
                     ))}
-                  </div>
-                )}
+                  </DataTable>
+                ))}
               </Card>
             ),
           },
@@ -405,7 +500,7 @@ export function ProductDetailPage() {
             label: 'Deployments',
             content: (
               <Card description="Infraestructura que sirve a este producto. Los targets sin producto asignado son compartidos de propósito general.">
-                {productTargets.length === 0 ? (
+                {guard(targets) ?? (productTargets.length === 0 ? (
                   <EmptyState title="Sin infraestructura asociada" />
                 ) : (
                   <DataTable
@@ -418,8 +513,8 @@ export function ProductDetailPage() {
                       return (
                         <tr key={t.id}>
                           <td className="ebim-td">
-                            <div className="font-mono text-xs font-semibold">{t.code}</div>
-                            <div className="text-xs text-muted">{t.name}</div>
+                            <div className="whitespace-nowrap font-mono text-compact font-semibold">{t.code}</div>
+                            <div className="text-compact text-fg-2">{t.name}</div>
                           </td>
                           <td className="ebim-td">
                             <Badge tone="accent">
@@ -438,16 +533,18 @@ export function ProductDetailPage() {
                           </td>
                           <td className="ebim-td tabular-nums">{formatNumber(active.length)}</td>
                           <td className="ebim-td">
-                            <Badge tone={t.status === 'ACTIVE' ? 'ok' : 'neutral'}>{t.status}</Badge>
+                            <Badge tone={entityStatusTone(t.status)}>{entityStatusLabel(t.status)}</Badge>
                           </td>
                         </tr>
                       );
                     })}
                   </DataTable>
-                )}
-                <p className="border-t border-border px-4 py-2.5 text-xs text-muted">
-                  Última lectura de infraestructura: {formatDate(new Date())}.
-                </p>
+                ))}
+                {targets.dataUpdatedAt ? (
+                  <p className="border-t border-border px-5 py-3 text-caption text-muted">
+                    Última lectura de infraestructura: {formatDateTime(new Date(targets.dataUpdatedAt))}.
+                  </p>
+                ) : null}
               </Card>
             ),
           },

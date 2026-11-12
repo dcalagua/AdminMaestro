@@ -1,0 +1,92 @@
+
+ RUN  v3.2.7 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1
+
+ ❯ supabase/functions/_shared/payments/recurring-amount.test.ts (29 tests | 2 failed) 9ms
+   ✓ recurringCardAmount · V3.1 > suma solo las líneas recurrentes vigentes de la cadencia del contrato 1ms
+   ✓ recurringCardAmount · V3.1 > rechaza cadencias mixtas: una licencia MONTHLY y un soporte YEARLY no caben en un solo plan 0ms
+   ✓ recurringCardAmount · V3.1 > sin importe recurrente no hay nada que domiciliar 0ms
+   ✓ recurringCardAmount · V3.1 > YEARLY puro se domicilia por su importe anual 0ms
+   ✓ recurringCardAmount · V3.1 > QUARTERLY puro se domicilia por su importe trimestral 0ms
+   ✓ recurringCardAmount · V3.2 cadencia futura > MONTHLY vigente + YEARLY que empieza en 3 meses: cadencia mixta 0ms
+   ✓ recurringCardAmount · V3.2 cadencia futura > MONTHLY futuro + YEARLY futuro, nada vigente hoy: cadencia mixta 0ms
+   ✓ recurringCardAmount · V3.2 cadencia futura > MONTHLY vigente + QUARTERLY futuro: cadencia mixta 0ms
+   ✓ recurringCardAmount · V3.2 cadencia futura > QUARTERLY vigente + YEARLY futuro: cadencia mixta 0ms
+   ✓ recurringCardAmount · V3.2 cadencia futura > YEARLY vigente + MONTHLY futuro: cadencia mixta 0ms
+   ✓ recurringCardAmount · V3.2 cadencia futura > una línea YEARLY ya vencida no convierte el contrato en mixto 0ms
+   ✓ recurringCardAmount · V3.2 cadencia futura > una línea que termina justo el día anterior a hoy se ignora 0ms
+   ✓ recurringCardAmount · V3.2 cadencia futura > ONE_TIME futuro no cuenta como cadencia ni cambia el importe recurrente 0ms
+   ✓ recurringCardAmount · V3.2 cadencia futura > una línea de otra cadencia que empieza después del fin del contrato no cuenta 0ms
+   ✓ recurringCardAmount · V3.2 importe futuro > addon MONTHLY que empieza en 3 meses: el importe sube y se rechaza 0ms
+   ✓ recurringCardAmount · V3.2 importe futuro > una línea MONTHLY que termina antes que el contrato: el importe baja y se rechaza 0ms
+   ✓ recurringCardAmount · V3.2 importe futuro > nada vigente hoy pero una línea futura: el importe pasa de 0 a X y se rechaza 0ms
+   ✓ recurringCardAmount · V3.2 importe futuro > sustitución contigua por el mismo importe: estable, se permite 0ms
+   ✓ recurringCardAmount · V3.2 importe futuro > sustitución con un día sin cobertura: el importe cae a 0 ese día y se rechaza 0ms
+   ✓ recurringCardAmount · V3.2 importe futuro > cambios después del fin del contrato no cuentan 0ms
+   ✓ recurringCardAmount · V3.2 importe futuro > dos cambios que se compensan el mismo día: el importe no cambia 0ms
+   ✓ recurringCardAmount · V3.2 importe futuro > suma en céntimos exactos: 0.10 + 0.20 son 30 céntimos, no 30.000000000000004 0ms
+   ✓ recurringCardAmount · V3.2 importe futuro > un importe con más de dos decimales no se redondea en silencio 0ms
+   × recurringCardAmount · CCP fase 18 (importes variables y DISCOUNT) > un DISCOUNT recurrente (magnitud positiva) resta del Plan, como en la factura 4ms
+     → expected { ok: true, amountMinor: 11000, …(1) } to deeply equal { ok: true, amountMinor: 9000, …(1) }
+   ✓ recurringCardAmount · CCP fase 18 (importes variables y DISCOUNT) > la forma negativa del DISCOUNT resta lo mismo: nunca dos veces 0ms
+   × recurringCardAmount · CCP fase 18 (importes variables y DISCOUNT) > un DISCOUNT que anula el cargo no deja un Plan en cero 1ms
+     → expected { ok: true, amountMinor: 20000, …(1) } to deeply equal { ok: false, …(1) }
+   ✓ recurringCardAmount · CCP fase 18 (importes variables y DISCOUNT) > caracterización: correctivos y compras de créditos (ONE_TIME) nunca se domicilian 0ms
+   ✓ recurringCardAmount · CCP fase 18 (importes variables y DISCOUNT) > caracterización: un DISCOUNT recurrente que empieza más adelante vuelve variable el Plan (fail-safe) 0ms
+   ✓ mensajes al usuario > explican el motivo sin detalles del proveedor 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  supabase/functions/_shared/payments/recurring-amount.test.ts > recurringCardAmount · CCP fase 18 (importes variables y DISCOUNT) > un DISCOUNT recurrente (magnitud positiva) resta del Plan, como en la factura
+AssertionError: expected { ok: true, amountMinor: 11000, …(1) } to deeply equal { ok: true, amountMinor: 9000, …(1) }
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "amount": "90.00",[39m
+[32m-   "amountMinor": 9000,[39m
+[31m+   "amount": "110.00",[39m
+[31m+   "amountMinor": 11000,[39m
+[2m    "ok": true,[22m
+[2m  }[22m
+
+ ❯ supabase/functions/_shared/payments/recurring-amount.test.ts:190:27
+    188|       LICENSE,
+    189|       { charge_kind: 'DISCOUNT', billing_interval: 'MONTHLY', amount: …
+    190|     ], 'MONTHLY', AS_OF)).toEqual({ ok: true, amountMinor: 9000, amoun…
+       |                           ^
+    191|   });
+    192| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  supabase/functions/_shared/payments/recurring-amount.test.ts > recurringCardAmount · CCP fase 18 (importes variables y DISCOUNT) > un DISCOUNT que anula el cargo no deja un Plan en cero
+AssertionError: expected { ok: true, amountMinor: 20000, …(1) } to deeply equal { ok: false, …(1) }
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "error": "SIN_IMPORTE_RECURRENTE",[39m
+[32m-   "ok": false,[39m
+[31m+   "amount": "200.00",[39m
+[31m+   "amountMinor": 20000,[39m
+[31m+   "ok": true,[39m
+[2m  }[22m
+
+ ❯ supabase/functions/_shared/payments/recurring-amount.test.ts:204:27
+    202|       LICENSE,
+    203|       { charge_kind: 'DISCOUNT', billing_interval: 'MONTHLY', amount: …
+    204|     ], 'MONTHLY', AS_OF)).toEqual({ ok: false, error: 'SIN_IMPORTE_REC…
+       |                           ^
+    205|   });
+    206| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 27 passed (29)
+   Start at  00:15:35
+   Duration  879ms (transform 37ms, setup 56ms, collect 22ms, tests 9ms, environment 362ms, prepare 47ms)
+

@@ -1,0 +1,109 @@
+ plan  
+-------
+ 1..56
+(1 row)
+
+               has_table                
+----------------------------------------
+ not ok 1 - Existe usage_meters        +
+ # Failed test 1: "Existe usage_meters"
+(1 row)
+
+               has_table                
+----------------------------------------
+ not ok 2 - Existe usage_events        +
+ # Failed test 2: "Existe usage_events"
+(1 row)
+
+                     has_table                      
+----------------------------------------------------
+ not ok 3 - Existe usage_ingest_credentials        +
+ # Failed test 3: "Existe usage_ingest_credentials"
+(1 row)
+
+                     has_table                     
+---------------------------------------------------
+ not ok 4 - Existe usage_ingest_rejections        +
+ # Failed test 4: "Existe usage_ingest_rejections"
+(1 row)
+
+                has_table                 
+------------------------------------------
+ not ok 5 - Existe m2m_jti_replay        +
+ # Failed test 5: "Existe m2m_jti_replay"
+(1 row)
+
+                                                                 is                                                                 
+------------------------------------------------------------------------------------------------------------------------------------
+ not ok 6 - RLS habilitado y forzado en las 5 tablas                                                                               +
+ # Failed test 6: "RLS habilitado y forzado en las 5 tablas"                                                                       +
+ #         have: NULL                                                                                                              +
+ #         want: m2m_jti_replay:true,usage_events:true,usage_ingest_credentials:true,usage_ingest_rejections:true,usage_meters:true
+(1 row)
+
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:84: ERROR:  function "platform.ingest_usage_events(text, text, jsonb, uuid)" does not exist
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:89: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:94: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:100: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:104: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:106: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:108: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:109: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:110: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:112: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:117: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:119: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:120: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:122: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:123: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:124: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:126: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:128: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:130: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:135: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:140: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:145: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:147: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:148: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:150: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:155: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:178: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:180: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:181: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:182: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:183: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:184: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:185: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:186: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:187: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:188: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:189: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:190: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:191: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:192: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:193: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:194: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:196: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:200: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:202: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:204: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:212: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:214: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:215: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:219: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:221: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:223: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:226: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:227: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:228: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:233: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:234: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:235: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:237: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:238: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:240: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:245: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:246: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:247: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:248: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:supabase/tests/38_ccp_usage_ingest.test.sql:250: ERROR:  current transaction is aborted, commands ignored until end of transaction block

@@ -40,7 +40,7 @@ async function wizardToPlanStep(page: Page, customer: string, market: string, su
   await page.getByRole('button', { name: 'Continuar' }).click();
 
   await page.getByLabel('Nombre del tenant').fill(`Regional ${suffix} ${RUN}`);
-  await page.getByLabel('Slug').fill(`regional-${suffix}-${RUN}`);
+  await page.getByLabel(/^Código( \*)?$/).fill(`regional-${suffix}-${RUN}`);
   await page.getByLabel('Correo del administrador del cliente').fill(`admin-${suffix}-${RUN}@regional-e2e.com`);
   await page.getByRole('button', { name: 'Continuar' }).click();
   await expect(field(page, 'Plan')).toBeVisible();
@@ -105,10 +105,13 @@ test.describe('R1 · Selector regional de Nueva venta (fase 05)', () => {
 test.describe('R1b · Tarifa regional en el catálogo (fase 04)', () => {
   test('el diálogo de tarifa exige mercado y solo ofrece sus monedas', async ({ page }) => {
     await login(page, USERS.superAdmin);
+    // V5: /plans redirige a Catálogo › Planes y licencias.
     await page.goto('/plans');
-    await expect(page.getByRole('heading', { name: 'Planes y licencias' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Planes y licencias', selected: true })).toBeVisible();
 
-    await page.getByRole('button', { name: 'Fijar precio' }).first().click();
+    // Las acciones del plan viven en el menú de la fila (A12).
+    await page.getByRole('button', { name: /^Acciones del plan/ }).first().click();
+    await page.getByRole('menuitem', { name: 'Fijar precio…' }).click();
     const dialog = page.getByRole('dialog');
     await expect(field(dialog, 'Moneda')).toBeDisabled();
 
@@ -156,8 +159,10 @@ test.describe('R3 · Routing regional de cobro (fase 07)', () => {
 test.describe('R4 · Moneda de reporte (fase 09)', () => {
   test('finanzas cambia la moneda de reporte entre monedas activas y la restaura', async ({ page }) => {
     await login(page, USERS.finance);
-    await page.getByRole('link', { name: 'Monedas y FX', exact: true }).click();
-    await page.waitForURL('**/regional');
+    // V5: monedas y tipo de cambio son una pestaña de Configuración.
+    await page.getByRole('link', { name: 'Configuración', exact: true }).click();
+    await page.getByRole('tab', { name: 'Monedas y tipo de cambio' }).click();
+    await page.waitForURL((url) => url.pathname === '/settings' && url.searchParams.get('tab') === 'regional');
 
     // El panel de la pestaña también se rotula «Moneda de reporte»: se busca el <select>.
     const select = page.getByRole('combobox', { name: 'Moneda de reporte' });
@@ -180,9 +185,10 @@ test.describe('R4 · Moneda de reporte (fase 09)', () => {
 
   test('un partner no tiene acceso a la administración de monedas', async ({ page }) => {
     await login(page, USERS.partnerAdmin);
-    await expect(page.getByRole('link', { name: 'Monedas y FX', exact: true })).toHaveCount(0);
+    await page.getByRole('link', { name: 'Configuración', exact: true }).click();
+    await expect(page.getByRole('tab', { name: 'Monedas y tipo de cambio' })).toHaveCount(0);
     await page.goto('/regional');
-    await expect(page.getByRole('heading', { name: 'Monedas y FX' })).toHaveCount(0);
+    await expect(page.getByText('Tu rol no tiene acceso a «Monedas y tipo de cambio»')).toBeVisible();
   });
 });
 
@@ -216,7 +222,8 @@ test.describe('R5 · UI regional: FX, tarifas por mercado e importes con ISO (fa
     await expect(page.getByTestId('fx-test-result')).toContainText(/USD\s100\.00/);
     await expect(page.getByTestId('fx-test-result')).toContainText('recíproca');
 
-    await row.getByRole('button', { name: 'Anular' }).click();
+    await row.getByRole('button', { name: /^Acciones de la tasa/ }).click();
+    await page.getByRole('menuitem', { name: 'Anular tasa…' }).click();
     const voidDialog = page.getByRole('dialog');
     await voidDialog.getByLabel(/Motivo/).fill('Limpieza E2E');
     await voidDialog.getByRole('button', { name: 'Anular tasa' }).click();
@@ -228,7 +235,7 @@ test.describe('R5 · UI regional: FX, tarifas por mercado e importes con ISO (fa
     await page.goto('/regional#prices');
     await page.getByRole('tab', { name: 'Tarifas por mercado' }).click();
     await page.getByRole('searchbox').fill('esupplier-shared-standard');
-    const licenses = page.getByRole('row').filter({ hasText: 'LICENSE' }).filter({ hasText: 'MONTHLY' });
+    const licenses = page.getByRole('row').filter({ hasText: 'Licencia' }).filter({ hasText: 'Mensual' });
     // Misma moneda, distinto mercado, distinto precio (PE/USD ≠ EC/USD).
     const market = (code: string) => page.getByRole('cell', { name: code, exact: true });
     const peUsd = licenses.filter({ hasText: /USD\s850\.00/ }).filter({ has: market('PE') });
@@ -237,11 +244,14 @@ test.describe('R5 · UI regional: FX, tarifas por mercado e importes con ISO (fa
     await expect(ecUsd).toHaveCount(1);
     await expect(licenses.filter({ hasText: /BOB\s5,900\.00/ })).toHaveCount(1);
     await expect(licenses.filter({ hasText: /PEN\s3,150\.00/ })).toHaveCount(1);
-    await expect(peUsd.getByRole('button', { name: 'Versionar tarifa' })).toBeVisible();
+    await peUsd.getByRole('button', { name: /^Acciones de la tarifa/ }).click();
+    await expect(page.getByRole('menuitem', { name: 'Versionar tarifa' })).toBeVisible();
   });
 
   test('el dashboard muestra importes con código ISO, nunca un símbolo ambiguo', async ({ page }) => {
     await login(page, USERS.superAdmin);
+    // Desde la spec 2026-09-25 el panel regional vive en la perspectiva Finanzas.
+    await page.goto('/#finanzas');
     await expect(page.getByText(/MRR/).first()).toBeVisible();
     const kpi = page.locator('.ebim-card').filter({ hasText: 'Comisión pendiente' }).first();
     // Seed regional: comisiones en tres monedas, cada una con su código y por separado.
@@ -264,6 +274,7 @@ async function setReportingCurrency(page: Page, code: string) {
 test.describe('R6 · Dashboard regional NATIVO / CONSOLIDADO (fase 13)', () => {
   test('nativo separa por moneda y consolidado declara moneda de reporte y fecha de tasas', async ({ page }) => {
     await login(page, USERS.finance);
+    await page.goto('/#finanzas');
     const panel = page.locator('section').filter({ hasText: 'Finanzas regionales' });
     await expect(panel.getByRole('tab', { name: 'Nativo' })).toHaveAttribute('aria-selected', 'true');
 
@@ -285,7 +296,7 @@ test.describe('R6 · Dashboard regional NATIVO / CONSOLIDADO (fase 13)', () => {
       // Con BOB como moneda de reporte, los hechos USD/PEN necesitan tasas hacia BOB en la
       // fecha elegida. Una fecha sin tasas publicadas garantiza el faltante.
       await setReportingCurrency(page, 'BOB');
-      await page.goto('/');
+      await page.goto('/#finanzas');
       const panel = page.locator('section').filter({ hasText: 'Finanzas regionales' });
       await panel.getByRole('tab', { name: 'Consolidado' }).click();
       await field(panel, 'Fecha de las tasas').fill('2001-01-01');

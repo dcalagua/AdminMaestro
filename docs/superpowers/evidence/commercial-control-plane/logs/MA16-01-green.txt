@@ -1,0 +1,10 @@
+
+ RUN  v3.2.7 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.claude/worktrees/agent-aa00cf8474767114e
+
+ ✓ supabase/functions/_shared/entitlements/hub/hub-export.test.ts (40 tests) 15ms
+
+ Test Files  1 passed (1)
+      Tests  40 passed (40)
+   Start at  12:26:53
+   Duration  468ms (transform 31ms, setup 28ms, collect 21ms, tests 15ms, environment 166ms, prepare 35ms)
+

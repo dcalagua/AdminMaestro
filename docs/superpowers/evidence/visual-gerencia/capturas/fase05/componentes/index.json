@@ -1,0 +1,150 @@
+{
+  "label": "fase05",
+  "generatedAt": "2026-10-05T08:48:11.971Z",
+  "total": 15,
+  "blockedHosts": [],
+  "shots": [
+    {
+      "file": "01-design-claro.png",
+      "route": "/design",
+      "overflow": false,
+      "alerts": [
+        "Ya existe un registro con ese código.",
+        "Elige un mercado activo.",
+        "No disponibleReintentar",
+        "No se pudo cargar la informaciónEl servidor no pudo relacionar los datos pedidos (relación ambigua). Avisa al equipo de plataforma.Detalle técnicoCould not embed because more than one relationship was found for 'tenants' and 'saas_products'Reintentar"
+      ]
+    },
+    {
+      "file": "02-design-dialogo-claro.png",
+      "route": "/design",
+      "overflow": false,
+      "alerts": [
+        "Ya existe un registro con ese código.",
+        "Elige un mercado activo.",
+        "No disponibleReintentar",
+        "No se pudo cargar la informaciónEl servidor no pudo relacionar los datos pedidos (relación ambigua). Avisa al equipo de plataforma.Detalle técnicoCould not embed because more than one relationship was found for 'tenants' and 'saas_products'Reintentar",
+        "Ya existe un registro con ese código.",
+        "Ya existe un registro con ese valor único. Revisa el código o el identificador."
+      ]
+    },
+    {
+      "file": "03-design-confirmacion-claro.png",
+      "route": "/design",
+      "overflow": false,
+      "alerts": [
+        "Ya existe un registro con ese código.",
+        "Elige un mercado activo.",
+        "No disponibleReintentar",
+        "No se pudo cargar la informaciónEl servidor no pudo relacionar los datos pedidos (relación ambigua). Avisa al equipo de plataforma.Detalle técnicoCould not embed because more than one relationship was found for 'tenants' and 'saas_products'Reintentar"
+      ]
+    },
+    {
+      "file": "04-design-drawer-claro.png",
+      "route": "/design",
+      "overflow": false,
+      "alerts": [
+        "Ya existe un registro con ese código.",
+        "Elige un mercado activo.",
+        "No disponibleReintentar",
+        "No se pudo cargar la informaciónEl servidor no pudo relacionar los datos pedidos (relación ambigua). Avisa al equipo de plataforma.Detalle técnicoCould not embed because more than one relationship was found for 'tenants' and 'saas_products'Reintentar"
+      ]
+    },
+    {
+      "file": "05-design-avisos-claro.png",
+      "route": "/design",
+      "overflow": false,
+      "alerts": [
+        "Ya existe un registro con ese código.",
+        "Elige un mercado activo.",
+        "No disponibleReintentar",
+        "No se pudo cargar la informaciónEl servidor no pudo relacionar los datos pedidos (relación ambigua). Avisa al equipo de plataforma.Detalle técnicoCould not embed because more than one relationship was found for 'tenants' and 'saas_products'Reintentar",
+        "No se pudo guardarLa base rechazó la operación."
+      ]
+    },
+    {
+      "file": "06-design-oscuro.png",
+      "route": "/design",
+      "overflow": false,
+      "alerts": [
+        "Ya existe un registro con ese código.",
+        "Elige un mercado activo.",
+        "No disponibleReintentar",
+        "No se pudo cargar la informaciónEl servidor no pudo relacionar los datos pedidos (relación ambigua). Avisa al equipo de plataforma.Detalle técnicoCould not embed because more than one relationship was found for 'tenants' and 'saas_products'Reintentar",
+        "No se pudo guardarLa base rechazó la operación."
+      ]
+    },
+    {
+      "file": "07-design-dialogo-oscuro.png",
+      "route": "/design",
+      "overflow": false,
+      "alerts": [
+        "Ya existe un registro con ese código.",
+        "Elige un mercado activo.",
+        "No disponibleReintentar",
+        "No se pudo cargar la informaciónEl servidor no pudo relacionar los datos pedidos (relación ambigua). Avisa al equipo de plataforma.Detalle técnicoCould not embed because more than one relationship was found for 'tenants' and 'saas_products'Reintentar",
+        "Ya existe un registro con ese código.",
+        "Ya existe un registro con ese valor único. Revisa el código o el identificador.",
+        "No se pudo guardarLa base rechazó la operación."
+      ]
+    },
+    {
+      "file": "08-organizaciones-listado-claro.png",
+      "route": "/organizations",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "09-organizacion-nueva-errores-claro.png",
+      "route": "/organizations",
+      "overflow": false,
+      "alerts": [
+        "Este campo es obligatorio.",
+        "Este campo es obligatorio.",
+        "Este campo es obligatorio.",
+        "Este campo es obligatorio."
+      ]
+    },
+    {
+      "file": "10-producto-nuevo-claro.png",
+      "route": "/products",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "11-onboarding-claro.png",
+      "route": "/onboarding",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "12-settings-claro.png",
+      "route": "/settings",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "13-tenants-kpis-claro.png",
+      "route": "/tenants",
+      "overflow": false,
+      "alerts": []
+    },
+    {
+      "file": "14-organizacion-nueva-errores-oscuro.png",
+      "route": "/organizations",
+      "overflow": false,
+      "alerts": [
+        "Este campo es obligatorio.",
+        "Este campo es obligatorio.",
+        "Este campo es obligatorio.",
+        "Este campo es obligatorio."
+      ]
+    },
+    {
+      "file": "15-onboarding-oscuro.png",
+      "route": "/onboarding",
+      "overflow": false,
+      "alerts": []
+    }
+  ]
+}

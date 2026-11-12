@@ -9,9 +9,22 @@
  * decisión separada, no un efecto colateral de este cambio.
  */
 import type { ProvisioningContext } from './types.ts';
-export type OrchestratorAction = 'PROVISION' | 'CHECK_HEALTH' | 'GET_STATUS' | 'REPLAY_CERTIFICATION';
+export type OrchestratorAction =
+  | 'PROVISION'
+  | 'CHECK_HEALTH'
+  | 'GET_STATUS'
+  | 'REPLAY_CERTIFICATION'
+  // Fase 08 (Commercial Control Plane): canal entitlements.v1, aditivo.
+  | 'SYNC_ENTITLEMENTS'
+  | 'GET_ENTITLEMENTS';
 
-const ROUTED: readonly OrchestratorAction[] = ['CHECK_HEALTH', 'GET_STATUS', 'REPLAY_CERTIFICATION'];
+const ROUTED: readonly OrchestratorAction[] = [
+  'CHECK_HEALTH',
+  'GET_STATUS',
+  'REPLAY_CERTIFICATION',
+  'SYNC_ENTITLEMENTS',
+  'GET_ENTITLEMENTS',
+];
 
 export function routeAction(raw: unknown): OrchestratorAction {
   return typeof raw === 'string' && (ROUTED as readonly string[]).includes(raw)
@@ -22,7 +35,7 @@ export function routeAction(raw: unknown): OrchestratorAction {
 export interface PermissionRpc {
   rpc: string;
   arg: string;
-  bodyField: 'request_id' | 'deployment_target_id';
+  bodyField: 'request_id' | 'deployment_target_id' | 'tenant_id';
 }
 
 const PERMISSIONS: Record<OrchestratorAction, PermissionRpc> = {
@@ -38,6 +51,8 @@ const PERMISSIONS: Record<OrchestratorAction, PermissionRpc> = {
     arg: 'p_request_id',
     bodyField: 'request_id',
   },
+  SYNC_ENTITLEMENTS: { rpc: 'can_sync_entitlements', arg: 'p_tenant_id', bodyField: 'tenant_id' },
+  GET_ENTITLEMENTS: { rpc: 'can_read_entitlement_sync', arg: 'p_tenant_id', bodyField: 'tenant_id' },
 };
 
 export function permissionRpcFor(action: OrchestratorAction): PermissionRpc {

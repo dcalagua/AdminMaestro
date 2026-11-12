@@ -1,0 +1,51 @@
+{
+  "description": "Tabla de transiciones de entitlement_sync_state (spec §9). La prueban states.test.ts (TS) y supabase/tests/36_ccp_entitlement_sync_state.test.sql (SQL); un test de vitest comprueba que el pgTAP contiene cada caso.",
+  "maxFailures": 5,
+  "verify": [
+    { "id": "v-in-sync", "desiredVersion": 3, "desiredChecksum": "A", "appliedVersion": 3, "appliedChecksum": "A", "appliedStatus": "APPLIED", "registryDrift": false, "expected": "IN_SYNC" },
+    { "id": "v-warnings", "desiredVersion": 3, "desiredChecksum": "A", "appliedVersion": 3, "appliedChecksum": "A", "appliedStatus": "APPLIED_WITH_WARNINGS", "registryDrift": false, "expected": "IN_SYNC_WITH_WARNINGS" },
+    { "id": "v-never-applied", "desiredVersion": 3, "desiredChecksum": "A", "appliedVersion": null, "appliedChecksum": null, "appliedStatus": "NONE", "registryDrift": false, "expected": "DRIFT_BEHIND" },
+    { "id": "v-behind", "desiredVersion": 3, "desiredChecksum": "A", "appliedVersion": 2, "appliedChecksum": "B", "appliedStatus": "APPLIED", "registryDrift": false, "expected": "DRIFT_BEHIND" },
+    { "id": "v-checksum", "desiredVersion": 3, "desiredChecksum": "A", "appliedVersion": 3, "appliedChecksum": "B", "appliedStatus": "APPLIED", "registryDrift": false, "expected": "DRIFT_CHECKSUM" },
+    { "id": "v-ahead", "desiredVersion": 3, "desiredChecksum": "A", "appliedVersion": 4, "appliedChecksum": "C", "appliedStatus": "APPLIED", "registryDrift": false, "expected": "DRIFT_AHEAD" },
+    { "id": "v-ahead-without-desired", "desiredVersion": null, "desiredChecksum": null, "appliedVersion": 1, "appliedChecksum": "C", "appliedStatus": "APPLIED", "registryDrift": false, "expected": "DRIFT_AHEAD" },
+    { "id": "v-registry-drift", "desiredVersion": 3, "desiredChecksum": "A", "appliedVersion": 3, "appliedChecksum": "A", "appliedStatus": "APPLIED", "registryDrift": true, "expected": "REGISTRY_DRIFT" },
+    { "id": "v-registry-drift-does-not-mask", "desiredVersion": 3, "desiredChecksum": "A", "appliedVersion": 2, "appliedChecksum": "B", "appliedStatus": "APPLIED", "registryDrift": true, "expected": "DRIFT_BEHIND" }
+  ],
+  "push": [
+    { "id": "p-applied", "result": "APPLIED", "failuresBefore": 2, "expected": "AWAITING_VERIFY", "failuresAfter": 0 },
+    { "id": "p-replayed", "result": "REPLAYED", "failuresBefore": 0, "expected": "AWAITING_VERIFY", "failuresAfter": 0 },
+    { "id": "p-stale", "result": "STALE", "failuresBefore": 1, "expected": "DRIFT_AHEAD", "failuresAfter": 1 },
+    { "id": "p-conflict", "result": "CONFLICT", "failuresBefore": 0, "expected": "DRIFT_CHECKSUM", "failuresAfter": 0 },
+    { "id": "p-rejected", "result": "REJECTED", "failuresBefore": 0, "expected": "REJECTED", "failuresAfter": 0 },
+    { "id": "p-invalid-snapshot", "result": "INVALID_SNAPSHOT", "failuresBefore": 0, "expected": "REJECTED", "failuresAfter": 0 },
+    { "id": "p-retryable-first", "result": "RETRYABLE", "failuresBefore": 0, "expected": "PENDING_PUSH", "failuresAfter": 1 },
+    { "id": "p-retryable-exhausted", "result": "RETRYABLE", "failuresBefore": 4, "expected": "UNREACHABLE", "failuresAfter": 5 }
+  ],
+  "verifyFailure": [
+    { "id": "vf-retryable-awaiting", "state": "AWAITING_VERIFY", "result": "RETRYABLE", "failuresBefore": 0, "expected": "AWAITING_VERIFY", "failuresAfter": 1 },
+    { "id": "vf-retryable-sample", "state": "IN_SYNC", "result": "RETRYABLE", "failuresBefore": 1, "expected": "IN_SYNC", "failuresAfter": 2 },
+    { "id": "vf-retryable-exhausted", "state": "AWAITING_VERIFY", "result": "RETRYABLE", "failuresBefore": 4, "expected": "UNREACHABLE", "failuresAfter": 5 },
+    { "id": "vf-rejected", "state": "AWAITING_VERIFY", "result": "REJECTED", "failuresBefore": 0, "expected": "REJECTED", "failuresAfter": 0 }
+  ],
+  "pushable": [
+    { "state": "PENDING_PUSH", "failures": 0, "pushable": true },
+    { "state": "DRIFT_BEHIND", "failures": 1, "pushable": true },
+    { "state": "DRIFT_BEHIND", "failures": 5, "pushable": false },
+    { "state": "UNREACHABLE", "failures": 5, "pushable": true },
+    { "state": "DRIFT_AHEAD", "failures": 0, "pushable": false },
+    { "state": "DRIFT_CHECKSUM", "failures": 0, "pushable": false },
+    { "state": "REJECTED", "failures": 0, "pushable": false },
+    { "state": "IN_SYNC", "failures": 0, "pushable": false },
+    { "state": "NOT_ENROLLED", "failures": 0, "pushable": false },
+    { "state": "NOT_PROVISIONED", "failures": 0, "pushable": false },
+    { "state": "AWAITING_VERIFY", "failures": 0, "pushable": false }
+  ],
+  "retryDelaySeconds": [
+    { "failures": 1, "seconds": 60 },
+    { "failures": 2, "seconds": 120 },
+    { "failures": 4, "seconds": 480 },
+    { "failures": 7, "seconds": 3600 },
+    { "failures": 20, "seconds": 3600 }
+  ]
+}

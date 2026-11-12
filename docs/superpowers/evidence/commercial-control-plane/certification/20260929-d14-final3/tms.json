@@ -1,0 +1,373 @@
+{
+  "product": "tms",
+  "legacyAuthority": "sin biller ni precio local; registro vacío (solo baseline tms.core)",
+  "d14": {
+    "entitlements": {
+      "scope": "PRODUCT",
+      "saasFinalMode": "PRIMARY",
+      "productScopeMode": "PRIMARY",
+      "masteradminAxis": "MASTERADMIN_PRIMARY",
+      "getVerified": {
+        "appliedVersion": 3,
+        "appliedChecksum": "sha256:eb81f91cc5371e63be7357a2cd67612803950f1090f7657d1d6826737dcd8235",
+        "enforcementMode": "PRIMARY",
+        "desiredChecksum": "sha256:eb81f91cc5371e63be7357a2cd67612803950f1090f7657d1d6826737dcd8235"
+      },
+      "legacyWrite": {
+        "status": "NO_LEGACY_PATH",
+        "evidence": "TMS PlatformEntitlementsIntegrationTest.runtimeRoleIsLockedOut (PostgreSQL 17): tms_app gets 42501 on SELECT of the 6 V52 tables and on UPDATE/INSERT of tms.platform_entitlement_mode and UPDATE/DELETE of tms.platform_entitlement_applied; modes move only by operator SQL under the V52 guard trigger (modesMoveOneStep)"
+      }
+    },
+    "billing": null,
+    "appActiveFalse": {
+      "commercialDenied": true,
+      "operationalContinues": true,
+      "evidence": "X-07 pasos 6 y 11 (acceso de TMS: commercial=false, operational=true, APP_INACTIVE) y 12 (v3 restablece); TMS CommercialAccessSecurityTest.inactiveOrganizationStillOperates y CommercialAccessGateAdapterTest (el gate nunca rechaza por hechos comerciales)"
+    },
+    "legacyTenants": [
+      {
+        "id": "tms.organization code=DEMO",
+        "label": "DEMO - Demo Organization (TMS supabase/seeds/local_dev_seed.sql)",
+        "resolution": "UNRESOLVED",
+        "reason": "no deterministic MasterAdmin mapping evidence; NOT_UNDER_CONTROL_PLANE keeps legacy behavior"
+      }
+    ]
+  },
+  "checks": {
+    "1": {
+      "label": "canonical MasterAdmin mapping",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:01:54Z",
+          "endedAt": "2026-09-29T17:01:58Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "tms:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:03:54Z",
+          "endedAt": "2026-09-29T17:03:59Z",
+          "log": "logs/tms-x07.txt"
+        }
+      ]
+    },
+    "2": {
+      "label": "desired entitlement generated",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:01:54Z",
+          "endedAt": "2026-09-29T17:01:58Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:00Z",
+          "endedAt": "2026-09-29T17:02:01Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "tms:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:03:54Z",
+          "endedAt": "2026-09-29T17:03:59Z",
+          "log": "logs/tms-x07.txt"
+        }
+      ]
+    },
+    "3": {
+      "label": "SaaS applied same version/checksum",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "tms:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:03:54Z",
+          "endedAt": "2026-09-29T17:03:59Z",
+          "log": "logs/tms-x07.txt"
+        }
+      ]
+    },
+    "4": {
+      "label": "GET same applied state",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:00Z",
+          "endedAt": "2026-09-29T17:02:01Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "tms:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:03:54Z",
+          "endedAt": "2026-09-29T17:03:59Z",
+          "log": "logs/tms-x07.txt"
+        }
+      ]
+    },
+    "5": {
+      "label": "tenant self-grant denied",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:01:54Z",
+          "endedAt": "2026-09-29T17:01:58Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "tms:suite",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:39Z",
+          "endedAt": "2026-09-29T17:05:39Z",
+          "log": "logs/tms-suite.txt"
+        }
+      ],
+      "note": "sin capacidades vendibles; tms_app deny-all sobre las tablas de entitlements"
+    },
+    "6": {
+      "label": "add/remove/downgrade version transition",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "tms:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:03:54Z",
+          "endedAt": "2026-09-29T17:03:59Z",
+          "log": "logs/tms-x07.txt"
+        }
+      ]
+    },
+    "7": {
+      "label": "offline last-good",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "tms:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:03:54Z",
+          "endedAt": "2026-09-29T17:03:59Z",
+          "log": "logs/tms-x07.txt"
+        }
+      ]
+    },
+    "8": {
+      "label": "drift reconciled",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:00Z",
+          "endedAt": "2026-09-29T17:02:01Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "tms:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:03:54Z",
+          "endedAt": "2026-09-29T17:03:59Z",
+          "log": "logs/tms-x07.txt"
+        }
+      ]
+    },
+    "9": {
+      "label": "usage event accepted once",
+      "status": "N/A",
+      "reason": "TMS no tiene medidor aprobado (fase 17)"
+    },
+    "10": {
+      "label": "duplicate deduped",
+      "status": "N/A",
+      "reason": "TMS no tiene medidor aprobado (fase 17)"
+    },
+    "11": {
+      "label": "allowance/credit arithmetic",
+      "status": "N/A",
+      "reason": "sin asignaciones ni créditos"
+    },
+    "12": {
+      "label": "no duplicate billing",
+      "status": "N/A",
+      "reason": "sin biller local"
+    },
+    "13": {
+      "label": "local price/billing authority stage explicit",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "tms:suite",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:39Z",
+          "endedAt": "2026-09-29T17:05:39Z",
+          "log": "logs/tms-suite.txt"
+        }
+      ],
+      "note": "sin biller ni precio local; registro vacío (solo baseline tms.core)"
+    },
+    "14": {
+      "label": "technical configuration still works",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "tms:suite",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:39Z",
+          "endedAt": "2026-09-29T17:05:39Z",
+          "log": "logs/tms-suite.txt"
+        }
+      ]
+    },
+    "15": {
+      "label": "CREATE/REPLAY/GET provisioning regression green",
+      "status": "PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:provisioning-golden",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:01:58Z",
+          "endedAt": "2026-09-29T17:02:00Z",
+          "log": "logs/masteradmin-provisioning-golden.txt"
+        },
+        {
+          "ref": "tms:suite",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:39Z",
+          "endedAt": "2026-09-29T17:05:39Z",
+          "log": "logs/tms-suite.txt"
+        }
+      ]
+    }
+  },
+  "criteria": {
+    "1": {
+      "met": true,
+      "reason": "P0 del §1.4 cerrados en fases 03–06 con test"
+    },
+    "2": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "tms:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:03:54Z",
+          "endedAt": "2026-09-29T17:03:59Z",
+          "log": "logs/tms-x07.txt"
+        }
+      ]
+    },
+    "3": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:pgtap",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:01:54Z",
+          "endedAt": "2026-09-29T17:01:58Z",
+          "log": "logs/masteradmin-pgtap.txt"
+        },
+        {
+          "ref": "tms:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:03:54Z",
+          "endedAt": "2026-09-29T17:03:59Z",
+          "log": "logs/tms-x07.txt"
+        }
+      ]
+    },
+    "4": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "masteradmin:entitlement-sync-e2e",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:02:00Z",
+          "endedAt": "2026-09-29T17:02:01Z",
+          "log": "logs/masteradmin-entitlement-sync-e2e.txt"
+        },
+        {
+          "ref": "tms:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:03:54Z",
+          "endedAt": "2026-09-29T17:03:59Z",
+          "log": "logs/tms-x07.txt"
+        }
+      ]
+    },
+    "5": {
+      "met": true,
+      "reason": "pasos: PASS",
+      "evidence": [
+        {
+          "ref": "tms:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:03:54Z",
+          "endedAt": "2026-09-29T17:03:59Z",
+          "log": "logs/tms-x07.txt"
+        }
+      ]
+    },
+    "6": {
+      "met": true,
+      "reason": "MASTERADMIN_PRIMARY (SaaS y MasterAdmin) verificado por GET; escritura legacy negada server-side",
+      "evidence": [
+        {
+          "ref": "tms:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:03:54Z",
+          "endedAt": "2026-09-29T17:03:59Z",
+          "log": "logs/tms-x07.txt"
+        },
+        {
+          "ref": "masteradmin:d14-axes",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:05:37Z",
+          "endedAt": "2026-09-29T17:05:39Z",
+          "log": "logs/masteradmin-d14-axes.txt"
+        }
+      ]
+    },
+    "7": {
+      "met": true,
+      "reason": "sin medidores ACTIVE: no aplica"
+    },
+    "8": {
+      "met": true,
+      "reason": "sin biller local: no aplica (spec §19.1(8))"
+    },
+    "D14-2": {
+      "met": true,
+      "reason": "appActive=false retira lo comercial, no la operación",
+      "evidence": [
+        {
+          "ref": "tms:x07",
+          "rc": 0,
+          "startedAt": "2026-09-29T17:03:54Z",
+          "endedAt": "2026-09-29T17:03:59Z",
+          "log": "logs/tms-x07.txt"
+        }
+      ]
+    }
+  },
+  "gaps": [
+    {
+      "class": "HUMAN_DECISION",
+      "text": "ADR 017 y V52 deben renumerarse al integrar ramas TMS no fusionadas"
+    }
+  ],
+  "synchronized": true,
+  "blockers": []
+}

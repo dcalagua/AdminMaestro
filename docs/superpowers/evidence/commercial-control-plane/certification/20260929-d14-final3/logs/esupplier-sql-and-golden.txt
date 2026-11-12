@@ -1,0 +1,1550 @@
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/migrations/20260815120000_identity_membership_foundation.sql:93: NOTICE:  policy "utm_self_read" for relation "public.user_tenant_memberships" does not exist, skipping
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/migrations/20260815120000_identity_membership_foundation.sql:442: NOTICE:  trigger "security_audit_log_no_update" for relation "public.security_audit_log" does not exist, skipping
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/src/supabase/queries/multitenant_21_tenant_agent_config.sql:19: NOTICE:  column "organization_id" of relation "tenant_agent_config" already exists, skipping
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/src/supabase/queries/multitenant_21_tenant_agent_config.sql:28: NOTICE:  policy "Allow all for anon" for relation "tenant_agent_config" does not exist, skipping
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/src/supabase/queries/multitenant_21_tenant_agent_config.sql:29: NOTICE:  policy "ebim_org_isolation" for relation "tenant_agent_config" does not exist, skipping
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/src/supabase/queries/multitenant_21_tenant_agent_config.sql:31: NOTICE:  policy "tenant_agent_config_lectura" for relation "tenant_agent_config" does not exist, skipping
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/src/supabase/queries/multitenant_21_tenant_agent_config.sql:35: NOTICE:  policy "tenant_agent_config_escritura_operador" for relation "tenant_agent_config" does not exist, skipping
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/src/supabase/queries/multitenant_21_tenant_agent_config.sql:39: NOTICE:  policy "tenant_agent_config_update_operador" for relation "tenant_agent_config" does not exist, skipping
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/src/supabase/queries/multitenant_21_tenant_agent_config.sql:43: NOTICE:  policy "tenant_agent_config_delete_operador" for relation "tenant_agent_config" does not exist, skipping
+== migración 20260916230000_platform_provisioning_v1.sql
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/migrations/20260916230000_platform_provisioning_v1.sql:141: NOTICE:  trigger "platform_provisioning_audit_no_update" for relation "public.platform_provisioning_audit" does not exist, skipping
+== migración 20260928300000_ccp_commercial_addons.sql
+== migración 20260928300100_ccp_commercial_tables_write_lockdown.sql
+== migración 20260928300200_ccp_tenant_addons_read.sql
+== migración 20261006100000_platform_entitlements.sql
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/migrations/20261006100000_platform_entitlements.sql:212: NOTICE:  trigger "platform_entitlement_apply_audit_append_only" for relation "public.platform_entitlement_apply_audit" does not exist, skipping
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/migrations/20261006100000_platform_entitlements.sql:212: NOTICE:  trigger "platform_entitlement_apply_audit_no_truncate" for relation "public.platform_entitlement_apply_audit" does not exist, skipping
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/migrations/20261006100000_platform_entitlements.sql:212: NOTICE:  trigger "platform_entitlement_mode_events_append_only" for relation "public.platform_entitlement_mode_events" does not exist, skipping
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/migrations/20261006100000_platform_entitlements.sql:212: NOTICE:  trigger "platform_entitlement_mode_events_no_truncate" for relation "public.platform_entitlement_mode_events" does not exist, skipping
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/migrations/20261006100000_platform_entitlements.sql:212: NOTICE:  trigger "platform_entitlement_shadow_diffs_append_only" for relation "public.platform_entitlement_shadow_diffs" does not exist, skipping
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/migrations/20261006100000_platform_entitlements.sql:212: NOTICE:  trigger "platform_entitlement_shadow_diffs_no_truncate" for relation "public.platform_entitlement_shadow_diffs" does not exist, skipping
+== migración 20261006103000_ai_usage_outbox.sql
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/migrations/20261006103000_ai_usage_outbox.sql:164: NOTICE:  trigger "ai_usage_outbox_guard_row" for relation "public.ai_usage_outbox" does not exist, skipping
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/migrations/20261006103000_ai_usage_outbox.sql:169: NOTICE:  trigger "ai_usage_outbox_guard_truncate" for relation "public.ai_usage_outbox" does not exist, skipping
+== migración 20261006110000_commercial_entitlement_gate.sql
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/migrations/20261006110000_commercial_entitlement_gate.sql:59: NOTICE:  trigger "platform_entitlement_alerts_append_only" for relation "public.platform_entitlement_alerts" does not exist, skipping
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/migrations/20261006110000_commercial_entitlement_gate.sql:258: NOTICE:  trigger "tenant_commercial_addons_ccp_mode_guard" for relation "public.tenant_commercial_addons" does not exist, skipping
+== migración 20261013100000_ai_usage_outbox_delivery.sql
+== test ccp_commercial_addons_test.sql
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:72: NOTICE:    ok — existe public.tenant_commercial_addons
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:77: NOTICE:    ok — anon/authenticated sin escritura (ni lectura anon) sobre tenant_commercial_addons
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:79: NOTICE:    ok — service_role escribe tenant_commercial_addons
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:82: NOTICE:    ok — anon/authenticated no escriben commercial_addon_requests
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:91: NOTICE:    ok — RPC de concesión/revocación/sync: solo service_role
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:96: NOTICE:    ok — tenant previo activo: 10 add-ons de pago como LEGACY_BACKFILL (comportamiento actual intacto)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:99: NOTICE:    ok — tenant previo archivado: también conserva su estado (si se restaura, no cambia de comportamiento)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:102: NOTICE:    ok — tenant creado después de la migración: sin concesiones (fail-closed)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:105: NOTICE:    ok — los incluidos no se materializan como concesión
+ assert 
+--------
+ 
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:112: NOTICE:    ok — admin de tenant NO enciende un agente de pago no concedido (tender-copilot)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:115: NOTICE:    ok — admin de tenant NO parametriza un agente de pago no concedido (ai-chat)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:118: NOTICE:    ok — sin p_enabled el alta por defecto (enabled=true) también se deniega
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:121: NOTICE:    ok — admin de tenant SÍ puede apagar un agente de pago no concedido
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:124: NOTICE:    ok — agente incluido (ai_auditor) configurable sin concesión
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:127: NOTICE:    ok — agente incluido (ai_capture) configurable sin concesión
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:130: NOTICE:    ok — interruptor maestro ai-master libre
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:133: NOTICE:    ok — admin de tenant NO se autoconcede por PostgREST
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:136: NOTICE:    ok — admin de otro tenant sigue sin poder tocar un tenant ajeno (guard de membresía intacto)
+ assert 
+--------
+ 
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:143: NOTICE:    ok — tenant previo (LEGACY_BACKFILL) sigue configurando tender-copilot
+ assert 
+--------
+ 
+(1 row)
+
+ esup_grant_commercial_addon 
+-----------------------------
+ 
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:153: NOTICE:    ok — con concesión OPERATOR el admin configura tender-copilot
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:157: NOTICE:    ok — la configuración técnica se guardó
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:160: NOTICE:    ok — la concesión queda en security_audit_log
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:166: NOTICE:    ok — grant rechaza códigos fuera del catálogo de add-ons de pago
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:169: NOTICE:    ok — grant no permite fabricar concesiones LEGACY_BACKFILL
+ assert 
+--------
+ 
+(1 row)
+
+ esup_sync_hub_addons 
+----------------------
+ 
+(1 row)
+
+ esup_sync_hub_addons 
+----------------------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:180: NOTICE:    ok — sync hub: el hub pasa a ser la verdad del tenant (fuera LEGACY_BACKFILL, fuera incluidos y códigos desconocidos)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:183: NOTICE:    ok — sync hub: filas con source=HUB
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:187: NOTICE:    ok — sync hub: respeta las concesiones OPERATOR
+ assert 
+--------
+ 
+(1 row)
+
+ esup_revoke_commercial_addon 
+------------------------------
+ 
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:196: NOTICE:    ok — tras revocar, el admin ya no puede encender el agente
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:201: NOTICE:    ok — has_addon: concedido → true
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:202: NOTICE:    ok — has_addon: no concedido → false
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:203: NOTICE:    ok — has_addon: incluido → true
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:204: NOTICE:    ok — has_addon: sin tenant → false (fail-closed)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:209: NOTICE:    ok — has_addon no es un oráculo para clientes
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_addons_test.sql:215: NOTICE:    ok — INV-4: precios y límites de plans sin cambios
+ assert 
+--------
+ 
+(1 row)
+
+== test ccp_commercial_tables_test.sql
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_tables_test.sql:45: NOTICE:    ok — tenants: sin INSERT/UPDATE/DELETE para anon/authenticated
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_tables_test.sql:51: NOTICE:    ok — plans: sin escritura para anon/authenticated
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_tables_test.sql:55: NOTICE:    ok — plans: la lectura del catálogo se conserva (plansHandlers)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_tables_test.sql:59: NOTICE:    ok — service_role (RPC de operador / Edge) conserva la escritura
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_tables_test.sql:65: NOTICE:    ok — authenticated NO se sube el plan (tenants.plan)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_tables_test.sql:68: NOTICE:    ok — authenticated NO se quita los límites del plan
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_tables_test.sql:73: NOTICE:    ok — anon NO cambia precios de plans
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_commercial_tables_test.sql:78: NOTICE:    ok — el plan del tenant sigue intacto
+ assert 
+--------
+ 
+(1 row)
+
+== test ccp_tenant_addons_read_test.sql
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_tenant_addons_read_test.sql:27: NOTICE:    ok — existe list_tenant_commercial_addons_rpc(bigint)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_tenant_addons_read_test.sql:31: NOTICE:    ok — solo authenticated (no anon) ejecuta la lectura
+ assert 
+--------
+ 
+(1 row)
+
+              set_config              
+--------------------------------------
+ bbbbbbbb-0000-4000-8000-00000000000b
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_tenant_addons_read_test.sql:38: NOTICE:    ok — sin claim de rol (membresía NULL) tampoco lee un tenant ajeno (fail-closed)
+ assert 
+--------
+ 
+(1 row)
+
+                              set_config                               |              set_config              |  set_config   
+-----------------------------------------------------------------------+--------------------------------------+---------------
+ {"sub":"bbbbbbbb-0000-4000-8000-00000000000b","role":"authenticated"} | bbbbbbbb-0000-4000-8000-00000000000b | authenticated
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_tenant_addons_read_test.sql:47: NOTICE:    ok — un miembro (sin permiso de admin) lee los add-ons de pago concedidos de su tenant (LEGACY_BACKFILL: 10)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_tenant_addons_read_test.sql:50: NOTICE:    ok — no lee la concesión de un tenant ajeno
+ assert 
+--------
+ 
+(1 row)
+
+== test ccp_ai_usage_outbox_test.sql
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:67: NOTICE:    ok — existe public.ai_usage_outbox
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:70: NOTICE:    ok — RLS habilitado en ai_usage_outbox
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:73: NOTICE:    ok — ai_usage_outbox sin políticas (RLS deniega a los clientes)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:75: NOTICE:    ok — dependencia: platform_provisioning_requests aplicada (20260916230000)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:85: NOTICE:    ok — anon/authenticated sin privilegios sobre ai_usage_outbox
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:92: NOTICE:    ok — service_role: solo SELECT sobre ai_usage_outbox
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:97: NOTICE:    ok — esup_record_ai_usage: solo service_role
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:102: NOTICE:    ok — esup_record_ai_usage es SECURITY DEFINER con search_path fijado
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:107: NOTICE:    ok — authenticated no lee el outbox
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:111: NOTICE:    ok — authenticated no inserta en el outbox
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:114: NOTICE:    ok — authenticated no ejecuta esup_record_ai_usage
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:120: NOTICE:    ok — anon no lee el outbox
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:123: NOTICE:    ok — anon no ejecuta esup_record_ai_usage
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:140: NOTICE:    ok — service_role registra un evento válido (true)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:144: NOTICE:    ok — mismo event_id → false (idempotente, reintento sin duplicar)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:149: NOTICE:    ok — el duplicado no altera el evento original
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:157: NOTICE:    ok — fila: PENDING, billable=false, meter_code NULL (D-06), tokens y modelo reales
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:165: NOTICE:    ok — tokens null y tenant null (utilidad) se aceptan
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:169: NOTICE:    ok — trigger SCHEDULED (cron) aceptado
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:175: NOTICE:    ok — tokens negativos rechazados
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:179: NOTICE:    ok — tokens decimales rechazados
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:183: NOTICE:    ok — tokens como string rechazados
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:187: NOTICE:    ok — clave desconocida en internal (p. ej. prompt) rechazada
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:191: NOTICE:    ok — trigger_source fuera de catálogo rechazado
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:195: NOTICE:    ok — outcome fuera de catálogo rechazado
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:198: NOTICE:    ok — event_id no uuid rechazado
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:201: NOTICE:    ok — event_id ausente rechazado
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:205: NOTICE:    ok — clave desconocida en el evento (billable) rechazada
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:209: NOTICE:    ok — tenantId no numérico rechazado
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:213: NOTICE:    ok — function_name con formato inválido rechazado
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:217: NOTICE:    ok — httpStatus fuera de rango rechazado
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:220: NOTICE:    ok — ningún payload inválido dejó fila
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:226: NOTICE:    ok — service_role no inserta directamente (solo vía RPC)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:229: NOTICE:    ok — service_role no actualiza directamente en esta fase
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:232: NOTICE:    ok — service_role no borra
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:239: NOTICE:    ok — control_plane_tenant_id resuelto desde platform_provisioning_requests ACTIVE
+ assert 
+--------
+ 
+(1 row)
+
+ esup_record_ai_usage 
+----------------------
+ t
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:246: NOTICE:    ok — provisioning no ACTIVE → control_plane_tenant_id NULL
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:250: NOTICE:    ok — sin tenant → control_plane_tenant_id NULL
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:256: NOTICE:    ok — billable=true imposible incluso para el owner (CHECK)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:261: NOTICE:    ok — CHECK de internal: contenido fuera de las claves de COGS rechazado incluso para el owner
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:266: NOTICE:    ok — DELETE prohibido incluso para el owner
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:269: NOTICE:    ok — TRUNCATE prohibido incluso para el owner
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:272: NOTICE:    ok — UPDATE de una columna distinta de status/attempts/sent_at prohibido
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:275: NOTICE:    ok — los tokens registrados son inmutables
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:278: NOTICE:    ok — UPDATE de status/attempts/sent_at permitido (emisor fase 17)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_ai_usage_outbox_test.sql:281: NOTICE:    ok — status fuera de catálogo rechazado
+ assert 
+--------
+ 
+(1 row)
+
+== test platform_entitlements_rpc_test.sql
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:100: NOTICE:    ok — platform_entitlement_capabilities: API sin acceso; service_role solo lee
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:100: NOTICE:    ok — platform_entitlement_snapshot_applied: API sin acceso; service_role solo lee
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:100: NOTICE:    ok — platform_entitlement_apply_audit: API sin acceso; service_role solo lee
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:100: NOTICE:    ok — platform_entitlement_jti_replay: API sin acceso; service_role solo lee
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:100: NOTICE:    ok — platform_entitlement_enforcement_mode: API sin acceso; service_role solo lee
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:100: NOTICE:    ok — platform_entitlement_mode_events: API sin acceso; service_role solo lee
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:100: NOTICE:    ok — platform_entitlement_shadow_diffs: API sin acceso; service_role solo lee
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:112: NOTICE:    ok — las puertas solo las ejecuta service_role
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:118: NOTICE:    ok — las internas que escriben no las ejecuta nadie de la API
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:122: NOTICE:    ok — 15 códigos registrados (= ENTITLEMENTS_MANIFEST.json)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:127: NOTICE:    ok — cada add-on del hub (pago + incluidos) tiene su código canónico
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:130: NOTICE:    ok — alias hub → canónico
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:132: NOTICE:    ok — modo del producto al cerrar la fase: SHADOW
+ assert 
+--------
+ 
+(1 row)
+
+       set_config        
+-------------------------
+ [NON_SECRET_TEST_ROLE_CLAIM]
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:140: NOTICE:    ok — GET antes del primer snapshot: NONE, SHADOW
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:142: NOTICE:    ok — GET de un tenant sin mapping → NULL (la Edge Function responde 404)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:153: NOTICE:    ok — v1 aplicado (200, APPLIED)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:158: NOTICE:    ok — GET devuelve la misma versión y checksum que el PUT
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:165: NOTICE:    ok — SHADOW registra exactamente las diferencias legacy vs snapshot (contracts con companyIds no cuenta)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:169: NOTICE:    ok — concesión con companyIds explícitos: anotada como no traducible
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:177: NOTICE:    ok — misma versión y checksum → 200 replayed
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:183: NOTICE:    ok — misma versión, otro checksum → 409 VERSION_CONFLICT
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:191: NOTICE:    ok — salto de versión aplicado; código desconocido → APPLIED_WITH_WARNINGS
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:197: NOTICE:    ok — versión anterior a la aplicada → 409 STALE_SNAPSHOT con appliedVersion
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:203: NOTICE:    ok — tenant sin mapping → 404 TENANT_NOT_PROVISIONED
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:209: NOTICE:    ok — snapshot de otro tenant → 422 SNAPSHOT_INVALID
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:213: NOTICE:    ok — versión no entera → 422
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:215: NOTICE:    ok — la respuesta nunca devuelve el snapshot recibido
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:222: NOTICE:    ok — cada PUT queda auditado en orden, también los rechazos
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:226: NOTICE:    ok — primer uso de un jti → true
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:228: NOTICE:    ok — segundo uso del mismo jti → false (401 JTI_REPLAYED)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:230: NOTICE:    ok — jti vacío → 22023
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:234: NOTICE:    ok — SHADOW → PRIMARY no es un paso: rechazado
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:237: NOTICE:    ok — un tenant avanza un paso (SHADOW → DUAL_READ) sin mover el producto
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:240: NOTICE:    ok — GET informa el modo efectivo del tenant; el producto sigue SHADOW
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:242: NOTICE:    ok — tenant sin mapping no puede tener modo
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:249: NOTICE:    ok — un código desconocido nunca se concede; uno reconocido y habilitado sí
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:252: NOTICE:    ok — el cambio de modo queda en la bitácora
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_rpc_test.sql:258: NOTICE:    ok — auditoría, diferencias y eventos de modo son append-only (ni siquiera el dueño)
+ assert 
+--------
+ 
+(1 row)
+
+== test platform_entitlements_gate_test.sql
+ provision 
+-----------
+ 
+(1 row)
+
+ provision 
+-----------
+ 
+(1 row)
+
+ provision 
+-----------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_gate_test.sql:110: NOTICE:    ok — snapshot 70030 aplicado (con un LIMIT de usuarios que no se aplica)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_gate_test.sql:113: NOTICE:    ok — snapshot 70032 aplicado (appActive=false)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_gate_test.sql:123: NOTICE:    ok — producto en SHADOW
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_gate_test.sql:126: NOTICE:    ok — SHADOW: el snapshot NO decide; legacy igual que la fase 06
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_gate_test.sql:129: NOTICE:    ok — incluidos siempre; add-on de pago sin tenant nunca; agente sin add-on libre
+ assert 
+--------
+ 
+(1 row)
+
+         platform_set_entitlement_enforcement_mode         
+-----------------------------------------------------------
+ {"to": "DUAL_READ", "from": "SHADOW", "scope": "PRODUCT"}
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_gate_test.sql:135: NOTICE:    ok — DUAL_READ con snapshot: decide el snapshot (TENANT y COMPANY sin lista sí; lista explícita no)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_gate_test.sql:138: NOTICE:    ok — DUAL_READ sin snapshot (o sin mapping): cae a legacy
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_gate_test.sql:143: NOTICE:    ok — cada fallback alerta, una vez por día (dos consultas → una alerta)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_gate_test.sql:145: NOTICE:    ok — appActive=false retira los add-ons de pago, no los incluidos
+ assert 
+--------
+ 
+(1 row)
+
+ esup_grant_commercial_addon 
+-----------------------------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_gate_test.sql:149: NOTICE:    ok — DUAL_READ: la escritura legacy se permite y alerta
+ assert 
+--------
+ 
+(1 row)
+
+         platform_set_entitlement_enforcement_mode          
+------------------------------------------------------------
+ {"to": "PRIMARY", "from": "DUAL_READ", "scope": "PRODUCT"}
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_gate_test.sql:154: NOTICE:    ok — PRIMARY: solo el snapshot
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_gate_test.sql:157: NOTICE:    ok — PRIMARY sin snapshot (o sin mapping): solo incluidos, nunca legacy
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_gate_test.sql:162: NOTICE:    ok — PRIMARY: concesión/revocación legacy bloqueadas en servidor
+ assert 
+--------
+ 
+(1 row)
+
+ esup_sync_hub_addons 
+----------------------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_gate_test.sql:166: NOTICE:    ok — PRIMARY: la foto del hub se ignora en silencio (legacy intacto para un paso atrás)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_gate_test.sql:170: NOTICE:    ok — PRIMARY: el barrido solo ve tenants con el add-on concedido por snapshot
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_gate_test.sql:172: NOTICE:    ok — supplier_risk revocado por snapshot → fuera del barrido aunque legacy lo tenga
+ assert 
+--------
+ 
+(1 row)
+
+ act_as 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_gate_test.sql:177: NOTICE:    ok — agente de un add-on concedido por snapshot: se enciende y parametriza
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_gate_test.sql:180: NOTICE:    ok — agente cuyo add-on legacy existe pero el snapshot revoca: no se enciende
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_gate_test.sql:182: NOTICE:    ok — apagar siempre se puede
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_gate_test.sql:184: NOTICE:    ok — la UI ve la misma decisión efectiva
+ assert 
+--------
+ 
+(1 row)
+
+ set_config 
+------------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_gate_test.sql:198: NOTICE:    ok — v2 con asignación de créditos (valores ilustrativos) y peso solo para dorothy
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_gate_test.sql:199: NOTICE:    ok — sin consumo: 0 + 2 ≤ 5 → concedido
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_gate_test.sql:202: NOTICE:    ok — capacidad IA sin peso publicado → no se puede medir → denegada
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_gate_test.sql:207: NOTICE:    ok — un uso (2) + 2 ≤ 5; el error del proveedor no consume
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_gate_test.sql:212: NOTICE:    ok — dos usos (4) + 2 > 5 → agotado: ni interactivo ni barrido programado
+ assert 
+--------
+ 
+(1 row)
+
+         platform_set_entitlement_enforcement_mode          
+------------------------------------------------------------
+ {"to": "DUAL_READ", "from": "PRIMARY", "scope": "PRODUCT"}
+(1 row)
+
+         platform_set_entitlement_enforcement_mode         
+-----------------------------------------------------------
+ {"to": "SHADOW", "from": "DUAL_READ", "scope": "PRODUCT"}
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_gate_test.sql:219: NOTICE:    ok — rollback a SHADOW: vuelve a legacy y el snapshot aplicado se conserva
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_gate_test.sql:227: NOTICE:    ok — offline: ninguna función del gate llama a la red ni a MasterAdmin
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/platform_entitlements_gate_test.sql:231: NOTICE:    ok — INV-4: precios y límites de plans idénticos (el LIMIT del snapshot no los toca)
+ assert 
+--------
+ 
+(1 row)
+
+== test ccp_usage_outbox_delivery_test.sql
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:81: NOTICE:    ok — RPC esup_usage_outbox_claim / esup_usage_outbox_mark existen
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:86: NOTICE:    ok — columnas de entrega: status, attempts, next_attempt_at, sent_at, last_error_code, lease_id
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:93: NOTICE:    ok — claim/mark: SECURITY DEFINER con search_path fijo
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:99: NOTICE:    ok — anon/authenticated no ejecutan claim ni mark
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:103: NOTICE:    ok — service_role ejecuta claim y mark
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:109: NOTICE:    ok — PUBLIC no tiene EXECUTE
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:116: NOTICE:    ok — tabla: service_role sin escritura directa; anon/authenticated sin acceso
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:120: NOTICE:    ok — authenticated: claim denegado (42501)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:122: NOTICE:    ok — authenticated: mark denegado (42501)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:126: NOTICE:    ok — anon: claim denegado (42501)
+ assert 
+--------
+ 
+(1 row)
+
+ esup_record_ai_usage 
+----------------------
+ t
+(1 row)
+
+ esup_record_ai_usage 
+----------------------
+ t
+(1 row)
+
+ esup_record_ai_usage 
+----------------------
+ t
+(1 row)
+
+ esup_record_ai_usage 
+----------------------
+ t
+(1 row)
+
+ esup_record_ai_usage 
+----------------------
+ t
+(1 row)
+
+ esup_record_ai_usage 
+----------------------
+ t
+(1 row)
+
+ esup_record_ai_usage 
+----------------------
+ t
+(1 row)
+
+ esup_record_ai_usage 
+----------------------
+ t
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:154: NOTICE:    ok — filas nuevas: PENDING, 0 intentos, vencidas, sin lease ni error
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:159: NOTICE:    ok — el hecho medido (function_name) es inmutable
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:162: NOTICE:    ok — la cantidad es inmutable
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:165: NOTICE:    ok — occurred_at es inmutable
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:168: NOTICE:    ok — internal (tokens) es inmutable
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:171: NOTICE:    ok — event_id es inmutable (estable ante reintentos)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:174: NOTICE:    ok — control_plane_tenant_id ya atribuido no cambia
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:177: NOTICE:    ok — control_plane_tenant_id atribuido no vuelve a NULL
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:180: NOTICE:    ok — control_plane_tenant_id: NULL → valor (resolución tardía) permitido
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:183: NOTICE:    ok — columnas de entrega (next_attempt_at, last_error_code, lease_id) modificables
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:186: NOTICE:    ok — status FAILED ya no es del catálogo (PENDING/SENT/DEAD)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:189: NOTICE:    ok — SENT exige sent_at
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:192: NOTICE:    ok — DEAD exige last_error_code
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:195: NOTICE:    ok — last_error_code con forma de código
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:198: NOTICE:    ok — attempts no negativo
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:204: NOTICE:    ok — DELETE sigue prohibido (append-only)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:214: NOTICE:    ok — claim(2): las 2 primeras filas vencidas, orden estable
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:217: NOTICE:    ok — un lease_id por claim
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:223: NOTICE:    ok — claim devuelve el hecho medido y el tenant del control plane
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:227: NOTICE:    ok — filas reclamadas: lease grabado y next_attempt_at = now() + lease
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:233: NOTICE:    ok — sin mapping ACTIVE: PENDING + TENANT_NOT_MAPPED, sin lease, recomprobación en 1 h (nunca se envía)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:238: NOTICE:    ok — PROVIDER_ERROR / PROVIDER_UNREACHABLE: no son uso medido, nunca se reclaman
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:246: NOTICE:    ok — segundo claim: solo la fila libre (las arrendadas no se repiten)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:249: NOTICE:    ok — segundo claim: lease distinto
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:250: NOTICE:    ok — tercer claim: nada vencido
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:252: NOTICE:    ok — claim: p_limit 0 → 22023
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:253: NOTICE:    ok — claim: p_limit > 1000 → 22023
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:254: NOTICE:    ok — claim: lease < 30 s → 22023
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:255: NOTICE:    ok — claim: lease > 900 s → 22023
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:265: NOTICE:    ok — mark (lease 1): 1 SENT + 1 RETRY
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:271: NOTICE:    ok — mark (lease 2): DEAD con código
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:277: NOTICE:    ok — SENT: sent_at, attempts+1, lease liberado
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:282: NOTICE:    ok — RETRY: sigue PENDING, attempts=1, código, backoff 30 s
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:286: NOTICE:    ok — DEAD: terminal con el código del receptor
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:295: NOTICE:    ok — mark con lease ya consumido o ajeno → ignorado (no reabre SENT ni DEAD)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:300: NOTICE:    ok — mark con lease inexistente → ignorado
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:306: NOTICE:    ok — los estados no cambiaron por marcas obsoletas
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:308: NOTICE:    ok — mark: lease NULL → 22023
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:309: NOTICE:    ok — mark: resultados no arreglo → 22023
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:310: NOTICE:    ok — mark: eventId no uuid → 22023
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:311: NOTICE:    ok — mark: outcome fuera de SENT/DEAD/RETRY → 22023
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:312: NOTICE:    ok — mark: código sin forma → 22023
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:313: NOTICE:    ok — mark: clave desconocida → 22023
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:335: NOTICE:    ok — backoff intento 2 → 60 s
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:336: NOTICE:    ok — backoff intento 3 → 120 s
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:337: NOTICE:    ok — backoff intento 10 → 15360 s
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:338: NOTICE:    ok — backoff intento 11 → 21600 s (tope 6 h)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:339: NOTICE:    ok — backoff intento 50 → 21600 s
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:340: NOTICE:    ok — backoff con attempts enorme → 21600 s (sin overflow)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:344: NOTICE:    ok — RETRY sin código → RETRY; attempts sigue sumando
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:358: NOTICE:    ok — tenant mapeado después: la fila se resuelve y se reclama
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:362: NOTICE:    ok — la resolución tardía queda persistida (evento estable entre reintentos)
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:366: NOTICE:    ok — sin tenant (utilidad): sigue sin enviarse, nunca se inventa tenant
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:376: NOTICE:    ok — lease vencido: la fila vuelve a salir con un lease nuevo
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:380: NOTICE:    ok — marca del lease vencido → ignorada
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:384: NOTICE:    ok — marca del lease vigente → aplicada
+ assert 
+--------
+ 
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:391: NOTICE:    ok — INV-4: plans intacto
+ assert 
+--------
+ 
+(1 row)
+
+ esup_record_ai_usage 
+----------------------
+ t
+ t
+ t
+(3 rows)
+
+               event_id               
+--------------------------------------
+ f0000000-0000-4000-8000-000000000001
+ f0000000-0000-4000-8000-000000000002
+(2 rows)
+
+ dblink_connect 
+----------------
+ OK
+(1 row)
+
+ dblink_exec 
+-------------
+ SET
+(1 row)
+
+ dblink_exec 
+-------------
+ SET
+(1 row)
+
+ dblink_disconnect 
+-------------------
+ OK
+(1 row)
+
+psql:/Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/eSupplier/.worktrees/ebim-commercial-control-plane-v1/supabase/tests/ccp/ccp_usage_outbox_delivery_test.sql:443: NOTICE:    ok — SKIP LOCKED: la sesión B no espera y solo toma la fila no bloqueada
+ assert 
+--------
+ 
+(1 row)
+

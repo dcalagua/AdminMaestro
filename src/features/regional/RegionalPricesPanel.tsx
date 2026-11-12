@@ -8,6 +8,9 @@ import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { usePlanPriceCatalog } from '@/services/queries';
 import { formatDate } from '@/lib/format';
 import { PlanPriceDialog } from '@/features/catalog/PlanDialogs';
+import { ActionMenu } from '@/components/ui/ActionMenu';
+import { StatusTabs } from '@/components/ui/SectionTabs';
+import { BILLING_INTERVAL_LABEL, CHARGE_KIND_LABEL } from '@/features/billing/subscriptionLabels';
 
 /**
  * Tarifas por mercado (V3 · fase 04/12).
@@ -52,22 +55,7 @@ export function RegionalPricesPanel() {
         value={term}
         onChange={setTerm}
         placeholder="Buscar por plan, mercado o moneda…"
-        right={
-          <div role="tablist" aria-label="Estado de las tarifas" className="flex flex-wrap gap-1">
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                role="tab"
-                aria-selected={tab === t.id}
-                className={tab === t.id ? 'ebim-btn-primary' : 'ebim-btn-ghost'}
-                onClick={() => setTab(t.id)}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-        }
+        right={<StatusTabs label="Estado de las tarifas" value={tab} onChange={setTab} options={TABS} />}
       />
       {prices.isLoading ? (
         <LoadingState />
@@ -76,33 +64,37 @@ export function RegionalPricesPanel() {
       ) : rows.length === 0 ? (
         <EmptyState title="Sin tarifas" description="No hay tarifas en esta vista." />
       ) : (
-        <DataTable columns={['Plan', 'Mercado', 'Cargo', 'Periodicidad', 'Importe', 'Vigencia', '']}>
+        <DataTable
+          label="Tarifas por mercado"
+          columns={['Plan', 'Mercado', 'Cargo', 'Periodicidad', { label: 'Importe', align: 'right' }, 'Vigencia', { label: 'Acciones', srOnly: true }]}
+        >
           {rows.map((p) => (
             <tr key={p.price_id ?? undefined}>
               <td className="ebim-td">
                 <div className="font-semibold">{p.plan_name}</div>
-                <div className="font-mono text-xs text-muted">{p.plan_code}</div>
+                <div className="font-mono text-caption text-muted">{p.plan_code}</div>
               </td>
               <td className="ebim-td">
                 {p.is_legacy ? <Badge tone="warn">Sin mercado</Badge> : <Badge tone="accent">{p.market_code}</Badge>}
               </td>
-              <td className="ebim-td text-xs">{p.charge_kind}</td>
-              <td className="ebim-td text-xs">{p.billing_interval}</td>
-              <td className="ebim-td font-semibold">
+              <td className="ebim-td text-compact" title={p.charge_kind ?? undefined}>
+                {CHARGE_KIND_LABEL[p.charge_kind ?? ''] ?? p.charge_kind}
+              </td>
+              <td className="ebim-td text-compact" title={p.billing_interval ?? undefined}>
+                {BILLING_INTERVAL_LABEL[p.billing_interval ?? ''] ?? p.billing_interval}
+              </td>
+              <td className="ebim-td ebim-num whitespace-nowrap font-semibold">
                 <Money amount={p.amount} currency={p.currency} />
               </td>
-              <td className="ebim-td whitespace-nowrap text-xs">
+              <td className="ebim-td whitespace-nowrap text-compact text-fg-2">
                 {formatDate(p.valid_from)} → {p.valid_to ? formatDate(p.valid_to) : 'abierta'}
               </td>
-              <td className="ebim-td text-right">
+              <td className="ebim-td w-12 text-right">
                 {perms.canManagePlatform && p.plan_id ? (
-                  <button
-                    type="button"
-                    className="ebim-link text-[13px]"
-                    onClick={() => setEditing({ id: p.plan_id as string, name: p.plan_name ?? '' })}
-                  >
-                    Versionar tarifa
-                  </button>
+                  <ActionMenu
+                    label={`Acciones de la tarifa ${p.plan_name ?? ''} ${p.market_code ?? 'sin mercado'} ${p.currency ?? ''}`.trim()}
+                    items={[{ label: 'Versionar tarifa', onSelect: () => setEditing({ id: p.plan_id as string, name: p.plan_name ?? '' }) }]}
+                  />
                 ) : null}
               </td>
             </tr>

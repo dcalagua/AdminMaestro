@@ -1,0 +1,195 @@
+[0m[38;5;245mrunning 18 tests from ./_shared/entitlements/contract_test.ts[0m
+pin: CHECKSUMS.sha256 es exactamente el publicado por MasterAdmin ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+pin: los 20 archivos del contrato están intactos y no hay nada de más ... [0m[32mok[0m [0m[38;5;245m(2ms)[0m
+JCS (RFC 8785): pasa los 11 vectores publicados ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+JCS: rechaza lo que no es JSON en vez de omitirlo en silencio ... [0m[32mok[0m [0m[38;5;245m(2ms)[0m
+JCS: el checksum de cada snapshot es el que firmó MasterAdmin (salvo el 10) ... [0m[32mok[0m [0m[38;5;245m(678µs)[0m
+forma: todo snapshot de los fixtures pasa la puerta salvo el 12 (claves prohibidas) ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+forma: un campo de más, de menos o de otro tipo no pasa ... [0m[32mok[0m [0m[38;5;245m(401µs)[0m
+claves prohibidas: precios, secretos y correos nunca entran, en ningún nivel ... [0m[32mok[0m [0m[38;5;245m(146µs)[0m
+manifiesto: el archivo versionado es byte a byte la respuesta de GET /entitlements/manifest ... [0m[32mok[0m [0m[38;5;245m(117µs)[0m
+manifiesto: los alias (LOCAL_ADDON / LOCAL_FEATURE) se publican aparte, igual que el código ... [0m[32mok[0m [0m[38;5;245m(259µs)[0m
+manifiesto: cumple manifest.schema.json del contrato fijado ... [0m[32mok[0m [0m[38;5;245m(427µs)[0m
+manifiesto: reglas del registro de MasterAdmin (baseline, combine, meter), ordenado por código ... [0m[32mok[0m [0m[38;5;245m(71µs)[0m
+manifiesto: inventario GMAO exacto (sin códigos inventados) ... [0m[32mok[0m [0m[38;5;245m(39µs)[0m
+alias: cada LOCAL_ADDON existe en platform.addons y cada LOCAL_FEATURE es columna de platform.plans ... [0m[32mok[0m [0m[38;5;245m(10ms)[0m
+manifiesto: nada de precios ni valores comerciales ... [0m[32mok[0m [0m[38;5;245m(351µs)[0m
+config: con las tres variables queda encendida para el producto gmao ... [0m[32mok[0m [0m[38;5;245m(108µs)[0m
+config: falta algo o está mal → apagada, nombrando la VARIABLE y nunca el valor ... [0m[32mok[0m [0m[38;5;245m(327µs)[0m
+config: reutilizar un scope de provisioning sería un permiso silencioso → apagada ... [0m[32mok[0m [0m[38;5;245m(28µs)[0m
+[0m[38;5;245mrunning 15 tests from ./_shared/entitlements/golden_test.ts[0m
+golden: hay 13 fixtures y respuestas esperadas para todos ... [0m[32mok[0m [0m[38;5;245m(142µs)[0m
+golden: 01-baseline-only ... [0m[32mok[0m [0m[38;5;245m(10ms)[0m
+golden: 02-plan-grants ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+golden: 03-plan-plus-addon ... [0m[32mok[0m [0m[38;5;245m(2ms)[0m
+golden: 04-addon-removed ... [0m[32mok[0m [0m[38;5;245m(3ms)[0m
+golden: 05-limit-update ... [0m[32mok[0m [0m[38;5;245m(2ms)[0m
+golden: 06-app-inactive ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+golden: 07-unknown-capability ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+golden: 08-stale ... [0m[32mok[0m [0m[38;5;245m(2ms)[0m
+golden: 09-conflict ... [0m[32mok[0m [0m[38;5;245m(2ms)[0m
+golden: 10-bad-checksum ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+golden: 11-wrong-environment ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+golden: 12-forbidden-keys ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+golden: 13-tenant-not-provisioned ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+golden: jti reutilizado → 401 JTI_REPLAYED ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+[0m[38;5;245mrunning 18 tests from ./_shared/entitlements/handler_test.ts[0m
+ruteo: solo las tres rutas nuevas son de entitlements; las de provisioning no ... [0m[32mok[0m [0m[38;5;245m(312µs)[0m
+ruteo: 404/405 sin tocar configuración ni base ... [0m[32mok[0m [0m[38;5;245m(3ms)[0m
+503: sin M2M, M2M apagado o sin configuración de entitlements, sin abrir la base ... [0m[32mok[0m [0m[38;5;245m(2ms)[0m
+401: sin token, firma ajena, audiencia equivocada o expirado → UNAUTHENTICATED, sin abrir la base ... [0m[32mok[0m [0m[38;5;245m(4ms)[0m
+403: una credencial SOLO de provisioning no escribe ni lee entitlements ... [0m[32mok[0m [0m[38;5;245m(2ms)[0m
+403: el scope de lectura no escribe; el de escritura no lee ... [0m[32mok[0m [0m[38;5;245m(2ms)[0m
+401 JTI_REPLAYED: jti de un solo uso, registrado con el emisor y la expiración del token ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+500: base caída al registrar el jti → ENTITLEMENTS_FAILED sin filtrar el detalle ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+GET /entitlements/manifest devuelve el manifiesto versionado byte a byte ... [0m[32mok[0m [0m[38;5;245m(758µs)[0m
+GET aplicado: forma exacta del contrato (sin commercialAuthority); sin provisioning → 404 ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+GET aplicado: un estado de la base que no cumple el contrato → 500, nunca se reenvía ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+PUT feliz: store.apply recibe tenant, snapshot y meta de auditoría SIN token; la respuesta no trae el snapshot ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+PUT: rechazos del contrato, en orden, sin llamar a la RPC ... [0m[32mok[0m [0m[38;5;245m(8ms)[0m
+PUT: productCode del receptor gmao — un snapshot de otro producto nunca llega a la base ... [0m[32mok[0m [0m[38;5;245m(848µs)[0m
+PUT: los rechazos de la base pasan con su código y appliedVersion; uno desconocido → 500 ... [0m[32mok[0m [0m[38;5;245m(2ms)[0m
+log: nunca lleva el token, el snapshot ni el checksum ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+store: llama exactamente a platform.ccp_* por PostgREST con Content-Profile platform ... [0m[32mok[0m [0m[38;5;245m(4ms)[0m
+store: un error de PostgREST no filtra el cuerpo ni la clave ... [0m[32mok[0m [0m[38;5;245m(130µs)[0m
+[0m[38;5;245mrunning 7 tests from ./_shared/entitlements/index_dispatch_test.ts[0m
+index.ts: registra un solo handler ... [0m[32mok[0m [0m[38;5;245m(106µs)[0m
+index.ts: /health sigue en el handler de provisioning ... [0m[32mok[0m [0m[38;5;245m(860µs)[0m
+index.ts: GET /tenants/{id} y POST /tenants siguen en provisioning (formato de error propio) ...
+[0m[38;5;245m------- post-test output -------[0m
+{"level":"warn","event":"provisioning.rejected","correlationId":"c7333cce-4b63-4244-94ea-f4e7c46c1a61","operation":"GET","errorCode":"UNAUTHENTICATED","status":401,"authenticated":false}
+{"level":"warn","event":"provisioning.rejected","correlationId":"74be4cfb-c525-4ebd-ab0b-b69b95f7e0ed","operation":"CREATE","errorCode":"UNAUTHENTICATED","status":401,"authenticated":false}
+{"level":"warn","event":"provisioning.rejected","correlationId":"689ccdd2-2244-4671-94e2-9e6e70288c5c","operation":"GET","errorCode":"ROUTE_NOT_FOUND","status":404,"authenticated":false}
+[0m[38;5;245m----- post-test output end -----[0m
+index.ts: GET /tenants/{id} y POST /tenants siguen en provisioning (formato de error propio) ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+index.ts: las rutas de entitlements van a su handler, y sin token no tocan la base ...
+[0m[38;5;245m------- post-test output -------[0m
+{"level":"info","event":"platform_entitlements.request","correlationId":"63dc9d9f-3296-45aa-aab3-c0eb14985d8e","route":"manifest","status":401,"code":"UNAUTHENTICATED","reason":"UNAUTHENTICATED"}
+{"level":"info","event":"platform_entitlements.request","correlationId":"8f44ea41-b466-48a6-b8d5-8e92dfbbb8ea","route":"get","status":401,"code":"UNAUTHENTICATED","reason":"UNAUTHENTICATED"}
+{"level":"info","event":"platform_entitlements.request","correlationId":"9071fa35-8ca7-47e4-aa7b-84ea990eb74d","route":"put","status":401,"code":"UNAUTHENTICATED","reason":"UNAUTHENTICATED"}
+[0m[38;5;245m----- post-test output end -----[0m
+index.ts: las rutas de entitlements van a su handler, y sin token no tocan la base ... [0m[32mok[0m [0m[38;5;245m(553µs)[0m
+index.ts: un token de provisioning no lee entitlements (403) y no abre la base ...
+[0m[38;5;245m------- post-test output -------[0m
+{"level":"info","event":"platform_entitlements.request","correlationId":"ea5b778a-b3e3-4d7d-a58c-3c46d354550e","route":"manifest","status":403,"code":"INSUFFICIENT_SCOPE","reason":"MISSING_SCOPE"}
+[0m[38;5;245m----- post-test output end -----[0m
+index.ts: un token de provisioning no lee entitlements (403) y no abre la base ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+index.ts: token válido → jti en platform.ccp_entitlements_use_jti con service_role → manifiesto ...
+[0m[38;5;245m------- post-test output -------[0m
+{"level":"info","event":"platform_entitlements.request","correlationId":"daa69620-3bd9-4272-a557-2c3fdccaaa0b","route":"manifest","status":200,"m2mSubject":"masteradmin-provisioning"}
+[0m[38;5;245m----- post-test output end -----[0m
+index.ts: token válido → jti en platform.ccp_entitlements_use_jti con service_role → manifiesto ... [0m[32mok[0m [0m[38;5;245m(3ms)[0m
+index.ts: el cableado de provisioning sigue presente tal cual (INV-1, nivel texto) ... [0m[32mok[0m [0m[38;5;245m(213µs)[0m
+[0m[38;5;245mrunning 4 tests from ./_shared/usage/contract_test.ts[0m
+pin: CHECKSUMS.sha256 es exactamente el publicado por MasterAdmin (FIX-USG-v1) ... [0m[32mok[0m [0m[38;5;245m(273µs)[0m
+pin: los 10 archivos del contrato están intactos y no hay nada de más ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+meters.json: GMAO emite solo gmao.ai.calls (unidad call); sin fotos diarias ... [0m[32mok[0m [0m[38;5;245m(4ms)[0m
+capacidad de las llamadas IA: gmao.ai.assist es AI_FEATURE ACTIVE en el manifiesto GMAO ... [0m[32mok[0m [0m[38;5;245m(103µs)[0m
+[0m[38;5;245mrunning 15 tests from ./_shared/usage/sender_test.ts[0m
+buildUsageEvent: fila del outbox → evento ebim.usage/v1 exacto (sin internal si el proveedor no devolvió nada) ... [0m[32mok[0m [0m[38;5;245m(316µs)[0m
+buildUsageEvent: quantity numérica de PostgREST en texto se normaliza; externalCompanyId se lleva si existe ... [0m[32mok[0m [0m[38;5;245m(71µs)[0m
+buildUsageEvent: internal solo con lo que devolvió el proveedor; nunca 0 inventado ni contenido ... [0m[32mok[0m [0m[38;5;245m(116µs)[0m
+buildUsageEvent: sin mapping de tenant, medidor ajeno, unidad distinta o cantidad negativa → no se construye ... [0m[32mok[0m [0m[38;5;245m(4ms)[0m
+sender: apagado salvo USAGE_OUTBOX_SENDER_ENABLED === 'true' (ni reclama, ni carga la clave, ni envía) ... [0m[32mok[0m [0m[38;5;245m(190µs)[0m
+sender: sin URL válida, ambiente o clave → NOT_CONFIGURED antes de reclamar nada ... [0m[32mok[0m [0m[38;5;245m(5ms)[0m
+sender: outbox vacío → OK sin POST ni mark ... [0m[32mok[0m [0m[38;5;245m(40µs)[0m
+sender: aplica los vectores de clasificación FIX-USG-v1 (posicional; SENT/DEAD/RETRY) y los marca ... [0m[32mok[0m [0m[38;5;245m(4ms)[0m
+sender: JWT ES256 nuevo por intento (jti distinto), iss gmao.ebim, aud masteradmin.ebim, scope usage:ingest, TTL ≤ 300 ... [0m[32mok[0m [0m[38;5;245m(96ms)[0m
+sender: lotes ≤ 500 eventos y ≤ 256 KB, orden estable, batchId distinto y un mark por lote ... [0m[32mok[0m [0m[38;5;245m(52ms)[0m
+sender: lotes por tamaño (internal grande) respetan 256 KB ... [0m[32mok[0m [0m[38;5;245m(45ms)[0m
+sender: fila inválida localmente → DEAD LOCAL_<código> sin enviarla; fila sin mapping no se envía ni se marca ... [0m[32mok[0m [0m[38;5;245m(957µs)[0m
+sender: el cuerpo nunca lleva campos fuera del contrato ... [0m[32mok[0m [0m[38;5;245m(559µs)[0m
+sender: la clave de GMAO_USAGE_PRIVATE_KEY (PKCS#8 PEM, efímera en memoria) firma tokens verificables ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+store: claim/mark llaman solo a las RPC platform.usage_outbox_claim / usage_outbox_mark ... [0m[32mok[0m [0m[38;5;245m(230µs)[0m
+[0m[38;5;245mrunning 19 tests from ./charge/charge_test.ts[0m
+sin usuario → 401 y la pasarela no se llama ... [0m[32mok[0m [0m[38;5;245m(7ms)[0m
+rol technician → 403 FORBIDDEN sin cobro ni registro ... [0m[32mok[0m [0m[38;5;245m(212µs)[0m
+rol viewer → 403 FORBIDDEN sin cobro ni registro ... [0m[32mok[0m [0m[38;5;245m(66µs)[0m
+rol null → 403 FORBIDDEN sin cobro ni registro ... [0m[32mok[0m [0m[38;5;245m(85µs)[0m
+rol owner → puede cobrar ... [0m[32mok[0m [0m[38;5;245m(211µs)[0m
+rol admin → puede cobrar ... [0m[32mok[0m [0m[38;5;245m(95µs)[0m
+KNOWN_DEFECT P-06: pasarela USD + ítem PEN cobra el número del ítem en USD, sin conversión ... [0m[32mok[0m [0m[38;5;245m(138µs)[0m
+caracterización: sin moneda de pasarela usa la del ítem; sin ninguna, USD ... [0m[32mok[0m [0m[38;5;245m(37µs)[0m
+caracterización: resolveChargeAmount marca el desajuste sin corregirlo ... [0m[32mok[0m [0m[38;5;245m(24µs)[0m
+stripe recibe la moneda en minúsculas y el importe en céntimos ... [0m[32mok[0m [0m[38;5;245m(251µs)[0m
+autoridad de cobro MASTERADMIN_AUTHORITY → 409 sin llamar a la pasarela ni registrar ... [0m[32mok[0m [0m[38;5;245m(68µs)[0m
+autoridad de cobro READONLY → 409 sin llamar a la pasarela ni registrar ... [0m[32mok[0m [0m[38;5;245m(71µs)[0m
+autoridad de cobro RETIRED → 409 sin llamar a la pasarela ni registrar ... [0m[32mok[0m [0m[38;5;245m(61µs)[0m
+autoridad de cobro ilegible → 503 fail-closed sin cobrar ... [0m[32mok[0m [0m[38;5;245m(148µs)[0m
+autoridad de cobro desconocida → 503 fail-closed sin cobrar ... [0m[32mok[0m [0m[38;5;245m(45µs)[0m
+autoridad LEGACY_AUTHORITY: cobra como antes y no registra sombra ... [0m[32mok[0m [0m[38;5;245m(76µs)[0m
+autoridad DUAL_READ: cobra como antes y no registra sombra ... [0m[32mok[0m [0m[38;5;245m(32µs)[0m
+SHADOW: registra el cálculo local (sin tarjeta ni token) y sigue cobrando local ... [0m[32mok[0m [0m[38;5;245m(98µs)[0m
+SHADOW: si no se puede registrar la sombra, el cobro legacy no se bloquea ... [0m[32mok[0m [0m[38;5;245m(130µs)[0m
+[0m[38;5;245mrunning 9 tests from ./hub-commercial-export/core_test.ts[0m
+sin token → 401 y no se toca la base ... [0m[32mok[0m [0m[38;5;245m(8ms)[0m
+scope de entitlements o de provisioning no sirve → 403 sin tocar la base ... [0m[32mok[0m [0m[38;5;245m(2ms)[0m
+audiencia ajena → 401 ... [0m[32mok[0m [0m[38;5;245m(815µs)[0m
+sin configuración (M2M, scope o entorno) → 503 fail-closed ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+solo GET → 405 ... [0m[32mok[0m [0m[38;5;245m(483µs)[0m
+jti reutilizado → 401 TOKEN_REPLAYED sin exportar ... [0m[32mok[0m [0m[38;5;245m(950µs)[0m
+200: formato, entorno, datos tal cual y checksum JCS reproducible ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+la base devuelve una clave fuera de la lista blanca (precio/secreto) → 500 sin reenviar ... [0m[32mok[0m [0m[38;5;245m(3ms)[0m
+fallo de la base → 503 sin detalle ... [0m[32mok[0m [0m[38;5;245m(765µs)[0m
+[0m[38;5;245mrunning 32 tests from ./platform-provisioning/provisioning_test.ts[0m
+health: 200 ok sin autenticación cuando está configurado y encendido ... [0m[32mok[0m [0m[38;5;245m(3ms)[0m
+health: 503 cuando la configuración es inválida o falta ... [0m[32mok[0m [0m[38;5;245m(126µs)[0m
+health: 503 cuando EBIM_MASTERADMIN_M2M_ENABLED != true ... [0m[32mok[0m [0m[38;5;245m(176µs)[0m
+health: método distinto de GET → 405 con Allow ... [0m[32mok[0m [0m[38;5;245m(277µs)[0m
+config: sin SUBJECT → error (fail-closed) ... [0m[32mok[0m [0m[38;5;245m(85µs)[0m
+config: TTL fuera de 1..300 → error ... [0m[32mok[0m [0m[38;5;245m(61µs)[0m
+config: algoritmo distinto de ES256 → error ... [0m[32mok[0m [0m[38;5;245m(35µs)[0m
+auth: sin Authorization → 401 UNAUTHENTICATED con code en el nivel superior ... [0m[32mok[0m [0m[38;5;245m(390µs)[0m
+auth: token basura → 401 INVALID_M2M_TOKEN ... [0m[32mok[0m [0m[38;5;245m(208µs)[0m
+auth: firmado con otra clave → 401 ... [0m[32mok[0m [0m[38;5;245m(939µs)[0m
+auth: alg HS256 / none en la cabecera → 401 ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+auth: iss incorrecto → 401 INVALID_ISSUER ... [0m[32mok[0m [0m[38;5;245m(873µs)[0m
+auth: aud incorrecta → 401 INVALID_AUDIENCE ... [0m[32mok[0m [0m[38;5;245m(916µs)[0m
+auth: sub distinto del configurado → 401 (igualdad exacta) ... [0m[32mok[0m [0m[38;5;245m(2ms)[0m
+auth: scope insuficiente → 403 MISSING_SCOPE (create y read) ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+auth: token expirado → 401 ... [0m[32mok[0m [0m[38;5;245m(737µs)[0m
+auth: vida (exp - iat) mayor que el máximo configurado (120) → 401 ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+auth: JWT de usuario de Supabase (claim role) → 401, aunque la firma fuese válida ... [0m[32mok[0m [0m[38;5;245m(2ms)[0m
+auth: M2M apagado → 503 M2M_NOT_CONFIGURED en las rutas de negocio ... [0m[32mok[0m [0m[38;5;245m(541µs)[0m
+create: 201 con la forma que parsea MasterAdmin y admin PREPROVISIONED ... [0m[32mok[0m [0m[38;5;245m(904µs)[0m
+create: replay con la misma key y el mismo cuerpo → 200 replayed=true, mismos IDs ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+create: misma key con otro cuerpo → 409 IDEMPOTENCY_CONFLICT ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+create: mismo controlPlaneTenantId con otra key → 409 TENANT_ALREADY_PROVISIONED ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+get: 200 con los mismos IDs; 404 si no existe; 400 si no es UUID ... [0m[32mok[0m [0m[38;5;245m(2ms)[0m
+create: sin Idempotency-Key → 400 IDEMPOTENCY_KEY_REQUIRED ... [0m[32mok[0m [0m[38;5;245m(807µs)[0m
+create: cuerpo inválido → 400 con los campos, sin valores ... [0m[32mok[0m [0m[38;5;245m(948µs)[0m
+create: deploymentMode dedicado → 422 UNSUPPORTED_DEPLOYMENT_MODE ... [0m[32mok[0m [0m[38;5;245m(777µs)[0m
+create: admin del dominio operador (ebim.pe) → 422 ADMIN_EMAIL_NOT_ALLOWED ... [0m[32mok[0m [0m[38;5;245m(818µs)[0m
+contract: el hash ignora requestId/correlationId y cambia con los datos del tenant ... [0m[32mok[0m [0m[38;5;245m(132µs)[0m
+contract: nombre del tenant = organization.displayName (fallback legalName, tenantName) ... [0m[32mok[0m [0m[38;5;245m(79µs)[0m
+no auth user: el flujo completo sólo toca /rest/v1/rpc/*, nunca /auth/v1 ... [0m[32mok[0m [0m[38;5;245m(4ms)[0m
+audit: rechazos autenticados quedan auditados; no autenticados no ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+[0m[38;5;245mrunning 9 tests from ./platform-register/hub_alive_test.ts[0m
+platform-register: sin X-EBIM-Service → 401 ... [0m[32mok[0m [0m[38;5;245m(1ms)[0m
+platform-register: acciones del hub siguen ruteando a sus RPC ... [0m[32mok[0m [0m[38;5;245m(5ms)[0m
+platform-context: sigue sirviendo org_context con X-EBIM-Service ... [0m[32mok[0m [0m[38;5;245m(532µs)[0m
+platform-register set_addon: producto congelado → 409 HUB_COMMERCIAL_FROZEN sin escribir ... [0m[32mok[0m [0m[38;5;245m(458µs)[0m
+platform-register set_addon: pre-chequeo ilegible → 503 fail-closed sin escribir ... [0m[32mok[0m [0m[38;5;245m(928µs)[0m
+platform-register subscribe: producto congelado → 409 HUB_COMMERCIAL_FROZEN sin escribir ... [0m[32mok[0m [0m[38;5;245m(548µs)[0m
+platform-register subscribe: pre-chequeo ilegible → 503 fail-closed sin escribir ... [0m[32mok[0m [0m[38;5;245m(542µs)[0m
+platform-register: acciones de identidad NO pasan por el pre-chequeo comercial ... [0m[32mok[0m [0m[38;5;245m(902µs)[0m
+X-EBIM-Service se compara en tiempo constante (longitudes distintas y prefijos → 401) ... [0m[32mok[0m [0m[38;5;245m(324µs)[0m
+[0m[38;5;245mrunning 8 tests from ./translate/translate_test.ts[0m
+sin Authorization → 401 y ni caché ni Anthropic ... [0m[32mok[0m [0m[38;5;245m(8ms)[0m
+anon key del bundle → 401 sin salir a la red ... [0m[32mok[0m [0m[38;5;245m(411µs)[0m
+token basura → 401 ... [0m[32mok[0m [0m[38;5;245m(601µs)[0m
+usuario sin tenant → 403 y Anthropic 0 ... [0m[32mok[0m [0m[38;5;245m(2ms)[0m
+usuario con tenant, caché vacía → traduce una vez y guarda ... [0m[32mok[0m [0m[38;5;245m(295µs)[0m
+acierto de caché → no llama a Anthropic ... [0m[32mok[0m [0m[38;5;245m(182µs)[0m
+target fuera de ^[a-z]{2}$ o lote desmesurado → 400 sin Anthropic ... [0m[32mok[0m [0m[38;5;245m(366µs)[0m
+OPTIONS sigue respondiendo CORS sin autenticación ... [0m[32mok[0m [0m[38;5;245m(88µs)[0m
+[0m[38;5;245mrunning 6 tests from ./usage-outbox-sender/handler_test.ts[0m
+handler: sin secreto configurado → 503 y no corre (fail-closed) ... [0m[32mok[0m [0m[38;5;245m(7ms)[0m
+handler: X-EBIM-Service ausente o distinto → 401 y no corre ... [0m[32mok[0m [0m[38;5;245m(409µs)[0m
+handler: solo POST ... [0m[32mok[0m [0m[38;5;245m(47µs)[0m
+handler: secreto correcto → corre una vez y devuelve el reporte (sin secretos) ... [0m[32mok[0m [0m[38;5;245m(174µs)[0m
+handler: apagado → 200 {status: DISABLED} ... [0m[32mok[0m [0m[38;5;245m(93µs)[0m
+handler: fallo interno → 500 genérico, sin detalle ... [0m[32mok[0m [0m[38;5;245m(250µs)[0m
+
+[0m[32mok[0m | 160 passed | 0 failed [0m[38;5;245m(661ms)[0m
+

@@ -30,7 +30,7 @@ export function ReportingCurrencyPanel() {
     setMaxAge(String(settings.data.fx_max_rate_age_days ?? ''));
   }, [settings.data]);
 
-  if (settings.isLoading || currencies.isLoading) return <LoadingState />;
+  if (settings.isLoading || currencies.isLoading) return <LoadingState variant="card" />;
   if (settings.error) return <ErrorState error={settings.error} onRetry={() => void settings.refetch()} />;
 
   const active = (currencies.data ?? []).filter((c) => c.status === 'ACTIVE');
@@ -83,13 +83,13 @@ export function ReportingCurrencyPanel() {
       </div>
 
       {save.error ? (
-        <p className="mx-4 mb-3 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger" role="alert">
+        <p className="mx-4 mb-3 rounded-lg bg-danger-soft px-3 py-2 text-body text-danger" role="alert">
           {businessErrorMessage(save.error)}
         </p>
       ) : null}
 
       <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
-        <p className="text-xs text-muted">
+        <p className="text-compact text-muted">
           {canEdit
             ? 'El cambio queda en auditoría (REPORTING_SETTINGS_CHANGED).'
             : 'Solo EBIM_FINANCE o el super admin pueden cambiarla.'}

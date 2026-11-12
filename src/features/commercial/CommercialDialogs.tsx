@@ -7,6 +7,7 @@ import { TextField, SelectField, NumberField, CheckboxField, TextAreaField, Fiel
 import { useToast } from '@/components/ui/toast-context';
 import {
   useOrganizations, useProducts, useSalesAgents, useCommissionPlans, useTenantOverview, useCurrencies,
+  usePlatformPeople,
 } from '@/services/queries';
 import {
   useUpsertSalesAgent, useCreateAttribution, useUpsertCommissionPlan, useUpsertCommissionRule,
@@ -25,6 +26,8 @@ const agentSchema = z
     agent_type: z.enum(['EBIM_INTERNAL', 'INDEPENDENT', 'PARTNER_AGENT']),
     organization_id: z.string().optional(),
     contact_email: z.string().trim().email('Correo inválido').or(z.literal('')).optional(),
+    // M5: cuenta de la consola vinculada (opcional). Comercial ≠ acceso operativo.
+    user_id: z.string().optional(),
     status: z.enum(['ACTIVE', 'INACTIVE', 'SUSPENDED', 'ARCHIVED']),
     valid_from: z.string().min(1, 'Obligatorio'),
     valid_to: z.string().optional(),
@@ -49,6 +52,8 @@ export interface SalesAgentDraft {
   agent_type: string;
   organization_id: string | null;
   contact_email: string | null;
+  /** M5: usuario vinculado. Se reenvía al editar para no desvincularlo sin querer. */
+  user_id?: string | null;
   status: string;
   valid_from: string;
   valid_to: string | null;
@@ -77,14 +82,23 @@ export function SalesAgentFormDialog({
 }) {
   const toast = useToast();
   const orgs = useOrganizations();
+  const people = usePlatformPeople();
+  const agents = useSalesAgents();
   const upsert = useUpsertSalesAgent();
   const isEdit = Boolean(agent);
+  // Un usuario solo puede estar vinculado a UN comercial (índice único en la base).
+  const takenUserIds = new Set(
+    (agents.data ?? []).filter((a) => a.id !== agent?.id && a.user_id).map((a) => a.user_id as string),
+  );
+  const userOptions = (people.data ?? [])
+    .filter((p) => !takenUserIds.has(p.id))
+    .map((p) => ({ value: p.id, label: p.full_name ? `${p.full_name} · ${p.email}` : p.email }));
 
   const form = useForm<AgentValues>({
     resolver: zodResolver(agentSchema),
     defaultValues: {
       code: '', full_name: '', agent_type: 'INDEPENDENT', organization_id: '',
-      contact_email: '', status: 'ACTIVE',
+      contact_email: '', user_id: '', status: 'ACTIVE',
       valid_from: new Date().toISOString().slice(0, 10), valid_to: '',
     },
   });
@@ -98,6 +112,7 @@ export function SalesAgentFormDialog({
       agent_type: (agent?.agent_type as AgentValues['agent_type']) ?? 'INDEPENDENT',
       organization_id: agent?.organization_id ?? '',
       contact_email: agent?.contact_email ?? '',
+      user_id: agent?.user_id ?? '',
       status: (agent?.status as AgentValues['status']) ?? 'ACTIVE',
       valid_from: agent?.valid_from ?? new Date().toISOString().slice(0, 10),
       valid_to: agent?.valid_to ?? '',
@@ -113,6 +128,8 @@ export function SalesAgentFormDialog({
         p_agent_type: values.agent_type,
         p_organization_id: values.organization_id || undefined,
         p_contact_email: values.contact_email || undefined,
+        // Vacío = sin usuario. Antes de M5 la edición lo omitía y desvinculaba.
+        p_user_id: values.user_id || undefined,
         p_status: values.status,
         p_valid_from: values.valid_from,
         p_valid_to: values.valid_to || undefined,
@@ -151,6 +168,11 @@ export function SalesAgentFormDialog({
           options={(orgs.data ?? []).map((o) => ({ value: o.id, label: o.display_name }))}
           error={form.formState.errors.organization_id} {...form.register('organization_id')} />
       </FieldRow>
+
+      <SelectField label="Usuario de la consola" placeholder="Sin usuario (solo plano comercial)"
+        hint="Con usuario, el comercial ve sus atribuciones y comisiones. No le da acceso operativo a ningún tenant."
+        options={userOptions}
+        error={form.formState.errors.user_id} {...form.register('user_id')} />
 
       <FieldRow>
         <TextField label="Correo de contacto" type="email" placeholder="comercial@ejemplo.com"

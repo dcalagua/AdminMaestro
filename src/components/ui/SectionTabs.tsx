@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
+import { nextTabIndex } from './tabKeys';
 
 /**
  * Tabs CENTRADOS con deep-link por `#hash` — contrato §8, regla `gmao-025`.
@@ -7,6 +8,9 @@ import type { ReactNode } from 'react';
  * Regla de suite: toda pantalla de configuración o detalle larga se organiza en
  * tabs centrados en vez de apilar formularios en scroll infinito. El `#hash`
  * hace que una pestaña concreta sea enlazable y sobreviva a un refresh.
+ *
+ * Teclado (E09): roving tabindex — sólo la pestaña activa está en el orden de
+ * Tab; flechas, Home y End cambian de pestaña y actualizan el hash.
  */
 export interface TabDefinition {
   id: string;
@@ -14,6 +18,8 @@ export interface TabDefinition {
   content: ReactNode;
   /** Oculta la pestaña cuando el rol no debería verla. */
   hidden?: boolean;
+  /** Contador opcional (pendientes, elementos) junto a la etiqueta. */
+  count?: number;
 }
 
 export function SectionTabs({ tabs }: { tabs: TabDefinition[] }) {
@@ -32,6 +38,17 @@ export function SectionTabs({ tabs }: { tabs: TabDefinition[] }) {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, [visible]);
 
+  // Deep-link a una pestaña que aún no es visible (depende de permisos que se
+  // cargan después): se recuerda el #hash pedido y se abre cuando aparece,
+  // salvo que la persona ya haya elegido otra pestaña.
+  const requested = useRef<string | null>(window.location.hash.replace('#', '') || null);
+  useEffect(() => {
+    const want = requested.current;
+    if (!want || !visible.some((t) => t.id === want)) return;
+    requested.current = null;
+    if (want !== active) setActive(want);
+  }, [visible, active]);
+
   // Si la pestaña activa desaparece (por permisos), se cae a la primera visible.
   useEffect(() => {
     if (visible.length > 0 && !visible.some((t) => t.id === active)) {
@@ -41,42 +58,124 @@ export function SectionTabs({ tabs }: { tabs: TabDefinition[] }) {
 
   const current = visible.find((t) => t.id === active) ?? visible[0];
 
+  const select = (id: string) => {
+    requested.current = null;
+    setActive(id);
+    window.location.hash = id;
+  };
+
   return (
     <div>
-      <div className="mb-4 flex justify-center border-b border-border">
-        <div role="tablist" aria-label="Secciones" className="flex flex-wrap justify-center gap-1">
-          {visible.map((tab) => {
-            const isActive = tab.id === current?.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                role="tab"
-                id={`tab-${tab.id}`}
-                aria-selected={isActive}
-                aria-controls={`panel-${tab.id}`}
-                className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors ${
-                  isActive
-                    ? 'border-accent text-accent-deep'
-                    : 'border-transparent text-muted hover:text-fg'
-                }`}
-                onClick={() => {
-                  setActive(tab.id);
-                  window.location.hash = tab.id;
-                }}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <TabStrip tabs={visible} activeId={current?.id} onSelect={select} label="Secciones" />
       {current ? (
-        <div role="tabpanel" id={`panel-${current.id}`} aria-labelledby={`tab-${current.id}`}>
+        <div
+          role="tabpanel"
+          id={`panel-${current.id}`}
+          aria-labelledby={`tab-${current.id}`}
+          tabIndex={0}
+          className="rounded-card focus-visible:outline-offset-4"
+        >
           {current.content}
         </div>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * Fila de pestañas centradas compartida por `SectionTabs` (deep-link por
+ * `#hash`) y `RouteTabs` (deep-link por `?tab=`). Roving tabindex: sólo la
+ * activa está en el orden de Tab; flechas, Home y End cambian de pestaña.
+ */
+export function TabStrip({
+  tabs,
+  activeId,
+  onSelect,
+  label,
+  idPrefix = 'tab',
+  panelPrefix = 'panel',
+}: {
+  tabs: Array<Pick<TabDefinition, 'id' | 'label' | 'count'>>;
+  /** Sin pestaña activa (p. ej. se pidió una que el rol no ve), la primera queda enfocable. */
+  activeId: string | undefined;
+  onSelect: (id: string) => void;
+  label: string;
+  idPrefix?: string;
+  panelPrefix?: string;
+}) {
+  const buttons = useRef<Array<HTMLButtonElement | null>>([]);
+  const scroller = useRef<HTMLDivElement>(null);
+
+  // Con más pestañas de las que caben, la activa (p. ej. al entrar por enlace) se
+  // desplaza a la vista dentro de la fila, sin mover la página.
+  const activeIndex = tabs.findIndex((t) => t.id === activeId);
+  const focusIndex = Math.max(0, activeIndex);
+  useEffect(() => {
+    const box = scroller.current;
+    const button = buttons.current[activeIndex];
+    if (!box || !button || box.scrollWidth <= box.clientWidth) return;
+    const left = button.offsetLeft; // el contenedor es `relative`: offset respecto de la fila
+    if (left < box.scrollLeft || left + button.offsetWidth > box.scrollLeft + box.clientWidth) {
+      box.scrollLeft = Math.max(0, left - 24);
+    }
+  }, [activeIndex]);
+
+  const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    const target = nextTabIndex(e.key, index, tabs.length);
+    if (target === null) return;
+    e.preventDefault();
+    onSelect(tabs[target]!.id);
+    buttons.current[target]?.focus();
+  };
+
+  return (
+    // Centradas (U-07). Si no caben, scroll horizontal en UNA fila (nunca
+    // dos renglones, A08/A09): `w-max mx-auto` centra mientras sobra sitio.
+    <div ref={scroller} className="relative mb-5 overflow-x-auto border-b border-border [scrollbar-width:thin]">
+      <div role="tablist" aria-label={label} className="mx-auto flex w-max flex-nowrap gap-1">
+        {tabs.map((tab, index) => {
+          const isActive = tab.id === activeId;
+          return (
+            <button
+              key={tab.id}
+              ref={(el) => {
+                buttons.current[index] = el;
+              }}
+              type="button"
+              role="tab"
+              id={`${idPrefix}-${tab.id}`}
+              aria-selected={isActive}
+              aria-controls={isActive ? `${panelPrefix}-${tab.id}` : undefined}
+              tabIndex={index === focusIndex ? 0 : -1}
+              className={`-mb-px inline-flex h-11 shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-4 text-compact font-semibold transition-colors duration-fast ease-out ${
+                isActive
+                  ? 'border-accent-deep text-accent-deep'
+                  : 'border-transparent text-muted hover:border-border-strong hover:text-fg'
+              }`}
+              onClick={() => onSelect(tab.id)}
+              onKeyDown={(e) => onKeyDown(e, index)}
+            >
+              {tab.label}
+              {/* El espacio separa etiqueta y contador en el nombre accesible («Pendientes 4»). */}
+              {tab.count !== undefined ? <>{' '}<TabCount value={tab.count} active={isActive} /></> : null}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/** Contador de pestaña: `text-caption` tabular en pastilla. */
+function TabCount({ value, active }: { value: number; active: boolean }) {
+  return (
+    <span
+      className={`inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1.5 text-caption font-semibold tabular-nums ${
+        active ? 'bg-accent-soft text-accent-deep' : 'bg-border text-fg-2'
+      }`}
+    >
+      {value}
+    </span>
   );
 }
 
@@ -88,32 +187,49 @@ export function StatusTabs<T extends string>({
   options,
   value,
   onChange,
+  label = 'Filtro de estado',
 }: {
   options: Array<{ id: T; label: string; count?: number }>;
   value: T;
   onChange: (value: T) => void;
+  /** Nombre accesible del grupo. */
+  label?: string;
 }) {
+  const buttons = useRef<Array<HTMLButtonElement | null>>([]);
+  const current = Math.max(0, options.findIndex((o) => o.id === value));
   return (
-    <div role="tablist" aria-label="Filtro de estado" className="flex flex-wrap gap-1">
-      {options.map((opt) => {
+    // Control segmentado (§5.8): pozo --sunken, pestaña activa elevada sobre --card.
+    <div
+      role="tablist"
+      aria-label={label}
+      className="inline-flex max-w-full flex-wrap gap-1 rounded-field border border-border bg-sunken p-1"
+    >
+      {options.map((opt, index) => {
         const isActive = opt.id === value;
         return (
           <button
             key={opt.id}
+            ref={(el) => {
+              buttons.current[index] = el;
+            }}
             type="button"
             role="tab"
             aria-selected={isActive}
-            className={`rounded-field px-3 py-1.5 text-[13px] font-semibold transition-colors ${
-              isActive
-                ? 'bg-accent-soft text-accent-deep'
-                : 'text-muted hover:bg-[color:var(--bg)] hover:text-fg'
+            tabIndex={index === current ? 0 : -1}
+            onKeyDown={(e) => {
+              const target = nextTabIndex(e.key, index, options.length);
+              if (target === null) return;
+              e.preventDefault();
+              onChange(options[target]!.id);
+              buttons.current[target]?.focus();
+            }}
+            className={`inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md px-3 text-compact font-semibold transition-colors duration-fast ease-out ${
+              isActive ? 'bg-card text-fg shadow-card ring-1 ring-border' : 'text-muted hover:text-fg'
             }`}
             onClick={() => onChange(opt.id)}
           >
             {opt.label}
-            {opt.count !== undefined ? (
-              <span className="ml-1.5 tabular-nums opacity-70">{opt.count}</span>
-            ) : null}
+            {opt.count !== undefined ? <>{' '}<TabCount value={opt.count} active={isActive} /></> : null}
           </button>
         );
       })}

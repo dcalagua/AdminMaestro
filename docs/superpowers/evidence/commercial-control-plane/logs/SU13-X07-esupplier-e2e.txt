@@ -1,0 +1,22 @@
+(node:85304) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS · 0. tenant con mapping ACTIVE; en SHADOW decide legacy (supplier_risk sí, dorothy no)
+PASS · 1. receptor eSupplier configurado (fail-closed si faltara algo)
+PASS · 2. MasterAdmin lee el manifiesto (9 IA de pago + 2 incluidos ACTIVE; mesa eChange, límites y créditos DRAFT) · 2026-10-06.1 · 11 ACTIVE
+PASS · 3. el snapshot lista las 9 sellables ACTIVE con enabled explícito, sin DRAFT ni baseline
+PASS · 4. emisor real → PUT M2M real → APPLIED · APPLIED 200
+PASS · 5. GET: misma versión y checksum, PRIMARY · 1 PRIMARY
+PASS · 6. PRIMARY: el snapshot sustituye al legacy (supplier_risk revocado) y los incluidos siguen
+PASS · 7. v2 concede dorothy + tender → APPLIED; gate y barrido programado lo ven · APPLIED
+PASS · 8. replay idempotente → REPLAYED · REPLAYED
+PASS · 9. v1 tras v2 → STALE (409) · STALE STALE_SNAPSHOT
+PASS · 10. misma versión, otro contenido → CONFLICT (409) · CONFLICT VERSION_CONFLICT
+PASS · 11. credencial con scope de provisioning → 403 REJECTED · 403 INSUFFICIENT_SCOPE
+PASS · 12. PRIMARY: una concesión legacy del operador queda bloqueada en servidor
+PASS · 13. SaaS no disponible → RETRYABLE, nada aplicado · RETRYABLE 503
+PASS · 14. reconciliación: el GET delata deriva (aplicado v2 ≠ deseado v3)
+PASS · 15. offline: sin MasterAdmin ni receptor HTTP, el gate sigue con el last-good v2
+PASS · 16. uso IA en el outbox: tenant → controlPlaneTenantId, billable=false, PENDING · 9f130000-0000-4000-8000-000000000001|false|PENDING
+PASS · 17. v3 appActive=false: add-ons de pago retirados, incluidos intactos
+
+18/18 PASS

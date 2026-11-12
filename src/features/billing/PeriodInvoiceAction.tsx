@@ -7,6 +7,7 @@ import {
   NO_DUE_ITEMS_MESSAGE, formatDateDMY, formatPeriod, issueErrorMessage, issueResultTitle,
   monthInputValue, periodStartFromMonth, type IssueInvoiceResult,
 } from '@/lib/billing';
+import { MonthField } from '@/components/ui/fields';
 
 /**
  * V3.1 · Emisión de la factura del PERIODO de una suscripción.
@@ -54,17 +55,15 @@ export function PeriodInvoiceAction({
   return (
     <div className="flex flex-col gap-3 border-b border-border px-4 py-3 sm:flex-row sm:items-end sm:justify-between">
       <div className="space-y-1">
-        <label className="block text-xs font-semibold text-fg" htmlFor="billing-period">
-          Período de facturación
-        </label>
-        <input
+        <MonthField
           id="billing-period"
-          type="month"
-          className="ebim-input w-44"
+          className="w-56"
+          label="Período de facturación"
+          ahead={12}
           value={month}
           onChange={(e) => setMonth(e.target.value)}
         />
-        <div className="text-xs text-muted" data-testid="billing-status" aria-live="polite">
+        <div className="text-compact text-muted" data-testid="billing-status" aria-live="polite">
           {status.isLoading ? (
             <p role="status">Calculando cargos del período…</p>
           ) : status.error ? (

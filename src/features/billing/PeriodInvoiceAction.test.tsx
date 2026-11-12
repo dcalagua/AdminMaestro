@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import type { SubscriptionBillingStatus } from '@/lib/billing';
 
 /*
@@ -60,7 +60,10 @@ describe('PeriodInvoiceAction · copy', () => {
     render(<PeriodInvoiceAction subscriptionId="sub-1" currency="PEN" />);
     expect(button()).toHaveTextContent('Emitir factura del período (PEN)');
     expect(screen.queryByText(/factura del mes/i)).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Período de facturación')).toHaveAttribute('type', 'month');
+    // V5 · F0: selector de período en español, no `<input type="month">`.
+    const period = screen.getByLabelText('Período de facturación');
+    expect(period.tagName).toBe('SELECT');
+    expect(within(period).getAllByRole('option').some((o) => /^[a-z]+ de \d{4}/.test(o.textContent ?? ''))).toBe(true);
   });
 });
 
@@ -76,7 +79,7 @@ describe('PeriodInvoiceAction · estado servido por la base', () => {
     mockStatus({ data: status({ currency: 'USD', due_item_count: 2, estimated_total: 36000, next_billing_period: '2026-03-01' }) });
     render(<PeriodInvoiceAction subscriptionId="sub-1" currency="USD" />);
     const box = screen.getByTestId('billing-status');
-    expect(box).toHaveTextContent('2 cargos facturables en 03/2026');
+    expect(box).toHaveTextContent('2 cargos facturables en marzo de 2026');
     expect(box).toHaveTextContent(/USD\s36,000\.00/);
     expect(box).toHaveTextContent('Próxima facturación: 01/03/2026');
     expect(button()).toBeEnabled();

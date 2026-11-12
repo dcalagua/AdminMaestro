@@ -10,9 +10,10 @@ test.describe('Login', () => {
     const bullets = page.locator('ul li');
     await expect(bullets).toHaveCount(3);
 
-    // Pie de confianza y lockup "by EBIM".
-    await expect(page.getByText(/Cifrado en tránsito/)).toBeVisible();
-    await expect(page.getByText('BY EBIM')).toBeVisible();
+    // Pie de confianza y lockup "by EBIM" al pie (en escritorio el lockup móvil
+    // de la cabecera del formulario está oculto: solo se ve el del pie).
+    await expect(page.getByText(/cifrado en tránsito/i)).toBeVisible();
+    await expect(page.getByText('BY EBIM').filter({ visible: true })).toHaveCount(1);
 
     // Subtítulo que dice de dónde sale la credencial (evita el ticket del día 1).
     await expect(page.getByText(/Tu acceso lo crea el equipo de plataforma/)).toBeVisible();
@@ -42,18 +43,21 @@ test.describe('Consola EBIM (super admin)', () => {
   });
 
   test('el dashboard muestra indicadores calculados del seed', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: 'Dashboard EBIM' })).toBeVisible();
-    await expect(page.getByText('SaaS activos')).toBeVisible();
-    // "MRR" aparece como tarjeta y como cabecera de tabla: se ancla a la tarjeta.
-    await expect(page.getByText('MRR', { exact: true }).first()).toBeVisible();
-    await expect(page.getByText('Ingreso cobrado').first()).toBeVisible();
-    // Margen por producto con datos reales, no un gráfico vacío.
-    await expect(page.getByText('Margen por producto SaaS')).toBeVisible();
+    // V4 fase 09 (D-V05): el inicio es el «Resumen ejecutivo» con una franja de seis KPI.
+    await expect(page.getByRole('heading', { name: 'Resumen ejecutivo', level: 1 })).toBeVisible();
+    const hero = page.getByRole('region', { name: 'Indicadores clave' });
+    await expect(hero.locator(':scope > *')).toHaveCount(6);
+    await expect(hero).toContainText('MRR');
+    await expect(hero).toContainText('Cobrado del mes');
+    await expect(page.getByRole('heading', { name: '¿Cómo crece el ingreso recurrente?' })).toBeVisible();
+    // Margen por producto con datos reales, ahora en la perspectiva Finanzas.
+    await page.getByRole('tab', { name: 'Finanzas' }).click();
+    await expect(page.getByText('¿Cómo se compone el margen de cada SaaS?')).toBeVisible();
   });
 
   test('el catálogo lista los 5 SaaS iniciales', async ({ page }) => {
-    // La Fase 14 renombró la entrada de menú: «SaaS Products» -> «Suite SaaS».
-    await page.getByRole('link', { name: 'Suite SaaS' }).click();
+    // V5: los productos son la primera pestaña de «Catálogo».
+    await page.getByRole('link', { name: 'Catálogo' }).click();
     for (const producto of ['eSupplier by EBIM', 'EWM by EBIM', 'TMS by EBIM', 'GMAO by EBIM', 'eChange by EBIM']) {
       await expect(page.getByText(producto, { exact: true })).toBeVisible();
     }
@@ -86,24 +90,25 @@ test.describe('Consola EBIM (super admin)', () => {
     await expect(page.getByText('Empresa Directa Alpha · eSupplier')).toHaveCount(0);
   });
 
-  test('provisioning corre en DRY_RUN y expone su timeline', async ({ page }) => {
-    // Nombre exacto: desde V4 hay DOS entradas de provisioning en el mismo grupo
-    // —infraestructura y SaaS— y son ejes distintos a propósito.
-    await page.getByRole('link', { name: 'Provisioning de infraestructura' }).click();
-    await expect(page.getByText('Modo por defecto: DRY_RUN')).toBeVisible();
+  test('la infraestructura corre en simulación y expone su timeline', async ({ page }) => {
+    // V5: infraestructura y altas en las apps son pestañas distintas de «Apps».
+    await page.getByRole('link', { name: 'Apps' }).click();
+    await page.getByRole('tab', { name: 'Solicitudes de infraestructura' }).click();
+    await expect(page.getByText('Modo por defecto: simulación')).toBeVisible();
     await page.getByRole('button', { name: 'Timeline' }).first().click();
     await expect(page.getByText(/modo DRY_RUN|Solicitud encolada/).first()).toBeVisible();
   });
 
   test('los deployments separan infraestructura compartida de dedicada', async ({ page }) => {
-    await page.getByRole('link', { name: 'Deployments' }).click();
+    await page.getByRole('link', { name: 'Apps' }).click();
+    await page.getByRole('tab', { name: 'Entornos y despliegues' }).click();
     await expect(page.getByText('shared-esupplier-sa-east')).toBeVisible();
     await expect(page.getByText('omega-esupplier-dedicated')).toBeVisible();
   });
 
   test('costos y margen calculan sobre ingreso cobrado', async ({ page }) => {
     await page.getByRole('link', { name: 'Costos y margen' }).click();
-    await expect(page.getByText('Margen bruto').first()).toBeVisible();
+    await expect(page.getByText(/Margen (bruto|gerencial)/i).first()).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Por partner' })).toBeVisible();
   });
 
@@ -143,8 +148,8 @@ test.describe('Aislamiento por rol', () => {
     await expect(page.getByText(/no expone datos operativos/)).toBeVisible();
 
     // Su menú no ofrece infraestructura ni facturación.
-    await expect(page.getByRole('link', { name: 'Deployments' })).toHaveCount(0);
-    await expect(page.getByRole('link', { name: 'Facturación y cobros' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Apps' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: /^Cobranza/ })).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'Costos y margen' })).toHaveCount(0);
   });
 

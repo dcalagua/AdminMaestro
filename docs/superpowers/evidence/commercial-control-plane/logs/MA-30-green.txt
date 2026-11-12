@@ -1,0 +1,10 @@
+
+ RUN  v3.2.7 /Users/edudavidmorenoccama/Documents/Documentos-Edus-MacBook-Pro-2/EBIM/masteradmin/.worktrees/ebim-commercial-control-plane-v1
+
+ ✓ supabase/functions/_shared/entitlements/jcs.test.ts (22 tests) 8ms
+
+ Test Files  1 passed (1)
+      Tests  22 passed (22)
+   Start at  23:32:44
+   Duration  645ms (transform 36ms, setup 38ms, collect 22ms, tests 8ms, environment 192ms, prepare 64ms)
+

@@ -30,14 +30,14 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
       <div className="flex min-h-screen items-center justify-center bg-bg p-6">
         <div className="ebim-card w-full max-w-lg p-8 text-center">
           <div className="mb-5 flex justify-center">
-            <EbimLockup appName="Control Plane" />
+            <EbimLockup />
           </div>
-          <h1 className="text-lg font-bold text-fg">Algo salió mal</h1>
-          <p className="mt-2 text-sm text-muted">
+          <h1 className="text-h2 text-fg">Algo salió mal</h1>
+          <p className="mt-2 text-body text-muted">
             La consola encontró un error inesperado. Puedes recargar la página; si el problema
             persiste, comparte el detalle con el equipo de plataforma.
           </p>
-          <pre className="mt-4 overflow-x-auto rounded-field bg-[color:var(--bg)] p-3 text-left text-xs text-danger">
+          <pre className="mt-4 overflow-x-auto rounded-field bg-[color:var(--bg)] p-3 text-left text-caption text-danger">
             {this.state.error.message}
           </pre>
           <button

@@ -8,8 +8,9 @@
  * REGLAS QUE ESTE ARCHIVO IMPONE POR TIPOS:
  *   · el token de tarjeta ENTRA (`SetupInput.token`) pero no SALE de ningún sitio;
  *   · el resultado solo devuelve ids externos y `brand`/`last4`, jamás PAN ni CVV;
- *   · ninguna firma acepta una clave secreta por parámetro: el adapter la lee de
- *     `Deno.env`, y así no puede filtrarse por un log de argumentos.
+ *   · ninguna firma PÚBLICA acepta una clave secreta por parámetro: la resuelve
+ *     `resolvePaymentProvider` (Vault vía RPC de servicio, o `Deno.env`) y se
+ *     la entrega directamente al adapter; no viaja por ningún log de argumentos.
  */
 
 export type ProviderMode = 'MOCK' | 'TEST' | 'LIVE';
@@ -23,8 +24,15 @@ export interface ProviderAccountConfig {
   currency: string;
   /** Pública por diseño: el navegador la necesita para tokenizar. */
   publicKey: string | null;
-  /** NOMBRE de la variable de entorno donde vive la clave secreta. Nunca su valor. */
+  /** NOMBRE de la variable de entorno donde vive la clave secreta. Nunca su valor. Alternativa avanzada. */
   secretKeyRef: string | null;
+  /**
+   * ¿Tiene la cuenta una llave secreta CIFRADA en Vault (`secret_vault_id`)?
+   * Solo el indicador: el valor lo pide el servidor con la RPC de servicio.
+   */
+  hasVaultSecret?: boolean;
+  /** URL base de la API configurada en la cuenta. Null = `CULQI_API_BASE` del entorno. */
+  apiBaseUrl?: string | null;
 }
 
 export interface SetupInput {
@@ -89,6 +97,8 @@ export interface ChargeSummary {
   status: 'CONFIRMED' | 'FAILED' | 'PENDING';
   errorCode?: string | null;
   errorMessage?: string | null;
+  /** M1/M2 · Factura que el cargo declara en sus metadatos (portal o cobro automático). */
+  invoiceId?: string | null;
 }
 
 /** Evento de webhook ya NORMALIZADO y sanitizado por el adapter. */
@@ -99,6 +109,11 @@ export interface NormalizedWebhookEvent {
   kind: 'PAYMENT_SUCCEEDED' | 'PAYMENT_FAILED' | 'SUBSCRIPTION_UPDATED' | 'UNKNOWN';
   externalSubscriptionId: string | null;
   externalChargeId: string | null;
+  /**
+   * M1/M2 · `metadata.invoice_id` del cargo. Los cargos del portal y del cobro
+   * automático no tienen suscripción del proveedor: se imputan a la factura.
+   */
+  externalInvoiceId: string | null;
   amount: number | null;
   currency: string | null;
   occurredAt: string;
@@ -108,12 +123,54 @@ export interface NormalizedWebhookEvent {
   safePayload: Record<string, unknown>;
 }
 
+/** Datos del titular que la pasarela exige para crear el Customer (7 campos). */
+export type CustomerInput = SetupInput['customer'];
+
+/**
+ * M1/M2 · Cargo único. `sourceId` es el token efímero del Checkout (`tkn_`,
+ * portal) o la tarjeta guardada (`crd_`, cobro automático). El importe va en
+ * UNIDADES MÍNIMAS, ya calculado de forma exacta por `toMinorUnits`.
+ */
+export interface ChargeInput {
+  amountMinor: number;
+  currency: string;
+  email: string;
+  sourceId: string;
+  description?: string;
+  /** invoice_id, link_id/attempt_id y origin: lo que el webhook usa para correlacionar. */
+  metadata: Record<string, string>;
+}
+
+/** M2 · Alta de tarjeta guardada SIN suscripción del proveedor (Customer + Card). */
+export interface SaveCardInput {
+  /** Token efímero de un solo uso emitido por el Checkout. */
+  token: string;
+  customer: CustomerInput;
+  metadata?: Record<string, string>;
+}
+
+export interface SaveCardResult {
+  externalCustomerId: string;
+  externalPaymentMethodId: string;
+  card: { brand: string | null; last4: string | null; expMonth: number | null; expYear: number | null };
+}
+
 export interface PaymentProvider {
   readonly name: string;
   readonly mode: ProviderMode;
 
   /** Alta de método de pago + suscripción recurrente. */
   setupSubscription(input: SetupInput): Promise<SetupResult>;
+
+  /**
+   * M1/M2 · Cargo único verificado. Devuelve el cargo CONFIRMADO tal como lo
+   * reporta el proveedor en una consulta directa; un rechazo se lanza como
+   * `ProviderError` con TARJETA_RECHAZADA o TARJETA_REQUIERE_AUTENTICACION.
+   */
+  createCharge(input: ChargeInput): Promise<ChargeSummary>;
+
+  /** M2 · Customer (reutilizado o recuperado por correo) + Card con el token. */
+  saveCard(input: SaveCardInput): Promise<SaveCardResult>;
 
   /** Cancela la suscripción en el proveedor. No borra nada local. */
   cancelSubscription(externalSubscriptionId: string): Promise<{ providerStatus: string }>;

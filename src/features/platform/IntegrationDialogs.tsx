@@ -287,7 +287,7 @@ export function IntegrationDialog({
         <TextField
           label="Nombre"
           required
-          placeholder="EWM · API interna de provisioning v1"
+          placeholder="EWM · API interna de altas v1"
           error={form.formState.errors.name}
           {...form.register('name')}
         />
@@ -318,7 +318,7 @@ export function IntegrationDialog({
 
       <FieldRow>
         <SelectField
-          label="Política de provisioning"
+          label="Política de altas"
           options={POLICY_OPTIONS}
           hint={PROVISIONING_POLICY_HINT[form.watch('provisioning_policy')]}
           error={form.formState.errors.provisioning_policy}
@@ -334,8 +334,8 @@ export function IntegrationDialog({
 
       {isHttp ? (
         <>
-          <p className="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
-            Contrato M2M
+          <p className="mt-4 mb-2 text-micro uppercase text-muted">
+            Conexión segura
           </p>
 
           {type === 'HTTP_M2M' ? (
@@ -393,7 +393,7 @@ export function IntegrationDialog({
               min={TOKEN_TTL_MIN}
               max={TOKEN_TTL_MAX}
               placeholder="300"
-              hint={`Entre ${TOKEN_TTL_MIN} y ${TOKEN_TTL_MAX}. Un token de provisioning de vida larga es un token robado de vida larga.`}
+              hint={`Entre ${TOKEN_TTL_MIN} y ${TOKEN_TTL_MAX}. Un token de alta de vida larga es un token robado de vida larga.`}
               error={form.formState.errors.token_ttl_seconds}
               {...form.register('token_ttl_seconds')}
             />
@@ -421,7 +421,7 @@ export function IntegrationDialog({
             />
           </FieldRow>
 
-          <p className="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
+          <p className="mt-4 mb-2 text-micro uppercase text-muted">
             Rutas del contrato (relativas a la URL base del destino)
           </p>
 
@@ -490,15 +490,15 @@ const credentialSchema = z
   })
   .refine((v) => v.type !== 'M2M_ASYMMETRIC_JWT' || Boolean(v.secret_ref), {
     path: ['secret_ref'],
-    message: 'Un perfil M2M necesita la referencia del secreto de firma',
+    message: 'Un perfil de conexión segura necesita la referencia del secreto de firma',
   })
   .refine((v) => v.type !== 'M2M_ASYMMETRIC_JWT' || Boolean(v.algorithm), {
     path: ['algorithm'],
-    message: 'Un perfil M2M necesita algoritmo',
+    message: 'Un perfil de conexión segura necesita algoritmo',
   })
   .refine((v) => v.type !== 'M2M_ASYMMETRIC_JWT' || Boolean(v.token_ttl_seconds), {
     path: ['token_ttl_seconds'],
-    message: 'Un perfil M2M necesita TTL',
+    message: 'Un perfil de conexión segura necesita TTL',
   });
 
 type CredentialValues = z.input<typeof credentialSchema>;
@@ -614,7 +614,7 @@ export function CredentialProfileDialog({
         <TextField
           label="Nombre"
           required
-          placeholder="EWM QAS · firma M2M"
+          placeholder="EWM QAS · firma de conexión segura"
           error={form.formState.errors.name}
           {...form.register('name')}
         />
@@ -647,7 +647,7 @@ export function CredentialProfileDialog({
       <SelectField
         label="Tipo"
         options={[
-          { value: 'M2M_ASYMMETRIC_JWT', label: 'JWT asimétrico M2M' },
+          { value: 'M2M_ASYMMETRIC_JWT', label: 'JWT asimétrico (conexión segura)' },
           { value: 'NONE', label: 'Sin credencial (manual o simulada)' },
         ]}
         error={form.formState.errors.type}
@@ -762,7 +762,7 @@ export function ProductOwnerDialog({
     <FormDialog
       open={open}
       title={`Propietario técnico de ${productName}`}
-      description="Da alcance a la integración, los deployments y el provisioning de ESTE producto, y de ninguno más. No es un rol de plataforma."
+      description="Da alcance a la integración, los despliegues y las altas de ESTE producto, y de ninguno más. No es un rol de plataforma."
       submitLabel="Asignar"
       busy={upsert.isPending}
       error={upsert.error}
@@ -786,7 +786,7 @@ export function ProductOwnerDialog({
           value,
           label: PRODUCT_OWNER_ROLE_LABEL[value],
         }))}
-        hint="El propietario puede ejecutar, reintentar y cancelar provisioning de su producto; no configura la plataforma."
+        hint="El propietario puede ejecutar, reintentar y cancelar las altas de su producto; no configura la plataforma."
         error={form.formState.errors.role}
         {...form.register('role')}
       />

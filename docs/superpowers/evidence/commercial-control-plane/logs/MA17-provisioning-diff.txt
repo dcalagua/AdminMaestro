@@ -1,0 +1,5 @@
+INV-1: diff de fase 17 (ba29ff3..HEAD+worktree) sobre archivos de provisioning protegidos:
+(vacío = sin cambios)
+
+INV-4: la fase 17 no escribe columnas de precio:
+sin UPDATE de precios

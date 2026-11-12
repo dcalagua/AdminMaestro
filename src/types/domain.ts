@@ -128,6 +128,8 @@ export interface SessionRoles {
   provisioningRoles: Enums<'provisioning_role'>[];
   /** V4: productos de los que el usuario es propietario técnico. */
   ownedProductIds: string[];
+  /** M5: `false` si el perfil está desactivado (sin persona; se cierra la sesión). */
+  isActive?: boolean;
 }
 
 /** Etiquetas en español de los enums, para no repetirlas por toda la UI. */

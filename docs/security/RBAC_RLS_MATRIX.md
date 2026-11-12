@@ -60,17 +60,18 @@ puede shadowear una tabla y cambiar lo que devuelve la función. El test 7 de
 
 | Tabla | SUPER | PRODUCT | FINANCE | PARTNER_ADMIN | PARTNER_SALES | PARTNER_SUPPORT | SALES_AGENT | TENANT_ADMIN | anon |
 |---|---|---|---|---|---|---|---|---|---|
-| `profiles` | RW | R propio | R propio | R org | R org | R org | R propio | R propio | ✗ |
-| `platform_admins` | R | R propio | R propio | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| `profiles` | R · W propio¹ | R · W propio¹ | R · W propio¹ | R org · W propio¹ | R org · W propio¹ | R org · W propio¹ | R propio · W propio¹ | R propio · W propio¹ | ✗ |
+| `platform_admins` | R (escritura solo por RPC M5) | R propio | R propio | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
 | `organizations` | RW | RW | R | RW propia | R propia | R propia | R atribuidas | R | ✗ |
 | `organization_capabilities` | R | R | R | R propia | R propia | R propia | ✗ | ✗ | ✗ |
 | `companies` | RW | RW | R | RW propia | R propia | R propia | ✗ | ✗ | ✗ |
 | `organization_relationships` | R | R | R | R propias | R propias | R propias | ✗ | ✗ | ✗ |
-| `organization_memberships` | RW | RW | R | RW propia | R propia | R propia | ✗ | ✗ | ✗ |
+| `organization_memberships` | R · RPC² | R · RPC² | R | R propia · RPC² | R propia | R propia | ✗ | ✗ | ✗ |
 | `saas_products` | RW | RW | R | R | R | R | R | R | ✗ |
 | `organization_product_agreements` | RW | RW | R | R propios | R propios | R propios | ✗ | ✗ | ✗ |
 | `tenants` | RW | RW | R | RW suyos | R suyos | R suyos | **R atribuidos** | RW el suyo | ✗ |
-| `tenant_memberships` | RW | RW | R | RW suyos | R suyos | R suyos | ✗ | RW el suyo | ✗ |
+| `tenant_memberships` | R · RPC² | R · RPC² | R | R suyos · RPC² | R suyos | R suyos | ✗ | R el suyo · RPC² | ✗ |
+| `user_invitations` (M5) | R | R | R | R las que emitió | ✗ | ✗ | ✗ | R las que emitió | ✗ |
 | `tenant_features` / `tenant_settings` | RW | RW | R | RW suyos | R suyos | R suyos | ✗ | RW el suyo | ✗ |
 | `catalog_items` | R | R | R | R | R | R | R | R | ✗ |
 | `tenant_addons` | RW | RW | R | RW suyos | R suyos | R suyos | ✗ | RW el suyo | ✗ |
@@ -90,6 +91,23 @@ puede shadowear una tabla y cambiar lo que devuelve la función. El test 7 de
 | `audit_logs` | R | R | R | R de su org | R de su org | R de su org | ✗ | R del suyo | ✗ |
 
 R = SELECT · RW = SELECT + escritura acotada por política · ✗ = sin acceso
+
+¹ **`profiles` (corregido en M5).** Antes esta matriz decía «SUPER RW», pero
+ninguna política daba escritura sobre perfiles ajenos: el super admin, como todo
+rol de consola, solo LEE todos los perfiles (`profiles_select_self` incluye
+`is_platform_admin()`), y cada usuario escribe únicamente el suyo
+(`profiles_update_self`). Desde M5 esa escritura directa está limitada por GRANT
+de columna a `settings` y `avatar_url` (apariencia); nombre, teléfono y cargo se
+editan con `admin_update_profile` (el propio usuario o el super admin, con
+auditoría) y `is_active`/`email` ya no son escribibles por `authenticated`
+(antes un PATCH al propio perfil podía reactivarlo).
+
+² **Membresías (M5).** `authenticated` ya no tiene INSERT/UPDATE/DELETE sobre
+`organization_memberships` ni `tenant_memberships` (ningún código ni test las
+escribía por PostgREST). La escritura pasa por `upsert_organization_membership`,
+`set_organization_membership_active`, `upsert_tenant_membership` y
+`set_tenant_membership_active`, que aplican reglas que una política no expresa
+(ver «M5 · Usuarios y perfiles» al final).
 
 **Las celdas en negrita son las que sostienen el modelo de negocio:**
 
@@ -189,6 +207,8 @@ directa de `authenticated` sobre las tablas de cobranza.
 | `create_subscription`, `set_subscription_status` | ✅ | ✅ | ✅ | — |
 | `upsert_commission_plan`, `upsert_commission_rule` | ✅ | — | ✅ | — |
 | `upsert_payment_provider_account` | ✅ | — | ✅ | ❌ |
+| `set_payment_provider_secret`, `clear_payment_provider_secret`, `set_payment_provider_api_base` | ✅ | ❌ | ✅ | ❌ |
+| `payment_provider_account_secret` (llave en claro) | servidor (`service_role`) | ❌ | ❌ | ❌ |
 | `set_subscription_collection_profile` | ✅ | ✅ | ✅ | ✅ (org facturada) |
 | `request/receive/approve/reject/cancel_commercial_document` | ✅ | ✅ | ✅ | ✅ (org facturada) |
 | `refresh_billing_alerts` | ✅ | ✅ | ✅ | ❌ |
@@ -226,3 +246,77 @@ No se inventa una firma. Se compensa con cuatro defensas reales, documentadas en
 estricta del payload, verificación server-to-server del cargo y correlación
 obligatoria con una suscripción existente. El endpoint **no escribe nada
 directamente**: todo pasa por `register_provider_payment()`.
+
+---
+
+# M5 · Usuarios y perfiles
+
+Migración `20261013000100_user_admin.sql`, pgTAP `49_user_admin.test.sql`,
+Edge Function `user-admin`, runbook `docs/runbooks/user-admin.md`.
+
+## 1. RPCs por rol
+
+| RPC | `EBIM_SUPER_ADMIN` | `EBIM_PRODUCT_ADMIN` | `EBIM_FINANCE` | `PARTNER_ADMIN` / `ORG_ADMIN` | `TENANT_ADMIN` | Resto |
+|---|---|---|---|---|---|---|
+| `admin_list_users` | todos | todos | todos (lectura) | miembros de su org y de los tenants de su org, sin roles de consola | ❌ | ❌ |
+| `admin_update_profile` | cualquiera | el propio | el propio | el propio | el propio | el propio |
+| `grant_platform_role` / `revoke_platform_role` | ✅ (nunca `EBIM_SUPER_ADMIN`; nunca el último super admin) | ❌ | ❌ | ❌ | ❌ | ❌ |
+| `upsert_organization_membership` / `set_organization_membership_active` | ✅ (incluida la org EBIM) | ✅ (salvo la org EBIM) | ❌ | su org, su familia de rol (`PARTNER_*` / `ORG_*`), nunca por encima del suyo ni sobre su propia membresía | ❌ | ❌ |
+| `upsert_tenant_membership` / `set_tenant_membership_active` | ✅ | ✅ | ❌ | tenants de su org (`can_manage_tenant`), no la propia | su tenant, no la propia | ❌ |
+| `grant_provisioning_role` / `revoke_provisioning_role` (existentes) | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| `link_user_sales_agent` | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| `deactivate_user` / `reactivate_user` | ✅ (nunca el último super admin) | ❌ | ❌ | ❌ | ❌ | ❌ |
+| `authorize_user_invitation` / `record_user_invitation` | según el acceso pedido (mismas reglas que la RPC que lo aplica) | ídem | ídem | ídem | ídem | ❌ |
+| `authorize_invitation_resend` / `record_invitation_resend` | ✅ | ✅ | ❌ | solo las que emitió | solo las que emitió | ❌ |
+| `accept_my_invitations` | el propio | el propio | el propio | el propio | el propio | el propio |
+
+Todas son `SECURITY DEFINER` con `search_path` fijo, sin `EXECUTE` para `anon`,
+con códigos de error en español (`NO_AUTORIZADO`, `SUPER_ADMIN_NO_ASIGNABLE`,
+`SUPER_ADMIN_PROTEGIDO`, `ULTIMO_SUPER_ADMIN`, `ROL_FUERA_DE_ALCANCE`,
+`MEMBRESIA_PROPIA`, `ROL_NO_CORRESPONDE_ORGANIZACION`, `DOMINIO_OPERADOR_BLOQUEADO`,
+`ORGANIZACION_PLATAFORMA_PROTEGIDA`, `USUARIO_INACTIVO`, `USUARIO_YA_VINCULADO`,
+`INVITACION_NO_PENDIENTE`, …) y `log_audit` en cada escritura. Los validadores
+internos (`assert_user_grant`, `assert_org_role_assignable`, …) no se exponen.
+
+## 2. Invariantes
+
+| Invariante | Dónde |
+|---|---|
+| S-01: `EBIM_SUPER_ADMIN` solo `dcalagua@ebim.pe` (trigger existente) y **no asignable** por RPC, ni por invitación | `grant_platform_role`, `assert_user_grant`; pgTAP 49 §26-27, §66 |
+| Nunca se revoca ni desactiva al último super admin activo | `revoke_platform_role`, `deactivate_user`; pgTAP 49 §31, §56 |
+| S-02: `@ebim.pe` no es miembro de una organización ni de un tenant cliente | trigger `enforce_operator_domain` + `assert_tenant_member_domain`; §42, §50, §67 |
+| S-03: un admin de organización no ve ni asigna roles de consola | `admin_list_users`, `assert_user_grant`; §13, §63 |
+| Comercial ≠ acceso operativo: vincular a un comercial no crea membresías | `link_user_sales_agent`; §53 |
+| La desactivación apaga en cascada consola, membresías, provisioning, propiedad técnica e invitaciones pendientes; el vínculo comercial se conserva | `deactivate_user`; §57-58 |
+| La Edge Function autoriza con el JWT del operador ANTES de usar `service_role` (solo API de Auth) | `supabase/functions/_shared/users/admin.ts` + tests |
+| El enlace de invitación no se guarda ni se registra | `user_invitations` (sin columna para él), `admin.ts` |
+
+---
+
+# Credenciales de pasarela cifradas (2026-10-05)
+
+Migración `20261014000100_payment_provider_vault_secrets.sql`, pgTAP 50. Spec §11.
+
+## Dónde viven los secretos de cobro
+
+| Secreto | Dónde | Quién lo lee en claro |
+|---|---|---|
+| Llave secreta Culqi `sk_(test\|live)_…` (vía normal) | `vault.secrets` (Supabase Vault, cifrada), nombre `payment_provider:<cuenta>` | Solo `service_role`, con `payment_provider_account_secret()` |
+| Llave secreta Culqi (alternativa avanzada) | Secret de Edge Function cuyo NOMBRE guarda `secret_key_ref` | Solo las Edge Functions |
+| `CULQI_ALLOW_LIVE` | Entorno de Edge Functions (no editable desde la UI) | — |
+| `SUPABASE_SERVICE_ROLE_KEY` | Inyectada por Supabase en las Edge Functions | — |
+
+## Invariantes
+
+| Invariante | Dónde |
+|---|---|
+| `secret_vault_id` no es seleccionable por `authenticated`/`anon` (GRANT por columna; un `select *` falla con 42501) | migración §2; pgTAP 50 §02, §24-25 |
+| `authenticated` no accede a `vault.*` ni ejecuta `payment_provider_account_secret` | pgTAP 50 §04, §26-27 |
+| Solo EBIM_FINANCE / super admin configuran, reemplazan o quitan la llave | pgTAP 50 §08-11 |
+| Forma y entorno validados (`sk_test_` ↔ TEST, `sk_live_` ↔ LIVE); el error no repite el valor | pgTAP 50 §12-16 |
+| La auditoría guarda la pista (`key_hint`), nunca la llave; un motivo con una llave se rechaza | pgTAP 50 §17, §34-36 |
+| `secret_hint` no admite una llave completa; puntero/pista/fecha van juntos | pgTAP 50 §37, §39 |
+| Reemplazar no crea otra fila en Vault; quitar la borra | pgTAP 50 §29, §51 |
+| Una cuenta Culqi LIVE activa siempre tiene llave (cifrada o de entorno) | `ppa_live_needs_secret_ref_ck`, `clear_payment_provider_secret`; pgTAP 50 §47-49d |
+| La consola nunca guarda la llave: campo de contraseña que se vacía al enviar, fuera de la caché de React Query | `ProviderSecretDialog.tsx`, `useSetPaymentProviderSecret`; vitest |
+
