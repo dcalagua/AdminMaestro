@@ -18,7 +18,8 @@ import {
 } from '@phosphor-icons/react';
 import { EbimMark } from '@/components/ui/EbimMark';
 import { formatDate } from '@/lib/format';
-import { ExecutivePanel, HeroKpis } from '../ExecutivePerspective';
+import { ExecutivePanel } from '../ExecutivePerspective';
+import { HeroKpis } from '../executive-perspective/ExecutiveHeroKpis';
 import { useExecutiveDashboard, type ExecutiveDashboardData } from '../executiveDashboardData';
 import { DIRECT_CHANNEL } from '../executiveModel';
 import { PresentationViewContext, presentationView } from './presentationContext';
