@@ -22,6 +22,8 @@ import { collectedInMonth, monthRange, periodLabel, renewalsInWindow, useReportC
 import { ExecutivePresentation } from './presentation/ExecutivePresentation';
 import { isPresentationParam, PRESENTATION_PARAM } from './presentation/presentationModel';
 import { usePrintInLightTheme } from './presentation/theme';
+import { MonthSelect } from '@/components/ui/fields';
+import { formatMonth } from '@/lib/period';
 
 /**
  * Inicio adaptado al perfil.
@@ -57,17 +59,13 @@ function ReportContextBar({ ctx, months, setMonth, setFxDate }: ReturnType<typeo
       aria-label="Contexto del reporte"
       className="ebim-card mb-4 flex flex-wrap items-end gap-x-6 gap-y-3 px-4 py-3 text-body"
     >
-      <label className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-muted">Período de operaciones</span>
-        <select className="ebim-input h-9 min-w-[190px]" value={ctx.period.start.slice(0, 7)} onChange={(e) => setMonth(e.target.value)}>
-          {months.map((m, i) => (
-            <option key={m} value={m}>
-              {m}
-              {i === 0 ? ' (mes en curso)' : ''}
-            </option>
-          ))}
-        </select>
-      </label>
+      <MonthSelect
+        label="Período de operaciones"
+        selectClassName="h-9 min-w-[190px]"
+        value={ctx.period.start.slice(0, 7)}
+        onChange={setMonth}
+        options={months.map((m, i) => ({ value: m, label: `${formatMonth(m)}${i === 0 ? ' (mes en curso)' : ''}` }))}
+      />
       <label className="flex flex-col gap-1">
         <span className="text-[11px] font-bold uppercase tracking-wider text-muted">Fecha de tipo de cambio</span>
         <input type="date" className="ebim-input h-9" value={ctx.fxDate} onChange={(e) => e.target.value && setFxDate(e.target.value)} />

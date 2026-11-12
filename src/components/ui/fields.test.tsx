@@ -5,9 +5,12 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   CheckboxField,
   MoneyField,
+  MonthField,
+  MonthSelect,
   NumberField,
   SearchField,
   SelectField,
+  SelectInput,
   SwitchField,
   TextAreaField,
   TextField,
@@ -215,5 +218,51 @@ describe('validación nativa en español (U-13)', () => {
       input.dispatchEvent(new Event('invalid', { cancelable: true }));
     });
     expect(screen.getByRole('alert')).toHaveTextContent('Código duplicado');
+  });
+});
+
+describe('SelectInput, MonthField y MonthSelect (V5 · F0)', () => {
+  it('SelectInput es un select nativo con nombre accesible y devuelve el valor', async () => {
+    const onChange = vi.fn();
+    render(
+      <SelectInput
+        label="Orden"
+        labelDisplay="inline"
+        size="sm"
+        value="desc"
+        onChange={onChange}
+        options={[
+          { value: 'desc', label: 'Más recientes primero' },
+          { value: 'asc', label: 'Más antiguos primero' },
+        ]}
+      />,
+    );
+    const select = screen.getByRole('combobox', { name: 'Orden' });
+    expect(select).toHaveClass('ebim-input-select');
+    await userEvent.selectOptions(select, 'asc');
+    expect(onChange).toHaveBeenCalledWith('asc');
+  });
+
+  it('SelectInput con etiqueta oculta la deja solo para lector de pantalla', () => {
+    render(<SelectInput label="Moneda" labelDisplay="hidden" value="USD" onChange={() => {}} options={[{ value: 'USD', label: 'USD' }]} />);
+    expect(screen.getByText('Moneda')).toHaveClass('sr-only');
+    expect(screen.getByRole('combobox', { name: 'Moneda' })).toHaveValue('USD');
+  });
+
+  it('MonthField pinta los meses en español con valor YYYY-MM y se registra por ref', () => {
+    const ref = createRef<HTMLSelectElement>();
+    render(<MonthField ref={ref} label="Mes" defaultValue="" />);
+    const select = screen.getByLabelText('Mes');
+    expect(ref.current).toBe(select);
+    const options = Array.from((select as HTMLSelectElement).options);
+    expect(options.every((o) => /^\d{4}-\d{2}$/.test(o.value))).toBe(true);
+    expect(options.every((o) => !/\d{4}-\d{2}/.test(o.textContent ?? ''))).toBe(true);
+  });
+
+  it('MonthSelect conserva un valor fuera del rango en vez de perderlo', () => {
+    render(<MonthSelect value="2019-03" onChange={() => {}} back={2} />);
+    const select = screen.getByRole('combobox', { name: 'Período' });
+    expect(select).toHaveValue('2019-03');
+    expect(screen.getByRole('option', { name: 'marzo de 2019' })).toBeInTheDocument();
   });
 });

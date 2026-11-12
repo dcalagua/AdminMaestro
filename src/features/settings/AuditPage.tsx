@@ -9,6 +9,7 @@ import { fetchAuditPage, useAuditPage, type AuditFilter, type AuditRow, type Aud
 import { changedFieldsOf, correlationOf, diffOf, metadataOf, redact } from './auditFormat';
 import { auditActionLabel, entityTypeLabel } from './auditActions';
 import { AuditTimeline } from './AuditTimeline';
+import { SelectInput } from '@/components/ui/fields';
 
 const SORTS: AuditSort[] = ['occurred_at', 'action', 'entity_type'];
 
@@ -77,17 +78,18 @@ export function AuditPage() {
           placeholder="Buscar por acción, actor o entidad…"
           right={
             <div className="flex items-center gap-2">
-              <label className="flex items-center gap-2 text-caption text-muted">
-                Orden
-                <select
-                  className="h-8 rounded-md border border-border-strong bg-card px-2 text-caption text-fg hover:border-fg-2"
-                  value={sortDir}
-                  onChange={(e) => list.setSort('occurred_at', e.target.value === 'asc' ? 'asc' : 'desc')}
-                >
-                  <option value="desc">Más recientes primero</option>
-                  <option value="asc">Más antiguos primero</option>
-                </select>
-              </label>
+              <SelectInput
+                label="Orden"
+                labelDisplay="inline"
+                size="sm"
+                selectClassName="w-auto"
+                value={sortDir}
+                onChange={(v) => list.setSort('occurred_at', v === 'asc' ? 'asc' : 'desc')}
+                options={[
+                  { value: 'desc', label: 'Más recientes primero' },
+                  { value: 'asc', label: 'Más antiguos primero' },
+                ]}
+              />
               <ExportMenu
                 filenameBase="auditoria"
                 columns={EXPORT_COLUMNS}

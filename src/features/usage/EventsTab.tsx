@@ -7,6 +7,7 @@ import { Money } from '@/components/ui/Money';
 import { formatDateTime, formatNumber } from '@/lib/format';
 import { currentPeriodStart, formatPeriod, formatQuantity, monthOf, periodFromMonth, periodRange } from './usageLabels';
 import { useLookups } from './useLookups';
+import { MonthField, SelectField } from '@/components/ui/fields';
 
 /**
  * Eventos de uso crudos (append-only). Se consultan por tenant y mes: es el
@@ -40,36 +41,29 @@ export function EventsTab() {
         description={`Eventos aceptados por el ingest, por fecha de ocurrencia (UTC). Se muestran hasta ${USAGE_LIST_LIMIT} por consulta; acota por tenant para ver todo un mes.`}
       >
         <div className="flex flex-wrap items-end gap-3 border-b border-border px-4 py-3">
-          <div className="min-w-[220px]">
-            <label className="ebim-label" htmlFor={tenantSelectId}>Tenant</label>
-            <select
-              id={tenantSelectId}
-              className="ebim-input"
-              value={tenantId}
-              onChange={(e) => {
-                setTenantId(e.target.value);
-                setShowCogs(false);
-              }}
-            >
-              <option value="">Todos los visibles</option>
-              {lookups.tenantOptions.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="ebim-label" htmlFor={monthId}>Período</label>
-            <input
-              id={monthId}
-              type="month"
-              className="ebim-input"
-              value={monthOf(period)}
-              onChange={(e) => {
-                const next = periodFromMonth(e.target.value);
-                if (next) setPeriod(next);
-              }}
-            />
-          </div>
+          <SelectField
+            id={tenantSelectId}
+            className="min-w-[220px]"
+            label="Tenant"
+            placeholder="Todos los visibles"
+            options={lookups.tenantOptions}
+            value={tenantId}
+            onChange={(e) => {
+              setTenantId(e.target.value);
+              setShowCogs(false);
+            }}
+          />
+          <MonthField
+            id={monthId}
+            className="min-w-[200px]"
+            label="Período"
+            ahead={0}
+            value={monthOf(period)}
+            onChange={(e) => {
+              const next = periodFromMonth(e.target.value);
+              if (next) setPeriod(next);
+            }}
+          />
           {perms.canReadFinance ? (
             <button
               type="button"

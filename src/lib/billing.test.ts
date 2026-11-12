@@ -20,7 +20,7 @@ describe('V3.1 · periodo de facturación (presentación)', () => {
   it('pinta fechas DD/MM/YYYY y periodos MM/YYYY sin pasar por Date (no se corre un día en UTC−5)', () => {
     expect(formatDateDMY('2027-03-01')).toBe('01/03/2027');
     expect(formatDateDMY(null)).toBe('—');
-    expect(formatPeriod('2026-02-01')).toBe('02/2026');
+    expect(formatPeriod('2026-02-01')).toBe('febrero de 2026');
     expect(formatPeriod(undefined)).toBe('—');
   });
 

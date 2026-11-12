@@ -4,6 +4,7 @@ import { ChartBarIcon, TableIcon } from '@phosphor-icons/react';
 import { Skeleton } from '@/components/ui/primitives';
 import type { DataState } from '../dataState';
 import { PartialNote, StateMessage } from './StateView';
+import { SelectInput } from '@/components/ui/fields';
 
 /**
  * Contenedor común de gráficos (spec §6.5 / §7.4, AC14; VISUAL_SYSTEM_V2 §5.5 y §6).
@@ -180,23 +181,14 @@ export function CurrencyPicker({
     return currencies[0] ? <span className="text-caption font-semibold text-muted">{currencies[0]}</span> : null;
   }
   return (
-    <label className={showLabel ? 'flex flex-col gap-1.5' : 'flex items-center gap-1 text-caption text-muted'}>
-      <span className={showLabel ? 'text-micro text-muted' : 'sr-only'}>{label}</span>
-      <select
-        className={
-          showLabel
-            ? 'ebim-input h-9 min-w-[112px]'
-            : 'rounded-field border border-border-strong bg-card px-2 py-1 text-caption text-fg'
-        }
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      >
-        {currencies.map((c) => (
-          <option key={c} value={c}>
-            {c}
-          </option>
-        ))}
-      </select>
-    </label>
+    <SelectInput
+      label={label}
+      labelDisplay={showLabel ? 'stacked' : 'hidden'}
+      size={showLabel ? 'md' : 'sm'}
+      selectClassName={showLabel ? 'h-9 min-w-[112px]' : 'w-auto'}
+      value={value}
+      onChange={onChange}
+      options={currencies.map((c) => ({ value: c, label: c }))}
+    />
   );
 }

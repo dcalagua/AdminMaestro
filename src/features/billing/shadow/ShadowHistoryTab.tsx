@@ -10,7 +10,7 @@ import { StatusTabs } from '@/components/ui/SectionTabs';
 import { Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge } from '@/components/ui/primitives';
 import { DetailDrawer, DetailList } from '@/components/ui/DetailDrawer';
 import { FormDialog } from '@/components/ui/FormDialog';
-import { FieldRow, SelectField, TextAreaField, TextField } from '@/components/ui/fields';
+import { FieldRow, MonthField, SelectField, TextAreaField, TextField } from '@/components/ui/fields';
 import { Money } from '@/components/ui/Money';
 import { useToast } from '@/components/ui/toast-context';
 import { formatDateTime } from '@/lib/format';
@@ -309,7 +309,7 @@ function RegisterComparisonDialog({
           error={form.formState.errors.tenant_id} {...form.register('tenant_id')} />
       </FieldRow>
       <FieldRow>
-        <TextField label="Mes" type="month" required error={form.formState.errors.month} {...form.register('month')} />
+        <MonthField label="Mes" required error={form.formState.errors.month} {...form.register('month')} />
         <TextField label="Ejecutado por" required hint="Persona o proceso que corrió el biller local."
           error={form.formState.errors.actor} {...form.register('actor')} />
       </FieldRow>

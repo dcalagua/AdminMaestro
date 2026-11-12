@@ -104,7 +104,7 @@ async function openBilling(page: Page, subscriptionId: string) {
 }
 
 async function choosePeriod(page: Page, value: string) {
-  await page.getByLabel('Período de facturación').fill(value);
+  await page.getByLabel('Período de facturación').selectOption(value);
   await expect(page.getByTestId('billing-status')).not.toContainText('Calculando', { timeout: 15_000 });
 }
 

@@ -7,7 +7,8 @@ import { useOpenAiCreditPeriod, usePurchaseAiCredits, useRecordAiCreditEntry } f
 import { usePermissions } from '@/hooks/usePermissions';
 import { Card, Badge } from '@/components/ui/primitives';
 import { FormDialog } from '@/components/ui/FormDialog';
-import { FieldRow, NumberField, SelectField, TextAreaField, TextField } from '@/components/ui/fields';
+import { FieldRow, MonthField, NumberField, SelectField, TextAreaField } from '@/components/ui/fields';
+import { formatMonth } from '@/lib/period';
 import { Money } from '@/components/ui/Money';
 import { useToast } from '@/components/ui/toast-context';
 import {
@@ -152,7 +153,7 @@ function OpenPeriodDialog({
       })) as { granted?: number; code?: string } | null;
       const undecided = result?.code === 'POLITICA_CREDITOS_NO_DEFINIDA';
       onResult({
-        title: `Período ${v.month} · ${lookups.tenantName(v.tenant_id)}`,
+        title: `Período ${formatMonth(v.month)} · ${lookups.tenantName(v.tenant_id)}`,
         tone: undecided ? 'warn' : 'ok',
         lines: [
           ['Entradas creadas', String(result?.granted ?? 0)],
@@ -180,7 +181,7 @@ function OpenPeriodDialog({
     >
       <SelectField label="Tenant" required placeholder="Elige el tenant…" options={lookups.tenantOptions}
         error={form.formState.errors.tenant_id} {...form.register('tenant_id')} />
-      <TextField label="Mes" type="month" required error={form.formState.errors.month} {...form.register('month')} />
+      <MonthField label="Mes" required error={form.formState.errors.month} {...form.register('month')} />
     </FormDialog>
   );
 }
@@ -283,7 +284,7 @@ function ManualEntryDialog({
           error={form.formState.errors.entry_type} {...form.register('entry_type')} />
         <NumberField label="Créditos" required step="any" error={form.formState.errors.credits} {...form.register('credits')} />
       </FieldRow>
-      <TextField label="Mes" type="month" required error={form.formState.errors.month} {...form.register('month')} />
+      <MonthField label="Mes" required error={form.formState.errors.month} {...form.register('month')} />
       <TextAreaField label="Motivo" required error={form.formState.errors.reason} {...form.register('reason')} />
       <p className="text-compact text-muted">
         Clave de idempotencia: <span className="font-mono">{key}</span>
@@ -407,7 +408,7 @@ function PurchaseDialog({
           hint="Debe ser el pool de la política vigente del período."
           error={form.formState.errors.pool_key} {...form.register('pool_key')} />
       </FieldRow>
-      <TextField label="Mes" type="month" required error={form.formState.errors.month} {...form.register('month')} />
+      <MonthField label="Mes" required error={form.formState.errors.month} {...form.register('month')} />
       <TextAreaField label="Motivo" required error={form.formState.errors.reason} {...form.register('reason')} />
       <p className="text-compact text-muted">
         Clave de idempotencia: <span className="font-mono">{key}</span>

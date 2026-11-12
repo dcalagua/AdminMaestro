@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { CaretDownIcon, CaretLeftIcon, CaretRightIcon, CaretUpDownIcon, CaretUpIcon } from '@phosphor-icons/react';
 import { EmptyState, ErrorState, LoadingState } from './primitives';
+import { SelectInput } from './fields';
 import { formatNumber } from '@/lib/format';
 import type { SortDir } from '@/services/financeRead';
 import { PAGE_SIZES } from '@/services/financeRead';
@@ -170,20 +171,15 @@ export function TablePager({
         <span className="font-semibold text-fg tabular-nums">{formatNumber(total)}</span>
       </p>
       <div className="flex items-center gap-2">
-        <label className="flex items-center gap-1.5">
-          Filas
-          <select
-            className="h-8 rounded-md border border-border-strong bg-card px-2 text-caption text-fg hover:border-fg-2"
-            value={pageSize}
-            onChange={(e) => onPageSizeChange(Number(e.target.value))}
-          >
-            {PAGE_SIZES.map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SelectInput
+          label="Filas"
+          labelDisplay="inline"
+          size="sm"
+          selectClassName="w-auto"
+          value={String(pageSize)}
+          onChange={(v) => onPageSizeChange(Number(v))}
+          options={PAGE_SIZES.map((n) => ({ value: String(n), label: String(n) }))}
+        />
         <button
           type="button"
           className="ebim-btn-ghost ebim-btn-sm w-8 px-0"

@@ -22,11 +22,18 @@ const files = sources(ROOT).map((path) => ({
   text: readFileSync(path, 'utf8'),
 }));
 
+/** Las líneas de comentario pueden nombrar lo que se prohíbe. */
+function isComment(line: string): boolean {
+  return /^\s*(\*|\/\/|\/\*)/.test(line);
+}
+
 function offenders(pattern: RegExp, allowed: string[] = []): string[] {
   return files
     .filter((f) => !allowed.includes(f.path))
     .flatMap((f) =>
-      f.text.split('\n').flatMap((line, i) => (pattern.test(line) ? [`${f.path}:${i + 1}`] : [])),
+      f.text
+        .split('\n')
+        .flatMap((line, i) => (!isComment(line) && pattern.test(line) ? [`${f.path}:${i + 1}`] : [])),
     );
 }
 
@@ -39,5 +46,13 @@ describe('consistencia del sistema de diseño (V5 · F0)', () => {
     expect(
       offenders(/<table[\s>]/, ['src/components/ui/primitives.tsx', 'src/components/ui/PagedTable.tsx']),
     ).toEqual([]);
+  });
+
+  it('no usa <select> nativos fuera de los campos del sistema', () => {
+    expect(offenders(/<select[\s>]/, ['src/components/ui/fields.tsx'])).toEqual([]);
+  });
+
+  it('no usa <input type="month">: el período se elige en español', () => {
+    expect(offenders(/type=["']month["']/)).toEqual([]);
   });
 });

@@ -44,6 +44,7 @@ import {
 import { AgingPanel, AttentionPanel, MixPanel, PanelBoundary, TopCustomersPanel, TopPartnersPanel } from './executivePanels';
 import { usePresentationView } from './presentation/presentationContext';
 import { useExecutiveDashboard, type ExecutiveDashboardData, type useExecutiveFilters } from './executiveDashboardData';
+import { SelectInput } from '@/components/ui/fields';
 
 /**
  * Perspectiva EJECUTIVA — Resumen Ejecutivo V4 (fase 09, D-V05).
@@ -245,16 +246,14 @@ function FilterRow({
       <div className="print:hidden">
         <CurrencyPicker currencies={codes} value={currency} onChange={setCurrency} label="Moneda de reporte" showLabel />
       </div>
-      <label className="flex flex-col gap-1.5 print:hidden">
-        <span className="text-micro text-muted">Mes analizado</span>
-        <select className="ebim-input h-9 min-w-[210px]" value={month} onChange={(e) => setMonth(e.target.value)}>
-          {options.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      </label>
+      <SelectInput
+        className="print:hidden"
+        label="Mes analizado"
+        selectClassName="h-9 min-w-[210px]"
+        value={month}
+        onChange={setMonth}
+        options={options}
+      />
       <div className="flex flex-col gap-1.5 print:hidden">
         <span className="text-micro text-muted" id="horizonte-label">
           Horizonte

@@ -10,7 +10,7 @@ import { AGING_BUCKETS } from '@/features/executive/kpis';
 import { ChartPanel, CurrencyPicker } from '@/features/executive/components/ChartPanel';
 import { SingleBars, ComponentBars, type BarDatum, type ComponentDatum } from '@/features/executive/components/charts';
 import { StateMessage } from '@/features/executive/components/StateView';
-import { formatCompactAmount, formatMoney, formatNumber } from '@/lib/format';
+import { formatCompactAmount, formatDate, formatMoney, formatNumber } from '@/lib/format';
 import { formatRateLabel } from '@/lib/consolidated';
 import { RegionalFinancePanel } from './RegionalFinancePanel';
 import { periodLabel } from './executiveData';
@@ -265,7 +265,7 @@ function FxCoverage({ query, ctx }: { query: ReturnType<typeof useFinanceConsoli
     <section className="ebim-card flex flex-col" aria-labelledby="fx-title">
       <header className="border-b border-border px-4 py-3">
         <h3 id="fx-title" className="text-body font-bold text-fg">¿Se puede consolidar en una sola moneda?</h3>
-        <p className="text-caption text-muted">Tasas al {ctx.fxDate} · período {periodLabel(ctx)}</p>
+        <p className="text-caption text-muted">Tasas al {formatDate(ctx.fxDate)} · período {periodLabel(ctx)}</p>
       </header>
       <div className="flex-1 px-4 py-3 text-body">
         {state.status !== 'ready' || !data ? (

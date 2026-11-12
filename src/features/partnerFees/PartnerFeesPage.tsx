@@ -17,7 +17,8 @@ import { KpiStrip, NativeAmountTile } from '@/features/billing/financeUi';
 import { fromQuery } from '@/features/executive/dataState';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { FormDialog } from '@/components/ui/FormDialog';
-import { SelectField, TextAreaField } from '@/components/ui/fields';
+import { MonthSelect, SelectField, TextAreaField } from '@/components/ui/fields';
+import { formatMonth } from '@/lib/period';
 import { useToast } from '@/components/ui/toast-context';
 import { businessErrorMessage } from '@/lib/pgError';
 import { formatDate, formatMoney, formatNumber, sumByCurrency } from '@/lib/format';
@@ -112,17 +113,18 @@ export function PartnerFeesPage() {
       description="Lo que cada partner paga a EBIM por usar la plataforma con los clientes que él factura. Un estado de cuenta por partner, mes y moneda; se emite como factura al partner y se cobra por el portal de pago. No son comisiones."
       actions={
         <>
-          <label className="flex items-center gap-2">
-            <span className="text-micro text-muted">Período</span>
-            <select className="ebim-input h-control w-auto min-w-[200px]" value={month} onChange={(e) => setMonth(e.target.value)}>
-              {monthOptions.some((o) => o.value === month) ? null : <option value={month}>{month}</option>}
-              {monthOptions.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <MonthSelect
+            label="Período"
+            labelDisplay="inline"
+            selectClassName="w-auto min-w-[200px]"
+            value={month}
+            onChange={setMonth}
+            options={
+              monthOptions.some((o) => o.value === month)
+                ? monthOptions
+                : [{ value: month, label: formatMonth(month) }, ...monthOptions]
+            }
+          />
           {perms.canReadFinance ? (
             <>
               <button type="button" className="ebim-btn-secondary" disabled={!period} onClick={() => setComputing(true)}>

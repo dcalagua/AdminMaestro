@@ -184,7 +184,7 @@ function PublishRateDialog({
         p_rate_date: date, p_base: base, p_quote: quote, p_rate: Number(rate),
         p_notes: notes.trim() || undefined,
       });
-      toast.success('Tasa publicada', `1 ${base} = ${rate} ${quote} al ${date}`);
+      toast.success('Tasa publicada', `1 ${base} = ${rate} ${quote} al ${formatDate(date)}`);
       setRate('');
       setNotes('');
       onClose();
