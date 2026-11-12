@@ -5,7 +5,7 @@ import { isOperatorDomain } from '@/features/auth/session';
  * Formulario del alta (Nueva venta): esquema zod, opciones y campos que valida
  * cada paso antes de avanzar. Sin estado ni UI.
  */
-export const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 export const schema = z
   .object({

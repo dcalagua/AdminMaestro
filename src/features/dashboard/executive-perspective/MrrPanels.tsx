@@ -248,7 +248,7 @@ export function BridgePanel({
   );
 }
 
-export function MovementCustomers({
+function MovementCustomers({
   step,
   query,
   currency,
