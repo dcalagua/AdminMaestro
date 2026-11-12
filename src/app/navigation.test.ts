@@ -234,6 +234,8 @@ describe('migas y títulos humanos', () => {
     expect(routeMeta('/subscriptions/x')).toMatchObject({ group: 'Comercial', title: 'Contrato 360' });
     expect(routeMeta('/products/x')).toMatchObject({ title: 'Ficha de producto', parentTo: '/catalogo?tab=productos' });
     expect(routeMeta('/integrations/x')).toMatchObject({ group: 'Suite', parentTo: '/apps?tab=integraciones' });
+    // V5 · F2: la ficha de app cuelga del Centro de la suite; `/apps` sigue siendo «Apps».
+    expect(routeMeta('/apps/ewm')).toMatchObject({ group: 'Suite', title: 'Ficha de app', isDetail: true, parentTo: '/suite' });
     expect(routeMeta('/users/10000000-0000-4000-a000-000000000001')).toMatchObject({
       group: 'Gobierno', title: 'Ficha de usuario', isDetail: true,
     });

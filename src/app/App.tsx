@@ -47,6 +47,7 @@ const UsersPage = lazyPage(() => import('@/features/users/UsersPage'), 'UsersPag
 const UserDetailPage = lazyPage(() => import('@/features/users/UserDetailPage'), 'UserDetailPage');
 const InboxPage = lazyPage(() => import('@/features/hubs/PlaceholderPages'), 'InboxPage');
 const SuiteCenterPage = lazyPage(() => import('@/features/suite/SuiteCenterPage'), 'SuiteCenterPage');
+const AppDetailPage = lazyPage(() => import('@/features/suite/AppDetailPage'), 'AppDetailPage');
 
 /*
  * V5 · F1: entradas que fusionan pantallas como pestañas (`?tab=`). Cada
@@ -144,6 +145,14 @@ export function App() {
 
                     {/* Fichas de detalle: conservan su URL. */}
                     <Route path="products/:productId" element={<ProductDetailPage />} />
+                    <Route
+                      path="apps/:productCode"
+                      element={
+                        <RequirePersona personas={['EBIM']}>
+                          <AppDetailPage />
+                        </RequirePersona>
+                      }
+                    />
                     <Route path="organizations/:organizationId" element={<OrganizationDetailPage />} />
                     <Route
                       path="integrations/:integrationId"
