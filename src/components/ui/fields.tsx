@@ -1,6 +1,7 @@
 import { forwardRef, useId, useState } from 'react';
 import type { ReactNode } from 'react';
 import { CaretDownIcon, MagnifyingGlassIcon, WarningCircleIcon, XIcon } from '@phosphor-icons/react';
+import { monthOptions } from '@/lib/period';
 
 /**
  * Forma mínima de un error de campo: cualquier cosa con `message`.
@@ -257,6 +258,126 @@ export const SelectField = forwardRef<
     </FieldShell>
   );
 });
+
+/**
+ * Selector de período mensual de formulario (V5 · F0): sustituye al
+ * `<input type="month">`. Es un `SelectField` con los meses en español
+ * («noviembre de 2026»); el valor sigue siendo `YYYY-MM`, así que se registra
+ * con React Hook Form igual que antes (`{...register('month')}`).
+ */
+export const MonthField = forwardRef<
+  HTMLSelectElement,
+  Omit<SelectProps, 'children'> &
+    ShellProps & {
+      /** Meses hacia atrás y hacia delante del mes en curso. */
+      back?: number;
+      ahead?: number;
+    }
+>(function MonthField({ back = 24, ahead = 12, value, ...props }, ref) {
+  const options = monthOptions({ back, ahead, include: typeof value === 'string' ? value : null });
+  return <SelectField ref={ref} options={options} value={value} {...props} />;
+});
+
+export interface SelectOption {
+  value: string;
+  label: string;
+  disabled?: boolean;
+}
+
+/**
+ * Select del sistema para barras de filtros y de herramientas (V5 · F0): la
+ * misma anatomía que `SelectField` (control nativo, accesible por teclado y
+ * lector de pantalla, chevron propio) pero controlado y compacto, con la
+ * etiqueta encima (`stacked`, micro), al lado (`inline`) o solo para lector de
+ * pantalla (`hidden`). Los formularios siguen usando `SelectField`.
+ */
+export function SelectInput({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder,
+  labelDisplay = 'stacked',
+  size = 'md',
+  className = '',
+  selectClassName = '',
+  disabled,
+  id: idProp,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: ReadonlyArray<SelectOption>;
+  /** Opción vacía inicial («Todos», «Elige…»). */
+  placeholder?: string;
+  labelDisplay?: 'stacked' | 'inline' | 'hidden';
+  size?: 'md' | 'sm';
+  className?: string;
+  /** Clases del control (ancho mínimo). */
+  selectClassName?: string;
+  disabled?: boolean;
+  id?: string;
+}) {
+  const generated = useId();
+  const id = idProp ?? generated;
+  const layout =
+    labelDisplay === 'stacked'
+      ? 'flex flex-col gap-1.5'
+      : labelDisplay === 'inline'
+        ? 'flex items-center gap-2'
+        : '';
+  const labelCls =
+    labelDisplay === 'stacked' ? 'text-micro text-muted' : labelDisplay === 'inline' ? 'text-caption text-muted' : 'sr-only';
+  const sizeCls = size === 'sm' ? 'h-8 pl-2 pr-8 text-caption' : '';
+  return (
+    <div className={`${layout} ${className}`}>
+      <label htmlFor={id} className={labelCls}>
+        {label}
+      </label>
+      <div className="relative">
+        <select
+          id={id}
+          className={`ebim-input ebim-input-select ${sizeCls} ${selectClassName}`}
+          value={value}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value)}
+        >
+          {placeholder !== undefined ? <option value="">{placeholder}</option> : null}
+          {options.map((o) => (
+            <option key={o.value} value={o.value} disabled={o.disabled}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        <CaretDownIcon
+          size={size === 'sm' ? 14 : 16}
+          className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-muted ${size === 'sm' ? 'right-2' : 'right-3'}`}
+          aria-hidden
+        />
+      </div>
+    </div>
+  );
+}
+
+/** Selector de período compacto (filtros): `SelectInput` con los meses en español. */
+export function MonthSelect({
+  value,
+  onChange,
+  label = 'Período',
+  back = 24,
+  ahead = 0,
+  options,
+  ...rest
+}: Omit<Parameters<typeof SelectInput>[0], 'options' | 'label'> & {
+  label?: string;
+  back?: number;
+  ahead?: number;
+  /** Opciones propias (p. ej. rotuladas); por defecto, `back`/`ahead` meses. */
+  options?: ReadonlyArray<SelectOption>;
+}) {
+  const opts = options ?? monthOptions({ back, ahead, include: value });
+  return <SelectInput label={label} value={value} onChange={onChange} options={opts} {...rest} />;
+}
 
 export const TextAreaField = forwardRef<HTMLTextAreaElement, TextAreaProps & ShellProps>(function TextAreaField(
   { label, hint, error: explicitError, className, onInvalid, onChange, ...area },

@@ -84,7 +84,7 @@ export function EntitlementSyncPage() {
 
   return (
     <PageContainer
-      title="Sincronización de entitlements"
+      title="Sincronización de módulos habilitados"
       description="Lo que MasterAdmin emitió frente a lo que cada SaaS confirma por GET. Solo el GET cuenta como sincronizado; los incidentes (checksum distinto, SaaS por delante) no se corrigen solos."
     >
       {all.length > 0 ? (
@@ -128,7 +128,7 @@ export function EntitlementSyncPage() {
             description={
               (status.data ?? []).length > 0
                 ? 'Prueba con otra búsqueda o cambia de filtro.'
-                : 'Un tenant aparece aquí cuando su integración se configura para entitlements y se enrola (eje SHADOW o superior).'
+                : 'Un tenant aparece aquí cuando su integración se configura para módulos habilitados y se enrola (etapa de comparación o superior).'
             }
           />
         ) : (
@@ -189,7 +189,7 @@ export function EntitlementSyncPage() {
                     <div className="mt-1 flex flex-wrap gap-1">
                       {r.cutover_state_entitlements ? (
                         <Badge tone="accent" title={r.cohort_state ?? r.cutover_state_entitlements}>
-                          Cutover: {cutoverStepLabel(r.cohort_state ?? r.cutover_state_entitlements)}
+                          Migración: {cutoverStepLabel(r.cohort_state ?? r.cutover_state_entitlements)}
                         </Badge>
                       ) : null}
                       {r.push_enabled === false ? <Badge tone="danger">Envío apagado</Badge> : null}

@@ -85,7 +85,7 @@ test.describe('shell y navegación (fase 06)', () => {
     // Navegar desde el menú: el foco queda en el h1 de la página nueva.
     await page
       .getByRole('navigation', { name: 'Navegación principal' })
-      .getByRole('link', { name: 'Facturación y cobros' })
+      .getByRole('link', { name: 'Cobranza' })
       .click();
     await settle(page);
     await expect(page.locator('h1').first()).toBeFocused();

@@ -1,176 +1,200 @@
 import { describe, it, expect } from 'vitest';
-import { navItemsFor, navGroupsFor, NAV_ITEMS, hasFinanceView, routeMeta } from './navigation';
+import {
+  navItemsFor, navGroupsFor, NAV_ITEMS, hasFinanceView, routeMeta, visibleTabs, tabHref, LEGACY_REDIRECTS,
+  navDestinations, navAccessFor, type NavAccess,
+} from './navigation';
+import type { PersonaKind } from '@/features/auth/session';
 import type { SessionRoles } from '@/types/domain';
 
-describe('navegación por perfil', () => {
-  it('EBIM ve todas las entradas', () => {
-    expect(navItemsFor('EBIM')).toHaveLength(NAV_ITEMS.length);
-  });
+type Options = { finance?: boolean; superAdmin?: boolean };
 
-  it('un partner NO ve la sección de costos de EBIM', () => {
-    // Los costos de infraestructura son información interna: un partner no debe
-    // ver cuánto le cuesta a EBIM operarlo. RLS además lo bloquea en la base.
-    const rutas = navItemsFor('PARTNER').map((i) => i.to);
-    expect(rutas).not.toContain('/costs');
-    expect(rutas).toContain('/tenants');
-  });
+/** Pestañas sin ruta vieja propia: la entrada conserva la URL de la pantalla original. */
+const HOME_TAB_ROUTE: Record<string, string> = {
+  '/sales-agents?tab=equipo': '/sales-agents',
+  '/commissions?tab=comisiones': '/commissions',
+  '/settings?tab=general': '/settings',
+};
 
-  it('un comercial sólo ve su dominio comercial', () => {
-    const rutas = navItemsFor('SALES_AGENT').map((i) => i.to);
-    expect(rutas).toContain('/attributions');
-    expect(rutas).toContain('/commissions');
-    // Nada de infraestructura, facturación ni organizaciones ajenas.
-    expect(rutas).not.toContain('/deployments');
-    expect(rutas).not.toContain('/billing');
-    expect(rutas).not.toContain('/organizations');
-    expect(rutas).not.toContain('/costs');
-  });
+/**
+ * Pantallas (con su ruta ANTERIOR a la V5) que un perfil ve: una entrada simple
+ * es su propia ruta; una entrada con pestañas, las rutas que absorben sus
+ * pestañas visibles.
+ */
+function screens(persona: PersonaKind, options: Options = {}): string[] {
+  const access: NavAccess = { persona, finance: options.finance ?? true, superAdmin: options.superAdmin ?? false };
+  return navItemsFor(persona, options).flatMap((item) =>
+    item.tabs
+      ? visibleTabs(item, access).flatMap((t) => {
+          const href = tabHref(item, t.id);
+          return [...(t.legacy ?? []), ...(HOME_TAB_ROUTE[href] ? [HOME_TAB_ROUTE[href]] : [])];
+        })
+      : [item.to],
+  );
+}
 
-  it('un usuario de tenant no ve gestión de partners ni comerciales', () => {
-    const rutas = navItemsFor('TENANT').map((i) => i.to);
-    expect(rutas).not.toContain('/partners');
-    expect(rutas).not.toContain('/sales-agents');
-    expect(rutas).toContain('/tenants');
-  });
+/**
+ * Reglas de visibilidad del menú ANTES de la V5 (32 entradas). La V5 reorganiza,
+ * pero no puede abrir ni cerrar ninguna pantalla a ningún rol.
+ */
+const EP: PersonaKind[] = ['EBIM', 'PARTNER'];
+const E: PersonaKind[] = ['EBIM'];
+const OLD_RULES: Record<string, { personas?: PersonaKind[]; finance?: boolean; superAdmin?: boolean }> = {
+  '/': {},
+  '/customers': { personas: EP }, '/partners': { personas: EP }, '/organizations': { personas: EP },
+  '/sales-agents': { personas: EP }, '/attributions': {},
+  '/products': {}, '/plans': {}, '/feature-flags': {}, '/commercial/capabilities': { personas: E },
+  '/catalog/addons': { personas: EP, finance: true }, '/onboarding': { personas: E }, '/tenants': {},
+  '/subscriptions': { personas: EP, finance: true },
+  '/billing': { personas: EP, finance: true }, '/costs': { personas: E, finance: true },
+  '/commissions': { finance: true }, '/commission-plans': { personas: EP, finance: true },
+  '/renewals': { personas: EP, finance: true }, '/reconciliation': { personas: E, finance: true },
+  '/regional': { personas: E, finance: true }, '/ai-credits': { personas: E, finance: true },
+  // V5: la comparación de cobro pasa a «Avanzado», sólo para el super admin (plan §4).
+  '/billing-shadow': { personas: E, finance: true, superAdmin: true },
+  '/partner-fees': { personas: E, finance: true },
+  '/integrations': { personas: E }, '/commercial/entitlement-sync': { personas: E }, '/usage': { personas: E },
+  '/deployments': { personas: EP }, '/saas-provisioning': { personas: EP }, '/provisioning': { personas: EP },
+  '/users': { personas: EP }, '/audit': { personas: EP }, '/settings': {},
+};
 
-  it('todos los perfiles conservan el dashboard', () => {
-    for (const persona of ['EBIM', 'PARTNER', 'SALES_AGENT', 'TENANT'] as const) {
-      expect(navItemsFor(persona).map((i) => i.to)).toContain('/');
-    }
-  });
+function oldScreens(persona: PersonaKind, options: Options = {}): string[] {
+  return Object.entries(OLD_RULES)
+    .filter(([, r]) => (!r.personas || r.personas.includes(persona)) && (!r.finance || (options.finance ?? true)))
+    .filter(([, r]) => !r.superAdmin || options.superAdmin)
+    .map(([route]) => route);
+}
 
-  it('agrupa por arquitectura de negocio (spec §5)', () => {
-    // Sustituye a la agrupación de la Fase 14 (Plataforma → … → Gobierno): la
-    // spec aprobada reorganiza el menú por pregunta de negocio sin tocar URLs.
-    const grupos = navGroupsFor('EBIM').map((g) => g.group);
-    expect(grupos).toEqual([
-      'Inicio', 'Clientes y canales', 'Productos y contratos', 'Finanzas', 'Operación SaaS', 'Gobierno',
+/** Entradas nuevas de la V5 sin pantalla anterior. */
+const NEW_ENTRIES = ['/bandeja', '/suite'];
+
+describe('menú V5: seis grupos, 18 entradas (plan §4)', () => {
+  it('grupos por tarea, en orden', () => {
+    expect(navGroupsFor('EBIM').map((g) => g.group)).toEqual([
+      'Inicio', 'Clientes', 'Suite', 'Comercial', 'Finanzas', 'Gobierno',
     ]);
-    expect(new Set(grupos).size).toBe(grupos.length);
   });
 
-  it('conserva exactamente las 33 rutas existentes', () => {
-    // CCP fase 07 añade `/catalog/addons` y `/commercial/capabilities`;
-    // CCP fase 08 añade `/commercial/entitlement-sync`;
-    // CCP M4 añade `/usage`, `/ai-credits` y `/billing-shadow`; M3 añade `/partner-fees`;
-    // M5 añade `/users`.
-    expect(NAV_ITEMS.map((i) => i.to).sort()).toEqual([
-      '/', '/ai-credits', '/attributions', '/audit', '/billing', '/billing-shadow', '/catalog/addons',
-      '/commercial/capabilities', '/commercial/entitlement-sync',
-      '/commission-plans', '/commissions', '/costs',
-      '/customers', '/deployments', '/feature-flags', '/integrations', '/onboarding', '/organizations',
-      '/partner-fees', '/partners', '/plans', '/products', '/provisioning', '/reconciliation', '/regional', '/renewals',
-      '/saas-provisioning', '/sales-agents', '/settings', '/subscriptions', '/tenants', '/usage', '/users',
-    ]);
+  it('las entradas de cada grupo son las de la tabla del plan', () => {
+    const byGroup = Object.fromEntries(
+      navGroupsFor('EBIM', { superAdmin: true }).map((g) => [g.group, g.items.map((i) => i.label)]),
+    );
+    expect(byGroup).toEqual({
+      Inicio: ['Resumen', 'Bandeja'],
+      Clientes: ['Cuentas', 'Partners', 'Equipo comercial'],
+      Suite: ['Centro de la suite', 'Tenants', 'Apps'],
+      Comercial: ['Nueva venta', 'Contratos', 'Catálogo'],
+      Finanzas: ['Cobranza', 'Comisiones', 'Costos y margen', 'Tarifas de partners'],
+      Gobierno: ['Usuarios', 'Auditoría', 'Configuración'],
+    });
+    expect(NAV_ITEMS).toHaveLength(18);
   });
 
-  it('uso es operación SaaS de EBIM; créditos IA y billing shadow son finanzas de EBIM (CCP M4)', () => {
-    const ebim = navItemsFor('EBIM').map((i) => i.to);
-    for (const r of ['/usage', '/ai-credits', '/billing-shadow']) expect(ebim).toContain(r);
-    for (const persona of ['PARTNER', 'SALES_AGENT', 'TENANT'] as const) {
-      const rutas = navItemsFor(persona).map((i) => i.to);
-      for (const r of ['/usage', '/ai-credits', '/billing-shadow']) expect(rutas).not.toContain(r);
-    }
-    // Perfil técnico EBIM: ve «Uso» pero no las pantallas financieras.
-    const technical = navItemsFor('EBIM', { finance: false }).map((i) => i.to);
-    expect(technical).toContain('/usage');
-    expect(technical).not.toContain('/ai-credits');
-    expect(technical).not.toContain('/billing-shadow');
-    expect(routeMeta('/usage')).toMatchObject({ group: 'Operación SaaS', title: 'Uso', isDetail: false });
-    expect(routeMeta('/ai-credits')).toMatchObject({ group: 'Finanzas', title: 'Créditos IA' });
-    expect(routeMeta('/billing-shadow')).toMatchObject({ group: 'Finanzas', title: 'Billing shadow' });
-  });
-
-  it('«Tarifas de partners» es una pantalla de finanzas de EBIM (M3)', () => {
-    expect(navItemsFor('EBIM').map((i) => i.to)).toContain('/partner-fees');
-    expect(navItemsFor('EBIM', { finance: false }).map((i) => i.to)).not.toContain('/partner-fees');
-    for (const persona of ['PARTNER', 'SALES_AGENT', 'TENANT'] as const) {
-      expect(navItemsFor(persona).map((i) => i.to)).not.toContain('/partner-fees');
-    }
-    expect(routeMeta('/partner-fees')).toMatchObject({ group: 'Finanzas', title: 'Tarifas de partners' });
-  });
-
-  it('etiquetas de negocio de la spec', () => {
-    const label = (to: string) => NAV_ITEMS.find((i) => i.to === to)?.label;
-    expect(label('/')).toBe('Resumen ejecutivo');
-    expect(label('/feature-flags')).toBe('Capacidades');
-    expect(label('/deployments')).toBe('Entornos y despliegues');
-    expect(label('/saas-provisioning')).toBe('Altas SaaS');
-    expect(label('/provisioning')).toBe('Solicitudes de infraestructura');
-    expect(label('/organizations')).toBe('Directorio corporativo');
-  });
-
-  it('la reconciliación financiera es solo de EBIM', () => {
-    // Cruza cobros de todos los clientes y estados del proveedor de pago: no es
-    // información de un partner. RLS lo bloquea además en la base.
-    expect(navItemsFor('PARTNER').map((i) => i.to)).not.toContain('/reconciliation');
-    expect(navItemsFor('EBIM').map((i) => i.to)).toContain('/reconciliation');
-  });
-
-  it('el alta de cliente es solo de EBIM', () => {
-    // `onboard_customer_subscription` exige rol de plataforma o finanzas.
-    expect(navItemsFor('PARTNER').map((i) => i.to)).not.toContain('/onboarding');
-    expect(navItemsFor('SALES_AGENT').map((i) => i.to)).not.toContain('/onboarding');
-  });
-
-  it('monedas, FX y moneda de reporte son administración de EBIM', () => {
-    // V3: `set_reporting_settings` y `set_exchange_rate` exigen EBIM_FINANCE o super admin.
-    expect(navItemsFor('EBIM').map((i) => i.to)).toContain('/regional');
-    expect(navItemsFor('PARTNER').map((i) => i.to)).not.toContain('/regional');
-    expect(navItemsFor('TENANT').map((i) => i.to)).not.toContain('/regional');
-  });
-
-  it('el registro de capacidades es de EBIM; add-ons y tarifas es financiero', () => {
-    expect(navItemsFor('EBIM').map((i) => i.to)).toContain('/commercial/capabilities');
-    for (const persona of ['PARTNER', 'SALES_AGENT', 'TENANT'] as const) {
-      expect(navItemsFor(persona).map((i) => i.to)).not.toContain('/commercial/capabilities');
-    }
-    expect(navItemsFor('EBIM').map((i) => i.to)).toContain('/catalog/addons');
-    expect(navItemsFor('EBIM', { finance: false }).map((i) => i.to)).not.toContain('/catalog/addons');
-    expect(navItemsFor('TENANT').map((i) => i.to)).not.toContain('/catalog/addons');
-  });
-
-  it('un partner sí ve las renovaciones de su cartera', () => {
-    expect(navItemsFor('PARTNER').map((i) => i.to)).toContain('/renewals');
+  it('las fusiones llevan sus pestañas', () => {
+    const tabs = (to: string) => NAV_ITEMS.find((i) => i.to === to)?.tabs?.map((t) => t.id);
+    expect(tabs('/cuentas')).toEqual(['clientes', 'directorio']);
+    expect(tabs('/catalogo')).toEqual(['productos', 'planes', 'addons', 'capacidades', 'registro']);
+    expect(tabs('/cobranza')).toEqual(['facturacion', 'renovaciones', 'conciliacion']);
+    expect(tabs('/commissions')).toEqual(['comisiones', 'planes']);
+    expect(tabs('/apps')).toEqual(['integraciones', 'altas', 'sincronizacion', 'uso', 'entornos', 'infraestructura']);
+    expect(tabs('/sales-agents')).toEqual(['equipo', 'atribuciones']);
+    expect(tabs('/settings')).toEqual(['general', 'regional', 'creditos-ia', 'avanzado']);
   });
 });
 
-/*
- * V4 · Plano de provisioning.
- *
- * Ocultar una entrada es UX, no seguridad: cada ruta está además protegida por
- * RLS y por el gate de permiso del orquestador. Pero la configuración de CÓMO
- * se integra la suite no es asunto de un partner, y el menú tampoco debe
- * sugerírselo.
- */
-describe('navegación del plano de provisioning', () => {
-  it('EBIM ve integraciones y provisioning SaaS', () => {
-    const rutas = navItemsFor('EBIM').map((i) => i.to);
-    expect(rutas).toContain('/integrations');
-    expect(rutas).toContain('/saas-provisioning');
+describe('permisos: la V5 no abre ni cierra ninguna pantalla', () => {
+  const personas: PersonaKind[] = ['EBIM', 'PARTNER', 'SALES_AGENT', 'TENANT'];
+  const profiles: Options[] = [
+    { finance: true, superAdmin: true },
+    { finance: true, superAdmin: false },
+    { finance: false, superAdmin: false },
+  ];
+  for (const persona of personas) {
+    for (const options of profiles) {
+      it(`${persona} · finanzas=${options.finance} · super admin=${options.superAdmin}`, () => {
+        const now = screens(persona, options).filter((r) => !NEW_ENTRIES.includes(r)).sort();
+        const before = oldScreens(persona, options).sort();
+        expect(now).toEqual(before);
+        // Además de las pantallas de siempre, sólo las entradas nuevas.
+        const tos = navItemsFor(persona, options).map((i) => i.to);
+        for (const to of tos) {
+          const item = NAV_ITEMS.find((i) => i.to === to)!;
+          expect(item.tabs || OLD_RULES[to] || NEW_ENTRIES.includes(to)).toBeTruthy();
+        }
+      });
+    }
+  }
+
+  it('el partner y el técnico ven menos entradas y pestañas', () => {
+    const ebim = navItemsFor('EBIM').length;
+    expect(navItemsFor('PARTNER').length).toBeLessThan(ebim);
+    expect(navItemsFor('EBIM', { finance: false }).length).toBeLessThan(ebim);
+    // Técnico EBIM: el grupo Finanzas desaparece entero.
+    expect(navGroupsFor('EBIM', { finance: false }).map((g) => g.group)).not.toContain('Finanzas');
+    // Partner: Apps sin Integraciones, Uso ni Módulos habilitados.
+    const apps = NAV_ITEMS.find((i) => i.to === '/apps')!;
+    expect(visibleTabs(apps, { persona: 'PARTNER', finance: true, superAdmin: false }).map((t) => t.id)).toEqual([
+      'altas', 'entornos', 'infraestructura',
+    ]);
   });
 
-  it('un partner NO ve la configuración de integraciones', () => {
-    const rutas = navItemsFor('PARTNER').map((i) => i.to);
-    expect(rutas).not.toContain('/integrations');
+  it('el centro de la suite es de EBIM; la bandeja, de todos', () => {
+    expect(navItemsFor('EBIM', { finance: false }).map((i) => i.to)).toContain('/suite');
+    expect(navItemsFor('PARTNER').map((i) => i.to)).not.toContain('/suite');
+    for (const persona of personas) expect(navItemsFor(persona).map((i) => i.to)).toContain('/bandeja');
   });
 
-  it.each(['SALES_AGENT', 'TENANT'] as const)(
-    'un %s no ve nada del plano de provisioning',
-    (persona) => {
-      const rutas = navItemsFor(persona).map((i) => i.to);
-      expect(rutas).not.toContain('/integrations');
-      expect(rutas).not.toContain('/saas-provisioning');
-    },
-  );
+  it('«Avanzado» (comparación de cobro) sólo para el super admin', () => {
+    const settings = NAV_ITEMS.find((i) => i.to === '/settings')!;
+    const ids = (access: NavAccess) => visibleTabs(settings, access).map((t) => t.id);
+    expect(ids({ persona: 'EBIM', finance: true, superAdmin: true })).toContain('avanzado');
+    expect(ids({ persona: 'EBIM', finance: true, superAdmin: false })).not.toContain('avanzado');
+    expect(ids({ persona: 'PARTNER', finance: true, superAdmin: false })).toEqual(['general']);
+  });
 
-  it('los dos ejes de provisioning conviven con nombres distinguibles', () => {
-    const infra = NAV_ITEMS.find((i) => i.to === '/provisioning');
-    const saas = NAV_ITEMS.find((i) => i.to === '/saas-provisioning');
-    expect(infra?.label).toBe('Solicitudes de infraestructura');
-    expect(saas?.label).toBe('Altas SaaS');
-    expect(infra?.label).not.toBe(saas?.label);
-    expect(infra?.group).toBe(saas?.group);
+  it('el perfil sale de la sesión', () => {
+    const base: SessionRoles = {
+      userId: 'u', email: 'u@ebim.test', fullName: null, platformRole: null, organizations: [],
+      tenantRoles: [], salesAgentId: null, provisioningRoles: [], ownedProductIds: [],
+    };
+    expect(navAccessFor('EBIM', { ...base, platformRole: 'EBIM_SUPER_ADMIN' })).toEqual({
+      persona: 'EBIM', finance: true, superAdmin: true,
+    });
+    expect(navAccessFor('EBIM', { ...base, platformRole: 'EBIM_FINANCE' })).toMatchObject({ superAdmin: false });
+    expect(navAccessFor('EBIM', { ...base, ownedProductIds: ['p'] })).toMatchObject({ finance: false });
+  });
+});
+
+describe('rutas viejas', () => {
+  it('cada pantalla fusionada redirige a su nueva casa con la pestaña correcta', () => {
+    const map = Object.fromEntries(LEGACY_REDIRECTS.map((r) => [r.from, `${r.to}?tab=${r.tab}`]));
+    expect(map).toEqual({
+      '/customers': '/cuentas?tab=clientes',
+      '/organizations': '/cuentas?tab=directorio',
+      '/attributions': '/sales-agents?tab=atribuciones',
+      '/integrations': '/apps?tab=integraciones',
+      '/saas-provisioning': '/apps?tab=altas',
+      '/commercial/entitlement-sync': '/apps?tab=sincronizacion',
+      '/usage': '/apps?tab=uso',
+      '/deployments': '/apps?tab=entornos',
+      '/provisioning': '/apps?tab=infraestructura',
+      '/products': '/catalogo?tab=productos',
+      '/plans': '/catalogo?tab=planes',
+      '/catalog/addons': '/catalogo?tab=addons',
+      '/feature-flags': '/catalogo?tab=capacidades',
+      '/commercial/capabilities': '/catalogo?tab=registro',
+      '/billing': '/cobranza?tab=facturacion',
+      '/renewals': '/cobranza?tab=renovaciones',
+      '/reconciliation': '/cobranza?tab=conciliacion',
+      '/commission-plans': '/commissions?tab=planes',
+      '/regional': '/settings?tab=regional',
+      '/ai-credits': '/settings?tab=creditos-ia',
+      '/billing-shadow': '/settings?tab=avanzado',
+    });
+  });
+
+  it('todas las rutas de antes siguen existiendo (como entrada o como redirección)', () => {
+    const alive = new Set([...NAV_ITEMS.map((i) => i.to), ...LEGACY_REDIRECTS.map((r) => r.from)]);
+    for (const route of Object.keys(OLD_RULES)) expect(alive).toContain(route);
   });
 });
 
@@ -184,7 +208,7 @@ describe('finanzas y perfil técnico (spec §4)', () => {
     const technical = { ...base, ownedProductIds: ['p1'] };
     const finance = hasFinanceView('EBIM', technical);
     expect(finance).toBe(false);
-    const rutas = navItemsFor('EBIM', { finance }).map((i) => i.to);
+    const rutas = screens('EBIM', { finance });
     for (const r of ['/billing', '/costs', '/commissions', '/renewals', '/reconciliation', '/regional', '/subscriptions']) {
       expect(rutas).not.toContain(r);
     }
@@ -200,51 +224,47 @@ describe('finanzas y perfil técnico (spec §4)', () => {
 });
 
 describe('migas y títulos humanos', () => {
-  it('listado', () => {
-    expect(routeMeta('/billing')).toMatchObject({ group: 'Finanzas', title: 'Facturación y cobros', isDetail: false });
+  it('entrada', () => {
+    expect(routeMeta('/cobranza')).toMatchObject({ group: 'Finanzas', title: 'Cobranza', isDetail: false });
+    expect(routeMeta('/apps')).toMatchObject({ group: 'Suite', title: 'Apps' });
   });
-  it('fichas de detalle', () => {
-    expect(routeMeta('/tenants/abc')).toMatchObject({ group: 'Productos y contratos', title: 'Tenant 360', isDetail: true });
-    expect(routeMeta('/organizations/x')).toMatchObject({ title: 'Ficha 360', isDetail: true });
-    expect(routeMeta('/subscriptions/x')).toMatchObject({ title: 'Contrato 360' });
-  });
-  it('la sincronización de entitlements es operación de EBIM (CCP fase 08)', () => {
-    expect(navItemsFor('EBIM').map((i) => i.to)).toContain('/commercial/entitlement-sync');
-    for (const persona of ['PARTNER', 'SALES_AGENT', 'TENANT'] as const) {
-      expect(navItemsFor(persona).map((i) => i.to)).not.toContain('/commercial/entitlement-sync');
-    }
-    expect(routeMeta('/commercial/entitlement-sync')).toMatchObject({
-      group: 'Operación SaaS', title: 'Sincronización de entitlements', isDetail: false,
+  it('fichas de detalle: conservan su URL y cuelgan de la entrada dueña', () => {
+    expect(routeMeta('/tenants/abc')).toMatchObject({ group: 'Suite', title: 'Tenant 360', isDetail: true, parentTo: '/tenants' });
+    expect(routeMeta('/organizations/x')).toMatchObject({ group: 'Clientes', title: 'Ficha 360', parentTo: '/cuentas' });
+    expect(routeMeta('/subscriptions/x')).toMatchObject({ group: 'Comercial', title: 'Contrato 360' });
+    expect(routeMeta('/products/x')).toMatchObject({ title: 'Ficha de producto', parentTo: '/catalogo?tab=productos' });
+    expect(routeMeta('/integrations/x')).toMatchObject({ group: 'Suite', parentTo: '/apps?tab=integraciones' });
+    // V5 · F2: la ficha de app cuelga del Centro de la suite; `/apps` sigue siendo «Apps».
+    expect(routeMeta('/apps/ewm')).toMatchObject({ group: 'Suite', title: 'Ficha de app', isDetail: true, parentTo: '/suite' });
+    expect(routeMeta('/users/10000000-0000-4000-a000-000000000001')).toMatchObject({
+      group: 'Gobierno', title: 'Ficha de usuario', isDetail: true,
     });
-  });
-  it('rutas de dos segmentos del catálogo comercial (CCP fase 07)', () => {
-    expect(routeMeta('/catalog/addons')).toMatchObject({
-      group: 'Productos y contratos', title: 'Add-ons y tarifas', isDetail: false,
-    });
-    expect(routeMeta('/commercial/capabilities')).toMatchObject({
-      group: 'Productos y contratos', title: 'Registro de capacidades', isDetail: false,
-    });
-    expect(routeMeta('/catalog').title).toBe('Página no encontrada');
   });
   it('inicio y no encontrado', () => {
     expect(routeMeta('/').title).toBe('Resumen ejecutivo');
     expect(routeMeta('/nada').title).toBe('Página no encontrada');
+    expect(routeMeta('/catalog').title).toBe('Página no encontrada');
   });
   it('la galería de componentes tiene título propio aunque no esté en el menú', () => {
     expect(routeMeta('/design')).toMatchObject({ group: null, title: 'Galería de componentes' });
     expect(NAV_ITEMS.map((i) => i.to)).not.toContain('/design');
   });
+});
 
-  it('«Usuarios y accesos» es Gobierno para EBIM y admins de partner/cliente (M5)', () => {
-    expect(navItemsFor('EBIM').map((i) => i.to)).toContain('/users');
-    expect(navItemsFor('PARTNER').map((i) => i.to)).toContain('/users');
-    expect(navItemsFor('SALES_AGENT').map((i) => i.to)).not.toContain('/users');
-    expect(navItemsFor('TENANT').map((i) => i.to)).not.toContain('/users');
-    // No es financiero: el perfil técnico de EBIM también la ve (la RPC decide).
-    expect(navItemsFor('EBIM', { finance: false }).map((i) => i.to)).toContain('/users');
-    expect(routeMeta('/users')).toMatchObject({ group: 'Gobierno', title: 'Usuarios y accesos', isDetail: false });
-    expect(routeMeta('/users/10000000-0000-4000-a000-000000000001')).toMatchObject({
-      group: 'Gobierno', title: 'Ficha de usuario', isDetail: true,
-    });
+describe('destinos de ⌘K', () => {
+  it('incluye las pestañas que el perfil ve, con sus nombres anteriores', () => {
+    const access: NavAccess = { persona: 'EBIM', finance: true, superAdmin: false };
+    const all = navDestinations(navItemsFor('EBIM'), access);
+    const conciliacion = all.find((d) => d.to === '/cobranza?tab=conciliacion');
+    expect(conciliacion).toMatchObject({ label: 'Conciliación', hint: 'Cobranza · Finanzas', isTab: true });
+    expect(all.find((d) => d.to === '/apps?tab=sincronizacion')?.keywords).toContain('Sincronización de entitlements');
+    expect(all.map((d) => d.to)).not.toContain('/settings?tab=avanzado');
+  });
+  it('un partner no recibe destinos de pestañas que no ve', () => {
+    const access: NavAccess = { persona: 'PARTNER', finance: true, superAdmin: false };
+    const tos = navDestinations(navItemsFor('PARTNER'), access).map((d) => d.to);
+    expect(tos).toContain('/cobranza?tab=renovaciones');
+    expect(tos).not.toContain('/cobranza?tab=conciliacion');
+    expect(tos).not.toContain('/apps?tab=integraciones');
   });
 });

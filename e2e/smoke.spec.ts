@@ -56,8 +56,8 @@ test.describe('Consola EBIM (super admin)', () => {
   });
 
   test('el catálogo lista los 5 SaaS iniciales', async ({ page }) => {
-    // La Fase 14 renombró la entrada de menú: «SaaS Products» -> «Suite SaaS».
-    await page.getByRole('link', { name: 'Suite SaaS' }).click();
+    // V5: los productos son la primera pestaña de «Catálogo».
+    await page.getByRole('link', { name: 'Catálogo' }).click();
     for (const producto of ['eSupplier by EBIM', 'EWM by EBIM', 'TMS by EBIM', 'GMAO by EBIM', 'eChange by EBIM']) {
       await expect(page.getByText(producto, { exact: true })).toBeVisible();
     }
@@ -90,17 +90,18 @@ test.describe('Consola EBIM (super admin)', () => {
     await expect(page.getByText('Empresa Directa Alpha · eSupplier')).toHaveCount(0);
   });
 
-  test('provisioning corre en DRY_RUN y expone su timeline', async ({ page }) => {
-    // Nombre exacto: desde V4 hay DOS entradas de provisioning en el mismo grupo
-    // —infraestructura y SaaS— y son ejes distintos a propósito.
-    await page.getByRole('link', { name: 'Solicitudes de infraestructura' }).click();
-    await expect(page.getByText('Modo por defecto: DRY_RUN')).toBeVisible();
+  test('la infraestructura corre en simulación y expone su timeline', async ({ page }) => {
+    // V5: infraestructura y altas en las apps son pestañas distintas de «Apps».
+    await page.getByRole('link', { name: 'Apps' }).click();
+    await page.getByRole('tab', { name: 'Solicitudes de infraestructura' }).click();
+    await expect(page.getByText('Modo por defecto: simulación')).toBeVisible();
     await page.getByRole('button', { name: 'Timeline' }).first().click();
     await expect(page.getByText(/modo DRY_RUN|Solicitud encolada/).first()).toBeVisible();
   });
 
   test('los deployments separan infraestructura compartida de dedicada', async ({ page }) => {
-    await page.getByRole('link', { name: 'Entornos y despliegues' }).click();
+    await page.getByRole('link', { name: 'Apps' }).click();
+    await page.getByRole('tab', { name: 'Entornos y despliegues' }).click();
     await expect(page.getByText('shared-esupplier-sa-east')).toBeVisible();
     await expect(page.getByText('omega-esupplier-dedicated')).toBeVisible();
   });
@@ -147,8 +148,8 @@ test.describe('Aislamiento por rol', () => {
     await expect(page.getByText(/no expone datos operativos/)).toBeVisible();
 
     // Su menú no ofrece infraestructura ni facturación.
-    await expect(page.getByRole('link', { name: 'Entornos y despliegues' })).toHaveCount(0);
-    await expect(page.getByRole('link', { name: 'Facturación y cobros' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Apps' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: /^Cobranza/ })).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'Costos y margen' })).toHaveCount(0);
   });
 

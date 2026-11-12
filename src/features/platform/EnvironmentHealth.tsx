@@ -114,7 +114,7 @@ export function EnvironmentHealthList({ summaries }: { summaries: EnvironmentHea
           <span className="col-start-2 text-caption text-muted">
             {s.health === 'NOT_EVALUATED' ? (
               <>
-                {s.total === 1 ? '1 destino' : `${s.total} destinos`} sin provisioning habilitado
+                {s.total === 1 ? '1 destino' : `${s.total} destinos`} sin altas habilitadas
               </>
             ) : (
               <>

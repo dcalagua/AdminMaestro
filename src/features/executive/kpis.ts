@@ -50,7 +50,7 @@ export const KPI_DICTIONARY: Record<KpiId, KpiDefinition> = {
     excludes: 'Pagos PENDING o REVERSED; facturas DRAFT, VOID, UNCOLLECTIBLE o de total 0',
     precision: 'Prorrateo por línea redondeado a 2 decimales (idéntico a v_collected_revenue)',
     coverage: 'Mes en curso rotulado como parcial; sin comparación contra base cero',
-    detailHref: '/billing',
+    detailHref: '/cobranza?tab=facturacion',
   },
   K03: {
     id: 'K03',
@@ -63,7 +63,7 @@ export const KPI_DICTIONARY: Record<KpiId, KpiDefinition> = {
     precision: 'numeric(14,2); sobrepagos quedan negativos, sin recorte',
     coverage: 'Foto actual; no reconstruye saldos a fechas pasadas',
     // Todas las facturas: el saldo incluye sobrepagos (negativos) de facturas pagadas.
-    detailHref: '/billing',
+    detailHref: '/cobranza?tab=facturacion',
   },
   K04: {
     id: 'K04',
@@ -75,7 +75,7 @@ export const KPI_DICTIONARY: Record<KpiId, KpiDefinition> = {
     excludes: 'Vigente (vence hoy o después) y «Sin fecha» (sin vencimiento), que se muestran aparte',
     precision: 'numeric(14,2)',
     coverage: 'Clasificación visual a la fecha de hoy; no es política de cobro',
-    detailHref: '/billing?estado=OPEN',
+    detailHref: '/cobranza?tab=facturacion&estado=OPEN',
   },
   K05: {
     id: 'K05',
@@ -99,7 +99,7 @@ export const KPI_DICTIONARY: Record<KpiId, KpiDefinition> = {
     excludes: 'Contratos sin fecha de renovación; no es pronóstico de churn',
     precision: 'MRR vigente de la suscripción (NULL si no tiene recurrente vigente)',
     coverage: 'Ventana contada desde hoy',
-    detailHref: '/renewals',
+    detailHref: '/cobranza?tab=renovaciones',
   },
 };
 

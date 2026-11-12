@@ -49,8 +49,8 @@ export function ShadowAxisTab() {
   return (
     <div className="space-y-4">
       <Card
-        title="Eje de facturación por integración"
-        description="BILLING_LEGACY: factura el biller local. BILLING_SHADOW: MasterAdmin calcula lo que facturaría y se compara; nadie cobra desde MasterAdmin. Cada paso queda en el historial de cutover con su motivo."
+        title="Migración de cobro por integración"
+        description="Biller local: factura la app. Comparación: el Admin Maestro calcula lo que facturaría y se compara; nadie cobra desde aquí. Cada paso queda en el historial de la migración con su motivo."
       >
         {integrations.isLoading ? (
           <LoadingState label="Cargando integraciones…" />
@@ -229,7 +229,7 @@ function TransitionDialog({
       ? 'MasterAdmin pasaría a ser quien factura este producto. D-14: en DEV/LOCAL eExpense y GMAO solo llegan a BILLING_SHADOW; QAS/PRD exigen aprobación humana explícita. Requiere comparaciones verdes del período.'
       : to === 'BILLING_SHADOW'
         ? 'MasterAdmin calcula lo que facturaría y se registran comparaciones contra el biller local. Nadie cobra desde MasterAdmin.'
-        : 'Vuelve al paso anterior del eje. El historial de cutover conserva el motivo.';
+        : 'Vuelve al paso anterior. El historial de la migración conserva el motivo.';
 
   return (
     <FormDialog
@@ -245,7 +245,7 @@ function TransitionDialog({
       <TextAreaField
         label="Motivo"
         required
-        hint="Queda en commercial_cutover_events (append-only)."
+        hint="Queda en el historial de la migración, que no se puede editar ni borrar."
         error={form.formState.errors.reason}
         {...form.register('reason')}
       />

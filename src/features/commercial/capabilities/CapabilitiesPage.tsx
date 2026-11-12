@@ -98,7 +98,7 @@ export function CapabilitiesPage() {
   return (
     <PageContainer
       title="Registro de capacidades"
-      description="Qué sabe hacer cada producto, en el vocabulario común de planes, add-ons y entitlements. Lo alimenta el manifiesto que publica cada producto; no se edita a mano."
+      description="Qué sabe hacer cada producto, en el vocabulario común de planes, add-ons y módulos habilitados. Lo alimenta el manifiesto que publica cada producto; no se edita a mano."
       actions={
         perms.canManagePlatform ? (
           <button type="button" className="ebim-btn-primary" onClick={() => setImportOpen(true)}>
@@ -122,7 +122,7 @@ export function CapabilitiesPage() {
             ].map(([k, v]) => (
               <div key={k as string}>
                 <dt className="text-micro text-muted">{k as string}</dt>
-                <dd className="mt-1 text-xl font-bold tabular-nums">{v === undefined || v === null ? '—' : String(v)}</dd>
+                <dd className="mt-1 text-h2 tabular-nums">{v === undefined || v === null ? '—' : String(v)}</dd>
               </div>
             ))}
           </dl>

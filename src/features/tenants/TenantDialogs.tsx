@@ -117,7 +117,7 @@ export function TenantFormDialog({ open, onClose }: { open: boolean; onClose: ()
     <FormDialog
       open={open}
       title="Nuevo tenant"
-      description="El alta pasa por platform.create_tenant(): sin correo de administrador la base rechaza la operación (contrato §3.2)."
+      description="Sin correo de administrador la base rechaza la operación."
       submitLabel="Crear tenant"
       busy={create.isPending}
       error={create.error}
@@ -153,7 +153,7 @@ export function TenantFormDialog({ open, onClose }: { open: boolean; onClose: ()
           {...form.register('name')}
         />
         <TextField
-          label="Slug"
+          label="Código"
           required
           placeholder="alpha-prod"
           hint="Único dentro del producto."
@@ -167,7 +167,7 @@ export function TenantFormDialog({ open, onClose }: { open: boolean; onClose: ()
         required
         type="email"
         placeholder="admin@cliente.com"
-        hint="Obligatorio por contrato §3.2. No puede ser del dominio operador ebim.pe."
+        hint="Obligatorio. No puede ser del dominio operador ebim.pe."
         error={form.formState.errors.admin_email}
         {...form.register('admin_email')}
       />
@@ -192,7 +192,7 @@ export function TenantFormDialog({ open, onClose }: { open: boolean; onClose: ()
         label="Partner que lo administra"
         placeholder="Venta directa EBIM (sin partner)"
         options={managerOptions}
-        hint="Necesita un acuerdo activo con can_manage_tenants para ese producto; si no, la base lo rechaza."
+        hint="Necesita un acuerdo activo que le permita administrar tenants de ese producto; si no, la base lo rechaza."
         error={form.formState.errors.managing_organization_id}
         {...form.register('managing_organization_id')}
       />

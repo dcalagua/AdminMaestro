@@ -29,14 +29,14 @@ test('nueva venta: sin doble operación, datos conservados y continuidad sin alt
   await page.getByRole('button', { name: 'Continuar' }).click();
 
   await page.getByLabel('Nombre del tenant').fill(`Exec E2E ${RUN}`);
-  await page.getByLabel('Slug').fill(`exec-e2e-${RUN}`);
+  await page.getByLabel(/^Código( \*)?$/).fill(`exec-e2e-${RUN}`);
   await page.getByLabel('Correo del administrador del cliente').fill(`admin-${RUN}@exec-e2e.com`);
   await page.getByRole('button', { name: 'Continuar' }).click();
 
   // Volver atrás conserva lo escrito.
   await page.getByRole('button', { name: 'Atrás' }).click();
   await expect(page.getByLabel('Nombre del tenant')).toHaveValue(`Exec E2E ${RUN}`);
-  await expect(page.getByLabel('Slug')).toHaveValue(`exec-e2e-${RUN}`);
+  await expect(page.getByLabel(/^Código( \*)?$/)).toHaveValue(`exec-e2e-${RUN}`);
   await page.getByRole('button', { name: 'Continuar' }).click();
 
   await page.getByLabel('Moneda').selectOption('USD');
@@ -59,8 +59,8 @@ test('nueva venta: sin doble operación, datos conservados y continuidad sin alt
 
   // Navegar por los enlaces no crea ninguna alta SaaS.
   await next.getByRole('link', { name: 'Ver estado del alta en el producto' }).click();
-  await next.getByRole('link', { name: 'Ir a Altas SaaS (decisión manual)' }).click();
-  await expect(page.getByRole('heading', { name: 'Altas SaaS', level: 1 })).toBeVisible();
+  await next.getByRole('link', { name: 'Ir a Altas en las apps (decisión manual)' }).click();
+  await expect(page.getByRole('tab', { name: 'Altas en las apps', selected: true })).toBeVisible();
   const provisioningRpcs = rpcCalls.filter((c) =>
     /saas_provisioning|begin_saas|complete_saas|register_manual_provisioning|execute/.test(c),
   );

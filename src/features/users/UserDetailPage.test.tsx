@@ -102,7 +102,7 @@ beforeEach(() => {
 describe('UserDetailPage', () => {
   it('el super admin ve todas las pestañas y el #hash abre la indicada', () => {
     renderAt('#organizaciones');
-    expect(tabNames()).toEqual(['Perfil', 'Rol de consola', 'Organizaciones', 'Tenants', 'Provisioning', 'Vendedor', 'Actividad']);
+    expect(tabNames()).toEqual(['Perfil', 'Rol de consola', 'Organizaciones', 'Tenants', 'Altas en las apps', 'Vendedor', 'Actividad']);
     expect(screen.getByRole('tab', { name: 'Organizaciones' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tabpanel')).toHaveTextContent('Consultora Andina');
   });

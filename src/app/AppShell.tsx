@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { useEffect, useMemo, useRef, useState, type SyntheticEvent } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState, type SyntheticEvent } from 'react';
 import {
   CaretDoubleLeftIcon,
   CaretDoubleRightIcon,
@@ -13,11 +13,12 @@ import {
 } from '@phosphor-icons/react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAppearance } from '@/hooks/useAppearance';
-import { hasFinanceView, navGroupsFor, routeMeta, type NavGroup, type NavItem } from './navigation';
+import { navDestinations, navGroupsFor, routeMeta, visibleTabs, type NavGroup, type NavItem } from './navigation';
+import { useNavAccess } from './useNavAccess';
 import { EbimMark } from '@/components/ui/EbimMark';
 import { useModalFocus } from '@/components/ui/useModalFocus';
 import { PageTrailContext } from '@/components/ui/pageTrail';
-import type { Crumb } from '@/components/ui/primitives';
+import { LoadingState, type Crumb } from '@/components/ui/primitives';
 import { useCriticalBillingAlertCount } from '@/services/queries';
 import { PLATFORM_ROLE_LABEL, ORG_ROLE_LABEL } from '@/types/domain';
 import { env } from '@/lib/env';
@@ -98,24 +99,31 @@ export function AppShell() {
   const openerRef = useRef<HTMLButtonElement>(null);
   const mainRef = useRef<HTMLElement>(null);
 
-  const finance = hasFinanceView(persona, roles);
-  const groups = useMemo(() => navGroupsFor(persona, { finance }), [persona, finance]);
+  const access = useNavAccess();
+  const { finance, superAdmin } = access;
+  const groups = useMemo(() => navGroupsFor(persona, { finance, superAdmin }), [persona, finance, superAdmin]);
   const items = useMemo(() => groups.flatMap((g) => g.items), [groups]);
   const meta = routeMeta(location.pathname);
-  const has = (to: string) => items.some((i) => i.to === to);
+  const destinations = useMemo(() => navDestinations(items, access), [items, access]);
+  // Las renovaciones viven ahora como pestaña de Cobranza (V5 · F1).
+  const cobranza = items.find((i) => i.to === '/cobranza');
+  const seesRenewals = Boolean(cobranza && visibleTabs(cobranza, access).some((t) => t.id === 'renovaciones'));
 
   // Badges solo con un conteo barato (head: true) y solo si la pantalla se ve.
-  const criticalAlerts = useCriticalBillingAlertCount({ enabled: has('/renewals') });
+  const criticalAlerts = useCriticalBillingAlertCount({ enabled: seesRenewals });
   const badges: Record<string, NavBadge> = {};
   if (criticalAlerts.data) {
     const n = criticalAlerts.data;
-    badges['/renewals'] = { count: n, label: `${n} alerta${n === 1 ? '' : 's'} crítica${n === 1 ? '' : 's'} abierta${n === 1 ? '' : 's'}` };
+    badges['/cobranza'] = {
+      count: n,
+      label: `${n} alerta${n === 1 ? '' : 's'} crítica${n === 1 ? '' : 's'} de renovación abierta${n === 1 ? '' : 's'}`,
+    };
   }
 
   const paletteAccess = useMemo<PaletteAccess>(() => {
     const visible = new Set(items.map((i) => i.to));
     return {
-      organizations: visible.has('/organizations') || visible.has('/customers'),
+      organizations: visible.has('/cuentas'),
       tenants: visible.has('/tenants'),
       subscriptions: visible.has('/subscriptions'),
     };
@@ -125,9 +133,9 @@ export function AppShell() {
   const trail = useMemo<Crumb[]>(() => {
     const out: Crumb[] = [];
     if (meta.group && meta.group !== 'Inicio') out.push({ label: meta.group });
-    if (meta.isDetail && meta.section) out.push({ label: meta.section.label, to: meta.section.to });
+    if (meta.isDetail && meta.section) out.push({ label: meta.section.label, to: meta.parentTo ?? meta.section.to });
     return out;
-  }, [meta.group, meta.isDetail, meta.section]);
+  }, [meta.group, meta.isDetail, meta.section, meta.parentTo]);
 
   useEffect(() => {
     document.title = `${meta.title} · Admin Maestro · EBIM`;
@@ -239,6 +247,8 @@ export function AppShell() {
   const renderItem = (item: NavItem, compact: boolean) => {
     const badge = badges[item.to];
     const name = badge ? `${item.label} (${badge.label})` : item.label;
+    // Una ficha de detalle (`/products/:id`) marca la entrada dueña (Catálogo).
+    const owns = meta.section?.to === item.to;
     return (
       <li key={item.to}>
         <NavLink
@@ -246,17 +256,20 @@ export function AppShell() {
           end={item.to === '/'}
           aria-label={compact || badge ? name : undefined}
           {...tipHandlers(compact, name)}
-          className={({ isActive }) =>
-            `relative flex items-center rounded-field text-compact transition-colors duration-fast ease-out ${
+          className={({ isActive: linkActive }) => {
+            const isActive = linkActive || owns;
+            return `relative flex items-center rounded-field text-compact transition-colors duration-fast ease-out ${
               compact ? 'mx-auto h-10 w-11 justify-center' : 'h-9 gap-3 px-3'
             } ${
               isActive
                 ? 'bg-white/[.14] font-semibold text-white'
                 : 'font-medium text-white/[.86] hover:bg-white/10 hover:text-white'
-            }`
-          }
+            }`;
+          }}
         >
-          {({ isActive }) => (
+          {({ isActive: linkActive }) => {
+            const isActive = linkActive || owns;
+            return (
             <>
               {isActive ? (
                 <span
@@ -286,7 +299,8 @@ export function AppShell() {
                 </span>
               ) : null}
             </>
-          )}
+            );
+          }}
         </NavLink>
       </li>
     );
@@ -487,14 +501,17 @@ export function AppShell() {
           <PageTrailContext.Provider value={trail}>
             {/* La clave reinicia solo la animación de entrada (opacidad, 120 ms). */}
             <div key={location.pathname} className="ebim-route-enter">
-              <Outlet />
+              {/* Rutas perezosas (V5 · F0): el shell queda visible mientras llega el chunk. */}
+              <Suspense fallback={<LoadingState variant="page" label="Cargando la pantalla…" />}>
+                <Outlet />
+              </Suspense>
             </div>
           </PageTrailContext.Provider>
         </main>
       </div>
 
       {paletteOpen ? (
-        <CommandPalette items={items} access={paletteAccess} onClose={() => setPaletteOpen(false)} />
+        <CommandPalette items={destinations} access={paletteAccess} onClose={() => setPaletteOpen(false)} />
       ) : null}
     </div>
   );

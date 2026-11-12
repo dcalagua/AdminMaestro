@@ -1,5 +1,5 @@
 import { SectionTabs } from '@/components/ui/SectionTabs';
-import { KpiTile, PageContainer } from '@/components/ui/primitives';
+import { KpiTile, PageContainer, DataTable } from '@/components/ui/primitives';
 import { useAiCreditBalances } from '@/services/queries';
 import { fromQuery } from '@/features/executive/dataState';
 import { ChartLegend, ChartPanel } from '@/features/executive/components/ChartPanel';
@@ -163,29 +163,27 @@ function CreditsOverview() {
             />
           )}
           table={() => (
-            <table className="w-full text-compact">
-              <caption className="sr-only">Créditos incluidos y consumidos por mes</caption>
-              <thead>
-                <tr>
-                  <th scope="col" className="ebim-th">Mes</th>
-                  <th scope="col" className="ebim-th text-right">Incluidos</th>
-                  <th scope="col" className="ebim-th text-right">Consumidos</th>
-                  <th scope="col" className="ebim-th text-right">Uso</th>
-                  <th scope="col" className="ebim-th text-right">Tenants sobre el incluido</th>
+            <DataTable
+              paginate={false}
+              caption="Créditos incluidos y consumidos por mes"
+              columns={[
+                'Mes',
+                { label: 'Incluidos', align: 'right' },
+                { label: 'Consumidos', align: 'right' },
+                { label: 'Uso', align: 'right' },
+                { label: 'Tenants sobre el incluido', align: 'right' },
+              ]}
+            >
+              {[...chart].reverse().map((p) => (
+                <tr key={p.month}>
+                  <th scope="row" className="ebim-td text-left font-medium">{monthLongLabel(p.month.slice(0, 7))}</th>
+                  <td className="ebim-td ebim-num">{formatNumber(Math.round(p.included))}</td>
+                  <td className="ebim-td ebim-num">{formatNumber(Math.round(p.used))}</td>
+                  <td className="ebim-td ebim-num">{p.included > 0 ? formatPercent(p.used / p.included) : '—'}</td>
+                  <td className="ebim-td ebim-num">{formatNumber(p.overIncluded)}</td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {[...chart].reverse().map((p) => (
-                  <tr key={p.month}>
-                    <th scope="row" className="ebim-td text-left font-medium">{monthLongLabel(p.month.slice(0, 7))}</th>
-                    <td className="ebim-td ebim-num">{formatNumber(Math.round(p.included))}</td>
-                    <td className="ebim-td ebim-num">{formatNumber(Math.round(p.used))}</td>
-                    <td className="ebim-td ebim-num">{p.included > 0 ? formatPercent(p.used / p.included) : '—'}</td>
-                    <td className="ebim-td ebim-num">{formatNumber(p.overIncluded)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              ))}
+            </DataTable>
           )}
         />
       </div>

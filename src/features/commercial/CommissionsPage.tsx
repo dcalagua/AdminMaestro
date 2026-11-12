@@ -12,7 +12,7 @@ import {
 } from '@/services/financeRead';
 import { useListState } from '@/hooks/useListState';
 import { SectionTabs, StatusTabs } from '@/components/ui/SectionTabs';
-import { PageContainer, Card, SearchBar, Badge, KpiTile } from '@/components/ui/primitives';
+import { PageContainer, Card, SearchBar, Badge, KpiTile, DataTable } from '@/components/ui/primitives';
 import { PagedTable, type TableColumn } from '@/components/ui/PagedTable';
 import { ExportMenu } from '@/components/ui/ExportMenu';
 import type { ExportColumn } from '@/lib/export';
@@ -250,27 +250,25 @@ function CommissionsByMonthPanel() {
         />
       )}
       table={() => (
-        <table className="w-full text-compact">
-          <caption className="sr-only">Comisión devengada por mes</caption>
-          <thead>
-            <tr>
-              <th scope="col" className="ebim-th">Mes</th>
-              <th scope="col" className="ebim-th text-right">Devengada ({rc})</th>
-              <th scope="col" className="ebim-th text-right">Pagada</th>
-              <th scope="col" className="ebim-th text-right">Por pagar</th>
+        <DataTable
+          paginate={false}
+          caption="Comisión devengada por mes"
+          columns={[
+            'Mes',
+            { label: `Devengada (${rc})`, align: 'right' },
+            { label: 'Pagada', align: 'right' },
+            { label: 'Por pagar', align: 'right' },
+          ]}
+        >
+          {[...trend].reverse().map((p) => (
+            <tr key={p.month}>
+              <th scope="row" className="ebim-td text-left font-medium">{monthLongLabel(p.month.slice(0, 7))}</th>
+              <td className="ebim-td ebim-num">{p.commission == null ? 'Sin tasa' : formatMoney(p.commission, rc)}</td>
+              <td className="ebim-td ebim-num">{p.commissionPaid == null ? 'Sin tasa' : formatMoney(p.commissionPaid, rc)}</td>
+              <td className="ebim-td ebim-num">{owed(p) == null ? 'Sin tasa' : formatMoney(owed(p), rc)}</td>
             </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {[...trend].reverse().map((p) => (
-              <tr key={p.month}>
-                <th scope="row" className="ebim-td text-left font-medium">{monthLongLabel(p.month.slice(0, 7))}</th>
-                <td className="ebim-td ebim-num">{p.commission == null ? 'Sin tasa' : formatMoney(p.commission, rc)}</td>
-                <td className="ebim-td ebim-num">{p.commissionPaid == null ? 'Sin tasa' : formatMoney(p.commissionPaid, rc)}</td>
-                <td className="ebim-td ebim-num">{owed(p) == null ? 'Sin tasa' : formatMoney(owed(p), rc)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          ))}
+        </DataTable>
       )}
     />
   );

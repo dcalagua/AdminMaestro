@@ -24,9 +24,9 @@ import {
   type useExecutiveAging,
   type useExecutiveMrrMix,
 } from '@/services/queries';
-import { Skeleton } from '@/components/ui/primitives';
+import { Skeleton, DataTable } from '@/components/ui/primitives';
 import { fromQuery, type DataState } from '@/features/executive/dataState';
-import { ChartPanel } from '@/features/executive/components/ChartPanel';
+import { ChartPanel, SourceHint } from '@/features/executive/components/ChartPanel';
 import { StateMessage } from '@/features/executive/components/StateView';
 import { formatCompactAmount, formatDelta, formatMoney, formatNumber, formatPercent } from '@/lib/format';
 import { agingSummary, DIRECT_CHANNEL, topCustomers, topPartners, type RankedRow } from './executiveModel';
@@ -181,15 +181,15 @@ const DIMENSION_COPY = {
     unit: 'MRR por producto',
     empty: 'Ningún producto tenía MRR al cierre del mes',
     href: (key: string) => `/products/${key}`,
-    detail: { href: '/products', label: 'Ver suite SaaS' },
+    detail: { href: '/catalogo?tab=productos', label: 'Ver suite SaaS' },
     column: 'Producto',
   },
   MARKET: {
     title: '¿En qué mercados está el MRR?',
     unit: 'MRR por país',
     empty: 'Sin MRR por mercado al cierre del mes',
-    href: () => '/customers',
-    detail: { href: '/customers', label: 'Ver clientes' },
+    href: () => '/cuentas?tab=clientes',
+    detail: { href: '/cuentas?tab=clientes', label: 'Ver clientes' },
     column: 'Mercado',
   },
 } as const;
@@ -234,33 +234,31 @@ export function MixPanel({
         />
       )}
       table={() => (
-        <table className="w-full text-compact">
-          <caption className="sr-only">{copy.unit}</caption>
-          <thead>
-            <tr>
-              <th scope="col" className="ebim-th">{copy.column}</th>
-              <th scope="col" className="ebim-th text-right">MRR ({currency})</th>
-              <th scope="col" className="ebim-th text-right">%</th>
-              <th scope="col" className="ebim-th text-right">Clientes</th>
-              <th scope="col" className="ebim-th">Nativo</th>
+        <DataTable
+          paginate={false}
+          caption={copy.unit}
+          columns={[
+            copy.column,
+            { label: `MRR (${currency})`, align: 'right' },
+            { label: '%', align: 'right' },
+            { label: 'Clientes', align: 'right' },
+            'Nativo',
+          ]}
+        >
+          {rows.map((r: ExecutiveMrrMixRow) => (
+            <tr key={r.key}>
+              <th scope="row" className="ebim-td text-left font-semibold">
+                <Link className="ebim-link" to={copy.href(r.key)}>{r.label}</Link>
+              </th>
+              <td className="ebim-td text-right tabular-nums">{r.mrr == null ? 'Sin tasa' : formatMoney(r.mrr, currency)}</td>
+              <td className="ebim-td text-right tabular-nums">{r.share == null ? '—' : formatPercent(r.share)}</td>
+              <td className="ebim-td text-right tabular-nums">{formatNumber(r.activeCustomers)}</td>
+              <td className="ebim-td text-caption text-muted">
+                {Object.entries(r.native).map(([c, v]) => `${c} ${formatCompactAmount(v)}`).join(' · ')}
+              </td>
             </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {rows.map((r: ExecutiveMrrMixRow) => (
-              <tr key={r.key}>
-                <th scope="row" className="ebim-td text-left font-semibold">
-                  <Link className="ebim-link" to={copy.href(r.key)}>{r.label}</Link>
-                </th>
-                <td className="ebim-td text-right tabular-nums">{r.mrr == null ? 'Sin tasa' : formatMoney(r.mrr, currency)}</td>
-                <td className="ebim-td text-right tabular-nums">{r.share == null ? '—' : formatPercent(r.share)}</td>
-                <td className="ebim-td text-right tabular-nums">{formatNumber(r.activeCustomers)}</td>
-                <td className="ebim-td text-caption text-muted">
-                  {Object.entries(r.native).map(([c, v]) => `${c} ${formatCompactAmount(v)}`).join(' · ')}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          ))}
+        </DataTable>
       )}
     />
   );
@@ -285,7 +283,7 @@ export function AgingPanel({
     base.status === 'ready' && summary && !summary.complete
       ? { status: 'partial', data: summary, reasons: [`falta tasa ${summary.missingCurrencies.join(', ')}`] }
       : base;
-  const link = (bucket: string) => `/billing?estado=OPEN&antiguedad=${bucket}`;
+  const link = (bucket: string) => `/cobranza?tab=facturacion&estado=OPEN&antiguedad=${bucket}`;
 
   return (
     <ChartPanel
@@ -299,7 +297,7 @@ export function AgingPanel({
       onRetry={() => void query.refetch()}
       emptyText="No hay facturas vencidas a esa fecha"
       refreshing={refreshing}
-      detailHref="/billing?estado=OPEN&antiguedad=VENCIDA"
+      detailHref="/cobranza?tab=facturacion&estado=OPEN&antiguedad=VENCIDA"
       detailLabel="Ver vencidas"
       chart={() =>
         summary ? (
@@ -358,31 +356,29 @@ export function AgingPanel({
         ) : null
       }
       table={() => (
-        <table className="w-full text-compact">
-          <caption className="sr-only">Cartera por antigüedad</caption>
-          <thead>
-            <tr>
-              <th scope="col" className="ebim-th">Antigüedad</th>
-              <th scope="col" className="ebim-th text-right">Facturas</th>
-              <th scope="col" className="ebim-th text-right">Saldo ({currency})</th>
-              <th scope="col" className="ebim-th">Nativo</th>
+        <DataTable
+          paginate={false}
+          caption="Cartera por antigüedad"
+          columns={[
+            'Antigüedad',
+            { label: 'Facturas', align: 'right' },
+            { label: `Saldo (${currency})`, align: 'right' },
+            'Nativo',
+          ]}
+        >
+          {(query.data?.buckets ?? []).map((b) => (
+            <tr key={b.bucket}>
+              <th scope="row" className="ebim-td text-left">
+                <Link className="ebim-link" to={link(b.bucket)}>{AGING_LABEL[b.bucket]}</Link>
+              </th>
+              <td className="ebim-td text-right tabular-nums">{formatNumber(b.invoiceCount)}</td>
+              <td className="ebim-td text-right tabular-nums">{b.balance == null ? 'Sin tasa' : formatMoney(b.balance, currency)}</td>
+              <td className="ebim-td text-caption text-muted">
+                {Object.entries(b.native).map(([c, v]) => formatMoney(v, c)).join(' · ') || '—'}
+              </td>
             </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {(query.data?.buckets ?? []).map((b) => (
-              <tr key={b.bucket}>
-                <th scope="row" className="ebim-td text-left">
-                  <Link className="ebim-link" to={link(b.bucket)}>{AGING_LABEL[b.bucket]}</Link>
-                </th>
-                <td className="ebim-td text-right tabular-nums">{formatNumber(b.invoiceCount)}</td>
-                <td className="ebim-td text-right tabular-nums">{b.balance == null ? 'Sin tasa' : formatMoney(b.balance, currency)}</td>
-                <td className="ebim-td text-caption text-muted">
-                  {Object.entries(b.native).map(([c, v]) => formatMoney(v, c)).join(' · ') || '—'}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          ))}
+        </DataTable>
       )}
     />
   );
@@ -481,8 +477,8 @@ export function TopCustomersPanel({
       subtitle={`MRR al cierre de ${monthLabel} · % del total y variación vs mes anterior`}
       footer={
         <>
-          <span>Fuente: <span className="font-mono">executive_mrr_movement_customers</span></span>
-          <Link className="ebim-link text-caption font-semibold" to="/customers">
+          <SourceHint source="executive_mrr_movement_customers" />
+          <Link className="ebim-link text-caption font-semibold" to="/cuentas?tab=clientes">
             Ver clientes <span aria-hidden>→</span>
           </Link>
         </>
@@ -527,7 +523,7 @@ export function TopPartnersPanel({
       subtitle={`MRR de los tenants que gestiona cada canal · cierre de ${monthLabel}`}
       footer={
         <>
-          <span>Fuente: <span className="font-mono">executive_mrr_mix (PARTNER)</span></span>
+          <SourceHint source="executive_mrr_mix (PARTNER)" />
           <Link className="ebim-link text-caption font-semibold" to="/partners">
             Ver partners <span aria-hidden>→</span>
           </Link>
@@ -605,7 +601,7 @@ export function AttentionPanel() {
       icon: CalendarCheckIcon,
       title: 'Avisos de renovación',
       detail: 'Contratos que renuevan dentro de su ventana de aviso',
-      href: '/renewals?ventana=30',
+      href: '/cobranza?tab=renovaciones&ventana=30',
       action: 'Revisar renovaciones',
       count: alerts.error ? null : byType('RENEWAL_NOTICE'),
       tone: 'info',
@@ -618,7 +614,7 @@ export function AttentionPanel() {
       detail: alerts.error
         ? 'Alertas de cobranza'
         : `${formatNumber(byType('PAYMENT_FAILURE'))} cobros fallidos · ${formatNumber(byType('SUSPENSION_DUE') + byType('GRACE_ENDING'))} al fin de la gracia`,
-      href: '/renewals',
+      href: '/cobranza?tab=renovaciones',
       action: 'Gestionar cobranza',
       count: alerts.error ? null : byType('PAYMENT_FAILURE') + byType('SUSPENSION_DUE') + byType('GRACE_ENDING'),
       tone: 'danger',
@@ -651,7 +647,7 @@ export function AttentionPanel() {
       icon: StackIcon,
       title: 'Altas e infraestructura fallidas',
       detail: `${formatNumber(saasFailed)} altas SaaS · ${formatNumber(infraFailed)} solicitudes de infraestructura`,
-      href: saasFailed > 0 || infraFailed === 0 ? '/saas-provisioning' : '/provisioning',
+      href: saasFailed > 0 || infraFailed === 0 ? '/apps?tab=altas' : '/apps?tab=infraestructura',
       action: 'Ver solicitudes',
       count: saas.error && summary.error ? null : saasFailed + infraFailed,
       tone: 'danger',

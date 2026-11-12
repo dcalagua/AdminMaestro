@@ -6,7 +6,7 @@ import type { SortDir } from '@/services/financeRead';
  * Estado de un listado paginado en servidor, reflejado en la URL:
  * `?q=` buscador · `?estado=` tab · `?p=` página · `?orden=campo:asc|desc` ·
  * `?n=` tamaño. Así una tarjeta KPI o un gráfico abre EXACTAMENTE el detalle
- * que la compone (`/billing?estado=OPEN&antiguedad=D31_60`), y el enlace se
+ * que la compone (`/cobranza?tab=facturacion&estado=OPEN&antiguedad=D31_60`), y el enlace se
  * comparte o recarga sin perder contexto. Cambiar filtro o búsqueda vuelve a la
  * primera página. El `#hash` de las pestañas no se toca.
  */

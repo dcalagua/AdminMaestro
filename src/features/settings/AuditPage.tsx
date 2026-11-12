@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useListState } from '@/hooks/useListState';
-import { PageContainer, Card, SearchBar, EmptyState, ErrorState, LoadingState } from '@/components/ui/primitives';
+import { PageContainer, Card, SearchBar, EmptyState, ErrorState, LoadingState, DataTable } from '@/components/ui/primitives';
 import { TablePager } from '@/components/ui/PagedTable';
 import { ExportMenu } from '@/components/ui/ExportMenu';
 import type { ExportColumn } from '@/lib/export';
@@ -9,6 +9,7 @@ import { fetchAuditPage, useAuditPage, type AuditFilter, type AuditRow, type Aud
 import { changedFieldsOf, correlationOf, diffOf, metadataOf, redact } from './auditFormat';
 import { auditActionLabel, entityTypeLabel } from './auditActions';
 import { AuditTimeline } from './AuditTimeline';
+import { SelectInput } from '@/components/ui/fields';
 
 const SORTS: AuditSort[] = ['occurred_at', 'action', 'entity_type'];
 
@@ -77,17 +78,18 @@ export function AuditPage() {
           placeholder="Buscar por acción, actor o entidad…"
           right={
             <div className="flex items-center gap-2">
-              <label className="flex items-center gap-2 text-caption text-muted">
-                Orden
-                <select
-                  className="h-8 rounded-md border border-border-strong bg-card px-2 text-caption text-fg hover:border-fg-2"
-                  value={sortDir}
-                  onChange={(e) => list.setSort('occurred_at', e.target.value === 'asc' ? 'asc' : 'desc')}
-                >
-                  <option value="desc">Más recientes primero</option>
-                  <option value="asc">Más antiguos primero</option>
-                </select>
-              </label>
+              <SelectInput
+                label="Orden"
+                labelDisplay="inline"
+                size="sm"
+                selectClassName="w-auto"
+                value={sortDir}
+                onChange={(v) => list.setSort('occurred_at', v === 'asc' ? 'asc' : 'desc')}
+                options={[
+                  { value: 'desc', label: 'Más recientes primero' },
+                  { value: 'asc', label: 'Más antiguos primero' },
+                ]}
+              />
               <ExportMenu
                 filenameBase="auditoria"
                 columns={EXPORT_COLUMNS}
@@ -156,32 +158,18 @@ export function AuditDetail({
           {diff.length === 0 ? (
             <p className="text-body text-muted">Sin diferencias entre los dos estados registrados.</p>
           ) : (
-            <div
-              className="relative overflow-x-auto rounded-field border border-border bg-card"
-              role="region"
-              aria-label="Diferencias"
-              tabIndex={0}
-            >
-              <table className="w-full border-collapse" aria-label="Diferencias antes y después">
-                <thead className="border-b border-border bg-sunken">
-                  <tr>
-                    <th scope="col" className="ebim-th">Campo</th>
-                    <th scope="col" className="ebim-th">Antes</th>
-                    <th scope="col" className="ebim-th">Después</th>
+            <div className="overflow-hidden rounded-field border border-border bg-card">
+              <DataTable label="Diferencias antes y después" paginate={false} columns={['Campo', 'Antes', 'Después']} scrollRegion>
+                {diff.map((d) => (
+                  <tr key={d.field}>
+                    <td className="ebim-td font-mono text-caption">{d.field}</td>
+                    <td className="ebim-td break-all font-mono text-caption text-muted line-through">
+                      {d.before}
+                    </td>
+                    <td className="ebim-td break-all font-mono text-caption font-semibold">{d.after}</td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {diff.map((d) => (
-                    <tr key={d.field}>
-                      <td className="ebim-td font-mono text-caption">{d.field}</td>
-                      <td className="ebim-td break-all font-mono text-caption text-muted line-through">
-                        {d.before}
-                      </td>
-                      <td className="ebim-td break-all font-mono text-caption font-semibold">{d.after}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                ))}
+              </DataTable>
             </div>
           )}
         </div>

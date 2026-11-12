@@ -141,7 +141,7 @@ export function SaasProvisioningPage() {
           providerErrorLabel(result.error_code) ?? result.message ?? 'Sin detalle',
         );
       } else {
-        toast.push('info', 'Provisioning en curso', result.message ?? `Estado: ${result.status}`);
+        toast.push('info', 'Alta en curso', result.message ?? `Estado: ${result.status}`);
       }
     } catch (error) {
       toast.error('No se pudo provisionar', businessErrorMessage(error));
@@ -177,8 +177,8 @@ export function SaasProvisioningPage() {
 
   return (
     <PageContainer
-      title="Altas SaaS"
-      description="Altas SaaS: el alta de cada tenant DENTRO de cada producto de la suite. MasterAdmin llama a la API del producto, nunca a su base de datos. La infraestructura física tiene su propia cola."
+      title="Altas en las apps"
+      description="El alta del espacio de cada cliente DENTRO de cada app de la suite. El Admin Maestro llama a la API de la app, nunca a su base de datos. La infraestructura física tiene su propia cola."
       actions={
         access.can('platform.provisioning.execute') || access.ownedProductIds.length > 0 ? (
           <button type="button" className="ebim-btn-primary" onClick={() => setNewOpen(true)}>
@@ -236,7 +236,7 @@ export function SaasProvisioningPage() {
           <ErrorState error={requests.error} onRetry={() => void requests.refetch()} />
         ) : rows.length === 0 ? (
           <EmptyState
-            title="Sin solicitudes de provisioning"
+            title="Sin solicitudes de alta"
             description="Crear una cotización NO aprovisiona: la política por defecto es manual hasta certificar el contrato de cada producto."
           />
         ) : (
@@ -391,7 +391,7 @@ export function SaasProvisioningPage() {
       />
       <ConfirmDialog
         open={Boolean(cancelTarget)}
-        title="Cancelar solicitud de provisioning"
+        title="Cancelar solicitud de alta"
         message={`${cancelTarget?.label ?? ''} quedará cancelada. No se borra nada: la solicitud queda en el historial y se podrá crear una nueva.`}
         confirmLabel="Cancelar solicitud"
         cancelLabel="Volver"
@@ -605,7 +605,7 @@ function Pair({ label, value, mono }: { label: string; value: string; mono?: boo
   return (
     <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
       <dt className="shrink-0 text-muted sm:w-44">{label}</dt>
-      <dd className={mono ? 'min-w-0 break-all font-mono text-xs' : 'min-w-0'}>{value}</dd>
+      <dd className={mono ? 'min-w-0 break-all font-mono text-caption' : 'min-w-0'}>{value}</dd>
     </div>
   );
 }

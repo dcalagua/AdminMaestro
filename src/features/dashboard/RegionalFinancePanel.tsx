@@ -108,7 +108,7 @@ export function RegionalFinancePanel() {
       ) : (
         <div className="space-y-4 p-4">
           {mode === 'CONSOLIDATED' && data ? (
-            <div className="rounded-lg border border-border px-3 py-2 text-xs" data-testid="fx-context">
+            <div className="rounded-lg border border-border px-3 py-2 text-caption" data-testid="fx-context">
               <div className="flex flex-wrap items-center gap-2">
                 <span>
                   Moneda de reporte: <strong>{rc ?? 'sin configurar'}</strong>
@@ -131,7 +131,7 @@ export function RegionalFinancePanel() {
           ) : null}
 
           {incomplete ? (
-            <p className="rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn" role="alert">
+            <p className="rounded-lg bg-warn-soft px-3 py-2 text-body text-warn" role="alert">
               <strong>Consolidado incompleto.</strong> Faltan tipos de cambio para{' '}
               {data!.completeness.missing_currencies.join(', ')} ({data!.completeness.missing_fx_count}). Las cifras
               afectadas se muestran como «Incompleto» y el margen consolidado no se calcula. Publica la tasa en
@@ -151,7 +151,7 @@ export function RegionalFinancePanel() {
           </div>
 
           <div>
-            <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted">Por mercado</h3>
+            <h3 className="mb-2 text-micro uppercase text-muted">Por mercado</h3>
             {byMarket.isLoading ? (
               <LoadingState />
             ) : (byMarket.data?.groups ?? []).length === 0 ? (

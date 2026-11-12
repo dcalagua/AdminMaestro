@@ -21,15 +21,15 @@ const OUT = resolve(process.cwd(), 'docs/superpowers/evidence/visual-gerencia/ca
 const ALLOWED = new Set(['127.0.0.1', 'localhost', 'fonts.googleapis.com', 'fonts.gstatic.com']);
 
 const ROUTES: Array<{ slug: string; path: string; title: string }> = [
-  { slug: 'billing', path: '/billing', title: 'Facturación y cobros' },
+  { slug: 'billing', path: '/billing', title: 'Cobranza' },
   { slug: 'costs', path: '/costs', title: 'Costos y margen' },
-  { slug: 'commissions', path: '/commissions', title: 'Comisiones y liquidaciones' },
-  { slug: 'commission-plans', path: '/commission-plans', title: 'Reglas de comisión' },
-  { slug: 'renewals', path: '/renewals', title: 'Renovaciones y alertas' },
-  { slug: 'reconciliation', path: '/reconciliation', title: 'Reconciliación' },
-  { slug: 'regional', path: '/regional', title: 'Monedas y FX' },
-  { slug: 'ai-credits', path: '/ai-credits', title: 'Créditos IA' },
-  { slug: 'billing-shadow', path: '/billing-shadow', title: 'Billing shadow' },
+  { slug: 'commissions', path: '/commissions', title: 'Comisiones' },
+  { slug: 'commission-plans', path: '/commission-plans', title: 'Comisiones' },
+  { slug: 'renewals', path: '/renewals', title: 'Cobranza' },
+  { slug: 'reconciliation', path: '/reconciliation', title: 'Cobranza' },
+  { slug: 'regional', path: '/regional', title: 'Configuración' },
+  { slug: 'ai-credits', path: '/ai-credits', title: 'Configuración' },
+  { slug: 'billing-shadow', path: '/billing-shadow', title: 'Configuración' },
   { slug: 'partner-fees', path: '/partner-fees', title: 'Tarifas de partners' },
 ];
 const CHARTED = new Set(['billing', 'costs', 'commissions']);

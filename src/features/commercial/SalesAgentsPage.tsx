@@ -166,7 +166,7 @@ export function SalesAgentsPage() {
                     <ActionMenu
                       label={`Acciones de ${a.full_name}`}
                       items={[
-                        own ? { label: 'Ver atribuciones', to: '/attributions' } : null,
+                        own ? { label: 'Ver atribuciones', to: '/sales-agents?tab=atribuciones' } : null,
                         perms.canManageCommercial || perms.isOrgAdmin(a.organization_id)
                           ? {
                               label: 'Editar comercial',

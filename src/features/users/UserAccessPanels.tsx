@@ -146,7 +146,7 @@ export function ConsoleRolePanel({ user }: { user: AdminUser }) {
       <Card title="Rol de consola">
         <EmptyState
           title="Super Admin EBIM"
-          description="Rol único de la suite: no se asigna, no se transfiere y no se modifica desde la consola (contrato §13.1)."
+          description="Rol único de la suite: no se asigna, no se transfiere y no se modifica desde la consola."
         />
       </Card>
     );
@@ -449,11 +449,11 @@ export function ProvisioningPanel({ user, scope }: { user: AdminUser; scope: Sco
   return (
     <div className="grid gap-4">
       <Card
-        title="Roles de provisioning"
-        description="Roles transversales del plano de provisioning. Solo el super admin los concede; la propiedad por producto se administra en la ficha del producto."
+        title="Roles de altas en las apps"
+        description="Roles transversales de las altas en las apps. Solo el super admin los concede; la propiedad por producto se administra en la ficha del producto."
       >
         {user.provisioningRoles.length === 0 ? (
-          <EmptyState title="Sin roles de provisioning" />
+          <EmptyState title="Sin roles de altas" />
         ) : (
           <DataTable columns={['Rol', 'Desde', 'Estado', '']}>
             {user.provisioningRoles.map((r) => (
@@ -469,7 +469,7 @@ export function ProvisioningPanel({ user, scope }: { user: AdminUser; scope: Sco
                       onClick={() =>
                         void revoke
                           .mutateAsync({ p_id: r.id })
-                          .then(() => toast.success('Rol de provisioning revocado', PROVISIONING_ROLE_LABEL[r.role]))
+                          .then(() => toast.success('Rol de altas revocado', PROVISIONING_ROLE_LABEL[r.role]))
                           .catch((e: unknown) => toast.error('No se pudo revocar', businessErrorMessage(e)))
                       }
                     >
@@ -484,12 +484,12 @@ export function ProvisioningPanel({ user, scope }: { user: AdminUser; scope: Sco
         {scope.isSuperAdmin && user.isActive ? (
           <form
             className="flex flex-wrap items-end gap-3 border-t border-border p-4"
-            aria-label="Otorgar rol de provisioning"
+            aria-label="Otorgar rol de altas"
             onSubmit={(e) => {
               e.preventDefault();
               void grant
                 .mutateAsync({ p_user_id: user.id, p_role: role, p_notes: 'Otorgado desde la ficha de usuario' })
-                .then(() => toast.success('Rol de provisioning otorgado', PROVISIONING_ROLE_LABEL[role]))
+                .then(() => toast.success('Rol de altas otorgado', PROVISIONING_ROLE_LABEL[role]))
                 .catch(() => undefined);
             }}
           >

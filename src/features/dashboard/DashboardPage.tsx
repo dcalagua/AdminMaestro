@@ -22,6 +22,8 @@ import { collectedInMonth, monthRange, periodLabel, renewalsInWindow, useReportC
 import { ExecutivePresentation } from './presentation/ExecutivePresentation';
 import { isPresentationParam, PRESENTATION_PARAM } from './presentation/presentationModel';
 import { usePrintInLightTheme } from './presentation/theme';
+import { MonthSelect } from '@/components/ui/fields';
+import { formatMonth } from '@/lib/period';
 
 /**
  * Inicio adaptado al perfil.
@@ -55,24 +57,20 @@ function ReportContextBar({ ctx, months, setMonth, setFxDate }: ReturnType<typeo
   return (
     <section
       aria-label="Contexto del reporte"
-      className="ebim-card mb-4 flex flex-wrap items-end gap-x-6 gap-y-3 px-4 py-3 text-sm"
+      className="ebim-card mb-4 flex flex-wrap items-end gap-x-6 gap-y-3 px-4 py-3 text-body"
     >
-      <label className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-muted">Período de operaciones</span>
-        <select className="ebim-input h-9 min-w-[190px]" value={ctx.period.start.slice(0, 7)} onChange={(e) => setMonth(e.target.value)}>
-          {months.map((m, i) => (
-            <option key={m} value={m}>
-              {m}
-              {i === 0 ? ' (mes en curso)' : ''}
-            </option>
-          ))}
-        </select>
-      </label>
+      <MonthSelect
+        label="Período de operaciones"
+        selectClassName="h-9 min-w-[190px]"
+        value={ctx.period.start.slice(0, 7)}
+        onChange={setMonth}
+        options={months.map((m, i) => ({ value: m, label: `${formatMonth(m)}${i === 0 ? ' (mes en curso)' : ''}` }))}
+      />
       <label className="flex flex-col gap-1">
         <span className="text-[11px] font-bold uppercase tracking-wider text-muted">Fecha de tipo de cambio</span>
         <input type="date" className="ebim-input h-9" value={ctx.fxDate} onChange={(e) => e.target.value && setFxDate(e.target.value)} />
       </label>
-      <dl className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted">
+      <dl className="flex flex-wrap gap-x-6 gap-y-1 text-caption text-muted">
         <div>
           <dt className="inline">Movimientos: </dt>
           <dd className="inline font-semibold text-fg">{periodLabel(ctx)}</dd>
@@ -145,7 +143,7 @@ function PartnerDashboard({ orgName }: { orgName?: string }) {
           temporality={periodLabel(ctx)}
           state={fromQuery(collections, { isEmpty: () => false })}
           render={() => <CurrencyLines amounts={collectedInMonth(collections.data ?? [], month)} emptyLabel="Sin cobros confirmados" />}
-          detailHref={`/billing?desde=${monthRange(month).from}&hasta=${monthRange(month).to}#cobros`}
+          detailHref={`/cobranza?tab=facturacion&desde=${monthRange(month).from}&hasta=${monthRange(month).to}#cobros`}
         />
         <KpiCard
           id="K03"
@@ -153,7 +151,7 @@ function PartnerDashboard({ orgName }: { orgName?: string }) {
           temporality="Foto actual"
           state={fromQuery(invoices, { isEmpty: () => false })}
           render={() => <CurrencyLines amounts={toCurrencyAmounts(invoices.data?.receivable)} emptyLabel="Sin saldo pendiente" />}
-          detailHref="/billing?estado=OPEN"
+          detailHref="/cobranza?tab=facturacion&estado=OPEN"
         />
         <KpiCard
           id="K04"
@@ -161,7 +159,7 @@ function PartnerDashboard({ orgName }: { orgName?: string }) {
           temporality="Foto actual"
           state={fromQuery(invoices, { isEmpty: () => false })}
           render={() => <CurrencyLines amounts={toCurrencyAmounts(invoices.data?.overdue)} emptyLabel="Sin cartera vencida" />}
-          detailHref="/billing?estado=OPEN&antiguedad=VENCIDA"
+          detailHref="/cobranza?tab=facturacion&estado=OPEN&antiguedad=VENCIDA"
         />
         <KpiCard
           id="K06"
@@ -169,7 +167,7 @@ function PartnerDashboard({ orgName }: { orgName?: string }) {
           temporality="Próximos 30 días"
           state={fromQuery(renewals, { isEmpty: () => false })}
           render={() => (win ? <p className="tabular-nums">{formatNumber(win.count)} contratos</p> : null)}
-          detailHref="/renewals"
+          detailHref="/cobranza?tab=renovaciones"
         />
       </div>
 
@@ -226,7 +224,7 @@ function CommercialDashboard() {
           temporality="Vigentes y pasadas"
           state={fromQuery(attributions, { isEmpty: () => false })}
           render={() => <p className="tabular-nums">{formatNumber(attributions.data?.length ?? 0)}</p>}
-          detailHref="/attributions"
+          detailHref="/sales-agents?tab=atribuciones"
         />
         <KpiCard
           id="pending"

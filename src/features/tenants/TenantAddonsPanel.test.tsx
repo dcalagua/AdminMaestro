@@ -178,7 +178,7 @@ describe('TenantAddonsPanel', () => {
     historyHook.mockReturnValue({ data: [], isLoading: false, error: null });
     renderPanel();
     expect(screen.getByText('Sin add-ons')).toBeInTheDocument();
-    expect(screen.getByText('Sin entitlements')).toBeInTheDocument();
+    expect(screen.getByText('Sin módulos habilitados')).toBeInTheDocument();
   });
 
   it('un error de lectura se muestra como error, no como lista vacía', () => {
@@ -187,6 +187,6 @@ describe('TenantAddonsPanel', () => {
     renderPanel();
     expect(screen.getAllByRole('alert')).toHaveLength(2);
     expect(screen.queryByText('Sin add-ons')).toBeNull();
-    expect(screen.queryByText('Sin entitlements')).toBeNull();
+    expect(screen.queryByText('Sin módulos habilitados')).toBeNull();
   });
 });

@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/primitives';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ActionMenu } from '@/components/ui/ActionMenu';
+import { PagedList } from '@/components/ui/TablePager';
 import { KpiStrip } from '@/features/billing/financeUi';
 import { useToast } from '@/components/ui/toast-context';
 import { businessErrorMessage } from '@/lib/pgError';
@@ -151,106 +152,110 @@ export function CommissionPlansPage() {
             }
           />
         ) : (
-          <div className="divide-y divide-border">
-            {visible.map((p) => {
-              const rules = (p.commission_rules ?? []) as Array<Record<string, unknown>>;
-              return (
-                <section key={p.id} className="px-5 py-4" aria-labelledby={`cplan-${p.id}`}>
-                  <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <h2 id={`cplan-${p.id}`} className="text-h3 text-fg">{p.name}</h2>
-                    <Badge tone={entityStatusTone(p.status)} dot>{entityStatusLabel(p.status)}</Badge>
-                    {p.saas_products ? (
-                      <Badge tone="info">
-                        {(p.saas_products as { short_name: string }).short_name}
-                      </Badge>
-                    ) : (
-                      <Badge tone="neutral">Todos los productos</Badge>
-                    )}
-                    <span className="font-mono text-caption text-muted">{p.code}</span>
-                    {perms.canReadFinance ? (
-                      <span className="ml-auto">
-                        <ActionMenu
-                          variant="page"
-                          buttonLabel="Acciones"
-                          label={`Acciones del plan ${p.name}`}
-                          items={[
-                            {
-                              label: 'Editar plan',
-                              onSelect: () =>
-                                setPlanDialog({
-                                  open: true,
-                                  plan: {
-                                    id: p.id,
-                                    code: p.code,
-                                    name: p.name,
-                                    description: p.description,
-                                    saas_product_id: p.saas_product_id,
-                                    status: p.status,
-                                    valid_from: p.valid_from,
-                                    valid_to: p.valid_to,
-                                  },
-                                }),
-                            },
-                            { label: 'Añadir regla', onSelect: () => setRuleDialog({ planId: p.id, planName: p.name }) },
-                          ]}
-                        />
-                      </span>
-                    ) : null}
-                  </div>
-                  {p.description ? <p className="mb-3 max-w-[72ch] text-body text-fg-2">{p.description}</p> : null}
-                  {rules.length === 0 ? (
-                    <p className="rounded-card border border-dashed border-border-strong px-4 py-3 text-compact text-muted">
-                      Este plan todavía no tiene reglas: no genera comisión.
-                    </p>
-                  ) : (
-                    <ul className="space-y-2">
-                      {rules.map((r) => {
-                        const example = exampleForRule(r);
-                        const active = r.status === 'ACTIVE';
-                        return (
-                          <li key={r.id as string} className="ebim-hover-row rounded-card border border-border px-4 py-3">
-                            <div className="flex flex-wrap items-start justify-between gap-2">
-                              <div className="min-w-0">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <span className="text-body font-semibold">{r.name as string}</span>
-                                  <Badge tone={entityStatusTone(r.status as string)}>
-                                    {active ? 'Vigente' : entityStatusLabel(r.status as string)}
-                                  </Badge>
+          <PagedList items={visible}>
+            {(pagePlans) => (
+              <div className="divide-y divide-border">
+                {pagePlans.map((p) => {
+                  const rules = (p.commission_rules ?? []) as Array<Record<string, unknown>>;
+                  return (
+                    <section key={p.id} className="px-5 py-4" aria-labelledby={`cplan-${p.id}`}>
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <h2 id={`cplan-${p.id}`} className="text-h3 text-fg">{p.name}</h2>
+                        <Badge tone={entityStatusTone(p.status)} dot>{entityStatusLabel(p.status)}</Badge>
+                        {p.saas_products ? (
+                          <Badge tone="info">
+                            {(p.saas_products as { short_name: string }).short_name}
+                          </Badge>
+                        ) : (
+                          <Badge tone="neutral">Todos los productos</Badge>
+                        )}
+                        <span className="font-mono text-caption text-muted">{p.code}</span>
+                        {perms.canReadFinance ? (
+                          <span className="ml-auto">
+                            <ActionMenu
+                              variant="page"
+                              buttonLabel="Acciones"
+                              label={`Acciones del plan ${p.name}`}
+                              items={[
+                                {
+                                  label: 'Editar plan',
+                                  onSelect: () =>
+                                    setPlanDialog({
+                                      open: true,
+                                      plan: {
+                                        id: p.id,
+                                        code: p.code,
+                                        name: p.name,
+                                        description: p.description,
+                                        saas_product_id: p.saas_product_id,
+                                        status: p.status,
+                                        valid_from: p.valid_from,
+                                        valid_to: p.valid_to,
+                                      },
+                                    }),
+                                },
+                                { label: 'Añadir regla', onSelect: () => setRuleDialog({ planId: p.id, planName: p.name }) },
+                              ]}
+                            />
+                          </span>
+                        ) : null}
+                      </div>
+                      {p.description ? <p className="mb-3 max-w-[72ch] text-body text-fg-2">{p.description}</p> : null}
+                      {rules.length === 0 ? (
+                        <p className="rounded-card border border-dashed border-border-strong px-4 py-3 text-compact text-muted">
+                          Este plan todavía no tiene reglas: no genera comisión.
+                        </p>
+                      ) : (
+                        <ul className="space-y-2">
+                          {rules.map((r) => {
+                            const example = exampleForRule(r);
+                            const active = r.status === 'ACTIVE';
+                            return (
+                              <li key={r.id as string} className="ebim-hover-row rounded-card border border-border px-4 py-3">
+                                <div className="flex flex-wrap items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <span className="text-body font-semibold">{r.name as string}</span>
+                                      <Badge tone={entityStatusTone(r.status as string)}>
+                                        {active ? 'Vigente' : entityStatusLabel(r.status as string)}
+                                      </Badge>
+                                    </div>
+                                    <p className="mt-1 text-body text-fg">{describeRule(r)}</p>
+                                    <p className="mt-0.5 text-caption text-muted">
+                                      Vigencia {formatDate(r.valid_from as string)} →{' '}
+                                      {r.valid_to ? formatDate(r.valid_to as string) : 'sin fin'}
+                                    </p>
+                                  </div>
+                                  {perms.canReadFinance && active ? (
+                                    <ActionMenu
+                                      label={`Acciones de la regla ${r.name as string}`}
+                                      items={[
+                                        {
+                                          label: 'Cerrar regla',
+                                          tone: 'danger',
+                                          onSelect: () => setClosingRule({ id: r.id as string, name: r.name as string }),
+                                        },
+                                      ]}
+                                    />
+                                  ) : null}
                                 </div>
-                                <p className="mt-1 text-body text-fg">{describeRule(r)}</p>
-                                <p className="mt-0.5 text-caption text-muted">
-                                  Vigencia {formatDate(r.valid_from as string)} →{' '}
-                                  {r.valid_to ? formatDate(r.valid_to as string) : 'sin fin'}
-                                </p>
-                              </div>
-                              {perms.canReadFinance && active ? (
-                                <ActionMenu
-                                  label={`Acciones de la regla ${r.name as string}`}
-                                  items={[
-                                    {
-                                      label: 'Cerrar regla',
-                                      tone: 'danger',
-                                      onSelect: () => setClosingRule({ id: r.id as string, name: r.name as string }),
-                                    },
-                                  ]}
-                                />
-                              ) : null}
-                            </div>
-                            {example ? (
-                              <p className="mt-2 rounded-field bg-sunken px-3 py-2 text-compact text-fg-2">
-                                <span className="font-semibold text-fg">Ejemplo de lectura:</span> {example}{' '}
-                                <span className="italic">No sustituye la liquidación real.</span>
-                              </p>
-                            ) : null}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                </section>
-              );
-            })}
-          </div>
+                                {example ? (
+                                  <p className="mt-2 rounded-field bg-sunken px-3 py-2 text-compact text-fg-2">
+                                    <span className="font-semibold text-fg">Ejemplo de lectura:</span> {example}{' '}
+                                    <span className="italic">No sustituye la liquidación real.</span>
+                                  </p>
+                                ) : null}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
+                    </section>
+                  );
+                })}
+              </div>
+            )}
+          </PagedList>
         )}
       </Card>
 

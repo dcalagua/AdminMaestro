@@ -14,17 +14,17 @@ export const ENTITLEMENT_AXIS_ORDER = [
 
 const STEP_LABEL: Record<string, string> = {
   LEGACY_ONLY: 'Legacy',
-  SHADOW: 'Shadow',
+  SHADOW: 'Comparación',
   DUAL_READ: 'Lectura dual',
   MASTERADMIN_PRIMARY: 'Primario',
   LEGACY_RETIRED: 'Retirado',
   BILLING_LEGACY: 'Legacy',
-  BILLING_SHADOW: 'Shadow',
+  BILLING_SHADOW: 'Comparación',
   BILLING_PRIMARY: 'Primario',
   BILLING_RETIRED: 'Retirado',
 };
 
-export const AXIS_LABEL = { entitlements: 'Entitlements', billing: 'Facturación' } as const;
+export const AXIS_LABEL = { entitlements: 'Módulos habilitados', billing: 'Facturación' } as const;
 
 export function cutoverStepLabel(state: string | null | undefined): string {
   return state ? (STEP_LABEL[state] ?? state) : '—';

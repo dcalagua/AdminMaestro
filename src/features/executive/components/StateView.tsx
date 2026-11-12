@@ -32,13 +32,13 @@ export function StateMessage({
       );
     case 'error':
       return (
-        <div className={`${pad} flex items-start gap-2 text-sm text-danger`} role="alert">
+        <div className={`${pad} flex items-start gap-2 text-body text-danger`} role="alert">
           <WarningCircleIcon size={18} aria-hidden className="mt-0.5 shrink-0" />
           <div>
             <p className="font-semibold">No se pudo leer este dato</p>
-            <p className="text-xs text-muted">{state.message}</p>
+            <p className="text-caption text-muted">{state.message}</p>
             {onRetry ? (
-              <button type="button" className="ebim-link mt-1 text-xs" onClick={onRetry}>
+              <button type="button" className="ebim-link mt-1 text-caption" onClick={onRetry}>
                 Reintentar lectura
               </button>
             ) : null}
@@ -47,13 +47,13 @@ export function StateMessage({
       );
     case 'forbidden':
       return (
-        <p className={`${pad} flex items-center gap-2 text-sm text-muted`}>
+        <p className={`${pad} flex items-center gap-2 text-body text-muted`}>
           <ProhibitIcon size={18} aria-hidden /> Sin acceso con tu perfil
         </p>
       );
     case 'unavailable':
       return (
-        <p className={`${pad} flex items-start gap-2 text-sm text-muted`}>
+        <p className={`${pad} flex items-start gap-2 text-body text-muted`}>
           <InfoIcon size={18} aria-hidden className="mt-0.5 shrink-0" />
           <span>
             <span className="font-semibold text-fg">No disponible.</span> {state.reason}
@@ -61,7 +61,7 @@ export function StateMessage({
         </p>
       );
     case 'empty':
-      return <p className={`${pad} text-sm text-muted`}>{emptyText}</p>;
+      return <p className={`${pad} text-body text-muted`}>{emptyText}</p>;
     default:
       return null;
   }
@@ -80,7 +80,7 @@ export function PartialNote({ reasons }: { reasons: string[] }) {
 /** Importes por moneda nativa, una línea por moneda (sin sumar monedas). */
 export function CurrencyLines({ amounts, emptyLabel = 'Sin movimientos' }: { amounts: CurrencyAmounts; emptyLabel?: string }) {
   const entries = Object.entries(amounts).sort(([a], [b]) => a.localeCompare(b));
-  if (entries.length === 0) return <span className="text-base font-semibold text-muted">{emptyLabel}</span>;
+  if (entries.length === 0) return <span className="text-h3 text-muted">{emptyLabel}</span>;
   return (
     <span className="flex flex-col gap-0.5">
       {entries.map(([currency, amount]) => (
@@ -130,7 +130,7 @@ export function KpiCard({
           {temporality}
         </span>
       </div>
-      <div className="mt-2 min-h-[56px] text-xl font-bold text-fg">
+      <div className="mt-2 min-h-[56px] text-h2 text-fg">
         {state.status === 'ready' || state.status === 'partial' ? (
           <>
             {render()}
@@ -140,9 +140,9 @@ export function KpiCard({
           <StateMessage state={state} compact onRetry={onRetry} />
         )}
       </div>
-      {hint ? <p className="mt-1 text-xs text-muted">{hint}</p> : null}
+      {hint ? <p className="mt-1 text-caption text-muted">{hint}</p> : null}
       {footer}
-      <div className="mt-auto flex items-center justify-between gap-2 pt-3 text-xs">
+      <div className="mt-auto flex items-center justify-between gap-2 pt-3 text-caption">
         {observed ? <span className="text-muted">Leído {formatDateTime(observed)}</span> : <span />}
         {detailHref ? (
           <Link className="ebim-link" to={detailHref}>

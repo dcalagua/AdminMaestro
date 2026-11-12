@@ -863,6 +863,18 @@ export function useSubscriptions({ enabled = true }: LazyQueryOptions = {}) {
   });
 }
 
+/**
+ * Sólo el estado de cada contrato (Centro de la suite): sin importes ni ítems.
+ * La pantalla lo pide únicamente a perfiles con vista financiera; RLS decide.
+ */
+export function useSubscriptionStatuses({ enabled = true }: LazyQueryOptions = {}) {
+  return useQuery({
+    queryKey: ['subscriptions', 'statuses'],
+    enabled,
+    queryFn: async () => unwrap(await supabase.from('subscriptions').select('id, code, status')),
+  });
+}
+
 /* ==========================================================================
    Cobranza (Fases 07-08)
    ========================================================================== */
@@ -1558,6 +1570,27 @@ export function useSaasProvisioningEvents(requestId: string | undefined) {
           .select('*')
           .eq('saas_provisioning_request_id', requestId!)
           .order('occurred_at'),
+      ),
+  });
+}
+
+/**
+ * Historial de altas de UNA app (Centro de la suite · ficha de app): los eventos
+ * de sus solicitudes, del más reciente al más antiguo. RLS decide qué se ve.
+ */
+export function useSaasProvisioningEventsForRequests(requestIds: readonly string[], limit = 200) {
+  const ids = [...requestIds].sort();
+  return useQuery({
+    queryKey: ['saas-provisioning-events', 'requests', ids, limit],
+    enabled: ids.length > 0,
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('saas_provisioning_events')
+          .select('*')
+          .in('saas_provisioning_request_id', ids)
+          .order('occurred_at', { ascending: false })
+          .limit(limit),
       ),
   });
 }

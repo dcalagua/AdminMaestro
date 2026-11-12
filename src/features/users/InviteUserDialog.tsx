@@ -140,24 +140,24 @@ export function InviteUserDialog({
         onCancel={onClose}
       >
         {result.status === 'EXISTING_USER' ? (
-          <p className="text-sm text-fg">
+          <p className="text-body text-fg">
             {email.trim().toLowerCase()} ya tenía una cuenta: se le otorgó el acceso pedido. No se envió ninguna
             invitación.
           </p>
         ) : result.delivery === 'EMAIL' ? (
-          <p className="text-sm text-fg" role="status">
+          <p className="text-body text-fg" role="status">
             Invitación enviada a <strong>{email.trim().toLowerCase()}</strong>. El enlace del correo lleva a
             «/bienvenida», donde la persona elige su contraseña.
           </p>
         ) : (
           <div className="grid gap-2">
-            <p className="text-sm text-fg" role="status">
+            <p className="text-body text-fg" role="status">
               No hay envío de correo configurado. Copia este enlace y compártelo con la persona por un canal seguro:
               es de <strong>un solo uso</strong>, vence pronto y <strong>no se volverá a mostrar</strong>.
             </p>
             <div className="flex gap-2">
               <input
-                className="ebim-input font-mono text-xs"
+                className="ebim-input font-mono text-caption"
                 readOnly
                 aria-label="Enlace de invitación"
                 value={result.action_link ?? ''}
@@ -170,7 +170,7 @@ export function InviteUserDialog({
           </div>
         )}
         {result.grant_applied === false ? (
-          <p role="alert" className="rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn">
+          <p role="alert" className="rounded-lg bg-warn-soft px-3 py-2 text-body text-warn">
             La cuenta se creó, pero el acceso no se pudo aplicar: {result.grant_message ?? result.grant_error}.
             Corrígelo desde la ficha del usuario.
           </p>
@@ -204,7 +204,7 @@ export function InviteUserDialog({
 
       {kind === 'PLATFORM_ROLE' ? (
         <SelectField label="Rol de consola" value={platformRole}
-          hint="El rol Super Admin EBIM no es asignable (contrato §13.1)."
+          hint="El rol Super Admin EBIM no es asignable."
           options={ASSIGNABLE_PLATFORM_ROLES.map((r) => ({ value: r, label: PLATFORM_ROLE_LABEL[r] }))}
           onChange={(e) => setPlatformRole(e.target.value as PlatformRole)} />
       ) : kind === 'ORG_MEMBERSHIP' ? (

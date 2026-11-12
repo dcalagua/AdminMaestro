@@ -261,7 +261,7 @@ export function DeploymentsPage() {
                         <span className="hidden text-caption font-normal text-accent-deep group-open:inline">Ocultar</span>
                       </summary>
                       <div className="border-t border-border">
-                        <DataTable label={`Tenants alojados en ${t.code}`} columns={['Tenant', 'Slug', 'Estado']}>
+                        <DataTable label={`Tenants alojados en ${t.code}`} columns={['Tenant', 'Código', 'Estado']}>
                           {deployments.map((d) => {
                             const tenant = d.tenants as { name: string; slug: string } | null;
                             return (
@@ -365,7 +365,7 @@ function ProvisioningPanel({
   return (
     <div className="mb-3 rounded-card border border-border bg-sunken p-3">
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <span className="text-micro text-muted">Provisioning SaaS</span>
+        <span className="text-micro text-muted">Altas en las apps</span>
         {environment ? (
           <Badge tone="info">Entorno: {PROVISIONING_ENVIRONMENT_LABEL[environment]}</Badge>
         ) : (
@@ -409,7 +409,7 @@ function ProvisioningPanel({
               className="ebim-btn-ghost ebim-btn-sm"
               onClick={() => onConfigure(draft)}
             >
-              Configurar provisioning
+              Configurar altas
             </button>
           ) : null}
         </span>
@@ -490,56 +490,47 @@ function EnvironmentMatrix({
     <Card
       className="mb-4"
       title="Salud observada por producto y entorno"
-      description="Última comprobación guardada; no es monitoreo en tiempo real. Sólo cuentan los destinos con provisioning habilitado."
+      description="Última comprobación guardada; no es monitoreo en tiempo real. Sólo cuentan los destinos con altas habilitadas."
     >
-      <div className="relative overflow-x-auto" role="region" aria-label="Matriz de producto y entorno" tabIndex={0}>
-        <table className="w-full border-collapse">
-          <thead className="border-b border-border bg-sunken">
-            <tr>
-              <th scope="col" className="ebim-th">Producto</th>
-              {environments.map((e) => (
-                <th key={e} scope="col" className="ebim-th">
-                  {PROVISIONING_ENVIRONMENT_LABEL[e]}
-                </th>
-              ))}
+      <DataTable
+        label="Matriz de producto y entorno"
+        paginate={false}
+        scrollRegion
+        columns={['Producto', ...environments.map((e) => PROVISIONING_ENVIRONMENT_LABEL[e])]}
+      >
+        {products.map(([product, targets]) => {
+          const summaries = summarizeByEnvironment(targets);
+          return (
+            <tr key={product}>
+              {/* Producto y celdas alineados arriba: las celdas con salud ocupan tres líneas. */}
+              <th scope="row" className="ebim-td py-3 text-left align-top font-semibold">
+                {product}
+              </th>
+              {environments.map((e) => {
+                const s = summaries.find((x) => x.environment === e);
+                return (
+                  <td key={e} className="ebim-td py-3 align-top">
+                    {s ? (
+                      <div className="flex flex-col items-start gap-0.5 text-caption" data-health-cell={s.health}>
+                        <span className="inline-flex items-center gap-1.5 text-compact">
+                          <HealthDot health={s.health} />
+                          <HealthText health={s.health} />
+                        </span>
+                        {s.health === 'NOT_EVALUATED' ? null : <ObservationDate at={s.latestCheckedAt} />}
+                        <span className="text-muted">
+                          {s.evaluated} de {s.total} habilitado{s.total === 1 ? '' : 's'}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-caption text-muted">Sin destino</span>
+                    )}
+                  </td>
+                );
+              })}
             </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {products.map(([product, targets]) => {
-              const summaries = summarizeByEnvironment(targets);
-              return (
-                <tr key={product}>
-                  {/* Producto y celdas alineados arriba: las celdas con salud ocupan tres líneas. */}
-                  <th scope="row" className="ebim-td py-3 text-left align-top font-semibold">
-                    {product}
-                  </th>
-                  {environments.map((e) => {
-                    const s = summaries.find((x) => x.environment === e);
-                    return (
-                      <td key={e} className="ebim-td py-3 align-top">
-                        {s ? (
-                          <div className="flex flex-col items-start gap-0.5 text-caption" data-health-cell={s.health}>
-                            <span className="inline-flex items-center gap-1.5 text-compact">
-                              <HealthDot health={s.health} />
-                              <HealthText health={s.health} />
-                            </span>
-                            {s.health === 'NOT_EVALUATED' ? null : <ObservationDate at={s.latestCheckedAt} />}
-                            <span className="text-muted">
-                              {s.evaluated} de {s.total} habilitado{s.total === 1 ? '' : 's'}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-caption text-muted">Sin destino</span>
-                        )}
-                      </td>
-                    );
-                  })}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+          );
+        })}
+      </DataTable>
     </Card>
   );
 }

@@ -105,7 +105,7 @@ export function IntegrationDetailPage() {
             title="No existe o no tiene acceso"
             description="Un propietario técnico sólo ve las integraciones de su producto."
             action={
-              <Link to="/integrations" className="ebim-btn-secondary">
+              <Link to="/apps?tab=integraciones" className="ebim-btn-secondary">
                 Volver a integraciones
               </Link>
             }
@@ -222,7 +222,7 @@ export function IntegrationDetailPage() {
                       }
                     />
                     <Row
-                      label="Política de provisioning"
+                      label="Política de altas"
                       value={PROVISIONING_POLICY_LABEL[data.provisioning_policy as ProvisioningPolicy]}
                       hint={PROVISIONING_POLICY_HINT[data.provisioning_policy as ProvisioningPolicy]}
                     />
@@ -264,8 +264,8 @@ export function IntegrationDetailPage() {
                     </div>
                   </Card>
                   <Card
-                    title="Modo de cutover"
-                    description="Quién manda en cada eje para este producto. Se mueve paso a paso, con motivo, desde Billing shadow; aquí solo se muestra."
+                    title="Migración de cobro"
+                    description="Quién manda en cada eje para este producto. Se mueve paso a paso, con motivo, desde Configuración › Avanzado; aquí solo se muestra."
                   >
                     <div className="grid gap-5 p-4 sm:grid-cols-2">
                       <CutoverStepper axis="entitlements" state={data.cutover_state_entitlements} />
@@ -302,7 +302,7 @@ export function IntegrationDetailPage() {
             label: 'Seguridad',
             content: (
               <>
-                <Card title="Contrato M2M">
+                <Card title="Conexión segura">
                   <div className="px-4 pb-2">
                     {isHttp ? (
                       <>
@@ -331,7 +331,7 @@ export function IntegrationDetailPage() {
                           value={
                             data.token_ttl_seconds ? `${data.token_ttl_seconds} segundos` : NOT_SET
                           }
-                          hint="Máximo 300 s. Un token de provisioning de vida larga es un token robado de vida larga."
+                          hint="Máximo 300 s. Un token de alta de vida larga es un token robado de vida larga."
                         />
                         <Row
                           label="Hosts permitidos"
@@ -350,7 +350,7 @@ export function IntegrationDetailPage() {
                     ) : (
                       <p className="py-6 text-body text-muted">
                         Una integración {INTEGRATION_TYPE_LABEL[type].toLowerCase()} no firma tokens
-                        M2M: no arrastra issuer, audience, algoritmo ni TTL.
+                        de conexión segura: no arrastra issuer, audience, algoritmo ni TTL.
                       </p>
                     )}
                   </div>
@@ -439,7 +439,7 @@ export function IntegrationDetailPage() {
                     {relatedTargets.map((t) => (
                       <tr key={t.deployment_target_id}>
                         <td className="ebim-td">
-                          <Link to="/deployments" className="font-mono text-compact text-accent-deep hover:underline">
+                          <Link to="/apps?tab=entornos" className="font-mono text-compact text-accent-deep hover:underline">
                             {t.code}
                           </Link>
                         </td>
@@ -587,7 +587,7 @@ export function IntegrationDetailPage() {
                 }
               >
                 <p className="px-4 pb-3 text-caption text-muted">
-                  Un propietario ve y opera el provisioning de <strong>este</strong> producto, y de
+                  Un propietario ve y opera las altas de <strong>este</strong> producto, y de
                   ningún otro. No es un rol de plataforma: repartir la propiedad exige alcance
                   transversal, para que nadie pueda auto-nombrarse en el producto del vecino.
                 </p>
@@ -680,7 +680,7 @@ export function IntegrationDetailPage() {
       <ConfirmDialog
         open={Boolean(ownerToRemove)}
         title="Retirar propietario técnico"
-        message={`${ownerToRemove?.name ?? ''} dejará de ver el provisioning de este producto. La asignación se desactiva; no se borra el historial.`}
+        message={`${ownerToRemove?.name ?? ''} dejará de ver las altas de este producto. La asignación se desactiva; no se borra el historial.`}
         confirmLabel="Retirar"
         onConfirm={confirmRemoveOwner}
         onCancel={() => setOwnerToRemove(null)}

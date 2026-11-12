@@ -29,7 +29,7 @@ export interface Page<Row> {
   total: number;
 }
 
-export const PAGE_SIZES = [25, 50, 100] as const;
+export { PAGE_SIZES } from '@/lib/paging';
 /** Límite técnico de «todos los resultados filtrados»; se muestra antes de exportar. */
 export const EXPORT_LIMIT = 5000;
 export const EXPORT_PAGE_SIZE = 500;

@@ -71,7 +71,7 @@ describe('userModel', () => {
       platform_role: 'EBIM_PRODUCT_ADMIN', platform_role_active: true, organizations: [org('ORG_VIEWER')],
       provisioning_roles: [{ id: 'p', role: 'TECH_LEAD', is_active: true, granted_at: '' }],
     }));
-    expect(accessSummary(u)).toEqual(['Consola', 'Andina', 'Provisioning']);
+    expect(accessSummary(u)).toEqual(['Consola', 'Andina', 'Altas en las apps']);
   });
 
   it('S-01: el rol Super Admin nunca es asignable desde la consola', () => {

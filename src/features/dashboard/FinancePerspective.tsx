@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useExecutiveAging, useFinanceConsolidated } from '@/services/queries';
-import { KpiTile } from '@/components/ui/primitives';
+import { KpiTile, DataTable } from '@/components/ui/primitives';
 import { agingSummary } from './executiveModel';
 import { useReceivablesAging } from '@/services/financeRead';
 import { fromQuery } from '@/features/executive/dataState';
@@ -10,7 +10,7 @@ import { AGING_BUCKETS } from '@/features/executive/kpis';
 import { ChartPanel, CurrencyPicker } from '@/features/executive/components/ChartPanel';
 import { SingleBars, ComponentBars, type BarDatum, type ComponentDatum } from '@/features/executive/components/charts';
 import { StateMessage } from '@/features/executive/components/StateView';
-import { formatCompactAmount, formatMoney, formatNumber } from '@/lib/format';
+import { formatCompactAmount, formatDate, formatMoney, formatNumber } from '@/lib/format';
 import { formatRateLabel } from '@/lib/consolidated';
 import { RegionalFinancePanel } from './RegionalFinancePanel';
 import { periodLabel } from './executiveData';
@@ -31,11 +31,11 @@ export function FinancePerspective({ ctx }: { ctx: ReportContext }) {
     <div className="space-y-6">
       <FinanceKpis query={total} ctx={ctx} />
       <div className="grid gap-4 xl:grid-cols-2">
-        <AgingChart onSelect={(bucket) => navigate(`/billing?estado=OPEN&antiguedad=${bucket}`)} />
+        <AgingChart onSelect={(bucket) => navigate(`/cobranza?tab=facturacion&estado=OPEN&antiguedad=${bucket}`)} />
         <FxCoverage query={total} ctx={ctx} />
       </div>
       <ComponentsChart query={byProduct} ctx={ctx} onSelect={(id) => navigate(id === 'SIN_PRODUCTO' ? '/costs' : `/products/${id}`)} />
-      <PartnerChart query={byPartner} ctx={ctx} onSelect={(id) => navigate(id === 'DIRECTO' ? '/customers' : `/organizations/${id}`)} />
+      <PartnerChart query={byPartner} ctx={ctx} onSelect={(id) => navigate(id === 'DIRECTO' ? '/cuentas?tab=clientes' : `/organizations/${id}`)} />
       <RegionalFinancePanel />
     </div>
   );
@@ -65,41 +65,39 @@ function AgingChart({ onSelect }: { onSelect: (bucket: string) => void }) {
       onRetry={() => void aging.refetch()}
       emptyText="No hay saldo pendiente de cobro"
       controls={<CurrencyPicker currencies={currencies} value={currency} onChange={setPicked} />}
-      detailHref="/billing?estado=OPEN"
+      detailHref="/cobranza?tab=facturacion&estado=OPEN"
       detailLabel="Ver facturas por cobrar"
       chart={() => (
         <SingleBars data={data} currency={currency} ariaLabel={`Saldo por antigüedad en ${currency}`} onSelect={(d) => onSelect(d.key)} />
       )}
       table={() => (
-        <table className="w-full text-sm">
-          <caption className="sr-only">Saldo por antigüedad</caption>
-          <thead>
-            <tr>
-              <th scope="col" className="ebim-th">Antigüedad</th>
-              <th scope="col" className="ebim-th">Moneda</th>
-              <th scope="col" className="ebim-th text-right">Facturas</th>
-              <th scope="col" className="ebim-th text-right">Saldo</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {AGING_BUCKETS.flatMap((b) =>
-              rows
-                .filter((r) => r.aging_bucket === b.id)
-                .map((r) => (
-                  <tr key={`${b.id}-${r.currency}`}>
-                    <th scope="row" className="ebim-td text-left">
-                      <Link className="ebim-link" to={`/billing?estado=OPEN&antiguedad=${b.id}`}>{b.label}</Link>
-                    </th>
-                    <td className="ebim-td">{r.currency}</td>
-                    <td className="ebim-td text-right tabular-nums">{formatNumber(Number(r.invoice_count))}</td>
-                    <td className={`ebim-td text-right tabular-nums ${Number(r.balance) < 0 ? 'text-danger' : ''}`}>
-                      {formatMoney(Number(r.balance), r.currency)}
-                    </td>
-                  </tr>
-                )),
-            )}
-          </tbody>
-        </table>
+        <DataTable
+          paginate={false}
+          caption="Saldo por antigüedad"
+          columns={[
+            'Antigüedad',
+            'Moneda',
+            { label: 'Facturas', align: 'right' },
+            { label: 'Saldo', align: 'right' },
+          ]}
+        >
+          {AGING_BUCKETS.flatMap((b) =>
+            rows
+              .filter((r) => r.aging_bucket === b.id)
+              .map((r) => (
+                <tr key={`${b.id}-${r.currency}`}>
+                  <th scope="row" className="ebim-td text-left">
+                    <Link className="ebim-link" to={`/cobranza?tab=facturacion&estado=OPEN&antiguedad=${b.id}`}>{b.label}</Link>
+                  </th>
+                  <td className="ebim-td">{r.currency}</td>
+                  <td className="ebim-td text-right tabular-nums">{formatNumber(Number(r.invoice_count))}</td>
+                  <td className={`ebim-td text-right tabular-nums ${Number(r.balance) < 0 ? 'text-danger' : ''}`}>
+                    {formatMoney(Number(r.balance), r.currency)}
+                  </td>
+                </tr>
+              )),
+          )}
+        </DataTable>
       )}
     />
   );
@@ -151,45 +149,43 @@ function ComponentsChart({
         data.length ? (
           <ComponentBars data={data} currency={currency} ariaLabel={`Componentes del margen por SaaS en ${currency}`} onSelect={(d) => onSelect(d.key)} />
         ) : (
-          <p className="py-6 text-sm text-muted">Sin movimientos en {currency} para el período.</p>
+          <p className="py-6 text-body text-muted">Sin movimientos en {currency} para el período.</p>
         )
       }
       table={() => (
-        <table className="w-full text-sm">
-          <caption className="sr-only">Componentes del margen por SaaS</caption>
-          <thead>
-            <tr>
-              <th scope="col" className="ebim-th">SaaS</th>
-              <th scope="col" className="ebim-th">Moneda</th>
-              <th scope="col" className="ebim-th text-right">Cobrado</th>
-              <th scope="col" className="ebim-th text-right">Costo directo</th>
-              <th scope="col" className="ebim-th text-right">Comisión</th>
-              <th scope="col" className="ebim-th text-right">Margen gerencial</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {groups.flatMap((g) =>
-              Object.entries(g.native_margin ?? {}).map(([c, margin]) => (
-                <tr key={`${g.key}-${c}`}>
-                  <th scope="row" className="ebim-td text-left">
-                    {g.key === 'SIN_PRODUCTO' ? (
-                      'No asignado / plataforma'
-                    ) : (
-                      <Link className="ebim-link" to={`/products/${g.key}`}>{g.label}</Link>
-                    )}
-                  </th>
-                  <td className="ebim-td">{c}</td>
-                  <td className="ebim-td text-right tabular-nums">{formatMoney(Number(g.metrics.COLLECTED?.native?.[c] ?? 0), c)}</td>
-                  <td className="ebim-td text-right tabular-nums">{formatMoney(Number(g.metrics.COST?.native?.[c] ?? 0), c)}</td>
-                  <td className="ebim-td text-right tabular-nums">{formatMoney(Number(g.metrics.COMMISSION?.native?.[c] ?? 0), c)}</td>
-                  <td className={`ebim-td text-right font-semibold tabular-nums ${Number(margin) < 0 ? 'text-danger' : ''}`}>
-                    {formatMoney(Number(margin), c)}
-                  </td>
-                </tr>
-              )),
-            )}
-          </tbody>
-        </table>
+        <DataTable
+          paginate={false}
+          caption="Componentes del margen por SaaS"
+          columns={[
+            'SaaS',
+            'Moneda',
+            { label: 'Cobrado', align: 'right' },
+            { label: 'Costo directo', align: 'right' },
+            { label: 'Comisión', align: 'right' },
+            { label: 'Margen gerencial', align: 'right' },
+          ]}
+        >
+          {groups.flatMap((g) =>
+            Object.entries(g.native_margin ?? {}).map(([c, margin]) => (
+              <tr key={`${g.key}-${c}`}>
+                <th scope="row" className="ebim-td text-left">
+                  {g.key === 'SIN_PRODUCTO' ? (
+                    'No asignado / plataforma'
+                  ) : (
+                    <Link className="ebim-link" to={`/products/${g.key}`}>{g.label}</Link>
+                  )}
+                </th>
+                <td className="ebim-td">{c}</td>
+                <td className="ebim-td text-right tabular-nums">{formatMoney(Number(g.metrics.COLLECTED?.native?.[c] ?? 0), c)}</td>
+                <td className="ebim-td text-right tabular-nums">{formatMoney(Number(g.metrics.COST?.native?.[c] ?? 0), c)}</td>
+                <td className="ebim-td text-right tabular-nums">{formatMoney(Number(g.metrics.COMMISSION?.native?.[c] ?? 0), c)}</td>
+                <td className={`ebim-td text-right font-semibold tabular-nums ${Number(margin) < 0 ? 'text-danger' : ''}`}>
+                  {formatMoney(Number(margin), c)}
+                </td>
+              </tr>
+            )),
+          )}
+        </DataTable>
       )}
     />
   );
@@ -234,34 +230,32 @@ function PartnerChart({
         <SingleBars data={data} currency={currency} layout="horizontal-bars" ariaLabel={`Cobrado por canal en ${currency}`} onSelect={(d) => onSelect(d.key)} />
       )}
       table={() => (
-        <table className="w-full text-sm">
-          <caption className="sr-only">Cartera y contribución por partner</caption>
-          <thead>
-            <tr>
-              <th scope="col" className="ebim-th">Canal</th>
-              <th scope="col" className="ebim-th">Moneda</th>
-              <th scope="col" className="ebim-th text-right">MRR vigente</th>
-              <th scope="col" className="ebim-th text-right">Cobrado</th>
-              <th scope="col" className="ebim-th text-right">Margen gerencial</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {groups.flatMap((g) => {
-              const cs = [...new Set([...Object.keys(g.metrics.MRR?.native ?? {}), ...Object.keys(g.native_margin ?? {})])].sort();
-              return cs.map((c) => (
-                <tr key={`${g.key}-${c}`}>
-                  <th scope="row" className="ebim-td text-left">
-                    {g.key === 'DIRECTO' ? 'Venta directa' : <Link className="ebim-link" to={`/organizations/${g.key}`}>{g.label}</Link>}
-                  </th>
-                  <td className="ebim-td">{c}</td>
-                  <td className="ebim-td text-right tabular-nums">{g.metrics.MRR?.native?.[c] !== undefined ? formatMoney(Number(g.metrics.MRR.native[c]), c) : '—'}</td>
-                  <td className="ebim-td text-right tabular-nums">{g.metrics.COLLECTED?.native?.[c] !== undefined ? formatMoney(Number(g.metrics.COLLECTED.native[c]), c) : '—'}</td>
-                  <td className="ebim-td text-right tabular-nums">{g.native_margin?.[c] !== undefined ? formatMoney(Number(g.native_margin[c]), c) : '—'}</td>
-                </tr>
-              ));
-            })}
-          </tbody>
-        </table>
+        <DataTable
+          paginate={false}
+          caption="Cartera y contribución por partner"
+          columns={[
+            'Canal',
+            'Moneda',
+            { label: 'MRR vigente', align: 'right' },
+            { label: 'Cobrado', align: 'right' },
+            { label: 'Margen gerencial', align: 'right' },
+          ]}
+        >
+          {groups.flatMap((g) => {
+            const cs = [...new Set([...Object.keys(g.metrics.MRR?.native ?? {}), ...Object.keys(g.native_margin ?? {})])].sort();
+            return cs.map((c) => (
+              <tr key={`${g.key}-${c}`}>
+                <th scope="row" className="ebim-td text-left">
+                  {g.key === 'DIRECTO' ? 'Venta directa' : <Link className="ebim-link" to={`/organizations/${g.key}`}>{g.label}</Link>}
+                </th>
+                <td className="ebim-td">{c}</td>
+                <td className="ebim-td text-right tabular-nums">{g.metrics.MRR?.native?.[c] !== undefined ? formatMoney(Number(g.metrics.MRR.native[c]), c) : '—'}</td>
+                <td className="ebim-td text-right tabular-nums">{g.metrics.COLLECTED?.native?.[c] !== undefined ? formatMoney(Number(g.metrics.COLLECTED.native[c]), c) : '—'}</td>
+                <td className="ebim-td text-right tabular-nums">{g.native_margin?.[c] !== undefined ? formatMoney(Number(g.native_margin[c]), c) : '—'}</td>
+              </tr>
+            ));
+          })}
+        </DataTable>
       )}
     />
   );
@@ -273,10 +267,10 @@ function FxCoverage({ query, ctx }: { query: ReturnType<typeof useFinanceConsoli
   return (
     <section className="ebim-card flex flex-col" aria-labelledby="fx-title">
       <header className="border-b border-border px-4 py-3">
-        <h3 id="fx-title" className="text-sm font-bold text-fg">¿Se puede consolidar en una sola moneda?</h3>
-        <p className="text-xs text-muted">Tasas al {ctx.fxDate} · período {periodLabel(ctx)}</p>
+        <h3 id="fx-title" className="text-body font-bold text-fg">¿Se puede consolidar en una sola moneda?</h3>
+        <p className="text-caption text-muted">Tasas al {formatDate(ctx.fxDate)} · período {periodLabel(ctx)}</p>
       </header>
-      <div className="flex-1 px-4 py-3 text-sm">
+      <div className="flex-1 px-4 py-3 text-body">
         {state.status !== 'ready' || !data ? (
           <StateMessage state={state} onRetry={() => void query.refetch()} />
         ) : !data.reporting_currency ? (
@@ -284,7 +278,7 @@ function FxCoverage({ query, ctx }: { query: ReturnType<typeof useFinanceConsoli
         ) : data.completeness.complete ? (
           <>
             <p className="font-semibold text-ok">Cobertura FX completa en {data.reporting_currency}.</p>
-            <ul className="mt-2 space-y-1 text-xs text-muted">
+            <ul className="mt-2 space-y-1 text-caption text-muted">
               {data.rates_used.map((r) => (
                 <li key={`${r.from}-${r.to}-${r.rate_date}`}>
                   {formatRateLabel(r.from, r.to, Number(r.rate))} · {r.rate_date}
@@ -299,14 +293,14 @@ function FxCoverage({ query, ctx }: { query: ReturnType<typeof useFinanceConsoli
             <p className="font-semibold text-warn">
               Cobertura parcial: falta tasa para {data.completeness.missing_currencies.join(', ')}.
             </p>
-            <p className="mt-1 text-xs text-muted">
+            <p className="mt-1 text-caption text-muted">
               Los totales consolidados afectados no se calculan (no se muestran como cero). Los importes nativos siguen siendo exactos.
             </p>
           </>
         )}
       </div>
-      <footer className="border-t border-border px-4 py-2 text-xs">
-        <Link className="ebim-link" to="/regional">Ver monedas y tipos de cambio →</Link>
+      <footer className="border-t border-border px-4 py-2 text-caption">
+        <Link className="ebim-link" to="/settings?tab=regional">Ver monedas y tipos de cambio →</Link>
       </footer>
     </section>
   );
@@ -344,7 +338,7 @@ function FinanceKpis({ query, ctx }: { query: ReturnType<typeof useFinanceConsol
         loading={query.isLoading}
         error={query.error}
         onRetry={() => void query.refetch()}
-        to={`/billing?desde=${ctx.period.start}&hasta=${ctx.period.end}#cobros`}
+        to={`/cobranza?tab=facturacion&desde=${ctx.period.start}&hasta=${ctx.period.end}#cobros`}
       />
       <KpiTile
         label="Margen gerencial"
@@ -373,7 +367,7 @@ function FinanceKpis({ query, ctx }: { query: ReturnType<typeof useFinanceConsol
         loading={aging.isLoading}
         error={aging.error}
         onRetry={() => void aging.refetch()}
-        to="/billing?estado=OPEN"
+        to="/cobranza?tab=facturacion&estado=OPEN"
       />
       <KpiTile
         label="Cartera vencida"
@@ -385,7 +379,7 @@ function FinanceKpis({ query, ctx }: { query: ReturnType<typeof useFinanceConsol
         loading={aging.isLoading}
         error={aging.error}
         onRetry={() => void aging.refetch()}
-        to="/billing?estado=OPEN&antiguedad=VENCIDA"
+        to="/cobranza?tab=facturacion&estado=OPEN&antiguedad=VENCIDA"
       />
     </section>
   );

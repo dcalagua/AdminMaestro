@@ -177,7 +177,7 @@ export function SubscriptionFormDialog({ open, onClose }: { open: boolean; onClo
       </FieldRow>
 
       {!hasRegionalPrice ? (
-        <p className="rounded-lg bg-warn-soft px-3 py-2 text-xs text-warn" role="alert">
+        <p className="rounded-lg bg-warn-soft px-3 py-2 text-caption text-warn" role="alert">
           Este plan no tiene tarifa vigente en {marketCode}/{currency}. La base rechazará el
           contrato (TARIFA_REGIONAL_NO_DEFINIDA): publica antes la tarifa regional del plan.
         </p>
@@ -394,7 +394,7 @@ export function SubscriptionItemDialog({
     <FormDialog
       open={open}
       title={`Nueva línea · ${subscriptionCode}`}
-      description="Las líneas ONE_TIME (implementación, servicios) no entran en el MRR: la vista v_subscription_mrr solo cuenta lo recurrente."
+      description="Las líneas de pago único (implementación, servicios) no entran en el MRR: solo cuenta lo recurrente."
       submitLabel="Añadir línea"
       busy={upsert.isPending}
       error={upsert.error}

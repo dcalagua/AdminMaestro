@@ -6,6 +6,7 @@ import { businessErrorMessage } from '@/lib/pgError';
 import { toShadowExpected } from '@/lib/billingShadow';
 import { currentPeriodStart, formatPeriod, formatQuantity, monthOf, periodFromMonth } from '@/features/usage/usageLabels';
 import { useLookups } from '@/features/usage/useLookups';
+import { MonthField, SelectField } from '@/components/ui/fields';
 
 /**
  * Vista previa «lo que MasterAdmin facturaría» por tenant y mes
@@ -40,36 +41,34 @@ export function ShadowPreviewTab() {
           if (ready) setParams({ productCode, tenantId, periodStart: periodFromMonth(month) });
         }}
       >
-        <div className="min-w-[180px]">
-          <label className="ebim-label" htmlFor={ids.product}>Producto</label>
-          <select
-            id={ids.product}
-            className="ebim-input"
-            value={productCode}
-            onChange={(e) => {
-              setProductCode(e.target.value);
-              setTenantId('');
-            }}
-          >
-            <option value="">Elige el producto…</option>
-            {lookups.productOptions.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
-        </div>
-        <div className="min-w-[220px]">
-          <label className="ebim-label" htmlFor={ids.tenant}>Tenant</label>
-          <select id={ids.tenant} className="ebim-input" value={tenantId} onChange={(e) => setTenantId(e.target.value)}>
-            <option value="">Elige el tenant…</option>
-            {tenantOptions.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="ebim-label" htmlFor={ids.month}>Mes</label>
-          <input id={ids.month} type="month" className="ebim-input" value={month} onChange={(e) => setMonth(e.target.value)} />
-        </div>
+        <SelectField
+          id={ids.product}
+          className="min-w-[180px]"
+          label="Producto"
+          placeholder="Elige el producto…"
+          options={lookups.productOptions}
+          value={productCode}
+          onChange={(e) => {
+            setProductCode(e.target.value);
+            setTenantId('');
+          }}
+        />
+        <SelectField
+          id={ids.tenant}
+          className="min-w-[220px]"
+          label="Tenant"
+          placeholder="Elige el tenant…"
+          options={tenantOptions}
+          value={tenantId}
+          onChange={(e) => setTenantId(e.target.value)}
+        />
+        <MonthField
+          id={ids.month}
+          className="min-w-[200px]"
+          label="Mes"
+          value={month}
+          onChange={(e) => setMonth(e.target.value)}
+        />
         <button type="submit" className="ebim-btn-primary" disabled={!ready}>
           Calcular
         </button>
@@ -107,7 +106,7 @@ export function ShadowPreviewTab() {
           </DataTable>
           <div className="flex items-center justify-end gap-3 border-t border-border px-4 py-3 text-body">
             <span className="text-muted">Total {formatPeriod(data.periodStart)}</span>
-            <Money className="text-base font-bold" amount={data.total} currency={data.currency} />
+            <Money className="text-h3" amount={data.total} currency={data.currency} />
           </div>
         </>
       )}

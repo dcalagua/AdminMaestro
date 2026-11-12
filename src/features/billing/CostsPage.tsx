@@ -242,31 +242,29 @@ function MarginOverview() {
             />
           )}
           table={() => (
-            <table className="w-full text-compact">
-              <caption className="sr-only">Componentes del margen gerencial por mes</caption>
-              <thead>
-                <tr>
-                  <th scope="col" className="ebim-th">Mes</th>
-                  <th scope="col" className="ebim-th text-right">Cobrado ({rc})</th>
-                  <th scope="col" className="ebim-th text-right">Costo asignado</th>
-                  <th scope="col" className="ebim-th text-right">Comisión</th>
-                  <th scope="col" className="ebim-th text-right">Margen</th>
+            <DataTable
+              paginate={false}
+              caption="Componentes del margen gerencial por mes"
+              columns={[
+                'Mes',
+                { label: `Cobrado (${rc})`, align: 'right' },
+                { label: 'Costo asignado', align: 'right' },
+                { label: 'Comisión', align: 'right' },
+                { label: 'Margen', align: 'right' },
+              ]}
+            >
+              {[...chartRows].reverse().map((p) => (
+                <tr key={p.month}>
+                  <th scope="row" className="ebim-td text-left font-medium">{monthLongLabel(p.month.slice(0, 7))}</th>
+                  <td className="ebim-td ebim-num">{p.collected == null ? 'Sin tasa' : formatMoney(p.collected, rc)}</td>
+                  <td className="ebim-td ebim-num">{p.cost == null ? 'Sin tasa' : formatMoney(p.cost, rc)}</td>
+                  <td className="ebim-td ebim-num">{p.commission == null ? 'Sin tasa' : formatMoney(p.commission, rc)}</td>
+                  <td className={`ebim-td ebim-num font-semibold ${(p.margin ?? 0) < 0 ? 'text-danger' : ''}`}>
+                    {p.margin == null ? '—' : formatMoney(p.margin, rc)}
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {[...chartRows].reverse().map((p) => (
-                  <tr key={p.month}>
-                    <th scope="row" className="ebim-td text-left font-medium">{monthLongLabel(p.month.slice(0, 7))}</th>
-                    <td className="ebim-td ebim-num">{p.collected == null ? 'Sin tasa' : formatMoney(p.collected, rc)}</td>
-                    <td className="ebim-td ebim-num">{p.cost == null ? 'Sin tasa' : formatMoney(p.cost, rc)}</td>
-                    <td className="ebim-td ebim-num">{p.commission == null ? 'Sin tasa' : formatMoney(p.commission, rc)}</td>
-                    <td className={`ebim-td ebim-num font-semibold ${(p.margin ?? 0) < 0 ? 'text-danger' : ''}`}>
-                      {p.margin == null ? '—' : formatMoney(p.margin, rc)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              ))}
+            </DataTable>
           )}
         />
       </div>

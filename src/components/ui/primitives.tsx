@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react';
+import { Children, type CSSProperties, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowClockwiseIcon,
@@ -14,7 +14,10 @@ import {
 } from '@phosphor-icons/react';
 import { SearchField } from './fields';
 import { Sparkline } from './Sparkline';
-import { usePageTrail } from './pageTrail';
+import { TablePager } from './TablePager';
+import { PAGE_SIZES } from '@/lib/paging';
+import { useClientPagination } from '@/hooks/useClientPagination';
+import { useEmbeddedPage, usePageTrail } from './pageTrail';
 import { formatDelta } from '@/lib/format';
 import { businessErrorMessage } from '@/lib/pgError';
 
@@ -89,6 +92,26 @@ export function PageContainer({
   children: ReactNode;
 }) {
   const trail = usePageTrail();
+  const embedded = useEmbeddedPage();
+  if (embedded) {
+    // Pestaña de otra pantalla: sin migas ni `h1` (los pone la contenedora).
+    return (
+      <section aria-label={title}>
+        <h2 className="sr-only">{title}</h2>
+        {description || meta || actions || titleAside ? (
+          <header className="mb-5 flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+            <div className="min-w-0">
+              {titleAside ? <div className="mb-1 flex flex-wrap items-center gap-1.5">{titleAside}</div> : null}
+              {description ? <p className="max-w-[72ch] text-body text-fg-2">{description}</p> : null}
+              {meta ? <div className="mt-2 text-caption text-muted">{meta}</div> : null}
+            </div>
+            {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+          </header>
+        ) : null}
+        {children}
+      </section>
+    );
+  }
   const crumbs = breadcrumbs ?? (trail.length > 0 ? [...trail, { label: title }] : null);
   return (
     <div className="mx-auto w-full max-w-[1440px] px-6 py-6 2xl:px-8">
@@ -657,24 +680,58 @@ export type DataColumn = string | { label: string; align?: 'left' | 'right'; srO
  * scroll), filas con hairline y hover `--hover`. Las columnas pueden ser texto
  * o `{ label, align: 'right' }` para importes (la celda usa `ebim-num`).
  * Con `maxHeight` el cuerpo hace scroll y la cabecera queda fija.
+ *
+ * V5 · F0: también cubre las vistas «Tabla» de los gráficos y las matrices
+ * (antes `<table>` sueltas): `caption` para lectores de pantalla, `minWidth`
+ * para matrices anchas y `scrollRegion` para que el scroll horizontal sea una
+ * región enfocable con teclado. Las filas pueden abrir con `<th scope="row">`.
+ *
+ * Paginación (V5 · F0): un listado con más de 25 filas se pagina en cliente
+ * con el mismo pie que `PagedTable` («Mostrando a–b de N», filas por página,
+ * anterior/siguiente), para que ninguna pantalla pinte miles de filas. Cada
+ * fila hija (`<tr>`) cuenta como una; si cambia el número de filas (buscador,
+ * pestaña) vuelve a la primera página. Las vistas «Tabla» de los gráficos y
+ * las matrices con `rowSpan` lo desactivan con `paginate={false}`.
  */
 export function DataTable({
   columns,
   children,
   label,
+  caption,
   maxHeight,
+  minWidth,
+  scrollRegion = false,
+  paginate = true,
+  pageSize: initialPageSize = PAGE_SIZES[0],
 }: {
   columns: DataColumn[];
   children: ReactNode;
   /** Nombre accesible de la tabla. */
   label?: string;
+  /** Título de la tabla solo para lectores de pantalla (`<caption>`). */
+  caption?: string;
   maxHeight?: number;
+  /** Ancho mínimo en px: por debajo, la tabla hace scroll horizontal. */
+  minWidth?: number;
+  /** El área de scroll es una región enfocable (teclado) con el nombre de la tabla. */
+  scrollRegion?: boolean;
+  /** Paginar en cliente cuando hay más de 25 filas (por defecto, sí). */
+  paginate?: boolean;
+  /** Filas por página iniciales. */
+  pageSize?: number;
 }) {
-  return (
+  const rows = paginate ? Children.toArray(children) : null;
+  const pager = useClientPagination(rows?.length ?? 0, initialPageSize);
+  const paged = rows !== null && pager.active;
+  const body = paged ? pager.slice(rows) : children;
+  const style: CSSProperties | undefined = maxHeight ? { maxHeight, overflowY: 'auto' } : undefined;
+  const region = scrollRegion ? { role: 'region', 'aria-label': label ?? caption, tabIndex: 0 } : {};
+  const table = (
     // `relative`: el scroll horizontal también recorta a los descendientes
     // posicionados (p. ej. etiquetas sr-only); sin él ensanchan la página.
-    <div className="relative overflow-x-auto" style={maxHeight ? { maxHeight, overflowY: 'auto' } : undefined}>
-      <table className="w-full border-collapse" aria-label={label}>
+    <div className="relative overflow-x-auto" style={style} {...region}>
+      <table className="w-full border-collapse" aria-label={label} style={minWidth ? { minWidth } : undefined}>
+        {caption ? <caption className="sr-only">{caption}</caption> : null}
         <thead className="sticky top-0 z-[1] border-b border-border bg-sunken">
           <tr>
             {columns.map((c, i) => {
@@ -688,9 +745,24 @@ export function DataTable({
           </tr>
         </thead>
         <tbody className="divide-y divide-border [&>tr]:transition-colors [&>tr]:duration-fast [&>tr:hover]:bg-hover">
-          {children}
+          {body}
         </tbody>
       </table>
     </div>
   );
+  if (!paged) return table;
+  return (
+    <div>
+      {table}
+      <TablePager
+        page={pager.page}
+        pageSize={pager.pageSize}
+        total={pager.total}
+        shown={(body as unknown[]).length}
+        onPageChange={pager.onPageChange}
+        onPageSizeChange={pager.onPageSizeChange}
+      />
+    </div>
+  );
 }
+

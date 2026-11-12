@@ -57,21 +57,6 @@ export function SectionTabs({ tabs }: { tabs: TabDefinition[] }) {
   }, [visible, active]);
 
   const current = visible.find((t) => t.id === active) ?? visible[0];
-  const buttons = useRef<Array<HTMLButtonElement | null>>([]);
-  const scroller = useRef<HTMLDivElement>(null);
-
-  // Con más pestañas de las que caben, la activa (p. ej. al entrar por #hash) se
-  // desplaza a la vista dentro de la fila, sin mover la página.
-  const activeIndex = visible.findIndex((t) => t.id === current?.id);
-  useEffect(() => {
-    const box = scroller.current;
-    const button = buttons.current[activeIndex];
-    if (!box || !button || box.scrollWidth <= box.clientWidth) return;
-    const left = button.offsetLeft; // el contenedor es `relative`: offset respecto de la fila
-    if (left < box.scrollLeft || left + button.offsetWidth > box.scrollLeft + box.clientWidth) {
-      box.scrollLeft = Math.max(0, left - 24);
-    }
-  }, [activeIndex]);
 
   const select = (id: string) => {
     requested.current = null;
@@ -79,50 +64,9 @@ export function SectionTabs({ tabs }: { tabs: TabDefinition[] }) {
     window.location.hash = id;
   };
 
-  const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>, index: number) => {
-    const target = nextTabIndex(e.key, index, visible.length);
-    if (target === null) return;
-    e.preventDefault();
-    select(visible[target]!.id);
-    buttons.current[target]?.focus();
-  };
-
   return (
     <div>
-      {/* Centradas (U-07). Si no caben, scroll horizontal en UNA fila (nunca
-          dos renglones, A08/A09): `w-max mx-auto` centra mientras sobra sitio. */}
-      <div ref={scroller} className="relative mb-5 overflow-x-auto border-b border-border [scrollbar-width:thin]">
-        <div role="tablist" aria-label="Secciones" className="mx-auto flex w-max flex-nowrap gap-1">
-          {visible.map((tab, index) => {
-            const isActive = tab.id === current?.id;
-            return (
-              <button
-                key={tab.id}
-                ref={(el) => {
-                  buttons.current[index] = el;
-                }}
-                type="button"
-                role="tab"
-                id={`tab-${tab.id}`}
-                aria-selected={isActive}
-                aria-controls={`panel-${tab.id}`}
-                tabIndex={isActive ? 0 : -1}
-                className={`-mb-px inline-flex h-11 shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-4 text-compact font-semibold transition-colors duration-fast ease-out ${
-                  isActive
-                    ? 'border-accent-deep text-accent-deep'
-                    : 'border-transparent text-muted hover:border-border-strong hover:text-fg'
-                }`}
-                onClick={() => select(tab.id)}
-                onKeyDown={(e) => onKeyDown(e, index)}
-              >
-                {tab.label}
-                {/* El espacio separa etiqueta y contador en el nombre accesible («Pendientes 4»). */}
-                {tab.count !== undefined ? <>{' '}<TabCount value={tab.count} active={isActive} /></> : null}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <TabStrip tabs={visible} activeId={current?.id} onSelect={select} label="Secciones" />
       {current ? (
         <div
           role="tabpanel"
@@ -134,6 +78,90 @@ export function SectionTabs({ tabs }: { tabs: TabDefinition[] }) {
           {current.content}
         </div>
       ) : null}
+    </div>
+  );
+}
+
+/**
+ * Fila de pestañas centradas compartida por `SectionTabs` (deep-link por
+ * `#hash`) y `RouteTabs` (deep-link por `?tab=`). Roving tabindex: sólo la
+ * activa está en el orden de Tab; flechas, Home y End cambian de pestaña.
+ */
+export function TabStrip({
+  tabs,
+  activeId,
+  onSelect,
+  label,
+  idPrefix = 'tab',
+  panelPrefix = 'panel',
+}: {
+  tabs: Array<Pick<TabDefinition, 'id' | 'label' | 'count'>>;
+  /** Sin pestaña activa (p. ej. se pidió una que el rol no ve), la primera queda enfocable. */
+  activeId: string | undefined;
+  onSelect: (id: string) => void;
+  label: string;
+  idPrefix?: string;
+  panelPrefix?: string;
+}) {
+  const buttons = useRef<Array<HTMLButtonElement | null>>([]);
+  const scroller = useRef<HTMLDivElement>(null);
+
+  // Con más pestañas de las que caben, la activa (p. ej. al entrar por enlace) se
+  // desplaza a la vista dentro de la fila, sin mover la página.
+  const activeIndex = tabs.findIndex((t) => t.id === activeId);
+  const focusIndex = Math.max(0, activeIndex);
+  useEffect(() => {
+    const box = scroller.current;
+    const button = buttons.current[activeIndex];
+    if (!box || !button || box.scrollWidth <= box.clientWidth) return;
+    const left = button.offsetLeft; // el contenedor es `relative`: offset respecto de la fila
+    if (left < box.scrollLeft || left + button.offsetWidth > box.scrollLeft + box.clientWidth) {
+      box.scrollLeft = Math.max(0, left - 24);
+    }
+  }, [activeIndex]);
+
+  const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    const target = nextTabIndex(e.key, index, tabs.length);
+    if (target === null) return;
+    e.preventDefault();
+    onSelect(tabs[target]!.id);
+    buttons.current[target]?.focus();
+  };
+
+  return (
+    // Centradas (U-07). Si no caben, scroll horizontal en UNA fila (nunca
+    // dos renglones, A08/A09): `w-max mx-auto` centra mientras sobra sitio.
+    <div ref={scroller} className="relative mb-5 overflow-x-auto border-b border-border [scrollbar-width:thin]">
+      <div role="tablist" aria-label={label} className="mx-auto flex w-max flex-nowrap gap-1">
+        {tabs.map((tab, index) => {
+          const isActive = tab.id === activeId;
+          return (
+            <button
+              key={tab.id}
+              ref={(el) => {
+                buttons.current[index] = el;
+              }}
+              type="button"
+              role="tab"
+              id={`${idPrefix}-${tab.id}`}
+              aria-selected={isActive}
+              aria-controls={isActive ? `${panelPrefix}-${tab.id}` : undefined}
+              tabIndex={index === focusIndex ? 0 : -1}
+              className={`-mb-px inline-flex h-11 shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-4 text-compact font-semibold transition-colors duration-fast ease-out ${
+                isActive
+                  ? 'border-accent-deep text-accent-deep'
+                  : 'border-transparent text-muted hover:border-border-strong hover:text-fg'
+              }`}
+              onClick={() => onSelect(tab.id)}
+              onKeyDown={(e) => onKeyDown(e, index)}
+            >
+              {tab.label}
+              {/* El espacio separa etiqueta y contador en el nombre accesible («Pendientes 4»). */}
+              {tab.count !== undefined ? <>{' '}<TabCount value={tab.count} active={isActive} /></> : null}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
