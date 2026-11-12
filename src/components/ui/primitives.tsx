@@ -17,7 +17,7 @@ import { Sparkline } from './Sparkline';
 import { TablePager } from './TablePager';
 import { PAGE_SIZES } from '@/lib/paging';
 import { useClientPagination } from '@/hooks/useClientPagination';
-import { usePageTrail } from './pageTrail';
+import { useEmbeddedPage, usePageTrail } from './pageTrail';
 import { formatDelta } from '@/lib/format';
 import { businessErrorMessage } from '@/lib/pgError';
 
@@ -92,6 +92,26 @@ export function PageContainer({
   children: ReactNode;
 }) {
   const trail = usePageTrail();
+  const embedded = useEmbeddedPage();
+  if (embedded) {
+    // Pestaña de otra pantalla: sin migas ni `h1` (los pone la contenedora).
+    return (
+      <section aria-label={title}>
+        <h2 className="sr-only">{title}</h2>
+        {description || meta || actions || titleAside ? (
+          <header className="mb-5 flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+            <div className="min-w-0">
+              {titleAside ? <div className="mb-1 flex flex-wrap items-center gap-1.5">{titleAside}</div> : null}
+              {description ? <p className="max-w-[72ch] text-body text-fg-2">{description}</p> : null}
+              {meta ? <div className="mt-2 text-caption text-muted">{meta}</div> : null}
+            </div>
+            {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+          </header>
+        ) : null}
+        {children}
+      </section>
+    );
+  }
   const crumbs = breadcrumbs ?? (trail.length > 0 ? [...trail, { label: title }] : null);
   return (
     <div className="mx-auto w-full max-w-[1440px] px-6 py-6 2xl:px-8">
