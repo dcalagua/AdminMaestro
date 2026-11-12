@@ -212,11 +212,11 @@ export function OrganizationDetailPage() {
             label: 'Identidad y sociedades',
             content: (
               <div className="grid gap-4 lg:grid-cols-2">
-                <Card title="Identidad y marca" description="Contrato §4.3: interfaz de branding homologada.">
+                <Card title="Identidad y marca" description="Logo, colores y enlace de ingreso con la marca del cliente.">
                   <dl className="divide-y divide-border">
                     {[
-                      ['Slug', o.slug],
-                      ['Brand slug (link de ingreso)', o.brand_slug ? `?t=${o.brand_slug}` : '—'],
+                      ['Código', o.slug],
+                      ['Código de marca (enlace de ingreso)', o.brand_slug ? `?t=${o.brand_slug}` : '—'],
                       ['Color de acento', o.accent_color ?? 'Hereda de EBIM'],
                       ['Marca blanca', o.white_label ? 'Sí' : 'No'],
                       ['Correo de facturación', o.billing_email ?? '—'],
@@ -231,7 +231,7 @@ export function OrganizationDetailPage() {
 
                 <Card
                   title="Sociedades"
-                  description="Contrato §3.1: multipaís dentro de la misma cuenta."
+                  description="Multipaís dentro de la misma cuenta."
                   actions={
                     canManageCompanies ? (
                       <button

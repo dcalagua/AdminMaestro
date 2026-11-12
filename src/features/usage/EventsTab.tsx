@@ -128,7 +128,7 @@ export function EventsTab() {
       {showCogs && perms.canReadFinance && tenantId ? (
         <Card
           title={`COGS interno · ${lookups.tenantName(tenantId)} · ${formatPeriod(period)}`}
-          description="Costo de proveedor por evento (solo EBIM_FINANCE). Los tokens son costo interno, nunca la unidad comercial (spec §12.7)."
+          description="Costo de proveedor por evento (solo EBIM_FINANCE). Los tokens son costo interno, nunca la unidad comercial."
         >
           {cogs.isLoading ? (
             <LoadingState label="Cargando COGS…" />

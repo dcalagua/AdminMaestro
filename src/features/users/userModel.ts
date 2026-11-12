@@ -182,7 +182,7 @@ export function accessSummary(user: AdminUser): string[] {
   for (const m of user.organizations.filter((x) => x.is_active)) out.push(m.organization_name);
   const tenants = user.tenants.filter((t) => t.is_active).length;
   if (tenants > 0) out.push(tenants === 1 ? '1 tenant' : `${tenants} tenants`);
-  if (user.provisioningRoles.some((r) => r.is_active)) out.push('Provisioning');
+  if (user.provisioningRoles.some((r) => r.is_active)) out.push('Altas en las apps');
   if (user.salesAgent) out.push('Comercial');
   return out;
 }
@@ -248,8 +248,8 @@ export const USER_ACTIVITY_LABEL: Record<string, string> = {
   TENANT_MEMBERSHIP_UPDATED: 'Membresía de tenant actualizada',
   TENANT_MEMBERSHIP_ACTIVATED: 'Membresía de tenant reactivada',
   TENANT_MEMBERSHIP_DEACTIVATED: 'Membresía de tenant desactivada',
-  PROVISIONING_ROLE_GRANTED: 'Rol de provisioning otorgado',
-  PROVISIONING_ROLE_REVOKED: 'Rol de provisioning revocado',
+  PROVISIONING_ROLE_GRANTED: 'Rol de altas otorgado',
+  PROVISIONING_ROLE_REVOKED: 'Rol de altas revocado',
   SALES_AGENT_USER_LINKED: 'Vinculado a un comercial',
   SALES_AGENT_USER_UNLINKED: 'Desvinculado de un comercial',
   USER_DEACTIVATED: 'Usuario desactivado',

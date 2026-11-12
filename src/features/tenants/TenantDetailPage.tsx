@@ -101,13 +101,13 @@ export function TenantDetailPage() {
         });
         toast.success(
           'Estado comercial: suspendido',
-          'Cambió en el Control Plane. La orden SUSPEND_TENANT al producto quedó encolada en simulación (DRY_RUN): el acceso en el producto no cambió.',
+          'Cambió en el Control Plane. La orden de suspensión a la app quedó encolada en simulación: el acceso en la app no cambió.',
         );
       } else {
         await resume.mutateAsync({ p_tenant_id: tenantId });
         toast.success(
           'Estado comercial: activo',
-          'Cambió en el Control Plane. La orden RESUME_TENANT al producto quedó encolada en simulación (DRY_RUN).',
+          'Cambió en el Control Plane. La orden de reactivación a la app quedó encolada en simulación.',
         );
       }
     } catch (error) {
@@ -264,7 +264,7 @@ export function TenantDetailPage() {
                 <Card title="Datos del tenant">
                   <dl className="grid gap-x-8 px-5 py-2 md:grid-cols-2">
                     {[
-                      ['Slug', <span key="slug" className="font-mono text-compact">{t.slug as string}</span>],
+                      ['Código', <span key="slug" className="font-mono text-compact">{t.slug as string}</span>],
                       ['Producto', t.product_lockup],
                       ['Organización cliente', t.customer_name],
                       ['Organización que administra', t.managing_name ?? 'Ninguna (venta directa EBIM)'],
@@ -290,7 +290,7 @@ export function TenantDetailPage() {
             id: 'commercial',
             label: 'Atribución comercial',
             content: (
-              <Card description="Quién se lleva el crédito de esta venta. Estar aquí NO da acceso operacional al tenant (regla §2.3).">
+              <Card description="Quién se lleva el crédito de esta venta. Estar aquí NO da acceso operacional al tenant.">
                 {(attributions.data ?? []).length === 0 ? (
                   <EmptyState title="Sin atribución comercial" description="Esta venta no tiene comercial asignado." />
                 ) : (
@@ -389,9 +389,9 @@ export function TenantDetailPage() {
                   </dl>
                 </Card>
 
-                <Card title="Solicitudes de provisioning" description="Todo corre en DRY_RUN salvo autorización explícita del operador.">
+                <Card title="Solicitudes de infraestructura" description="Todo corre en simulación salvo autorización explícita del operador.">
                   {tenantProvisioning.length === 0 ? (
-                    <EmptyState title="Sin solicitudes de provisioning" />
+                    <EmptyState title="Sin solicitudes de infraestructura" />
                   ) : (
                     <DataTable columns={['Acción', 'Modo', 'Estado', 'Intentos', 'Creada']}>
                       {tenantProvisioning.map((p) => (
@@ -415,7 +415,7 @@ export function TenantDetailPage() {
           },
           {
             id: 'products',
-            label: 'Productos / Provisioning',
+            label: 'Productos / Altas',
             content: (
               <Card
                 title="Alta en los productos de la suite"
@@ -427,7 +427,7 @@ export function TenantDetailPage() {
                     description="Crear una cotización no aprovisiona: la política por defecto es manual hasta certificar el contrato de cada producto."
                     action={
                       <Link to="/apps?tab=altas" className="ebim-btn-secondary">
-                        Ir a provisioning SaaS
+                        Ir a Altas en las apps
                       </Link>
                     }
                   />
@@ -498,7 +498,7 @@ export function TenantDetailPage() {
           },
           {
             id: 'addons',
-            label: 'Add-ons y entitlements',
+            label: 'Add-ons y módulos',
             content: (
               <TenantAddonsPanel
                 tenantId={t.tenant_id as string}
@@ -576,8 +576,8 @@ export function TenantDetailPage() {
         title={pendingAction === 'SUSPEND' ? '¿Suspender este tenant?' : '¿Reactivar este tenant?'}
         message={
           pendingAction === 'SUSPEND'
-            ? 'Cambia el estado COMERCIAL a «Suspendido» en el Control Plane y encola una orden SUSPEND_TENANT en simulación (DRY_RUN): no se apaga el acceso en los productos. El motivo queda en auditoría.'
-            : 'Cambia el estado COMERCIAL a «Activo» en el Control Plane y encola una orden RESUME_TENANT en simulación (DRY_RUN).'
+            ? 'Cambia el estado COMERCIAL a «Suspendido» en el Control Plane y encola la orden de suspensión a la app en simulación: no se apaga el acceso en las apps. El motivo queda en auditoría.'
+            : 'Cambia el estado COMERCIAL a «Activo» en el Control Plane y encola la orden de reactivación a la app en simulación.'
         }
         confirmLabel={pendingAction === 'SUSPEND' ? 'Suspender (comercial)' : 'Reactivar (comercial)'}
         busy={suspend.isPending || resume.isPending}

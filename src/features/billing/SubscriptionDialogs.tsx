@@ -394,7 +394,7 @@ export function SubscriptionItemDialog({
     <FormDialog
       open={open}
       title={`Nueva línea · ${subscriptionCode}`}
-      description="Las líneas ONE_TIME (implementación, servicios) no entran en el MRR: la vista v_subscription_mrr solo cuenta lo recurrente."
+      description="Las líneas de pago único (implementación, servicios) no entran en el MRR: solo cuenta lo recurrente."
       submitLabel="Añadir línea"
       busy={upsert.isPending}
       error={upsert.error}

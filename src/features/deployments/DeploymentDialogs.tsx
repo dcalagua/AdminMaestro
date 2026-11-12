@@ -366,16 +366,16 @@ export function EnqueueProvisioningDialog({
   // aquí ni siquiera se ofrece la opción a los demás (contrato §13).
   const modeOptions = perms.isSuperAdmin
     ? [
-        { value: 'DRY_RUN', label: 'DRY_RUN (simulación)' },
-        { value: 'LIVE', label: 'LIVE (infraestructura real)' },
+        { value: 'DRY_RUN', label: 'Simulación' },
+        { value: 'LIVE', label: 'Real (infraestructura real)' },
       ]
-    : [{ value: 'DRY_RUN', label: 'DRY_RUN (simulación)' }];
+    : [{ value: 'DRY_RUN', label: 'Simulación' }];
 
   return (
     <FormDialog
       open={open}
-      title="Encolar solicitud de provisioning"
-      description="DRY_RUN por defecto: el worker simula la operación y registra el timeline sin llamar a ninguna API remota."
+      title="Encolar solicitud de infraestructura"
+      description="En simulación por defecto: se simula la operación y se registra el historial sin llamar a ninguna API remota."
       submitLabel="Encolar"
       busy={enqueue.isPending}
       error={enqueue.error}

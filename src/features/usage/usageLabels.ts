@@ -143,7 +143,7 @@ export const BILLING_AXIS_ORDER = ['BILLING_LEGACY', 'BILLING_SHADOW', 'BILLING_
 
 export const BILLING_AXIS: Record<string, LabelTone> = {
   BILLING_LEGACY: { label: 'Biller local (legacy)', tone: 'neutral' },
-  BILLING_SHADOW: { label: 'Shadow: se compara', tone: 'info' },
+  BILLING_SHADOW: { label: 'En comparación', tone: 'info' },
   BILLING_PRIMARY: { label: 'MasterAdmin factura', tone: 'accent' },
   BILLING_RETIRED: { label: 'Biller local retirado', tone: 'neutral' },
 };

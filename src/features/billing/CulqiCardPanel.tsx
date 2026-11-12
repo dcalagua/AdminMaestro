@@ -221,7 +221,7 @@ export function CulqiCardPanel({
                     </li>
                     <li>
                       El checklist completo está en{' '}
-                      <span className="font-mono">docs/payments/CULQI_ARCHITECTURE.md</span> §10.
+                      <span className="font-mono">docs/payments/CULQI_ARCHITECTURE.md</span>, sección 10.
                     </li>
                   </ol>
                 ) : null}

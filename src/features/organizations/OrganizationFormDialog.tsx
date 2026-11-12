@@ -188,7 +188,7 @@ export function OrganizationFormDialog({
 
       <FieldRow>
         <TextField
-          label="Slug"
+          label="Código"
           required
           placeholder="consultora-andina"
           hint="Identificador estable en URLs y referencias."

@@ -46,7 +46,7 @@ export function notEvaluatedReason(target: TargetHealthInput): string | null {
   if (isEvaluable(target)) return null;
   if (target.provisioning_status === 'DRAFT' || !target.provisioning_status) return 'destino en borrador';
   if (target.provisioning_status === 'DISABLED') return 'destino dado de baja';
-  return 'provisioning deshabilitado';
+  return 'altas deshabilitadas';
 }
 
 export function observedHealth(target: TargetHealthInput): ObservedHealth {

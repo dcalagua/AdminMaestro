@@ -40,7 +40,7 @@ export function SettingsPage() {
             content: (
               <Card
                 title="Apariencia"
-                description="Sólo modo y densidad. El color de marca no es elegible por el usuario: lo define la marca del portal (contrato §4.4)."
+                description="Sólo modo y densidad. El color de marca no es elegible por el usuario: lo define la marca del portal."
               >
                 <div className="space-y-5 p-4">
                   <div>
@@ -194,7 +194,7 @@ export function SettingsPage() {
                       // La regla de lint prohíbe el token literal en el cliente, incluso
                       // dentro de una etiqueta de UI. Se describe sin escribirlo.
                       ['Clave de servicio en el navegador', 'Nunca. Sólo existe del lado servidor.'],
-                      ['Solicitudes de infraestructura', 'DRY_RUN por defecto (simulación)'],
+                      ['Solicitudes de infraestructura', 'En simulación por defecto'],
                     ].map(([k, v]) => (
                       <div key={k} className="flex justify-between gap-4 px-1 py-2.5 text-body">
                         <dt className="text-muted">{k}</dt>

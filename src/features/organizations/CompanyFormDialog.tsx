@@ -87,7 +87,7 @@ export function CompanyFormDialog({
     <FormDialog
       open={open}
       title={company ? `Editar sociedad · ${company.name}` : 'Nueva sociedad'}
-      description="Multipaís dentro de la misma cuenta (contrato §3.1). El mercado fija país y moneda; el código ERP es un atributo, no una clave."
+      description="Multipaís dentro de la misma cuenta. El mercado fija país y moneda; el código ERP es un atributo, no una clave."
       submitLabel={company ? 'Guardar cambios' : 'Crear sociedad'}
       busy={upsert.isPending}
       error={upsert.error}

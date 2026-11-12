@@ -297,7 +297,7 @@ export function CommandPalette({
           })}
           {flat.length === 0 && !pending ? (
             <p className="px-2.5 py-8 text-center text-compact text-muted">
-              Sin resultados para «{query.trim()}». Prueba con el nombre, el código o el slug.
+              Sin resultados para «{query.trim()}». Prueba con el nombre o el código.
             </p>
           ) : null}
         </div>

@@ -204,7 +204,7 @@ export function InviteUserDialog({
 
       {kind === 'PLATFORM_ROLE' ? (
         <SelectField label="Rol de consola" value={platformRole}
-          hint="El rol Super Admin EBIM no es asignable (contrato §13.1)."
+          hint="El rol Super Admin EBIM no es asignable."
           options={ASSIGNABLE_PLATFORM_ROLES.map((r) => ({ value: r, label: PLATFORM_ROLE_LABEL[r] }))}
           onChange={(e) => setPlatformRole(e.target.value as PlatformRole)} />
       ) : kind === 'ORG_MEMBERSHIP' ? (

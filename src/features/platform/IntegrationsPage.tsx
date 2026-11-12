@@ -213,7 +213,7 @@ export function IntegrationsPage() {
                       )}
                     </section>
 
-                    <section aria-label={`Cutover de ${integration.code}`} className="grid gap-3 sm:grid-cols-2">
+                    <section aria-label={`Migración de ${integration.code}`} className="grid gap-3 sm:grid-cols-2">
                       <CutoverStepper axis="entitlements" state={integration.cutover_state_entitlements} />
                       <CutoverStepper axis="billing" state={integration.cutover_state_billing} />
                     </section>

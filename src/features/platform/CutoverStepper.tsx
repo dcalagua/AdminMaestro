@@ -28,7 +28,7 @@ export function CutoverStepper({
         <span className="truncate font-semibold text-accent-deep">{cutoverStepLabel(state)}</span>
       </p>
       <ol
-        aria-label={`Cutover de ${AXIS_LABEL[axis].toLowerCase()}: ${cutoverStepLabel(state)}`}
+        aria-label={`Migración de ${AXIS_LABEL[axis].toLowerCase()}: ${cutoverStepLabel(state)}`}
         className="flex items-center"
       >
         {order.map((step, i) => {

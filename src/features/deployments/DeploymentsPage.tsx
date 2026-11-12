@@ -261,7 +261,7 @@ export function DeploymentsPage() {
                         <span className="hidden text-caption font-normal text-accent-deep group-open:inline">Ocultar</span>
                       </summary>
                       <div className="border-t border-border">
-                        <DataTable label={`Tenants alojados en ${t.code}`} columns={['Tenant', 'Slug', 'Estado']}>
+                        <DataTable label={`Tenants alojados en ${t.code}`} columns={['Tenant', 'Código', 'Estado']}>
                           {deployments.map((d) => {
                             const tenant = d.tenants as { name: string; slug: string } | null;
                             return (
@@ -365,7 +365,7 @@ function ProvisioningPanel({
   return (
     <div className="mb-3 rounded-card border border-border bg-sunken p-3">
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <span className="text-micro text-muted">Provisioning SaaS</span>
+        <span className="text-micro text-muted">Altas en las apps</span>
         {environment ? (
           <Badge tone="info">Entorno: {PROVISIONING_ENVIRONMENT_LABEL[environment]}</Badge>
         ) : (
@@ -409,7 +409,7 @@ function ProvisioningPanel({
               className="ebim-btn-ghost ebim-btn-sm"
               onClick={() => onConfigure(draft)}
             >
-              Configurar provisioning
+              Configurar altas
             </button>
           ) : null}
         </span>
@@ -490,7 +490,7 @@ function EnvironmentMatrix({
     <Card
       className="mb-4"
       title="Salud observada por producto y entorno"
-      description="Última comprobación guardada; no es monitoreo en tiempo real. Sólo cuentan los destinos con provisioning habilitado."
+      description="Última comprobación guardada; no es monitoreo en tiempo real. Sólo cuentan los destinos con altas habilitadas."
     >
       <DataTable
         label="Matriz de producto y entorno"

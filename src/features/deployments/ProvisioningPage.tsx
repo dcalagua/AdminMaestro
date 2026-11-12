@@ -23,7 +23,7 @@ const OPEN_STATUSES = ['PENDING', 'VALIDATING', 'RUNNING'];
 /** DRY_RUN y LIVE se dicen con palabras: una simulación no es un resultado real. */
 function ModeBadge({ mode }: { mode: string }) {
   return mode === 'DRY_RUN' ? (
-    <Badge tone="info">Simulación · DRY_RUN</Badge>
+    <Badge tone="info">Simulación</Badge>
   ) : (
     <Badge tone="warn">Real · {mode}</Badge>
   );
@@ -83,10 +83,10 @@ export function ProvisioningPage() {
   return (
     <PageContainer
       title="Solicitudes de infraestructura"
-      description="Cola de trabajos de infraestructura física con máquina de estados e idempotencia. No incluye las altas de tenants dentro de cada producto: esas son las Altas SaaS."
+      description="Cola de trabajos de infraestructura física con máquina de estados e idempotencia. No incluye las altas de tenants dentro de cada producto: esas son las altas en las apps."
       actions={
         <div className="flex flex-wrap items-center gap-2">
-          <Badge tone="info">Modo por defecto: DRY_RUN</Badge>
+          <Badge tone="info">Modo por defecto: simulación</Badge>
           {perms.canManagePlatform ? (
             <button type="button" className="ebim-btn-primary" onClick={() => setEnqueueOpen(true)}>
               Encolar solicitud
@@ -276,7 +276,7 @@ export function ProvisioningPage() {
       <ConfirmDialog
         open={retryTarget !== null}
         title="Reintentar solicitud de infraestructura"
-        message="Se volverá a encolar la solicitud en modo DRY_RUN. La clave de idempotencia evita duplicar el trabajo si la operación anterior sí llegó a completarse."
+        message="Se volverá a encolar la solicitud en simulación. La clave de idempotencia evita duplicar el trabajo si la operación anterior sí llegó a completarse."
         confirmLabel="Reintentar"
         tone="primary"
         onCancel={() => setRetryTarget(null)}

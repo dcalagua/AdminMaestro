@@ -172,7 +172,7 @@ export function DeploymentProvisioningDialog({
   return (
     <FormDialog
       open={open}
-      title={`Provisioning de ${target?.code ?? ''}`}
+      title={`Altas en ${target?.code ?? ''}`}
       description="A qué URL se llama, con qué contrato y con qué credencial. Al marcar el destino como listo, las solicitudes que esperaban esta infraestructura se promueven solas."
       submitLabel="Guardar configuración"
       busy={configure.isPending}
@@ -183,7 +183,7 @@ export function DeploymentProvisioningDialog({
     >
       <FieldRow>
         <SelectField
-          label="Ambiente de provisioning"
+          label="Ambiente de altas"
           options={ENVIRONMENT_OPTIONS}
           hint="Eje técnico, distinto del entorno comercial del destino."
           error={form.formState.errors.provisioning_environment}
@@ -228,7 +228,7 @@ export function DeploymentProvisioningDialog({
           {...form.register('credential_profile_id')}
         />
         <SelectField
-          label="Política de provisioning"
+          label="Política de altas"
           options={POLICY_OPTIONS}
           hint="Vacío = hereda la de la integración. Jerarquía: destino > integración."
           error={form.formState.errors.provisioning_policy}
@@ -263,7 +263,7 @@ export function DeploymentProvisioningDialog({
       />
 
       <CheckboxField
-        label="Provisioning habilitado en este destino"
+        label="Altas habilitadas en este destino"
         hint="Sólo se puede habilitar un destino listo y completamente configurado."
         {...form.register('provisioning_enabled')}
       />
@@ -323,7 +323,7 @@ export function NewProvisioningRequestDialog({
   return (
     <FormDialog
       open={open}
-      title="Nueva solicitud de provisioning"
+      title="Nueva solicitud de alta"
       description="Sólo se indica el tenant y el ambiente. El destino, la integración y la credencial los resuelve el servidor: el navegador no elige contra qué se llama."
       submitLabel="Crear solicitud"
       busy={create.isPending}

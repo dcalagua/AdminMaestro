@@ -15,8 +15,8 @@ import { ShadowHistoryTab } from './ShadowHistoryTab';
 export function BillingShadowPage() {
   return (
     <PageContainer
-      title="Billing shadow"
-      description="Eje de facturación por producto, vista previa de lo que MasterAdmin facturaría y el historial de comparaciones con el biller local de cada SaaS."
+      title="Comparación de cobro"
+      description="Etapa de la migración de cobro por producto, vista previa de lo que el Admin Maestro facturaría y el historial de comparaciones con el cobro propio de cada app."
     >
       <ShadowKpis />
       <SectionTabs
@@ -43,10 +43,10 @@ function ShadowKpis() {
   const cmp = { loading: comparisons.isLoading, error: comparisons.error, onRetry: () => void comparisons.refetch() };
 
   return (
-    <KpiStrip label="Indicadores de billing shadow">
+    <KpiStrip label="Indicadores de la comparación de cobro">
       <KpiTile
-        label="Productos en shadow"
-        info="Integraciones con el eje de facturación en BILLING_SHADOW: MasterAdmin calcula y compara, nadie cobra desde aquí."
+        label="Productos en comparación"
+        info="Integraciones en la etapa de comparación: el Admin Maestro calcula y compara, nadie cobra desde aquí."
         value={axes.data ? formatNumber(inShadow) : null}
         footer={axes.data ? `de ${formatNumber(integrations.length)} integraciones` : undefined}
         loading={axes.isLoading}

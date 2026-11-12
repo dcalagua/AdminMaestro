@@ -171,7 +171,7 @@ export function RenewalsPage() {
       } | null;
       toast.success(
         'Suspensiones registradas (producto en simulación)',
-        `${result?.applied ?? 0} tenant(s) marcados como suspendidos en el Control Plane, con solicitud al producto en DRY_RUN; ${result?.skipped ?? 0} omitida(s) por política.`,
+        `${result?.applied ?? 0} tenant(s) marcados como suspendidos en el Control Plane, con la orden a la app en simulación; ${result?.skipped ?? 0} omitida(s) por política.`,
       );
     } catch (error) {
       toast.error('No se pudo suspender', businessErrorMessage(error));
@@ -315,8 +315,8 @@ export function RenewalsPage() {
             {perms.canManagePlatform ? (
               <>
                 <strong>Ejecutar suspensiones</strong> (en «Más acciones») cambia tenants a «Suspendido» en el Control
-                Plane donde la política lo autoriza; la orden al producto se envía en <strong>DRY_RUN</strong>
-                (simulación), así que el producto no se apaga desde aquí.
+                Plane donde la política lo autoriza; la orden a la app se envía en <strong>simulación</strong>,
+                así que la app no se apaga desde aquí.
               </>
             ) : null}
           </InfoNote>
@@ -545,7 +545,7 @@ export function RenewalsPage() {
       <ConfirmDialog
         open={confirmSuspend}
         title="¿Ejecutar las suspensiones pendientes?"
-        message="Sólo afecta a tenants cuya política de cobranza tenga la suspensión automática activada y cuyo período de gracia haya terminado. Cada uno pasa a «Suspendido» en el Control Plane y se encola una solicitud SUSPEND_TENANT en DRY_RUN (simulación: el producto no se apaga desde aquí). Las alertas quedan resueltas y todo se audita."
+        message="Sólo afecta a tenants cuya política de cobranza tenga la suspensión automática activada y cuyo período de gracia haya terminado. Cada uno pasa a «Suspendido» en el Control Plane y se encola la orden de suspensión a la app en simulación (la app no se apaga desde aquí). Las alertas quedan resueltas y todo se audita."
         confirmLabel="Ejecutar suspensiones"
         busy={suspend.isPending}
         onConfirm={doSuspend}

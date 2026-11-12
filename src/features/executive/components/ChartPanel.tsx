@@ -1,6 +1,6 @@
 import { useId, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { ChartBarIcon, TableIcon } from '@phosphor-icons/react';
+import { ChartBarIcon, InfoIcon, TableIcon } from '@phosphor-icons/react';
 import { Skeleton } from '@/components/ui/primitives';
 import type { DataState } from '../dataState';
 import { PartialNote, StateMessage } from './StateView';
@@ -9,7 +9,8 @@ import { SelectInput } from '@/components/ui/fields';
 /**
  * Contenedor común de gráficos (spec §6.5 / §7.4, AC14; VISUAL_SYSTEM_V2 §5.5 y §6).
  *
- * Obliga a declarar: título-pregunta, unidad, período o foto, fuente y cobertura;
+ * Obliga a declarar: título-pregunta, unidad, período o foto, fuente y cobertura
+ * (la fuente técnica va en un tooltip, no en el pie: V5 · F1);
  * ofrece SIEMPRE la tabla alternativa (con los mismos datos y enlaces) y el
  * enlace al detalle que compone la cifra. Los estados no listos se explican; un
  * gráfico vacío por error nunca aparece como «cero». Al cargar muestra un
@@ -116,9 +117,11 @@ export function ChartPanel({
         )}
       </div>
       <footer className="flex flex-wrap items-center justify-between gap-2 rounded-b-card border-t border-border bg-sunken px-5 py-2.5 text-caption text-muted">
-        <span>
-          Fuente: <span className="font-mono">{source}</span>
-          {coverage ? ` · ${coverage}` : ''}
+        {/* V5 · F1: el nombre técnico de la fuente (vista o RPC) no se lee en el
+            pie; queda como tooltip para quien lo necesite (super admin, soporte). */}
+        <span className="inline-flex items-center gap-1.5">
+          <SourceHint source={source} />
+          {coverage ? <span>{coverage}</span> : null}
         </span>
         {detailHref ? (
           <Link className="ebim-link text-caption font-semibold" to={detailHref}>
@@ -127,6 +130,18 @@ export function ChartPanel({
         ) : null}
       </footer>
     </section>
+  );
+}
+
+/**
+ * Fuente técnica de una cifra (vista o RPC) como tooltip de un icono: quien la
+ * necesita la encuentra, pero no se lee en la UI de negocio (V5 · F1).
+ */
+export function SourceHint({ source }: { source: string }) {
+  return (
+    <span aria-hidden title={`Origen técnico de los datos: ${source}`} data-chart-source={source} className="inline-flex text-muted">
+      <InfoIcon size={14} />
+    </span>
   );
 }
 

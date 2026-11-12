@@ -530,7 +530,7 @@ export function Org360Activity({ organizationId }: { organizationId: string }) {
           </DataTable>
         )}
       </Section>
-      <Section title="Solicitudes de infraestructura" description="Cola de infraestructura (distinta de las altas SaaS). DRY_RUN registra la intención." state={fromQuery(infra)} onRetry={() => void infra.refetch()} empty="Sin solicitudes de infraestructura.">
+      <Section title="Solicitudes de infraestructura" description="Cola de infraestructura (distinta de las altas en las apps). En simulación solo se registra la intención." state={fromQuery(infra)} onRetry={() => void infra.refetch()} empty="Sin solicitudes de infraestructura.">
         {() => (
           // Media columna: acción con su tenant y estado con su modo, en español (U-13).
           <DataTable columns={['Acción · tenant', 'Estado · modo', 'Creada']}>
@@ -542,7 +542,7 @@ export function Org360Activity({ organizationId }: { organizationId: string }) {
                 </td>
                 <td className="ebim-td">
                   <Badge tone={provisioningRequestTone(p.status as string)} dot>{provisioningStatusLabel(p.status as string)}</Badge>
-                  <span className="mt-0.5 block whitespace-nowrap text-caption text-muted">{p.mode === 'DRY_RUN' ? 'Simulación (DRY_RUN)' : (p.mode as string)}</span>
+                  <span className="mt-0.5 block whitespace-nowrap text-caption text-muted">{p.mode === 'DRY_RUN' ? 'Simulación' : (p.mode as string)}</span>
                 </td>
                 <td className="ebim-td whitespace-nowrap text-caption text-muted">{formatDate(p.created_at as string)}</td>
               </tr>

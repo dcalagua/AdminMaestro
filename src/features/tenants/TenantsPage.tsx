@@ -63,7 +63,7 @@ export function TenantsPage() {
   return (
     <PageContainer
       title="Tenants"
-      description="Cada tenant pertenece a UN producto SaaS. Dónde vive físicamente lo decide su deployment mode, no su jerarquía comercial."
+      description="Un tenant es el espacio del cliente en una app de la suite: pertenece a UNA sola app. Dónde vive físicamente lo decide su modo de despliegue, no su jerarquía comercial."
       actions={
         perms.canManagePlatform ? (
           <button type="button" className="ebim-btn-primary" onClick={() => setCreating(true)}>
@@ -106,7 +106,7 @@ export function TenantsPage() {
         <SearchBar
           value={term}
           onChange={setTerm}
-          placeholder="Buscar por tenant, cliente, partner, producto o slug…"
+          placeholder="Buscar por tenant, cliente, partner, producto o código…"
           right={
             <StatusTabs
               value={tab}

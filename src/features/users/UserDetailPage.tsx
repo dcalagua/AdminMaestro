@@ -176,7 +176,7 @@ export function UserDetailPage() {
           { id: 'tenants', label: 'Tenants', content: <TenantsPanel user={u} scope={scope} /> },
           {
             id: 'provisioning',
-            label: 'Provisioning',
+            label: 'Altas en las apps',
             hidden: !(scope.isSuperAdmin || scope.managePlatform),
             content: <ProvisioningPanel user={u} scope={scope} />,
           },
@@ -190,7 +190,7 @@ export function UserDetailPage() {
         title={statusDialog === 'ban' ? `Desactivar a ${u.fullName ?? u.email}` : `Reactivar a ${u.fullName ?? u.email}`}
         description={
           statusDialog === 'ban'
-            ? 'Se desactivan el perfil, el rol de consola, las membresías y los roles de provisioning, y se bloquea el ingreso. El vínculo comercial se conserva.'
+            ? 'Se desactivan el perfil, el rol de consola, las membresías y los roles de altas, y se bloquea el ingreso. El vínculo comercial se conserva.'
             : 'Solo se reactiva el perfil y se quita el bloqueo de ingreso. Los accesos se otorgan de nuevo explícitamente.'
         }
         submitLabel={statusDialog === 'ban' ? 'Desactivar' : 'Reactivar'}

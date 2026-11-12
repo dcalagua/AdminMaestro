@@ -60,7 +60,7 @@ export function TenantStep({ wizard }: { wizard: OnboardingWizard }) {
           error={form.formState.errors.tenant_name} {...form.register('tenant_name')}
         />
         <TextField
-          label="Slug" required placeholder="alpha-prod"
+          label="Código" required placeholder="alpha-prod"
           hint="Único dentro del producto."
           error={form.formState.errors.tenant_slug} {...form.register('tenant_slug')}
         />
@@ -69,7 +69,7 @@ export function TenantStep({ wizard }: { wizard: OnboardingWizard }) {
       <TextField
         label="Correo del administrador del cliente" required type="email"
         placeholder="admin@cliente.com"
-        hint="Obligatorio por contrato §3.2. No puede ser del dominio operador."
+        hint="Obligatorio. No puede ser del dominio operador."
         error={form.formState.errors.admin_email} {...form.register('admin_email')}
       />
 

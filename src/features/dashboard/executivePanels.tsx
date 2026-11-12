@@ -26,7 +26,7 @@ import {
 } from '@/services/queries';
 import { Skeleton, DataTable } from '@/components/ui/primitives';
 import { fromQuery, type DataState } from '@/features/executive/dataState';
-import { ChartPanel } from '@/features/executive/components/ChartPanel';
+import { ChartPanel, SourceHint } from '@/features/executive/components/ChartPanel';
 import { StateMessage } from '@/features/executive/components/StateView';
 import { formatCompactAmount, formatDelta, formatMoney, formatNumber, formatPercent } from '@/lib/format';
 import { agingSummary, DIRECT_CHANNEL, topCustomers, topPartners, type RankedRow } from './executiveModel';
@@ -477,7 +477,7 @@ export function TopCustomersPanel({
       subtitle={`MRR al cierre de ${monthLabel} · % del total y variación vs mes anterior`}
       footer={
         <>
-          <span>Fuente: <span className="font-mono">executive_mrr_movement_customers</span></span>
+          <SourceHint source="executive_mrr_movement_customers" />
           <Link className="ebim-link text-caption font-semibold" to="/cuentas?tab=clientes">
             Ver clientes <span aria-hidden>→</span>
           </Link>
@@ -523,7 +523,7 @@ export function TopPartnersPanel({
       subtitle={`MRR de los tenants que gestiona cada canal · cierre de ${monthLabel}`}
       footer={
         <>
-          <span>Fuente: <span className="font-mono">executive_mrr_mix (PARTNER)</span></span>
+          <SourceHint source="executive_mrr_mix (PARTNER)" />
           <Link className="ebim-link text-caption font-semibold" to="/partners">
             Ver partners <span aria-hidden>→</span>
           </Link>

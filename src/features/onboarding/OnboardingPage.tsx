@@ -53,8 +53,8 @@ export function OnboardingPage() {
   return (
     <PageContainer
       title="Nueva venta / alta de cliente"
-      description="Un solo envío crea tenant, suscripción, líneas, atribución y solicitud de provisioning dentro de la misma transacción de base de datos."
-      actions={<Badge tone="info" dot>Infraestructura en simulación (DRY_RUN)</Badge>}
+      description="Un solo envío crea tenant, suscripción, líneas, atribución y solicitud de infraestructura dentro de la misma transacción de base de datos."
+      actions={<Badge tone="info" dot>Infraestructura en simulación</Badge>}
     >
       <WizardStepper
         step={step}

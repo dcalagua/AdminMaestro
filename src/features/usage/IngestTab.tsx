@@ -71,7 +71,7 @@ export function IngestTab() {
 
       <Card
         title="Interruptor por producto"
-        description="Kill-switch de product_integrations.usage_ingest_enabled. Apagarlo corta el ingest de ese producto; el SaaS reintenta y no pierde eventos."
+        description="Interruptor por producto. Apagarlo corta la recepción de uso de ese producto; la app reintenta y no pierde eventos."
       >
         {integrations.isLoading ? (
           <LoadingState label="Cargando integraciones…" />
@@ -125,7 +125,7 @@ export function IngestTab() {
         ) : (credentials.data ?? []).length === 0 ? (
           <EmptyState
             title="Sin credenciales de ingest"
-            description="Ningún producto tiene aún su clave pública registrada (runbook usage-ingest §2, tras D-12)."
+            description="Ningún producto tiene aún su clave pública registrada para enviar su uso."
           />
         ) : (
           <DataTable columns={['Producto', 'Ambiente', 'Emisor', 'Audiencia', 'kid', 'Estado', 'Actualizada', '']}>

@@ -46,7 +46,7 @@ export const schema = z
   })
   .refine((v) => !isOperatorDomain(v.admin_email), {
     path: ['admin_email'],
-    message: 'El dominio operador ebim.pe no puede administrar un tenant cliente (contrato §13.2)',
+    message: 'El dominio operador ebim.pe no puede administrar un tenant cliente',
   })
   .refine((v) => v.deployment_mode !== 'PARTNER_DEDICATED' || Boolean(v.managing_organization_id), {
     path: ['managing_organization_id'],

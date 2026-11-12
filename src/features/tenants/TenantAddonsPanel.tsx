@@ -40,7 +40,7 @@ const ACTION_COPY: Record<AddonAction, { label: string; title: string; descripti
   APPROVE: {
     label: 'Aprobar',
     title: 'Aprobar solicitud de add-on',
-    description: 'Activa el add-on y congela su tarifa vigente en la suscripción. Los entitlements del tenant quedan pendientes de sincronizar con el producto.',
+    description: 'Activa el add-on y congela su tarifa vigente en la suscripción. Los módulos habilitados del tenant quedan pendientes de sincronizar con la app.',
     done: 'Add-on aprobado',
   },
   REJECT: {
@@ -219,16 +219,16 @@ export function TenantAddonsPanel({
       </Card>
 
       <Card
-        title="Entitlements efectivos"
+        title="Módulos habilitados"
         description="Lo que el tenant tiene derecho a usar hoy, combinando plan y add-ons. «Pendiente de sincronizar» significa que el producto todavía no recibió el último cambio."
         actions={dirty ? <Badge tone="warn">Pendiente de sincronizar</Badge> : null}
       >
         {entitlements.isLoading ? (
-          <LoadingState label="Calculando entitlements…" />
+          <LoadingState label="Calculando módulos habilitados…" />
         ) : entitlements.error ? (
           <ErrorState error={entitlements.error} onRetry={() => void entitlements.refetch()} />
         ) : ents.length === 0 ? (
-          <EmptyState title="Sin entitlements" description="Ni el plan ni los add-ons de este tenant otorgan capacidades registradas." />
+          <EmptyState title="Sin módulos habilitados" description="Ni el plan ni los add-ons de este tenant otorgan capacidades registradas." />
         ) : (
           <DataTable columns={['Capacidad', 'Valor', 'Aplicación', 'Origen', 'Sincronización']}>
             {ents.map((e) => (

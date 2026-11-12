@@ -52,7 +52,7 @@ export function ConfirmStep({ wizard }: { wizard: OnboardingWizard }) {
                 ? `${(agents.data ?? []).find((a) => a.id === values.sales_agent_id)?.full_name} · ${values.attribution_pct}%`
                 : 'Sin atribución',
             ],
-            ['Provisioning de infraestructura', 'Solicitud DRY_RUN encolada'],
+            ['Infraestructura', 'Solicitud encolada en simulación'],
             [
               'Alta en el producto SaaS',
               'No se realiza aquí (política por defecto: manual)',
