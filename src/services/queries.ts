@@ -1870,6 +1870,31 @@ export function useCardOnFileAuthorizations(organizationId: string | undefined) 
   });
 }
 
+/**
+ * V5 · F4 · ¿Qué cuentas de una lista tienen una tarjeta guardada VIGENTE?
+ * Una sola lectura para toda una página de la bandeja de cobranza (no una por
+ * fila). Sólo marca y últimos 4 dígitos: nunca PAN ni token.
+ */
+export function useActiveCardsByOrganization(organizationIds: string[]) {
+  const ids = [...new Set(organizationIds.filter(Boolean))].sort();
+  return useQuery({
+    queryKey: ['card-on-file', 'active-by-org', ids],
+    enabled: ids.length > 0,
+    queryFn: async () => {
+      const rows = unwrap(
+        await supabase
+          .from('v_card_on_file_authorizations')
+          .select('organization_id, brand, last4')
+          .in('organization_id', ids)
+          .eq('is_active', true),
+      ) as Array<{ organization_id: string | null; brand: string | null; last4: string | null }>;
+      const map = new Map<string, { brand: string | null; last4: string | null }>();
+      for (const r of rows) if (r.organization_id && !map.has(r.organization_id)) map.set(r.organization_id, r);
+      return map;
+    },
+  });
+}
+
 /** Historial de intentos de cobro con tarjeta guardada de una suscripción. */
 export function useChargeAttempts(subscriptionId: string | undefined) {
   return useQuery({
@@ -2184,9 +2209,10 @@ export function usePartnerFeeStatementLines(statementId: string | null) {
    ========================================================================== */
 
 /** Lista de «Usuarios y accesos». `scopeOrgId` acota a una organización. */
-export function useAdminUsers(scopeOrgId?: string | null) {
+export function useAdminUsers(scopeOrgId?: string | null, { enabled = true }: LazyQueryOptions = {}) {
   return useQuery({
     queryKey: ['admin-users', scopeOrgId ?? null],
+    enabled,
     retry: false,
     queryFn: async (): Promise<AdminUser[]> => {
       const { data, error } = await supabase.rpc(
