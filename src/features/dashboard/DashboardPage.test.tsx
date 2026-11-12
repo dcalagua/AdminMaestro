@@ -208,7 +208,7 @@ describe('Resumen ejecutivo · franja hero', () => {
     const overdue = tile(container, 'Cartera vencida');
     const delta = within(overdue).getByText('+2.4%'); // 42 000 vs 41 000
     expect(delta.closest('span')).toHaveClass('text-danger');
-    expect(overdue.closest('a') ?? overdue).toHaveAttribute('href', '/billing?estado=OPEN&antiguedad=VENCIDA');
+    expect(overdue.closest('a') ?? overdue).toHaveAttribute('href', '/cobranza?tab=facturacion&estado=OPEN&antiguedad=VENCIDA');
   });
 
   it('mes en curso: rotulado parcial y el cobrado no se compara con un mes completo', () => {
@@ -268,14 +268,14 @@ describe('Resumen ejecutivo · paneles', () => {
     const billed = panel(container, 'facturado-cobrado');
     fireEvent.click(within(billed).getByRole('button', { name: /Tabla/ }));
     fireEvent.click(within(billed).getByRole('button', { name: 'jul 26' }));
-    expect(screen.getByTestId('where')).toHaveTextContent('/billing?desde=2026-07-01&hasta=2026-07-31#cobros');
+    expect(screen.getByTestId('where')).toHaveTextContent('/cobranza?tab=facturacion&desde=2026-07-01&hasta=2026-07-31#cobros');
   });
 
   it('cartera por antigüedad: cada tramo abre Facturación filtrada', () => {
     const { container } = renderHome();
     const aging = panel(container, 'antiguedad');
     expect(aging).toHaveTextContent('8.0 K'); // 4 000 + 1 500 + 500 + 2 000
-    expect(within(aging).getByRole('link', { name: /Más de 90 días/ })).toHaveAttribute('href', '/billing?estado=OPEN&antiguedad=D90_MAS');
+    expect(within(aging).getByRole('link', { name: /Más de 90 días/ })).toHaveAttribute('href', '/cobranza?tab=facturacion&estado=OPEN&antiguedad=D90_MAS');
   });
 
   it('mix, tops y partners enlazan al detalle existente; venta directa no compite como partner', () => {

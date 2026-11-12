@@ -31,11 +31,11 @@ export function FinancePerspective({ ctx }: { ctx: ReportContext }) {
     <div className="space-y-6">
       <FinanceKpis query={total} ctx={ctx} />
       <div className="grid gap-4 xl:grid-cols-2">
-        <AgingChart onSelect={(bucket) => navigate(`/billing?estado=OPEN&antiguedad=${bucket}`)} />
+        <AgingChart onSelect={(bucket) => navigate(`/cobranza?tab=facturacion&estado=OPEN&antiguedad=${bucket}`)} />
         <FxCoverage query={total} ctx={ctx} />
       </div>
       <ComponentsChart query={byProduct} ctx={ctx} onSelect={(id) => navigate(id === 'SIN_PRODUCTO' ? '/costs' : `/products/${id}`)} />
-      <PartnerChart query={byPartner} ctx={ctx} onSelect={(id) => navigate(id === 'DIRECTO' ? '/customers' : `/organizations/${id}`)} />
+      <PartnerChart query={byPartner} ctx={ctx} onSelect={(id) => navigate(id === 'DIRECTO' ? '/cuentas?tab=clientes' : `/organizations/${id}`)} />
       <RegionalFinancePanel />
     </div>
   );
@@ -65,7 +65,7 @@ function AgingChart({ onSelect }: { onSelect: (bucket: string) => void }) {
       onRetry={() => void aging.refetch()}
       emptyText="No hay saldo pendiente de cobro"
       controls={<CurrencyPicker currencies={currencies} value={currency} onChange={setPicked} />}
-      detailHref="/billing?estado=OPEN"
+      detailHref="/cobranza?tab=facturacion&estado=OPEN"
       detailLabel="Ver facturas por cobrar"
       chart={() => (
         <SingleBars data={data} currency={currency} ariaLabel={`Saldo por antigüedad en ${currency}`} onSelect={(d) => onSelect(d.key)} />
@@ -87,7 +87,7 @@ function AgingChart({ onSelect }: { onSelect: (bucket: string) => void }) {
               .map((r) => (
                 <tr key={`${b.id}-${r.currency}`}>
                   <th scope="row" className="ebim-td text-left">
-                    <Link className="ebim-link" to={`/billing?estado=OPEN&antiguedad=${b.id}`}>{b.label}</Link>
+                    <Link className="ebim-link" to={`/cobranza?tab=facturacion&estado=OPEN&antiguedad=${b.id}`}>{b.label}</Link>
                   </th>
                   <td className="ebim-td">{r.currency}</td>
                   <td className="ebim-td text-right tabular-nums">{formatNumber(Number(r.invoice_count))}</td>
@@ -300,7 +300,7 @@ function FxCoverage({ query, ctx }: { query: ReturnType<typeof useFinanceConsoli
         )}
       </div>
       <footer className="border-t border-border px-4 py-2 text-caption">
-        <Link className="ebim-link" to="/regional">Ver monedas y tipos de cambio →</Link>
+        <Link className="ebim-link" to="/settings?tab=regional">Ver monedas y tipos de cambio →</Link>
       </footer>
     </section>
   );
@@ -338,7 +338,7 @@ function FinanceKpis({ query, ctx }: { query: ReturnType<typeof useFinanceConsol
         loading={query.isLoading}
         error={query.error}
         onRetry={() => void query.refetch()}
-        to={`/billing?desde=${ctx.period.start}&hasta=${ctx.period.end}#cobros`}
+        to={`/cobranza?tab=facturacion&desde=${ctx.period.start}&hasta=${ctx.period.end}#cobros`}
       />
       <KpiTile
         label="Margen gerencial"
@@ -367,7 +367,7 @@ function FinanceKpis({ query, ctx }: { query: ReturnType<typeof useFinanceConsol
         loading={aging.isLoading}
         error={aging.error}
         onRetry={() => void aging.refetch()}
-        to="/billing?estado=OPEN"
+        to="/cobranza?tab=facturacion&estado=OPEN"
       />
       <KpiTile
         label="Cartera vencida"
@@ -379,7 +379,7 @@ function FinanceKpis({ query, ctx }: { query: ReturnType<typeof useFinanceConsol
         loading={aging.isLoading}
         error={aging.error}
         onRetry={() => void aging.refetch()}
-        to="/billing?estado=OPEN&antiguedad=VENCIDA"
+        to="/cobranza?tab=facturacion&estado=OPEN&antiguedad=VENCIDA"
       />
     </section>
   );

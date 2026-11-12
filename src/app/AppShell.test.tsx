@@ -46,7 +46,8 @@ function renderAt(path: string) {
         <Route element={<AppShell />}>
           <Route path="*" element={<p>contenido</p>} />
           <Route path="/tenants/:id" element={<PageContainer title="Constructora Alfa · EWM">ficha</PageContainer>} />
-          <Route path="/billing" element={<PageContainer title="Facturación y cobros">cobros</PageContainer>} />
+          <Route path="/products/:id" element={<PageContainer title="EWM">producto</PageContainer>} />
+          <Route path="/cobranza" element={<PageContainer title="Cobranza">cobros</PageContainer>} />
         </Route>
       </Routes>
     </MemoryRouter>,
@@ -64,7 +65,7 @@ describe('AppShell', () => {
   it('no muestra la ruta técnica; el encabezado de la ficha lleva migas grupo → listado → nombre', () => {
     renderAt('/tenants/50000000-0000-4000-a000-000000000001');
     const crumbs = screen.getByRole('navigation', { name: 'Migas de pan' });
-    expect(crumbs).toHaveTextContent('Productos y contratos');
+    expect(crumbs).toHaveTextContent('Suite');
     expect(within(crumbs).getByRole('link', { name: 'Tenants' })).toHaveAttribute('href', '/tenants');
     expect(within(crumbs).getByText('Constructora Alfa · EWM')).toHaveAttribute('aria-current', 'page');
     expect(document.body).not.toHaveTextContent('50000000-0000-4000-a000-000000000001');
@@ -72,18 +73,28 @@ describe('AppShell', () => {
   });
 
   it('un listado lleva el grupo como miga y el título como página actual', () => {
-    renderAt('/billing');
+    renderAt('/cobranza');
     const crumbs = screen.getByRole('navigation', { name: 'Migas de pan' });
     expect(crumbs).toHaveTextContent('Finanzas');
-    expect(within(crumbs).getByText('Facturación y cobros')).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByRole('heading', { level: 1, name: 'Facturación y cobros' })).toBeInTheDocument();
+    expect(within(crumbs).getByText('Cobranza')).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('heading', { level: 1, name: 'Cobranza' })).toBeInTheDocument();
+  });
+
+  it('la ficha de una pantalla fusionada vuelve a su pestaña y marca la entrada dueña', () => {
+    renderAt('/products/p-1');
+    const crumbs = screen.getByRole('navigation', { name: 'Migas de pan' });
+    expect(crumbs).toHaveTextContent('Comercial');
+    expect(within(crumbs).getByRole('link', { name: 'Catálogo' })).toHaveAttribute('href', '/catalogo?tab=productos');
+    const nav = screen.getByRole('navigation', { name: 'Navegación principal' });
+    expect(within(nav).getByRole('link', { name: 'Catálogo' }).className).toContain('font-semibold');
+    expect(document.title).toBe('Ficha de producto · Admin Maestro · EBIM');
   });
 
   it('al navegar, el foco va al h1 de la página nueva', async () => {
     renderAt('/');
     const nav = screen.getByRole('navigation', { name: 'Navegación principal' });
-    fireEvent.click(within(nav).getByRole('link', { name: 'Facturación y cobros' }));
-    const h1 = await screen.findByRole('heading', { level: 1, name: 'Facturación y cobros' });
+    fireEvent.click(within(nav).getByRole('link', { name: 'Cobranza' }));
+    const h1 = await screen.findByRole('heading', { level: 1, name: 'Cobranza' });
     await act(async () => {
       await new Promise((r) => requestAnimationFrame(() => r(null)));
     });
@@ -91,19 +102,20 @@ describe('AppShell', () => {
   });
 
   it('marca el ítem activo y muestra el lockup Admin Maestro', () => {
-    renderAt('/billing');
+    renderAt('/cobranza');
     const nav = screen.getByRole('navigation', { name: 'Navegación principal' });
-    expect(within(nav).getByRole('link', { name: 'Facturación y cobros' })).toHaveAttribute('aria-current', 'page');
-    expect(within(nav).getByRole('link', { name: 'Clientes' })).not.toHaveAttribute('aria-current');
+    expect(within(nav).getByRole('link', { name: 'Cobranza' })).toHaveAttribute('aria-current', 'page');
+    expect(within(nav).getByRole('link', { name: 'Cuentas' })).not.toHaveAttribute('aria-current');
     expect(screen.getAllByText('Admin Maestro').length).toBeGreaterThan(0);
   });
 
-  it('super admin ve los seis grupos de negocio', () => {
+  it('super admin ve los seis grupos y las 18 entradas del menú V5', () => {
     renderAt('/');
     const nav = screen.getByRole('navigation', { name: 'Navegación principal' });
-    for (const g of ['Inicio', 'Clientes y canales', 'Productos y contratos', 'Finanzas', 'Operación SaaS', 'Gobierno']) {
+    for (const g of ['Inicio', 'Clientes', 'Suite', 'Comercial', 'Finanzas', 'Gobierno']) {
       expect(within(nav).getByRole('button', { name: g })).toBeInTheDocument();
     }
+    expect(within(nav).getAllByRole('link')).toHaveLength(18);
   });
 
   it('usuario técnico EBIM no recibe el grupo Finanzas', () => {
@@ -111,31 +123,35 @@ describe('AppShell', () => {
     renderAt('/');
     const nav = screen.getByRole('navigation', { name: 'Navegación principal' });
     expect(within(nav).queryByRole('button', { name: 'Finanzas' })).not.toBeInTheDocument();
-    expect(within(nav).queryByRole('link', { name: 'Facturación y cobros' })).not.toBeInTheDocument();
-    expect(within(nav).getByRole('link', { name: 'Altas SaaS' })).toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: 'Cobranza' })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: 'Contratos' })).not.toBeInTheDocument();
+    expect(within(nav).getByRole('link', { name: 'Apps' })).toBeInTheDocument();
+    expect(within(nav).getByRole('link', { name: 'Centro de la suite' })).toBeInTheDocument();
   });
 
-  it('un partner no ve Costos ni Integraciones', () => {
+  it('un partner no ve Costos, Nueva venta ni el Centro de la suite', () => {
     auth.persona = 'PARTNER';
     auth.roles = { ...base, organizations: [{ organizationId: 'o', role: 'PARTNER_ADMIN', displayName: 'Andina' }] };
     renderAt('/');
     const nav = screen.getByRole('navigation', { name: 'Navegación principal' });
     expect(within(nav).queryByRole('link', { name: 'Costos y margen' })).not.toBeInTheDocument();
-    expect(within(nav).queryByRole('link', { name: 'Integraciones' })).not.toBeInTheDocument();
-    expect(within(nav).getByRole('link', { name: 'Facturación y cobros' })).toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: 'Nueva venta' })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: 'Centro de la suite' })).not.toBeInTheDocument();
+    expect(within(nav).getByRole('link', { name: 'Cobranza' })).toBeInTheDocument();
+    expect(within(nav).getAllByRole('link').length).toBeLessThan(18);
   });
 
   it('grupos plegables con aria-expanded; el grupo activo no se oculta', () => {
-    renderAt('/billing');
+    renderAt('/cobranza');
     const nav = screen.getByRole('navigation', { name: 'Navegación principal' });
-    const clientes = within(nav).getByRole('button', { name: 'Clientes y canales' });
+    const clientes = within(nav).getByRole('button', { name: 'Clientes' });
     expect(clientes).toHaveAttribute('aria-expanded', 'true');
     fireEvent.click(clientes);
     expect(clientes).toHaveAttribute('aria-expanded', 'false');
-    expect(within(nav).queryByRole('link', { name: 'Clientes' })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: 'Cuentas' })).not.toBeInTheDocument();
     const finanzas = within(nav).getByRole('button', { name: 'Finanzas' });
     fireEvent.click(finanzas);
-    expect(within(nav).getByRole('link', { name: 'Facturación y cobros' })).toBeVisible();
+    expect(within(nav).getByRole('link', { name: 'Cobranza' })).toBeVisible();
   });
 
   it('menú móvil: panel modal que se cierra con Escape y no deja capa invisible', () => {
@@ -162,10 +178,10 @@ describe('AppShell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Reducir menú lateral a iconos' }));
     expect(localStorage.getItem('ebim-cp-sidebar-rail')).toBe('true');
     const nav = screen.getByRole('navigation', { name: 'Navegación principal' });
-    const link = within(nav).getByRole('link', { name: 'Clientes' });
-    expect(link).not.toHaveTextContent('Clientes');
+    const link = within(nav).getByRole('link', { name: 'Cuentas' });
+    expect(link).not.toHaveTextContent('Cuentas');
     fireEvent.mouseEnter(link);
-    expect(document.querySelector('.ebim-tooltip')).toHaveTextContent('Clientes');
+    expect(document.querySelector('.ebim-tooltip')).toHaveTextContent('Cuentas');
     fireEvent.mouseLeave(link);
     expect(document.querySelector('.ebim-tooltip')).toBeNull();
   });
@@ -193,11 +209,11 @@ describe('AppShell', () => {
     setSpy.mockRestore();
   });
 
-  it('badge de alertas críticas en Renovaciones, con texto accesible', () => {
+  it('badge de alertas críticas de renovación en Cobranza, con texto accesible', () => {
     auth.criticalAlerts = 7;
     renderAt('/');
     const nav = screen.getByRole('navigation', { name: 'Navegación principal' });
-    const link = within(nav).getByRole('link', { name: 'Renovaciones (7 alertas críticas abiertas)' });
+    const link = within(nav).getByRole('link', { name: 'Cobranza (7 alertas críticas de renovación abiertas)' });
     expect(link).toHaveTextContent('7');
   });
 

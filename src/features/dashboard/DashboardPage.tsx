@@ -143,7 +143,7 @@ function PartnerDashboard({ orgName }: { orgName?: string }) {
           temporality={periodLabel(ctx)}
           state={fromQuery(collections, { isEmpty: () => false })}
           render={() => <CurrencyLines amounts={collectedInMonth(collections.data ?? [], month)} emptyLabel="Sin cobros confirmados" />}
-          detailHref={`/billing?desde=${monthRange(month).from}&hasta=${monthRange(month).to}#cobros`}
+          detailHref={`/cobranza?tab=facturacion&desde=${monthRange(month).from}&hasta=${monthRange(month).to}#cobros`}
         />
         <KpiCard
           id="K03"
@@ -151,7 +151,7 @@ function PartnerDashboard({ orgName }: { orgName?: string }) {
           temporality="Foto actual"
           state={fromQuery(invoices, { isEmpty: () => false })}
           render={() => <CurrencyLines amounts={toCurrencyAmounts(invoices.data?.receivable)} emptyLabel="Sin saldo pendiente" />}
-          detailHref="/billing?estado=OPEN"
+          detailHref="/cobranza?tab=facturacion&estado=OPEN"
         />
         <KpiCard
           id="K04"
@@ -159,7 +159,7 @@ function PartnerDashboard({ orgName }: { orgName?: string }) {
           temporality="Foto actual"
           state={fromQuery(invoices, { isEmpty: () => false })}
           render={() => <CurrencyLines amounts={toCurrencyAmounts(invoices.data?.overdue)} emptyLabel="Sin cartera vencida" />}
-          detailHref="/billing?estado=OPEN&antiguedad=VENCIDA"
+          detailHref="/cobranza?tab=facturacion&estado=OPEN&antiguedad=VENCIDA"
         />
         <KpiCard
           id="K06"
@@ -167,7 +167,7 @@ function PartnerDashboard({ orgName }: { orgName?: string }) {
           temporality="Próximos 30 días"
           state={fromQuery(renewals, { isEmpty: () => false })}
           render={() => (win ? <p className="tabular-nums">{formatNumber(win.count)} contratos</p> : null)}
-          detailHref="/renewals"
+          detailHref="/cobranza?tab=renovaciones"
         />
       </div>
 
@@ -224,7 +224,7 @@ function CommercialDashboard() {
           temporality="Vigentes y pasadas"
           state={fromQuery(attributions, { isEmpty: () => false })}
           render={() => <p className="tabular-nums">{formatNumber(attributions.data?.length ?? 0)}</p>}
-          detailHref="/attributions"
+          detailHref="/sales-agents?tab=atribuciones"
         />
         <KpiCard
           id="pending"

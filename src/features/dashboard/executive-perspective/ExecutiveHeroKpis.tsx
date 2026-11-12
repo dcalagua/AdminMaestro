@@ -106,7 +106,7 @@ export function HeroKpis({ d }: { d: ExecutiveDashboardData }) {
         loading={billing.isLoading}
         error={billing.error}
         onRetry={() => void billing.refetch()}
-        to={`/billing?desde=${bounds.from}&hasta=${bounds.to}#cobros`}
+        to={`/cobranza?tab=facturacion&desde=${bounds.from}&hasta=${bounds.to}#cobros`}
       />
       <KpiTile
         size="display"
@@ -122,7 +122,7 @@ export function HeroKpis({ d }: { d: ExecutiveDashboardData }) {
         loading={billing.isLoading}
         error={billing.error}
         onRetry={() => void billing.refetch()}
-        to="/billing?estado=OPEN&antiguedad=VENCIDA"
+        to="/cobranza?tab=facturacion&estado=OPEN&antiguedad=VENCIDA"
       />
       <KpiTile
         size="display"
@@ -137,7 +137,7 @@ export function HeroKpis({ d }: { d: ExecutiveDashboardData }) {
         loading={series.isLoading}
         error={series.error}
         onRetry={() => void series.refetch()}
-        to="/customers"
+        to="/cuentas?tab=clientes"
       />
       <KpiTile
         size="display"

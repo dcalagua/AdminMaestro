@@ -82,7 +82,7 @@ export function ConfirmStep({ wizard }: { wizard: OnboardingWizard }) {
           </p>
           <p className="mt-2">
             Esa alta se decide en{' '}
-            <Link to="/saas-provisioning" className="ebim-link">
+            <Link to="/apps?tab=altas" className="ebim-link">
               Operación SaaS → Altas SaaS
             </Link>
             , según la política configurada en la integración del producto. El valor por

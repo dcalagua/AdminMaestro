@@ -59,7 +59,7 @@ export function BilledCollectedPanel({
       onRetry={() => void query.refetch()}
       emptyText="Sin facturas ni cobros en el período"
       refreshing={query.isPlaceholderData}
-      detailHref="/billing#cobros"
+      detailHref="/cobranza?tab=facturacion#cobros"
       detailLabel="Ver cobros"
       legend={
         <ChartLegend

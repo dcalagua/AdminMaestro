@@ -24,7 +24,7 @@ export function TenantUsagePanel({ tenantId }: { tenantId: string }) {
         title="Agregados de uso"
         description="Por medidor y período. La cantidad es definitiva al finalizar; solo lo finalizado y facturable entra en una factura."
         actions={
-          <Link className="ebim-link text-caption" to="/usage#aggregates">
+          <Link className="ebim-link text-caption" to="/apps?tab=uso#aggregates">
             Ir a Uso
           </Link>
         }
@@ -68,7 +68,7 @@ export function TenantUsagePanel({ tenantId }: { tenantId: string }) {
         title="Saldo de créditos IA por pool"
         description="Derivado del ledger. Sin política de créditos (D-03) no hay incluidos: el saldo no se inventa."
         actions={
-          <Link className="ebim-link text-caption" to="/ai-credits#balances">
+          <Link className="ebim-link text-caption" to="/settings?tab=creditos-ia#balances">
             Ir a Créditos IA
           </Link>
         }

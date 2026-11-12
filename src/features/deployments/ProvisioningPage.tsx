@@ -97,7 +97,7 @@ export function ProvisioningPage() {
     >
       <p className="-mt-3 mb-5 text-compact text-muted">
         ¿Buscas el alta de un tenant en un producto?{' '}
-        <Link className="ebim-link" to="/saas-provisioning">
+        <Link className="ebim-link" to="/apps?tab=altas">
           Ir a Altas SaaS
         </Link>
       </p>

@@ -105,7 +105,7 @@ export function IntegrationDetailPage() {
             title="No existe o no tiene acceso"
             description="Un propietario técnico sólo ve las integraciones de su producto."
             action={
-              <Link to="/integrations" className="ebim-btn-secondary">
+              <Link to="/apps?tab=integraciones" className="ebim-btn-secondary">
                 Volver a integraciones
               </Link>
             }
@@ -439,7 +439,7 @@ export function IntegrationDetailPage() {
                     {relatedTargets.map((t) => (
                       <tr key={t.deployment_target_id}>
                         <td className="ebim-td">
-                          <Link to="/deployments" className="font-mono text-compact text-accent-deep hover:underline">
+                          <Link to="/apps?tab=entornos" className="font-mono text-compact text-accent-deep hover:underline">
                             {t.code}
                           </Link>
                         </td>

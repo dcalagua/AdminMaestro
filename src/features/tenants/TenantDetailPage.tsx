@@ -203,7 +203,7 @@ export function TenantDetailPage() {
               </a>
             </li>
             <li>
-              <Link className="ebim-btn-ghost ebim-btn-sm" to="/saas-provisioning">
+              <Link className="ebim-btn-ghost ebim-btn-sm" to="/apps?tab=altas">
                 Ir a Altas SaaS (decisión manual)
               </Link>
             </li>
@@ -426,7 +426,7 @@ export function TenantDetailPage() {
                     title="Sin altas registradas en ningún producto"
                     description="Crear una cotización no aprovisiona: la política por defecto es manual hasta certificar el contrato de cada producto."
                     action={
-                      <Link to="/saas-provisioning" className="ebim-btn-secondary">
+                      <Link to="/apps?tab=altas" className="ebim-btn-secondary">
                         Ir a provisioning SaaS
                       </Link>
                     }

@@ -8,6 +8,8 @@ import { ToastProvider } from '@/components/ui/Toast';
 import { AppShell } from './AppShell';
 import { RequireAuth, RequireDesignGallery, RequireFinanceView, RequirePersona } from './guards';
 import { createAppQueryClient } from './queryClient';
+import { LEGACY_REDIRECTS } from './navigation';
+import { LegacyRedirect } from '@/features/hubs/HubPage';
 import { AppearanceProvider } from './AppearanceProvider';
 
 import { LoginPage } from '@/features/auth/LoginPage';
@@ -27,46 +29,36 @@ function lazyPage<K extends string>(
 }
 
 const PaymentPortalPage = lazyPage(() => import('@/features/paymentPortal/PaymentPortalPage'), 'PaymentPortalPage');
-const ProductsPage = lazyPage(() => import('@/features/catalog/ProductsPage'), 'ProductsPage');
 const ProductDetailPage = lazyPage(() => import('@/features/catalog/ProductDetailPage'), 'ProductDetailPage');
-const PlansPage = lazyPage(() => import('@/features/catalog/PlansPage'), 'PlansPage');
-const FeatureFlagsPage = lazyPage(() => import('@/features/catalog/FeatureFlagsPage'), 'FeatureFlagsPage');
-const AddonsPage = lazyPage(() => import('@/features/catalog/AddonsPage'), 'AddonsPage');
-const CapabilitiesPage = lazyPage(() => import('@/features/commercial/capabilities/CapabilitiesPage'), 'CapabilitiesPage');
-const EntitlementSyncPage = lazyPage(() => import('@/features/commercial/sync/EntitlementSyncPage'), 'EntitlementSyncPage');
-const OrganizationsPage = lazyPage(() => import('@/features/organizations/OrganizationsPage'), 'OrganizationsPage');
 const OrganizationDetailPage = lazyPage(() => import('@/features/organizations/OrganizationDetailPage'), 'OrganizationDetailPage');
 const PartnersPage = lazyPage(() => import('@/features/organizations/PartnersPage'), 'PartnersPage');
-const CustomersPage = lazyPage(() => import('@/features/organizations/CustomersPage'), 'CustomersPage');
 const OnboardingPage = lazyPage(() => import('@/features/onboarding/OnboardingPage'), 'OnboardingPage');
 const TenantsPage = lazyPage(() => import('@/features/tenants/TenantsPage'), 'TenantsPage');
 const TenantDetailPage = lazyPage(() => import('@/features/tenants/TenantDetailPage'), 'TenantDetailPage');
-const SalesAgentsPage = lazyPage(() => import('@/features/commercial/SalesAgentsPage'), 'SalesAgentsPage');
-const AttributionsPage = lazyPage(() => import('@/features/commercial/AttributionsPage'), 'AttributionsPage');
-const CommissionPlansPage = lazyPage(() => import('@/features/commercial/CommissionPlansPage'), 'CommissionPlansPage');
-const CommissionsPage = lazyPage(() => import('@/features/commercial/CommissionsPage'), 'CommissionsPage');
 const SubscriptionsPage = lazyPage(() => import('@/features/billing/SubscriptionsPage'), 'SubscriptionsPage');
 const SubscriptionDetailPage = lazyPage(() => import('@/features/billing/SubscriptionDetailPage'), 'SubscriptionDetailPage');
-const BillingPage = lazyPage(() => import('@/features/billing/BillingPage'), 'BillingPage');
 const CostsPage = lazyPage(() => import('@/features/billing/CostsPage'), 'CostsPage');
-const RenewalsPage = lazyPage(() => import('@/features/billing/RenewalsPage'), 'RenewalsPage');
-const ReconciliationPage = lazyPage(() => import('@/features/billing/ReconciliationPage'), 'ReconciliationPage');
-const DeploymentsPage = lazyPage(() => import('@/features/deployments/DeploymentsPage'), 'DeploymentsPage');
-const ProvisioningPage = lazyPage(() => import('@/features/deployments/ProvisioningPage'), 'ProvisioningPage');
-const SaasProvisioningPage = lazyPage(() => import('@/features/deployments/SaasProvisioningPage'), 'SaasProvisioningPage');
-const IntegrationsPage = lazyPage(() => import('@/features/platform/IntegrationsPage'), 'IntegrationsPage');
 const IntegrationDetailPage = lazyPage(() => import('@/features/platform/IntegrationDetailPage'), 'IntegrationDetailPage');
 const AuditPage = lazyPage(() => import('@/features/settings/AuditPage'), 'AuditPage');
-const SettingsPage = lazyPage(() => import('@/features/settings/SettingsPage'), 'SettingsPage');
-const RegionalPage = lazyPage(() => import('@/features/regional/RegionalPage'), 'RegionalPage');
-const UsagePage = lazyPage(() => import('@/features/usage/UsagePage'), 'UsagePage');
-const AiCreditsPage = lazyPage(() => import('@/features/credits/AiCreditsPage'), 'AiCreditsPage');
-const BillingShadowPage = lazyPage(() => import('@/features/billing/shadow/BillingShadowPage'), 'BillingShadowPage');
 const PartnerFeesPage = lazyPage(() => import('@/features/partnerFees/PartnerFeesPage'), 'PartnerFeesPage');
 const NotFoundPage = lazyPage(() => import('@/features/settings/NotFoundPage'), 'NotFoundPage');
 const WelcomePage = lazyPage(() => import('@/features/auth/WelcomePage'), 'WelcomePage');
 const UsersPage = lazyPage(() => import('@/features/users/UsersPage'), 'UsersPage');
 const UserDetailPage = lazyPage(() => import('@/features/users/UserDetailPage'), 'UserDetailPage');
+const InboxPage = lazyPage(() => import('@/features/hubs/PlaceholderPages'), 'InboxPage');
+const SuiteCenterPage = lazyPage(() => import('@/features/hubs/PlaceholderPages'), 'SuiteCenterPage');
+
+/*
+ * V5 · F1: entradas que fusionan pantallas como pestañas (`?tab=`). Cada
+ * pestaña carga su pantalla en diferido; ver `features/hubs/hubs.tsx`.
+ */
+const AccountsHubPage = lazyPage(() => import('@/features/hubs/hubs'), 'AccountsHubPage');
+const SalesTeamHubPage = lazyPage(() => import('@/features/hubs/hubs'), 'SalesTeamHubPage');
+const AppsHubPage = lazyPage(() => import('@/features/hubs/hubs'), 'AppsHubPage');
+const CatalogHubPage = lazyPage(() => import('@/features/hubs/hubs'), 'CatalogHubPage');
+const CollectionsHubPage = lazyPage(() => import('@/features/hubs/hubs'), 'CollectionsHubPage');
+const CommissionsHubPage = lazyPage(() => import('@/features/hubs/hubs'), 'CommissionsHubPage');
+const SettingsHubPage = lazyPage(() => import('@/features/hubs/hubs'), 'SettingsHubPage');
 
 /**
  * El inicio ejecutivo es la única pantalla con gráficos (Recharts ≈ 170 kB gzip):
@@ -123,96 +115,45 @@ export function App() {
                     }
                   />
 
-                    <Route path="products" element={<ProductsPage />} />
-                    <Route path="products/:productId" element={<ProductDetailPage />} />
-                    <Route path="plans" element={<PlansPage />} />
-                    <Route path="feature-flags" element={<FeatureFlagsPage />} />
-                    {/*
-                    CCP fase 07. El registro de capacidades es gobierno de
-                    producto de EBIM; los add-ons llevan tarifas, así que se
-                    protegen como el resto de pantallas financieras. Ambas son
-                    UX: RLS y las RPC son la autoridad.
-                  */}
+                    <Route path="bandeja" element={<InboxPage />} />
                     <Route
-                      path="commercial/capabilities"
+                      path="suite"
                       element={
                         <RequirePersona personas={['EBIM']}>
-                          <CapabilitiesPage />
-                        </RequirePersona>
-                      }
-                    />
-                    {/*
-                    CCP fase 08. Deseado frente a aplicado; «Sincronizar ahora»
-                    pasa por el orquestador, que autoriza con un booleano de
-                    la base (platform.provisioning.execute del producto).
-                  */}
-                    <Route
-                      path="commercial/entitlement-sync"
-                      element={
-                        <RequirePersona personas={['EBIM']}>
-                          <EntitlementSyncPage />
-                        </RequirePersona>
-                      }
-                    />
-                    {/*
-                    CCP M4. «Uso» es operación SaaS de EBIM (medidores e ingest
-                    los administra producto; facturable y finalizar, finanzas).
-                    «Créditos IA» y «Billing shadow» son pantallas financieras.
-                    Todo es UX: RLS y las RPC son la autoridad.
-                  */}
-                    <Route
-                      path="usage"
-                      element={
-                        <RequirePersona personas={['EBIM']}>
-                          <UsagePage />
-                        </RequirePersona>
-                      }
-                    />
-                    <Route
-                      path="ai-credits"
-                      element={
-                        <RequirePersona personas={['EBIM']}>
-                          <RequireFinanceView><AiCreditsPage /></RequireFinanceView>
-                        </RequirePersona>
-                      }
-                    />
-                    <Route
-                      path="billing-shadow"
-                      element={
-                        <RequirePersona personas={['EBIM']}>
-                          <RequireFinanceView><BillingShadowPage /></RequireFinanceView>
-                        </RequirePersona>
-                      }
-                    />
-                    <Route
-                      path="partner-fees"
-                      element={
-                        <RequirePersona personas={['EBIM']}>
-                          <RequireFinanceView><PartnerFeesPage /></RequireFinanceView>
-                        </RequirePersona>
-                      }
-                    />
-                    <Route
-                      path="catalog/addons"
-                      element={
-                        <RequirePersona personas={['EBIM', 'PARTNER']}>
-                          <RequireFinanceView><AddonsPage /></RequireFinanceView>
+                          <SuiteCenterPage />
                         </RequirePersona>
                       }
                     />
 
+                    {/*
+                    V5 · F1. Entradas con pestañas (`?tab=`). Quién ve cada
+                    pestaña sale de `navigation.ts` y copia el guard de la
+                    pantalla que absorbe; RLS y las RPC siguen siendo la
+                    autoridad. Las rutas viejas redirigen aquí (abajo).
+                  */}
+                    <Route path="cuentas" element={<AccountsHubPage />} />
+                    <Route path="sales-agents" element={<SalesTeamHubPage />} />
+                    <Route path="apps" element={<AppsHubPage />} />
+                    <Route path="catalogo" element={<CatalogHubPage />} />
+                    <Route path="cobranza" element={<CollectionsHubPage />} />
+                    <Route path="commissions" element={<CommissionsHubPage />} />
+                    <Route path="settings" element={<SettingsHubPage />} />
+                    {LEGACY_REDIRECTS.map((r) => (
+                      <Route key={r.from} path={r.from.slice(1)} element={<LegacyRedirect to={r.to} tab={r.tab} />} />
+                    ))}
+
+                    {/* Fichas de detalle: conservan su URL. */}
+                    <Route path="products/:productId" element={<ProductDetailPage />} />
+                    <Route path="organizations/:organizationId" element={<OrganizationDetailPage />} />
                     <Route
-                      path="organizations"
+                      path="integrations/:integrationId"
                       element={
-                        <RequirePersona personas={['EBIM', 'PARTNER']}>
-                          <OrganizationsPage />
+                        <RequirePersona personas={['EBIM']}>
+                          <IntegrationDetailPage />
                         </RequirePersona>
                       }
                     />
-                    <Route
-                      path="organizations/:organizationId"
-                      element={<OrganizationDetailPage />}
-                    />
+
                     <Route
                       path="partners"
                       element={
@@ -222,10 +163,10 @@ export function App() {
                       }
                     />
                     <Route
-                      path="customers"
+                      path="partner-fees"
                       element={
-                        <RequirePersona personas={['EBIM', 'PARTNER']}>
-                          <CustomersPage />
+                        <RequirePersona personas={['EBIM']}>
+                          <RequireFinanceView><PartnerFeesPage /></RequireFinanceView>
                         </RequirePersona>
                       }
                     />
@@ -241,32 +182,6 @@ export function App() {
 
                     <Route path="tenants" element={<TenantsPage />} />
                     <Route path="tenants/:tenantId" element={<TenantDetailPage />} />
-
-                    <Route
-                      path="sales-agents"
-                      element={
-                        <RequirePersona personas={['EBIM', 'PARTNER']}>
-                          <SalesAgentsPage />
-                        </RequirePersona>
-                      }
-                    />
-                    <Route path="attributions" element={<AttributionsPage />} />
-                    <Route
-                      path="commission-plans"
-                      element={
-                        <RequirePersona personas={['EBIM', 'PARTNER']}>
-                          <RequireFinanceView><CommissionPlansPage /></RequireFinanceView>
-                        </RequirePersona>
-                      }
-                    />
-                    <Route
-                    path="commissions"
-                    element={
-                      <RequireFinanceView>
-                        <CommissionsPage />
-                      </RequireFinanceView>
-                    }
-                  />
 
                     <Route
                       path="subscriptions"
@@ -285,80 +200,10 @@ export function App() {
                       }
                     />
                     <Route
-                      path="billing"
-                      element={
-                        <RequirePersona personas={['EBIM', 'PARTNER']}>
-                          <RequireFinanceView><BillingPage /></RequireFinanceView>
-                        </RequirePersona>
-                      }
-                    />
-                    <Route
-                      path="renewals"
-                      element={
-                        <RequirePersona personas={['EBIM', 'PARTNER']}>
-                          <RequireFinanceView><RenewalsPage /></RequireFinanceView>
-                        </RequirePersona>
-                      }
-                    />
-                    <Route
-                      path="reconciliation"
-                      element={
-                        <RequirePersona personas={['EBIM']}>
-                          <RequireFinanceView><ReconciliationPage /></RequireFinanceView>
-                        </RequirePersona>
-                      }
-                    />
-                    <Route
                       path="costs"
                       element={
                         <RequirePersona personas={['EBIM']}>
                           <RequireFinanceView><CostsPage /></RequireFinanceView>
-                        </RequirePersona>
-                      }
-                    />
-
-                    <Route
-                      path="deployments"
-                      element={
-                        <RequirePersona personas={['EBIM', 'PARTNER']}>
-                          <DeploymentsPage />
-                        </RequirePersona>
-                      }
-                    />
-                    <Route
-                      path="provisioning"
-                      element={
-                        <RequirePersona personas={['EBIM', 'PARTNER']}>
-                          <ProvisioningPage />
-                        </RequirePersona>
-                      }
-                    />
-                    {/*
-                    Provisioning SaaS: eje de APLICACIÓN, separado del de
-                    infraestructura de arriba. Protegido además por RLS y por el
-                    gate de permiso del orquestador; `RequirePersona` es UX.
-                  */}
-                    <Route
-                      path="saas-provisioning"
-                      element={
-                        <RequirePersona personas={['EBIM', 'PARTNER']}>
-                          <SaasProvisioningPage />
-                        </RequirePersona>
-                      }
-                    />
-                    <Route
-                      path="integrations"
-                      element={
-                        <RequirePersona personas={['EBIM']}>
-                          <IntegrationsPage />
-                        </RequirePersona>
-                      }
-                    />
-                    <Route
-                      path="integrations/:integrationId"
-                      element={
-                        <RequirePersona personas={['EBIM']}>
-                          <IntegrationDetailPage />
                         </RequirePersona>
                       }
                     />
@@ -371,18 +216,9 @@ export function App() {
                         </RequirePersona>
                       }
                     />
-                    <Route
-                      path="regional"
-                      element={
-                        <RequirePersona personas={['EBIM']}>
-                          <RequireFinanceView><RegionalPage /></RequireFinanceView>
-                        </RequirePersona>
-                      }
-                    />
-                    <Route path="settings" element={<SettingsPage />} />
 
                     {/*
-                    M5 · «Usuarios y accesos». EBIM ve a todos; un admin de
+                    M5 · «Usuarios». EBIM ve a todos; un admin de
                     partner o de cliente, a los miembros de su organización.
                     `admin_list_users` y cada RPC deciden; esto es UX.
                   */}

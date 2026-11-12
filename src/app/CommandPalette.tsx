@@ -12,13 +12,14 @@ import { useModalFocus } from '@/components/ui/useModalFocus';
 import { useOrganizations, useSubscriptions, useTenantOverview } from '@/services/queries';
 import { SUBSCRIPTION_STATUS_LABEL } from '@/features/billing/subscriptionLabels';
 import { PALETTE_GROUP_LIMIT, PALETTE_MIN_TERM, topMatches } from './commandSearch';
-import type { NavItem } from './navigation';
+import type { NavDestination } from './navigation';
 
 /**
  * Paleta de comandos ⌘K / Ctrl+K (fase 06).
  *
  * «Ir a» filtra las entradas de menú que la persona ya ve (mismo `navItemsFor`
- * que el sidebar). Organizaciones, tenants y contratos reutilizan las consultas
+ * que el sidebar) y, al escribir, también las pestañas de las entradas que
+ * fusionan pantallas (V5: «Conciliación» abre Cobranza › Conciliación). Organizaciones, tenants y contratos reutilizan las consultas
  * de sus listados (misma caché, mismo RLS): solo se leen cuando hay un término
  * de 2+ caracteres y la persona tiene la pantalla de destino. Ocultar un grupo
  * es UX; lo que cada usuario puede leer lo decide RLS.
@@ -73,8 +74,8 @@ export function CommandPalette({
   access,
   onClose,
 }: {
-  /** Entradas de menú que la persona ya ve. */
-  items: NavItem[];
+  /** Entradas de menú (y sus pestañas) que la persona ya ve. */
+  items: NavDestination[];
   access: PaletteAccess;
   onClose: () => void;
 }) {
@@ -98,12 +99,14 @@ export function CommandPalette({
 
   const sections = useMemo<PaletteSection[]>(() => {
     const out: PaletteSection[] = [];
-    const navMatches = topMatches(items, query.trim(), (i) => [i.label, i.group, i.to]);
+    // Sin término, sólo las entradas del menú; al escribir, también sus pestañas.
+    const destinations = query.trim() ? items : items.filter((i) => !i.isTab);
+    const navMatches = topMatches(destinations, query.trim(), (i) => [i.label, ...i.keywords]);
     if (navMatches.length > 0) {
       out.push({
         key: 'nav',
         label: 'Ir a',
-        options: navMatches.map((i) => ({ id: `nav:${i.to}`, label: i.label, hint: i.group, to: i.to, icon: i.icon })),
+        options: navMatches.map((i) => ({ id: `nav:${i.to}`, label: i.label, hint: i.hint, to: i.to, icon: i.icon })),
       });
     }
     if (!searching) return out;
@@ -154,7 +157,7 @@ export function CommandPalette({
       ]);
       out.push({
         key: 'sub',
-        label: 'Contratos y suscripciones',
+        label: 'Contratos',
         status: groupStatus(subs, 'contratos'),
         options: rows.map((s) => ({
           id: `sub:${s.id}`,

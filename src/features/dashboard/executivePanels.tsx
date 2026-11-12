@@ -181,15 +181,15 @@ const DIMENSION_COPY = {
     unit: 'MRR por producto',
     empty: 'Ningún producto tenía MRR al cierre del mes',
     href: (key: string) => `/products/${key}`,
-    detail: { href: '/products', label: 'Ver suite SaaS' },
+    detail: { href: '/catalogo?tab=productos', label: 'Ver suite SaaS' },
     column: 'Producto',
   },
   MARKET: {
     title: '¿En qué mercados está el MRR?',
     unit: 'MRR por país',
     empty: 'Sin MRR por mercado al cierre del mes',
-    href: () => '/customers',
-    detail: { href: '/customers', label: 'Ver clientes' },
+    href: () => '/cuentas?tab=clientes',
+    detail: { href: '/cuentas?tab=clientes', label: 'Ver clientes' },
     column: 'Mercado',
   },
 } as const;
@@ -283,7 +283,7 @@ export function AgingPanel({
     base.status === 'ready' && summary && !summary.complete
       ? { status: 'partial', data: summary, reasons: [`falta tasa ${summary.missingCurrencies.join(', ')}`] }
       : base;
-  const link = (bucket: string) => `/billing?estado=OPEN&antiguedad=${bucket}`;
+  const link = (bucket: string) => `/cobranza?tab=facturacion&estado=OPEN&antiguedad=${bucket}`;
 
   return (
     <ChartPanel
@@ -297,7 +297,7 @@ export function AgingPanel({
       onRetry={() => void query.refetch()}
       emptyText="No hay facturas vencidas a esa fecha"
       refreshing={refreshing}
-      detailHref="/billing?estado=OPEN&antiguedad=VENCIDA"
+      detailHref="/cobranza?tab=facturacion&estado=OPEN&antiguedad=VENCIDA"
       detailLabel="Ver vencidas"
       chart={() =>
         summary ? (
@@ -478,7 +478,7 @@ export function TopCustomersPanel({
       footer={
         <>
           <span>Fuente: <span className="font-mono">executive_mrr_movement_customers</span></span>
-          <Link className="ebim-link text-caption font-semibold" to="/customers">
+          <Link className="ebim-link text-caption font-semibold" to="/cuentas?tab=clientes">
             Ver clientes <span aria-hidden>→</span>
           </Link>
         </>
@@ -601,7 +601,7 @@ export function AttentionPanel() {
       icon: CalendarCheckIcon,
       title: 'Avisos de renovación',
       detail: 'Contratos que renuevan dentro de su ventana de aviso',
-      href: '/renewals?ventana=30',
+      href: '/cobranza?tab=renovaciones&ventana=30',
       action: 'Revisar renovaciones',
       count: alerts.error ? null : byType('RENEWAL_NOTICE'),
       tone: 'info',
@@ -614,7 +614,7 @@ export function AttentionPanel() {
       detail: alerts.error
         ? 'Alertas de cobranza'
         : `${formatNumber(byType('PAYMENT_FAILURE'))} cobros fallidos · ${formatNumber(byType('SUSPENSION_DUE') + byType('GRACE_ENDING'))} al fin de la gracia`,
-      href: '/renewals',
+      href: '/cobranza?tab=renovaciones',
       action: 'Gestionar cobranza',
       count: alerts.error ? null : byType('PAYMENT_FAILURE') + byType('SUSPENSION_DUE') + byType('GRACE_ENDING'),
       tone: 'danger',
@@ -647,7 +647,7 @@ export function AttentionPanel() {
       icon: StackIcon,
       title: 'Altas e infraestructura fallidas',
       detail: `${formatNumber(saasFailed)} altas SaaS · ${formatNumber(infraFailed)} solicitudes de infraestructura`,
-      href: saasFailed > 0 || infraFailed === 0 ? '/saas-provisioning' : '/provisioning',
+      href: saasFailed > 0 || infraFailed === 0 ? '/apps?tab=altas' : '/apps?tab=infraestructura',
       action: 'Ver solicitudes',
       count: saas.error && summary.error ? null : saasFailed + infraFailed,
       tone: 'danger',

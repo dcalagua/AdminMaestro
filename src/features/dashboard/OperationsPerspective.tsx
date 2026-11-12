@@ -166,7 +166,7 @@ export function OperationsPerspective() {
                               <span key={s}>{s}: <strong className="tabular-nums">{n}</strong></span>
                             ))}
                             <span className="text-muted">Mappings activos: {mappings}</span>
-                            <Link className="ebim-link" to="/saas-provisioning">Ver altas</Link>
+                            <Link className="ebim-link" to="/apps?tab=altas">Ver altas</Link>
                           </span>
                         )}
                       </td>

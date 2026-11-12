@@ -130,7 +130,7 @@ export function ExecutivePanel({ d, panel }: { d: ExecutiveDashboardData; panel:
             onSelect={(m) => {
               if (view.active) return d.filters.setMonth(m);
               const r = monthBounds(m);
-              navigate(`/billing?desde=${r.from}&hasta=${r.to}#cobros`);
+              navigate(`/cobranza?tab=facturacion&desde=${r.from}&hasta=${r.to}#cobros`);
             }}
           />
         );

@@ -63,7 +63,7 @@ const base: SessionRoles = {
 
 function Where() {
   const location = useLocation();
-  return <p data-testid="where">{location.pathname}</p>;
+  return <p data-testid="where">{`${location.pathname}${location.search}`}</p>;
 }
 
 function renderShell(path = '/') {
@@ -133,10 +133,35 @@ describe('Paleta de comandos ⌘K', () => {
     const list = screen.getByRole('listbox');
     const options = within(list).getAllByRole('option');
     expect(options[0]).toHaveTextContent('Conciliación');
+    expect(options[0]).toHaveTextContent('Cobranza · Finanzas');
     expect(options[0]).toHaveAttribute('aria-selected', 'true');
     fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Enter' });
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(screen.getByTestId('where')).toHaveTextContent('/reconciliation');
+    expect(screen.getByTestId('where')).toHaveTextContent('/cobranza?tab=conciliacion');
+  });
+
+  it('sin término ofrece las entradas del menú; los nombres anteriores siguen encontrando su pestaña', () => {
+    renderShell();
+    openWithShortcut();
+    const first = within(screen.getByRole('listbox')).getAllByRole('option');
+    expect(first[0]).toHaveTextContent('Resumen');
+    expect(first.some((o) => o.textContent?.includes('Conciliación'))).toBe(false);
+    type('entitlements');
+    const option = within(screen.getByRole('listbox')).getAllByRole('option')[0]!;
+    expect(option).toHaveTextContent('Módulos habilitados');
+    fireEvent.click(option);
+    expect(screen.getByTestId('where')).toHaveTextContent('/apps?tab=sincronizacion');
+  });
+
+  it('un partner no encuentra las pestañas que no ve', () => {
+    state.persona = 'PARTNER';
+    state.roles = { ...base, organizations: [{ organizationId: 'o', role: 'PARTNER_ADMIN', displayName: 'Andina' }] };
+    renderShell();
+    openWithShortcut();
+    type('conciliacion');
+    expect(screen.queryByRole('option', { name: /Conciliación/ })).not.toBeInTheDocument();
+    type('renovaciones');
+    expect(screen.getByRole('option', { name: /Renovaciones/ })).toBeInTheDocument();
   });
 
   it('las flechas mueven la opción activa (aria-activedescendant)', () => {
@@ -171,7 +196,7 @@ describe('Paleta de comandos ⌘K', () => {
     expect(within(orgs).getAllByRole('option')).toHaveLength(8);
     const tenants = screen.getByRole('group', { name: 'Tenants' });
     expect(within(tenants).getByRole('option', { name: /Andes Norte/ })).toBeInTheDocument();
-    const subs = screen.getByRole('group', { name: 'Contratos y suscripciones' });
+    const subs = screen.getByRole('group', { name: 'Contratos' });
     expect(within(subs).getByRole('option', { name: /SUB-ANDES-001/ })).toHaveTextContent('Activa');
     fireEvent.click(within(subs).getByRole('option', { name: /SUB-ANDES-001/ }));
     expect(screen.getByTestId('where')).toHaveTextContent('/subscriptions/s-1');
@@ -185,7 +210,7 @@ describe('Paleta de comandos ⌘K', () => {
     expect(screen.queryByRole('option', { name: /Facturación y cobros/ })).not.toBeInTheDocument();
     type('andes');
     expect(state.enabled.subscriptions).toBe(false);
-    expect(screen.queryByRole('group', { name: 'Contratos y suscripciones' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Contratos' })).not.toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'Tenants' })).toBeInTheDocument();
   });
 
