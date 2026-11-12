@@ -173,7 +173,7 @@ test.describe('Provisioning SaaS: estados y acciones', () => {
     await page.getByRole('tab', { name: /Activas/ }).click();
     const filas = page.locator('tbody tr');
     if ((await filas.count()) > 0) {
-      await expect(page.getByRole('button', { name: 'Provisionar' })).toHaveCount(0);
+      await expect(page.getByRole('button', { name: 'Ejecutar alta' })).toHaveCount(0);
       await expect(page.getByRole('button', { name: 'Cancelar' })).toHaveCount(0);
     }
   });
@@ -201,7 +201,7 @@ test.describe('Nueva venta: cerrar un contrato NO aprovisiona', () => {
     // El único provisioning que menciona el alta es el de infraestructura, y en
     // simulación. Nada aquí crea el tenant dentro de un producto.
     await expect(page.getByText('Infraestructura en simulación')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Provisionar' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Ejecutar alta' })).toHaveCount(0);
   });
 
   test('provisioning SaaS es un destino SEPARADO del alta comercial', async ({ page }) => {
@@ -253,7 +253,7 @@ test.describe('sólo lectura', () => {
 
     await expect(page.getByRole('tab', { name: 'Altas en las apps', selected: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Nueva solicitud' })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Provisionar' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Ejecutar alta' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Reintentar' })).toHaveCount(0);
   });
 });
