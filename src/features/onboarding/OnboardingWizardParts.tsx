@@ -16,6 +16,10 @@ import type { FlowPhase, FlowStep } from './flowModel';
  * en las apps). La fase actual en `--accent-deep`, las completadas con check;
  * se puede volver a una fase anterior, pero nunca por detrás de lo ya creado
  * (`minStep`): el contrato no se «des-crea» volviendo atrás.
+ *
+ * Un solo sistema de pasos visible: el contador, la barra y el hilo cuentan
+ * FASES («Paso 2 de 6 · Plan y precio»). Si una fase tiene más de una
+ * pantalla, la pantalla actual se nombra al lado, sin un segundo contador.
  */
 export function WizardStepper({
   steps,
@@ -32,16 +36,21 @@ export function WizardStepper({
   onBack: (id: number) => void;
 }) {
   const current = steps.find((s) => s.id === step);
-  const phaseIndex = phases.findIndex((p) => p.id === current?.phase);
-  const pct = Math.round(((step - 1) / Math.max(steps.length - 1, 1)) * 100);
+  const phaseIndex = Math.max(0, phases.findIndex((p) => p.id === current?.phase));
+  const phase = phases[phaseIndex];
+  // Avance dentro de la fase: la barra crece pantalla a pantalla, pero se mide en fases.
+  const inPhase = steps.filter((s) => s.phase === phase?.id);
+  const within = inPhase.length > 1 ? inPhase.findIndex((s) => s.id === step) / inPhase.length : 0;
+  const pct = Math.round(((phaseIndex + within) / Math.max(phases.length - 1, 1)) * 100);
+  const screen = current && phase && inPhase.length > 1 && current.label !== phase.label ? current.label : null;
   const cols = phases.length === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-3 lg:grid-cols-6';
   return (
     <nav aria-label="Pasos del alta" className="mb-6">
       <p className="mb-3 text-compact text-fg-2">
         <span className="font-semibold text-fg">
-          Paso {step} de {steps.length}
-        </span>{' '}
-        · {current?.label}
+          Paso {phaseIndex + 1} de {phases.length} · {phase?.label}
+        </span>
+        {screen ? <> · {screen}</> : null}
       </p>
       <div
         className="mb-4 h-1 w-full overflow-hidden rounded-full bg-hover"
@@ -49,9 +58,10 @@ export function WizardStepper({
         aria-label="Progreso del alta"
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-valuenow={pct}
+        aria-valuenow={Math.min(pct, 100)}
+        aria-valuetext={`Paso ${phaseIndex + 1} de ${phases.length}`}
       >
-        <div className="h-full rounded-full bg-accent transition-[width] duration-overlay ease-out" style={{ width: `${pct}%` }} />
+        <div className="h-full rounded-full bg-accent transition-[width] duration-overlay ease-out" style={{ width: `${Math.min(pct, 100)}%` }} />
       </div>
       <ol className={`grid grid-cols-2 gap-2 ${cols}`}>
         {phases.map((p, i) => {

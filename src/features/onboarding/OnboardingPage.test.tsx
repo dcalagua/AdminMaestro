@@ -84,7 +84,9 @@ describe('venta', () => {
     renderAt('/onboarding');
     expect(screen.getByRole('heading', { level: 1, name: 'Nueva venta / alta de cliente' })).toBeInTheDocument();
     expect(phases()).toEqual(['Cuenta', 'Plan y precio', 'Contrato', 'Primera factura', 'Enlace de pago', 'Alta en las apps']);
-    expect(screen.getByText('Paso 1 de 8')).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Pasos del alta' })).toHaveTextContent('Paso 1 de 6 · Cuenta · Cliente, mercado y producto');
+    // Descripción en lenguaje de negocio, sin la jerga del envío atómico.
+    expect(screen.queryByText(/en un solo envío|solicitud de infraestructura/)).toBeNull();
     expect(screen.getByLabelText(/País \/ mercado de la venta/)).toBeInTheDocument();
   });
 
@@ -129,7 +131,7 @@ describe('«Nuevo tenant»: sólo el alta en una app', () => {
 
     // Sigue en la misma pantalla, en el alta de esa app.
     expect(await screen.findByText('Alta de Alpha EWM en EWM (sólo esta app)')).toBeInTheDocument();
-    expect(screen.getByText('Paso 3 de 3')).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Pasos del alta' })).toHaveTextContent('Paso 3 de 3 · Alta en la app');
     expect(screen.getByRole('link', { name: 'Ir a la ficha del tenant' })).toHaveAttribute('href', '/tenants/tn-new');
     // Ya creado: no se vuelve a la cuenta ni al tenant.
     expect(screen.getByRole('button', { name: /Completado: Tenant/ })).toBeDisabled();

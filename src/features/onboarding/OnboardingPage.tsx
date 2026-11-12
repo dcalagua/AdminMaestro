@@ -75,7 +75,7 @@ export function OnboardingPage() {
       description={
         isApp
           ? 'Para una cuenta existente: elige la app, crea el tenant y dalo de alta en esa app, sin salir de aquí.'
-          : 'De la cuenta al alta en las apps. El contrato (tenant, suscripción, líneas, atribución y solicitud de infraestructura) se crea en un solo envío; después siguen la primera factura, el enlace de pago y el alta en cada app.'
+          : 'Da de alta a un cliente de principio a fin: su cuenta, el plan con su precio y el contrato. Después, sin salir de aquí, emites la primera factura, envías el enlace de pago y activas sus apps.'
       }
       actions={isApp ? undefined : <Badge tone="info" dot>Infraestructura en simulación</Badge>}
     >
