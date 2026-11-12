@@ -151,6 +151,7 @@ export function Card({
   footer,
   children,
   className = '',
+  id,
 }: {
   title?: string;
   description?: string;
@@ -159,9 +160,11 @@ export function Card({
   footer?: ReactNode;
   children: ReactNode;
   className?: string;
+  /** Ancla de sección (`#id`): deja sitio para la barra superior y la cabecera fija. */
+  id?: string;
 }) {
   return (
-    <section className={`ebim-card ${className}`}>
+    <section id={id} className={`ebim-card ${id ? 'scroll-mt-40 ' : ''}${className}`}>
       {title ? (
         <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
           <div className="min-w-0">
