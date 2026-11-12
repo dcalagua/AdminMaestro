@@ -83,7 +83,7 @@ export function ConfirmStep({ wizard }: { wizard: OnboardingWizard }) {
           <p className="mt-2">
             Esa alta se decide en{' '}
             <Link to="/apps?tab=altas" className="ebim-link">
-              Operación SaaS → Altas SaaS
+              Suite → Apps → Altas en las apps
             </Link>
             , según la política configurada en la integración del producto. El valor por
             defecto es <strong>manual</strong> hasta que el contrato de cada producto esté

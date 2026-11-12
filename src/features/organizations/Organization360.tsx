@@ -515,7 +515,7 @@ export function Org360Activity({ organizationId }: { organizationId: string }) {
           </ol>
         )}
       </Section>
-      <Section title="Altas SaaS" description="Últimas 50 solicitudes registradas en el control plane; no se ejecuta nada desde aquí." state={fromQuery(saas)} onRetry={() => void saas.refetch()} empty="Sin altas SaaS para los tenants de esta organización.">
+      <Section title="Altas en las apps" description="Últimas 50 solicitudes registradas en el control plane; no se ejecuta nada desde aquí." state={fromQuery(saas)} onRetry={() => void saas.refetch()} empty="Sin altas SaaS para los tenants de esta organización.">
         {() => (
           <DataTable columns={['Producto', 'Tenant', 'Solicitud', 'Mapping', 'Fecha']}>
             {saas.data!.slice(0, 50).map((r) => (

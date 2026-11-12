@@ -105,7 +105,7 @@ export function OperationsPerspective() {
               'Destino · entorno',
               'Integración',
               'Salud (última observación)',
-              'Altas SaaS',
+              'Altas en las apps',
               'Certificación',
             ]}
           >

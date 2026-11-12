@@ -177,7 +177,7 @@ export function SaasProvisioningPage() {
 
   return (
     <PageContainer
-      title="Altas SaaS"
+      title="Altas en las apps"
       description="El alta del espacio de cada cliente DENTRO de cada app de la suite. El Admin Maestro llama a la API de la app, nunca a su base de datos. La infraestructura física tiene su propia cola."
       actions={
         access.can('platform.provisioning.execute') || access.ownedProductIds.length > 0 ? (

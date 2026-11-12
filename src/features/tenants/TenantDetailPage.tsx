@@ -204,7 +204,7 @@ export function TenantDetailPage() {
             </li>
             <li>
               <Link className="ebim-btn-ghost ebim-btn-sm" to="/apps?tab=altas">
-                Ir a Altas SaaS (decisión manual)
+                Ir a Altas en las apps (decisión manual)
               </Link>
             </li>
           </ul>
