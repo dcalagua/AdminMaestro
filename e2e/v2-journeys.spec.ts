@@ -128,7 +128,11 @@ test.describe('J2 · Alta transaccional de cliente con fee de implementación', 
     await expect(page.getByText('Implementación (única)')).toBeVisible();
     await page.getByRole('button', { name: 'Crear cliente' }).click();
 
-    await expect(page.getByText('Alta completada')).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText('Cliente creado')).toBeVisible({ timeout: 20_000 });
+
+    // V5 · F4: el flujo sigue (factura, enlace, alta en las apps); se salta a la ficha del tenant.
+
+    await page.getByRole('link', { name: 'Ir a la ficha del tenant' }).click();
     // Aterriza en el detalle del tenant recién creado.
     // h1 de la ficha (los gráficos del resumen también nombran al tenant en su título).
     await expect(page.getByRole('heading', { level: 1, name: `Alpha E2E ${RUN}` })).toBeVisible({

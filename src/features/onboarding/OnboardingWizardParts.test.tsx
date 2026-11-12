@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ContractSummary, WizardStepper } from './OnboardingWizardParts';
+import { flowFor } from './flowModel';
 
 const BASE = {
   currency: 'USD',
@@ -16,16 +17,29 @@ const BASE = {
 };
 
 describe('WizardStepper', () => {
-  it('muestra el progreso, marca el paso actual y solo deja volver atrás', () => {
+  const { steps, phases } = flowFor('SALE');
+
+  it('muestra el hilo de seis fases, el progreso y solo deja volver atrás', () => {
     const onBack = vi.fn();
-    render(<WizardStepper step={3} onBack={onBack} />);
-    expect(screen.getByText('Paso 3 de 5')).toBeInTheDocument();
-    expect(screen.getByRole('progressbar', { name: 'Progreso del alta' })).toHaveAttribute('aria-valuenow', '50');
-    const current = screen.getByRole('button', { name: /Paso actual: Plan y precio regional/ });
+    render(<WizardStepper steps={steps} phases={phases} step={3} onBack={onBack} />);
+    expect(screen.getByText('Paso 3 de 8')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar', { name: 'Progreso del alta' })).toHaveAttribute('aria-valuenow', '29');
+    const labels = screen.getAllByRole('button').map((b) => b.textContent?.replace(/^\d+/, '').replace(/^(Completado|Paso actual|Pendiente):\s*/, '').trim());
+    expect(labels).toEqual(['Cuenta', 'Plan y precio', 'Contrato', 'Primera factura', 'Enlace de pago', 'Alta en las apps']);
+    const current = screen.getByRole('button', { name: /Paso actual: Plan y precio/ });
     expect(current).toHaveAttribute('aria-current', 'step');
-    fireEvent.click(screen.getByRole('button', { name: /Completado: Cliente, mercado y producto/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Completado: Cuenta/ }));
     expect(onBack).toHaveBeenCalledWith(1);
-    expect(screen.getByRole('button', { name: /Pendiente: Resumen/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Pendiente: Alta en las apps/ })).toBeDisabled();
+  });
+
+  it('después de crear el contrato no se puede volver por detrás de lo creado', () => {
+    const onBack = vi.fn();
+    render(<WizardStepper steps={steps} phases={phases} step={7} minStep={6} onBack={onBack} />);
+    expect(screen.getByRole('button', { name: /Completado: Contrato/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Completado: Cuenta/ })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: /Completado: Primera factura/ }));
+    expect(onBack).toHaveBeenCalledWith(6);
   });
 });
 

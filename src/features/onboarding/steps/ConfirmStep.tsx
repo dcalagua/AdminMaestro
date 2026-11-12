@@ -55,7 +55,7 @@ export function ConfirmStep({ wizard }: { wizard: OnboardingWizard }) {
             ['Infraestructura', 'Solicitud encolada en simulación'],
             [
               'Alta en el producto SaaS',
-              'No se realiza aquí (política por defecto: manual)',
+              'Último paso de este flujo, sólo con tu confirmación',
             ],
           ].map(([k, v]) => (
             <div key={k} className="flex justify-between gap-4 px-5 py-2.5 text-body">
@@ -68,26 +68,25 @@ export function ConfirmStep({ wizard }: { wizard: OnboardingWizard }) {
 
       {/*
         Aviso explícito y deliberado. Cerrar una venta NO crea el tenant
-        dentro del producto: son dos decisiones distintas y la segunda
-        tiene su propia política (manual, al activar la suscripción, o al
+        dentro del producto: son dos decisiones distintas y la segunda tiene
+        su propia política (manual, al activar la suscripción, o al
         confirmarse el pago), configurable por integración y por destino.
         Dar el alta en la app al cotizar sería regalar el producto.
       */}
-      <Card title="Qué NO hace este alta">
+      <Card title="Qué NO hace este envío">
         <div className="px-5 py-4 text-body text-fg-2">
           <p>
-            Este formulario crea el <strong>contrato comercial</strong>: tenant,
-            suscripción, líneas y atribución. <strong>No</strong> da de alta al cliente
-            dentro del SaaS.
+            «Crear cliente» crea el <strong>contrato comercial</strong>: tenant, suscripción, líneas y atribución.{' '}
+            <strong>No</strong> da de alta al cliente dentro de la app.
           </p>
           <p className="mt-2">
-            Esa alta se decide en{' '}
+            Después siguen la primera factura, el enlace de pago y, al final, el <strong>alta en las apps</strong>: cada
+            paso con su propio botón y la política de alta de cada app (por defecto, manual). También se puede hacer
+            luego desde{' '}
             <Link to="/apps?tab=altas" className="ebim-link">
               Suite → Apps → Altas en las apps
             </Link>
-            , según la política configurada en la integración del producto. El valor por
-            defecto es <strong>manual</strong> hasta que el contrato de cada producto esté
-            certificado.
+            .
           </p>
         </div>
       </Card>

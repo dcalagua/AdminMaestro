@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { CheckIcon, WarningCircleIcon } from '@phosphor-icons/react';
 import { Avatar } from '@/components/ui/Avatar';
 import { formatAmount, formatMoney } from '@/lib/format';
-import { STEPS } from './onboardingSteps';
+import type { FlowPhase, FlowStep } from './flowModel';
 
 /**
  * Piezas de presentación del asistente «Nueva venta» (VISUAL_SYSTEM_V2 §8
@@ -11,18 +11,35 @@ import { STEPS } from './onboardingSteps';
  */
 
 /**
- * Pasos numerados unidos por una línea; el actual en `--accent-deep`, los
- * completados con check (se puede volver a ellos), los siguientes apagados
- * (avanzar exige validar el paso actual con «Continuar»).
+ * Hilo del flujo guiado (V5 · F4): las FASES numeradas unidas por una línea
+ * (cuenta → plan y precio → contrato → primera factura → enlace de pago → alta
+ * en las apps). La fase actual en `--accent-deep`, las completadas con check;
+ * se puede volver a una fase anterior, pero nunca por detrás de lo ya creado
+ * (`minStep`): el contrato no se «des-crea» volviendo atrás.
  */
-export function WizardStepper({ step, onBack }: { step: number; onBack: (id: number) => void }) {
-  const current = STEPS.find((s) => s.id === step);
-  const pct = Math.round(((step - 1) / (STEPS.length - 1)) * 100);
+export function WizardStepper({
+  steps,
+  phases,
+  step,
+  minStep = 1,
+  onBack,
+}: {
+  steps: readonly FlowStep[];
+  phases: readonly FlowPhase[];
+  step: number;
+  /** Primer paso al que se puede volver. */
+  minStep?: number;
+  onBack: (id: number) => void;
+}) {
+  const current = steps.find((s) => s.id === step);
+  const phaseIndex = phases.findIndex((p) => p.id === current?.phase);
+  const pct = Math.round(((step - 1) / Math.max(steps.length - 1, 1)) * 100);
+  const cols = phases.length === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-3 lg:grid-cols-6';
   return (
     <nav aria-label="Pasos del alta" className="mb-6">
       <p className="mb-3 text-compact text-fg-2">
         <span className="font-semibold text-fg">
-          Paso {step} de {STEPS.length}
+          Paso {step} de {steps.length}
         </span>{' '}
         · {current?.label}
       </p>
@@ -36,17 +53,19 @@ export function WizardStepper({ step, onBack }: { step: number; onBack: (id: num
       >
         <div className="h-full rounded-full bg-accent transition-[width] duration-overlay ease-out" style={{ width: `${pct}%` }} />
       </div>
-      <ol className="grid grid-cols-5 gap-2">
-        {STEPS.map((s) => {
-          const done = s.id < step;
-          const active = s.id === step;
+      <ol className={`grid grid-cols-2 gap-2 ${cols}`}>
+        {phases.map((p, i) => {
+          const done = i < phaseIndex;
+          const active = i === phaseIndex;
+          const first = steps.find((s) => s.phase === p.id)?.id ?? 1;
+          // Sólo se vuelve atrás, y nunca por detrás de lo ya creado.
+          const reachable = done && first >= minStep;
           return (
-            <li key={s.id} className="min-w-0">
+            <li key={p.id} className="min-w-0">
               <button
                 type="button"
-                // Solo se puede volver atrás: avanzar exige pasar la validación del paso.
-                disabled={s.id > step}
-                onClick={() => onBack(s.id)}
+                disabled={!reachable}
+                onClick={() => onBack(first)}
                 aria-current={active ? 'step' : undefined}
                 className="group flex w-full min-w-0 items-center gap-2.5 rounded-field p-1 text-left disabled:cursor-default"
               >
@@ -56,11 +75,11 @@ export function WizardStepper({ step, onBack }: { step: number; onBack: (id: num
                     active
                       ? 'bg-accent-deep text-card'
                       : done
-                        ? 'bg-accent-soft text-accent-deep ring-accent-deep group-hover:ring-1'
+                        ? `bg-accent-soft text-accent-deep ring-accent-deep ${reachable ? 'group-hover:ring-1' : ''}`
                         : 'border border-border-strong text-muted'
                   }`}
                 >
-                  {done ? <CheckIcon size={16} weight="bold" /> : s.id}
+                  {done ? <CheckIcon size={16} weight="bold" /> : i + 1}
                 </span>
                 <span
                   className={`min-w-0 text-compact leading-tight ${
@@ -68,7 +87,7 @@ export function WizardStepper({ step, onBack }: { step: number; onBack: (id: num
                   }`}
                 >
                   <span className="sr-only">{done ? 'Completado:' : active ? 'Paso actual:' : 'Pendiente:'}</span>{' '}
-                  {s.label}
+                  {p.label}
                 </span>
               </button>
             </li>

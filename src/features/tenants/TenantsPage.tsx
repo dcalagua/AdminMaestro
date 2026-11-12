@@ -14,7 +14,7 @@ import { fromQuery } from '@/features/executive/dataState';
 import { usePermissions } from '@/hooks/usePermissions';
 import { formatMoney, sumByCurrency, formatNumber } from '@/lib/format';
 import { DEPLOYMENT_MODE_LABEL, TENANT_TYPE_LABEL, TENANT_STATUS_LABEL } from '@/types/domain';
-import { TenantFormDialog, TenantStatusDialog } from './TenantDialogs';
+import { TenantStatusDialog } from './TenantDialogs';
 
 type TenantFilter = 'ALL' | 'PRODUCTION' | 'DEMO_TRIAL' | 'SHARED' | 'DEDICATED';
 
@@ -33,7 +33,6 @@ export function TenantsPage() {
   const targets = useProvisioningTargets();
   const perms = usePermissions();
   const [tab, setTab] = useState<TenantFilter>('ALL');
-  const [creating, setCreating] = useState(false);
   const [statusTarget, setStatusTarget] = useState<{
     id: string;
     name: string;
@@ -66,9 +65,10 @@ export function TenantsPage() {
       description="Un tenant es el espacio del cliente en una app de la suite: pertenece a UNA sola app. Dónde vive físicamente lo decide su modo de despliegue, no su jerarquía comercial."
       actions={
         perms.canManagePlatform ? (
-          <button type="button" className="ebim-btn-primary" onClick={() => setCreating(true)}>
+          // «Nuevo tenant» abre el flujo guiado en modo «solo alta en una app» (V5 · F4).
+          <Link className="ebim-btn-primary" to="/onboarding?modo=app">
             Nuevo tenant
-          </button>
+          </Link>
         ) : null
       }
     >
@@ -210,7 +210,6 @@ export function TenantsPage() {
         )}
       </Card>
 
-      <TenantFormDialog open={creating} onClose={() => setCreating(false)} />
 
       <TenantStatusDialog
         open={Boolean(statusTarget)}
