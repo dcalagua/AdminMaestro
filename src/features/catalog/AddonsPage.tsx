@@ -4,7 +4,7 @@ import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { usePermissions } from '@/hooks/usePermissions';
 import { StatusTabs } from '@/components/ui/SectionTabs';
 import {
-  PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge,
+  PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge, Skeleton,
 } from '@/components/ui/primitives';
 import { AddonPriceList } from './AddonPriceList';
 import { ActionMenu } from '@/components/ui/ActionMenu';
@@ -127,7 +127,10 @@ export function AddonsPage() {
                     </td>
                     <td className="ebim-td">
                       {prices.isLoading ? (
-                        <span className="text-compact text-muted">…</span>
+                        <span aria-busy="true">
+                          <span className="sr-only">Cargando precios…</span>
+                          <Skeleton className="block h-3 w-20" />
+                        </span>
                       ) : (
                         <AddonPriceList prices={pricesByItem.get(i.code)} />
                       )}
