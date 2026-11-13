@@ -8,7 +8,7 @@ import { matchRank, topMatches } from './commandSearch';
 const state = vi.hoisted(() => ({
   persona: 'EBIM' as PersonaKind,
   roles: null as SessionRoles | null,
-  enabled: { organizations: false, tenants: false, subscriptions: false },
+  enabled: { organizations: false, tenants: false, subscriptions: false } as Record<string, boolean>,
 }));
 
 vi.mock('@/hooks/useAuth', () => ({
@@ -34,14 +34,49 @@ const SUBS = [
   { id: 's-1', code: 'SUB-ANDES-001', status: 'ACTIVE', organizations: { display_name: 'Constructora Andes 1' }, tenants: { name: 'Andes Norte' }, saas_products: { short_name: 'EWM' } },
 ];
 
+const INVOICES = [
+  { invoice_id: 'inv-1', number: 'F001-ANDES-12', organization_name: 'Constructora Andes 1', total: 1180, currency: 'PEN', status: 'ISSUED' },
+];
+const PAYMENTS = [
+  { payment_id: 'pay-1', invoice_number: 'F001-ANDES-12', reference: 'OP-ANDES-77', organization_name: 'Constructora Andes 1', collected_amount: 500, currency: 'PEN', collected_on: '2026-11-02' },
+];
+const USERS = [
+  { id: 'u-andes', fullName: 'Ana Andes', email: 'ana@andes.pe', platformRole: null, organizations: [{ organization_name: 'Constructora Andes 1' }] },
+];
+const PRODUCTS = [
+  { id: 'p-ewm', code: 'ewm', short_name: 'EWM', lockup_name: 'EWM Andes Warehouse', status: 'ACTIVE' },
+  { id: 'p-old', code: 'old', short_name: 'Andes Legacy', lockup_name: null, status: 'ARCHIVED' },
+];
+const PARTNERS = [
+  { id: 'org-p', display_name: 'Andes Partners', legal_name: 'Andes Partners SAC', slug: 'andes-p', tax_id: null, country_code: 'PE', organization_capabilities: [{ capability: 'PARTNER' }] },
+];
+
+vi.mock('@/services/financeRead', () => {
+  const page = (key: string, enabled: boolean, rows: unknown[]) => {
+    state.enabled[key] ||= enabled;
+    return enabled ? { data: { rows, total: rows.length }, isFetching: false, isError: false } : { data: undefined, isFetching: false, isError: false };
+  };
+  return {
+    useInvoiceSearch: (_t: string, { enabled }: { enabled: boolean }) => page('invoices', enabled, INVOICES),
+    usePaymentSearch: (_t: string, { enabled }: { enabled: boolean }) => page('payments', enabled, PAYMENTS),
+  };
+});
+
 vi.mock('@/services/queries', () => {
   const result = (enabled: boolean, rows: unknown[]) =>
     enabled ? { data: rows, isFetching: false, isError: false } : { data: undefined, isFetching: false, isError: false };
   return {
-    useCriticalBillingAlertCount: () => ({ data: undefined }),
+    useAdminUsers: (_scope: unknown, { enabled }: { enabled: boolean }) => {
+      state.enabled.users ||= enabled;
+      return result(enabled, USERS);
+    },
+    useProducts: ({ enabled }: { enabled: boolean }) => {
+      state.enabled.apps ||= enabled;
+      return result(enabled, PRODUCTS);
+    },
     useOrganizations: ({ enabled }: { enabled: boolean }) => {
       state.enabled.organizations ||= enabled;
-      return result(enabled, ORGS);
+      return result(enabled, [...ORGS, ...PARTNERS]);
     },
     useTenantOverview: ({ enabled }: { enabled: boolean }) => {
       state.enabled.tenants ||= enabled;
@@ -53,6 +88,10 @@ vi.mock('@/services/queries', () => {
     },
   };
 });
+
+vi.mock('@/features/inbox/useInbox', () => ({
+  useInbox: () => ({ items: [], loading: false, audience: {} }),
+}));
 
 import { AppShell } from './AppShell';
 
@@ -94,7 +133,7 @@ beforeEach(() => {
   vi.useFakeTimers();
   state.persona = 'EBIM';
   state.roles = { ...base, platformRole: 'EBIM_SUPER_ADMIN' };
-  state.enabled = { organizations: false, tenants: false, subscriptions: false };
+  state.enabled = {};
   localStorage.clear();
 });
 
@@ -184,7 +223,8 @@ describe('Paleta de comandos ⌘K', () => {
     renderShell();
     openWithShortcut();
     type('a');
-    expect(state.enabled).toEqual({ organizations: false, tenants: false, subscriptions: false });
+    expect(Object.values(state.enabled).every((v) => v === false)).toBe(true);
+    expect(Object.keys(state.enabled).sort()).toEqual(['apps', 'invoices', 'organizations', 'payments', 'subscriptions', 'tenants', 'users']);
     expect(screen.queryByRole('group', { name: 'Organizaciones' })).not.toBeInTheDocument();
   });
 
@@ -194,6 +234,8 @@ describe('Paleta de comandos ⌘K', () => {
     type('andes');
     const orgs = screen.getByRole('group', { name: 'Organizaciones' });
     expect(within(orgs).getAllByRole('option')).toHaveLength(8);
+    // Los partners van en su propio grupo, no se repiten en Organizaciones.
+    expect(within(orgs).queryByRole('option', { name: /Andes Partners/ })).toBeNull();
     const tenants = screen.getByRole('group', { name: 'Tenants' });
     expect(within(tenants).getByRole('option', { name: /Andes Norte/ })).toBeInTheDocument();
     const subs = screen.getByRole('group', { name: 'Contratos' });
@@ -222,6 +264,73 @@ describe('Paleta de comandos ⌘K', () => {
     // Y lo anuncia a lectores de pantalla.
     const dialog = screen.getByRole('dialog', { name: 'Buscar y navegar' });
     expect(within(dialog).getByRole('status')).toHaveTextContent('Sin resultados para «zzzz»');
+  });
+
+  it('acciones: sin término se ofrecen tras «Ir a», sin duplicar la entrada del menú, y llevan a la acción', () => {
+    renderShell();
+    openWithShortcut();
+    const actions = screen.getByRole('group', { name: 'Acciones' });
+    expect(within(actions).getAllByRole('option').map((o) => o.textContent?.replace(/\s+/g, ' '))).toEqual([
+      expect.stringContaining('Emitir factura…'),
+      expect.stringContaining('Nueva venta'),
+      expect.stringContaining('Nuevo tenant'),
+      expect.stringContaining('Verificar salud de las apps'),
+      expect.stringContaining('Ir a Bandeja'),
+    ]);
+    const nav = screen.getByRole('group', { name: 'Ir a' });
+    expect(within(nav).queryByRole('option', { name: /^Nueva venta/ })).toBeNull();
+    expect(within(nav).queryByRole('option', { name: /^Bandeja/ })).toBeNull();
+    type('emitir');
+    fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Enter' });
+    expect(screen.getByTestId('where')).toHaveTextContent('/cobranza?accion=emitir-factura');
+  });
+
+  it('acciones según el permiso: un técnico sólo verifica salud y va a la Bandeja; un partner no vende ni crea tenants', () => {
+    state.roles = { ...base, ownedProductIds: ['p1'] };
+    const { unmount } = renderShell();
+    openWithShortcut();
+    let labels = within(screen.getByRole('group', { name: 'Acciones' })).getAllByRole('option').map((o) => o.textContent);
+    expect(labels).toEqual([expect.stringContaining('Verificar salud de las apps'), expect.stringContaining('Ir a Bandeja')]);
+    unmount();
+
+    state.persona = 'PARTNER';
+    state.roles = { ...base, organizations: [{ organizationId: 'o', role: 'PARTNER_ADMIN', displayName: 'Andina' }] };
+    renderShell();
+    openWithShortcut();
+    labels = within(screen.getByRole('group', { name: 'Acciones' })).getAllByRole('option').map((o) => o.textContent);
+    expect(labels).toEqual([expect.stringContaining('Ir a Bandeja')]);
+  });
+
+  it('busca facturas, cobros, usuarios, partners y apps (2+ letras) y abre su pantalla', () => {
+    renderShell();
+    openWithShortcut();
+    type('andes');
+    expect(state.enabled).toMatchObject({ invoices: true, payments: true, users: true, apps: true });
+    const invoices = screen.getByRole('group', { name: 'Facturas' });
+    expect(within(invoices).getByRole('option', { name: /F001-ANDES-12/ })).toHaveTextContent('Emitida');
+    expect(within(screen.getByRole('group', { name: 'Cobros' })).getByRole('option', { name: /OP-ANDES-77/ })).toBeInTheDocument();
+    expect(within(screen.getByRole('group', { name: 'Usuarios' })).getByRole('option', { name: /Ana Andes/ })).toHaveTextContent('ana@andes.pe');
+    expect(within(screen.getByRole('group', { name: 'Partners' })).getByRole('option', { name: /Andes Partners/ })).toBeInTheDocument();
+    // Las apps archivadas no se ofrecen.
+    const apps = screen.getByRole('group', { name: 'Apps' });
+    expect(within(apps).getAllByRole('option')).toHaveLength(1);
+    fireEvent.click(within(apps).getByRole('option', { name: /EWM/ }));
+    expect(screen.getByTestId('where')).toHaveTextContent('/apps/ewm');
+
+    openWithShortcut();
+    type('andes');
+    fireEvent.click(within(screen.getByRole('group', { name: 'Facturas' })).getByRole('option', { name: /F001-ANDES-12/ }));
+    expect(screen.getByTestId('where')).toHaveTextContent('/cobranza?tab=facturacion&q=F001-ANDES-12');
+  });
+
+  it('sin finanzas no busca facturas ni cobros; sin rol de consola ni de admin no busca usuarios', () => {
+    state.roles = { ...base, ownedProductIds: ['p1'] };
+    renderShell();
+    openWithShortcut();
+    type('andes');
+    expect(state.enabled).toMatchObject({ invoices: false, payments: false, users: false });
+    expect(screen.queryByRole('group', { name: 'Facturas' })).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Usuarios' })).toBeNull();
   });
 
   it('no se abre encima de otro diálogo modal (menú móvil)', () => {

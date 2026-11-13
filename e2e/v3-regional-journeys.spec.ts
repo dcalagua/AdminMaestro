@@ -64,10 +64,12 @@ async function sellRegional(page: Page, sale: RegionalSale) {
   // 5 · resumen
   await expect(page.getByText('Moneda contractual')).toBeVisible();
   await page.getByRole('button', { name: 'Crear cliente' }).click();
-  await expect(page.getByText('Alta completada')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText('Cliente creado')).toBeVisible({ timeout: 20_000 });
+  // V5 · F4: el flujo sigue (factura, enlace, alta en las apps); se salta a la ficha del tenant.
+  await page.getByRole('link', { name: 'Ir a la ficha del tenant' }).click();
   await expect(page.getByRole('heading', { level: 1, name: sale.tenantName })).toBeVisible({ timeout: 15_000 });
 
-  await page.getByRole('tab', { name: 'Suscripción' }).click();
+  await page.getByRole('tab', { name: 'Contrato', exact: true }).click();
   await page.locator('a[href^="/subscriptions/"]').first().click();
   await page.waitForURL('**/subscriptions/**');
   return page.url();
@@ -216,8 +218,8 @@ test.describe('Fase 17 · Journeys regionales', () => {
     await expect(page.getByText(/Tarifa PE\/USD: USD\s850\.00/)).toBeVisible();
 
     // Mismo cliente, mismo plan, misma moneda: al cambiar el mercado a Ecuador cambia la tarifa.
-    // Paso 1 del stepper (fase 11: número en círculo + nombre del paso).
-    await page.getByRole('button', { name: /Cliente, mercado y producto/ }).click();
+    // Fase «Cuenta» del hilo (V5 · F4: el stepper muestra las fases del flujo).
+    await page.getByRole('button', { name: /Completado: Cuenta/ }).click();
     await field(page, 'País / mercado de la venta').selectOption('EC');
     await page.getByRole('button', { name: 'Continuar' }).click();
     await page.getByRole('button', { name: 'Continuar' }).click();

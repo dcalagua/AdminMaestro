@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import { CaretDownIcon, CaretUpDownIcon, CaretUpIcon } from '@phosphor-icons/react';
 import { EmptyState, ErrorState, LoadingState } from './primitives';
 import { TablePager } from './TablePager';
+import { MobileCardList } from './MobileCards';
+import { useIsMobile } from '@/hooks/useMediaQuery';
 import type { SortDir } from '@/services/financeRead';
 
 export { TablePager };
@@ -22,6 +24,8 @@ export interface TableColumn<Row> {
   /** Columna de orden en servidor; sin ella la cabecera no es ordenable. */
   sortKey?: string;
   className?: string;
+  /** Columna de acciones (cabecera solo para lector de pantalla): en móvil va al pie de la tarjeta. */
+  srOnly?: boolean;
 }
 
 export function PagedTable<Row>({
@@ -44,6 +48,7 @@ export function PagedTable<Row>({
   emptyTitle = 'Sin resultados',
   emptyDescription,
   rowClassName,
+  mobileCards = false,
 }: {
   /** Nombre accesible de la tabla. */
   label: string;
@@ -65,10 +70,43 @@ export function PagedTable<Row>({
   emptyTitle?: string;
   emptyDescription?: string;
   rowClassName?: (row: Row) => string | undefined;
+  /** Por debajo de `sm`, filas como tarjetas (V5 · F7); el orden y la paginación se mantienen. */
+  mobileCards?: boolean;
 }) {
+  const mobile = useIsMobile();
   if (loading) return <LoadingState />;
   if (error) return <ErrorState error={error} onRetry={onRetry} />;
   if (rows.length === 0) return <EmptyState title={emptyTitle} description={emptyDescription} />;
+
+  const pager = (
+    <TablePager
+      page={page}
+      pageSize={pageSize}
+      total={total}
+      shown={rows.length}
+      onPageChange={onPageChange}
+      onPageSizeChange={onPageSizeChange}
+    />
+  );
+
+  if (mobileCards && mobile) {
+    const [first, ...rest] = columns;
+    return (
+      <div aria-busy={fetching || undefined}>
+        <MobileCardList
+          label={label}
+          items={rows.map((row) => ({
+            key: rowKey(row),
+            className: rowClassName?.(row),
+            title: first ? first.cell(row) : null,
+            fields: rest.filter((c) => !c.srOnly && c.header.trim() !== '').map((c) => ({ label: c.header, content: c.cell(row) })),
+            actions: rest.filter((c) => c.srOnly || c.header.trim() === '').map((c) => <span key={c.id}>{c.cell(row)}</span>),
+          }))}
+        />
+        {pager}
+      </div>
+    );
+  }
 
   return (
     <div aria-busy={fetching || undefined}>
@@ -86,7 +124,9 @@ export function PagedTable<Row>({
                     aria-sort={ariaSort}
                     className={`ebim-th ${c.align === 'right' ? 'text-right' : ''}`}
                   >
-                    {c.sortKey ? (
+                    {c.srOnly ? (
+                      <span className="sr-only">{c.header}</span>
+                    ) : c.sortKey ? (
                       <button
                         type="button"
                         className={`inline-flex items-center gap-1 rounded-sm uppercase hover:text-fg ${
@@ -128,14 +168,7 @@ export function PagedTable<Row>({
         </table>
       </div>
 
-      <TablePager
-        page={page}
-        pageSize={pageSize}
-        total={total}
-        shown={rows.length}
-        onPageChange={onPageChange}
-        onPageSizeChange={onPageSizeChange}
-      />
+      {pager}
     </div>
   );
 }

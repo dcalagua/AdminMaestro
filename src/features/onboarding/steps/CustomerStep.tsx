@@ -2,9 +2,9 @@ import { MarketSelectField } from '@/components/ui/regional-fields';
 import { SelectField } from '@/components/ui/fields';
 import type { OnboardingWizard } from '../useOnboardingWizard';
 
-/** Paso 1 · Cliente, mercado y producto. */
+/** Paso 1 · Cliente, mercado y producto (en «Nuevo tenant», sólo cuenta y app). */
 export function CustomerStep({ wizard }: { wizard: OnboardingWizard }) {
-  const { products, orgs, marketList, form, market } = wizard;
+  const { products, orgs, marketList, form, market, mode } = wizard;
   return (
     <div className="grid gap-4">
       <SelectField
@@ -14,6 +14,7 @@ export function CustomerStep({ wizard }: { wizard: OnboardingWizard }) {
         error={form.formState.errors.customer_organization_id}
         {...form.register('customer_organization_id')}
       />
+      {mode === 'APP' ? null : (
       <MarketSelectField
         markets={marketList} required label="País / mercado de la venta"
         hint={
@@ -24,6 +25,7 @@ export function CustomerStep({ wizard }: { wizard: OnboardingWizard }) {
         error={form.formState.errors.market_code}
         {...form.register('market_code')}
       />
+      )}
       <SelectField
         label="Producto SaaS" required placeholder="Elige el producto…"
         options={(products.data ?? [])

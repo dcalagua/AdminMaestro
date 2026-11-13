@@ -4,7 +4,8 @@ import type { OnboardingWizard } from '../useOnboardingWizard';
 
 /** Paso 2 · Canal, modelo de despliegue y tenant. */
 export function TenantStep({ wizard }: { wizard: OnboardingWizard }) {
-  const { orgs, form, values, agreement, allowedModes, targetOptions } = wizard;
+  const { orgs, form, values, agreement, allowedModes, targetOptions, mode } = wizard;
+  const isApp = mode === 'APP';
   return (
     <div className="grid gap-4">
       <FieldRow>
@@ -16,6 +17,7 @@ export function TenantStep({ wizard }: { wizard: OnboardingWizard }) {
           error={form.formState.errors.managing_organization_id}
           {...form.register('managing_organization_id')}
         />
+        {isApp ? null : (
         <NumberField
           label="Margen del canal (%)" min={0} max={100} step="0.01"
           hint={
@@ -26,6 +28,7 @@ export function TenantStep({ wizard }: { wizard: OnboardingWizard }) {
           error={form.formState.errors.channel_margin_pct}
           {...form.register('channel_margin_pct')}
         />
+        )}
       </FieldRow>
 
       {values.managing_organization_id && !agreement ? (
@@ -73,7 +76,7 @@ export function TenantStep({ wizard }: { wizard: OnboardingWizard }) {
         error={form.formState.errors.admin_email} {...form.register('admin_email')}
       />
 
-      {values.deployment_mode !== 'SHARED' ? (
+      {!isApp && values.deployment_mode !== 'SHARED' ? (
         <SelectField
           label="Deployment target dedicado"
           placeholder="Crear más adelante (queda encolado)"

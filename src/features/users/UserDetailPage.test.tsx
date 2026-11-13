@@ -47,7 +47,15 @@ vi.mock('@/services/queries', () => ({
   }),
   useSalesAgents: () => ({ data: [{ id: 'a3', code: 'equipo-ebim', full_name: 'Equipo Comercial EBIM', user_id: null }], isLoading: false, error: null }),
   useOrganizations: () => ({ data: [{ id: ANDINA, display_name: 'Consultora Andina', kind: 'COMPANY', organization_capabilities: [{ capability: 'PARTNER' }] }], isLoading: false }),
-  useTenantOverview: () => ({ data: [], isLoading: false }),
+  useTenantOverview: () => ({
+    data: [{ tenant_id: 't-ewm', name: 'Andina · EWM', saas_product_id: 'p-ewm', product_short_name: 'EWM', product_code: 'ewm',
+             status: 'PENDING', customer_name: 'Cliente Andino', customer_organization_id: 'org-c' }],
+    isLoading: false,
+  }),
+  useSaasProvisioningRequests: () => ({
+    data: [{ tenant_id: 't-ewm', saas_product_id: 'p-ewm', status: 'ACTIVE', requested_at: '2026-10-01T00:00:00Z' }],
+    isLoading: false, error: null,
+  }),
 }));
 vi.mock('@/services/mutations', () => ({
   useUserAdminAction: () => rpc(m.action),
@@ -102,9 +110,33 @@ beforeEach(() => {
 describe('UserDetailPage', () => {
   it('el super admin ve todas las pestañas y el #hash abre la indicada', () => {
     renderAt('#organizaciones');
-    expect(tabNames()).toEqual(['Perfil', 'Rol de consola', 'Organizaciones', 'Tenants', 'Altas en las apps', 'Vendedor', 'Actividad']);
+    expect(tabNames()).toEqual(['Perfil', 'Apps y accesos', 'Rol de consola', 'Organizaciones', 'Altas en las apps', 'Vendedor', 'Actividad']);
     expect(screen.getByRole('tab', { name: 'Organizaciones' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tabpanel')).toHaveTextContent('Consultora Andina');
+  });
+
+  it('V5 · F6: apps y accesos con rol, estado en la app y el canal de usuarios pendiente', () => {
+    m.user = { ...base, tenants: [
+      { id: 'tm1', tenant_id: 't-ewm', tenant_name: 'Andina · EWM', tenant_slug: 'andina-ewm', product_name: 'EWM',
+        customer_organization_id: 'org-c', role: 'TENANT_ADMIN', is_active: true },
+    ] };
+    renderAt('#tenants');
+    expect(screen.getByRole('tab', { name: 'Apps y accesos' })).toHaveAttribute('aria-selected', 'true');
+    const panel = screen.getByRole('tabpanel');
+    const app = within(panel).getByRole('region', { name: 'EWM' });
+    expect(within(app).getByText('Rol: Admin')).toBeInTheDocument();
+    expect(within(app).getByRole('link', { name: 'EWM' })).toHaveAttribute('href', '/apps/ewm');
+    const row = within(app).getByRole('row', { name: /Andina · EWM/ });
+    expect(row).toHaveTextContent('Cliente Andino');
+    // Estado combinado de la suite: activo en la app, pendiente en el Admin Maestro.
+    expect(within(row).getByText('Por confirmar')).toBeInTheDocument();
+    // Invitar/suspender/reactivar dentro de la app: texto, sin botones falsos.
+    const note = panel.querySelector('[data-app-user-channel="pending"]') as HTMLElement;
+    expect(note).toHaveTextContent('Disponible cuando exista el canal de usuarios de la app');
+    expect(within(note).queryByRole('button')).not.toBeInTheDocument();
+    expect(within(panel).queryByRole('button', { name: /Suspender en la app|Invitar a la app/ })).not.toBeInTheDocument();
+    // Las acciones existentes de la consola se mantienen.
+    expect(within(panel).getByRole('heading', { name: 'Membresías de tenant' })).toBeInTheDocument();
   });
 
   it('rol de consola: nunca ofrece Super Admin y asigna el elegido', async () => {
@@ -139,7 +171,7 @@ describe('UserDetailPage', () => {
   it('un admin de partner no ve consola, provisioning ni vendedor, ni puede desactivar', () => {
     m.scope = andinaScope;
     renderAt();
-    expect(tabNames()).toEqual(['Perfil', 'Organizaciones', 'Tenants', 'Actividad']);
+    expect(tabNames()).toEqual(['Perfil', 'Apps y accesos', 'Organizaciones', 'Actividad']);
     expect(screen.queryByRole('button', { name: 'Desactivar' })).not.toBeInTheDocument();
   });
 

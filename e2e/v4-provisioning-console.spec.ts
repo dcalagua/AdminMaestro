@@ -183,7 +183,7 @@ test.describe('Provisioning SaaS: estados y acciones', () => {
     await page.goto('/tenants');
     await page.getByRole('link', { name: 'Empresa Directa Alpha · EWM' }).first().click();
 
-    await page.getByRole('tab', { name: 'Productos / Altas' }).click();
+    await page.getByRole('tab', { name: 'App y alta' }).click();
     await expect(page.getByText('Alta en los productos de la suite')).toBeVisible();
     // La columna se llama «ID en el producto» a propósito: lo que se muestra son
     // identificadores DEL PRODUCTO, no datos operativos ni IDs universales EBIM.

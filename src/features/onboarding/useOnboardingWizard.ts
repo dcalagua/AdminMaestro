@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -13,22 +13,57 @@ import {
   resolveRegionalPrice,
   suggestedMarketForCountry,
 } from '@/lib/regional';
-import { useOnboardCustomer } from '@/services/mutations';
+import { useCreateTenant, useOnboardCustomer } from '@/services/mutations';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/components/ui/toast-context';
-import { STEPS } from './onboardingSteps';
 import { MODES, STEP_FIELDS, schema, type FormValues } from './onboardingForm';
+import { flowFor, type FlowMode } from './flowModel';
+
+/** Lo que quedó creado al cerrar la venta (o el tenant): alimenta los pasos siguientes. */
+export interface CreatedSale {
+  tenantId: string;
+  tenantName: string;
+  organizationId: string;
+  organizationName: string;
+  billingEmail: string | null;
+  productId: string;
+  productName: string;
+  productCode: string;
+  subscriptionId: string | null;
+  /** `PARTNER_STATEMENT`: lo factura el partner, EBIM no emite factura al cliente. */
+  billingChannel: string | null;
+  currency: string;
+  activated: boolean;
+}
+
+/** «Nuevo tenant» (modo app): sólo los campos que pide `create_tenant`. */
+const APP_STEP_FIELDS: Record<number, Array<keyof FormValues>> = {
+  1: ['customer_organization_id', 'saas_product_code'],
+  2: STEP_FIELDS[2] ?? [],
+};
 
 /**
- * Estado y reglas del wizard «Nueva venta»: consultas, formulario, mercado y
- * moneda sugeridos, tarifa regional vigente, avance por pasos y el envío único
- * a `onboard_customer_subscription()`. La pantalla y cada paso solo pintan.
+ * Estado y reglas del flujo guiado de alta (V5 · F4): consultas, formulario,
+ * mercado y moneda sugeridos, tarifa regional vigente y avance por pasos.
+ *
+ * - Venta (`/onboarding`): el contrato sale de UN envío a
+ *   `onboard_customer_subscription()`; después siguen primera factura, enlace
+ *   de pago y alta en las apps, cada uno con su acción explícita.
+ * - «Nuevo tenant» (`/onboarding?modo=app`, opcional `&cuenta=<id>`): cuenta
+ *   existente → tenant con `create_tenant()` → alta en esa app.
+ *
+ * La pantalla y cada paso solo pintan.
  */
 export function useOnboardingWizard() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const toast = useToast();
   const perms = usePermissions();
   const onboard = useOnboardCustomer();
+  const createTenant = useCreateTenant();
+  const [mode] = useState<FlowMode>(() => (params.get('modo') === 'app' ? 'APP' : 'SALE'));
+  const flow = flowFor(mode);
+  const [created, setCreated] = useState<CreatedSale | null>(null);
 
   const products = useProducts();
   const orgs = useOrganizations();
@@ -52,7 +87,7 @@ export function useOnboardingWizard() {
     resolver: zodResolver(schema),
     mode: 'onTouched',
     defaultValues: {
-      customer_organization_id: '', saas_product_code: '',
+      customer_organization_id: params.get('cuenta') ?? '', saas_product_code: '',
       managing_organization_id: '', channel_margin_pct: 0,
       deployment_mode: 'SHARED', tenant_type: 'PRODUCTION',
       tenant_slug: '', tenant_name: '', admin_email: '', deployment_target_id: '',
@@ -168,25 +203,55 @@ export function useOnboardingWizard() {
     values.plan_id && values.market_code && values.currency && isRecurringSale && listedPrice === null,
   );
 
-  async function nextStep() {
-    const fields = STEP_FIELDS[step] ?? [];
+  const fieldsFor = (n: number) => (mode === 'APP' ? APP_STEP_FIELDS[n] : STEP_FIELDS[n]) ?? [];
+
+  /** Valida los campos del paso; si falta algo, dice cuántos. */
+  async function validStep(n: number): Promise<boolean> {
+    const fields = fieldsFor(n);
     const ok = await form.trigger(fields as never);
     if (!ok) {
       const errors = form.formState.errors as Record<string, unknown>;
       setStepIssue(fields.filter((f) => errors[f as string]).length || 1);
-      return;
+      return false;
     }
     setStepIssue(null);
+    return true;
+  }
+
+  async function nextStep() {
+    // Después de crear, avanzar no valida nada: cada paso tiene su propia acción.
+    if (step > flow.createStep) {
+      setStep((s) => Math.min(s + 1, flow.steps.length));
+      return;
+    }
+    if (!(await validStep(step))) return;
     // Sin tarifa regional no hay venta recurrente: la base lo rechazaría con
     // TARIFA_REGIONAL_NO_DEFINIDA. Se corta aquí para no llegar al resumen.
-    if (step === 3 && regionalPriceMissing) {
+    if (mode === 'SALE' && step === 3 && regionalPriceMissing) {
       form.setError('plan_id', {
         type: 'regional-price',
         message: `El plan no tiene tarifa vigente en ${values.market_code}/${values.currency} para esa periodicidad. Publícala en el catálogo o elige otra moneda.`,
       });
       return;
     }
-    setStep((s) => Math.min(s + 1, STEPS.length));
+    setStep((s) => Math.min(s + 1, flow.steps.length));
+  }
+
+  function baseCreated(tenantId: string, v: FormValues): CreatedSale {
+    return {
+      tenantId,
+      tenantName: v.tenant_name,
+      organizationId: v.customer_organization_id,
+      organizationName: customer?.display_name ?? '',
+      billingEmail: (customer as { billing_email?: string | null } | undefined)?.billing_email ?? null,
+      productId: product?.id ?? '',
+      productName: product?.short_name ?? v.saas_product_code,
+      productCode: v.saas_product_code,
+      subscriptionId: null,
+      billingChannel: null,
+      currency: v.currency,
+      activated: false,
+    };
   }
 
   const submitOnce = form.handleSubmit(async (raw) => {
@@ -221,42 +286,80 @@ export function useOnboardingWizard() {
         p_deployment_target_id: v.deployment_target_id || undefined,
         p_activate: v.activate,
         p_notes: v.notes || undefined,
-      })) as { tenant_id?: string; subscription_id?: string; provisioning_request_id?: string } | null;
+      })) as {
+        tenant_id?: string;
+        subscription_id?: string | null;
+        billing_channel?: string | null;
+        currency?: string;
+      } | null;
 
-      toast.success('Alta completada', `${v.tenant_name} se creó de forma transaccional.`);
-      // Continuidad (spec §11.3): el Tenant 360 recibe el contexto de la venta
-      // para ofrecer los siguientes pasos. Navegar NO ejecuta ninguna alta SaaS.
-      if (result?.tenant_id) {
-        navigate(`/tenants/${result.tenant_id}`, {
-          state: {
-            onboarded: {
-              subscriptionId: result.subscription_id ?? null,
-              productName: v.saas_product_code,
-              activated: v.activate,
-            },
-          },
-        });
-      } else navigate('/tenants');
+      if (!result?.tenant_id) {
+        toast.success('Cliente creado', `${v.tenant_name} se creó de forma transaccional.`);
+        navigate('/tenants');
+        return;
+      }
+      // El flujo sigue aquí: primera factura, enlace de pago y alta en las apps.
+      // Nada de eso se ejecuta solo; cada paso tiene su botón.
+      setCreated({
+        ...baseCreated(result.tenant_id, raw),
+        subscriptionId: result.subscription_id ?? null,
+        billingChannel: result.billing_channel ?? null,
+        currency: result.currency ?? v.currency,
+        activated: v.activate,
+      });
+      toast.success('Cliente creado', `${v.tenant_name}: contrato listo. Sigue con la primera factura.`);
+      setStep(flow.createStep + 1);
     } catch {
       /* el error de la base se muestra bajo los botones */
     }
   });
 
+  /** Modo «Nuevo tenant»: `create_tenant()` para una cuenta existente, sin contrato. */
+  async function submitTenant() {
+    if (!(await validStep(flow.createStep))) return;
+    const v = form.getValues();
+    try {
+      const tenantId = await createTenant.mutateAsync({
+        p_saas_product_code: v.saas_product_code,
+        p_customer_organization_id: v.customer_organization_id,
+        p_slug: v.tenant_slug.trim(),
+        p_name: v.tenant_name.trim(),
+        p_admin_email: v.admin_email.trim(),
+        p_tenant_type: v.tenant_type,
+        p_deployment_mode: v.deployment_mode,
+        p_managing_organization_id: v.managing_organization_id || undefined,
+      });
+      setCreated(baseCreated(tenantId, v));
+      toast.success('Tenant creado', `${v.tenant_name} queda pendiente hasta su alta en la app.`);
+      setStep(flow.createStep + 1);
+    } catch {
+      /* el error de la base se muestra bajo los botones */
+    }
+  }
+
   async function submit() {
-    if (submitting.current) return;
+    if (submitting.current || created) return;
     submitting.current = true;
     try {
-      await submitOnce();
+      if (mode === 'APP') await submitTenant();
+      else await submitOnce();
     } finally {
       submitting.current = false;
     }
   }
+
+  /** La operación de creación del modo actual (para estado ocupado y error). */
+  const creation = mode === 'APP' ? createTenant : onboard;
 
   return {
     navigate,
     toast,
     perms,
     onboard,
+    creation,
+    mode,
+    flow,
+    created,
     products,
     orgs,
     agents,

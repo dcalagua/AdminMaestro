@@ -59,6 +59,8 @@ describe('accountHealth', () => {
     expect(accountHealth([])).toBe('NO_CONTRACTS');
     expect(accountHealth([{ is_past_due: false }])).toBe('OK');
     expect(accountHealth([{ is_past_due: true }, { is_past_due: false }])).toBe('PAST_DUE');
+    expect(accountHealth([{ is_past_due: false }], true)).toBe('PAST_DUE');
+    expect(accountHealth([], true)).toBe('PAST_DUE');
     expect(accountHealth([{ is_past_due: true }, { suspension_pending: true }])).toBe('SUSPENSION');
   });
 });

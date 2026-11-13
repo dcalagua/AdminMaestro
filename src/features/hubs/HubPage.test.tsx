@@ -114,3 +114,20 @@ describe('HubPage (V5 · pantallas fusionadas)', () => {
     expect(screen.getByText('contenido Renovaciones')).toBeInTheDocument();
   });
 });
+
+describe('acción primaria de la entrada (V5 · F4)', () => {
+  it('se ve en la cabecera en cualquier pestaña', () => {
+    render(
+      <MemoryRouter initialEntries={['/cobranza?tab=renovaciones']}>
+        <Routes>
+          <Route
+            path="/cobranza"
+            element={<HubPage to="/cobranza" panels={PANELS} actions={<button type="button">Emitir factura</button>} />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('button', { name: 'Emitir factura' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Renovaciones', selected: true })).toBeInTheDocument();
+  });
+});

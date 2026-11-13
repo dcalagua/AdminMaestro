@@ -220,13 +220,13 @@ export function useCancelTenantAddon() {
 /** Suspende el tenant Y encola el trabajo de infraestructura, en una transacción. */
 export function useRequestTenantSuspension() {
   return useRpc('request_tenant_suspension', [
-    'tenant-overview', 'tenant', 'provisioning-requests',
+    'tenant-overview', 'tenant', 'provisioning-requests', 'org360',
   ]);
 }
 
 export function useRequestTenantResume() {
   return useRpc('request_tenant_resume', [
-    'tenant-overview', 'tenant', 'provisioning-requests',
+    'tenant-overview', 'tenant', 'provisioning-requests', 'org360',
   ]);
 }
 
@@ -494,6 +494,8 @@ const PROVISIONING_KEYS = [
   'provisioning-preconditions',
   'tenant-product-mappings',
   'provisioning-targets',
+  // La ficha 360 lee las altas por cuenta con sus propias claves.
+  'org360',
 ];
 
 export function useUpsertProductIntegration() {

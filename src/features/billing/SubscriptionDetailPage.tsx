@@ -209,7 +209,7 @@ export function SubscriptionDetailPage() {
         perms.canReadFinance ? (
           <>
             {s.billing_channel !== 'PARTNER_STATEMENT' ? (
-              <Link className="ebim-btn-secondary" to={`/organizations/${s.billed_organization_id}#payment-portal`}>
+              <Link className="ebim-btn-secondary" to={`/organizations/${s.billed_organization_id}?tab=contratos#payment-portal`}>
                 Compartir enlace de pago
               </Link>
             ) : null}

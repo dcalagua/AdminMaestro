@@ -126,6 +126,20 @@ export function useInvoicePage(p: InvoiceListParams) {
   });
 }
 
+/**
+ * Bandeja (V5 · F5): las facturas vencidas con saldo, de la más antigua a la
+ * más reciente, con un tope (`limit`). Misma vista y mismo RLS que «Por
+ * cobrar»; cuelga de `invoices`, así un cobro registrado la refresca.
+ */
+export function useOverdueInvoices({ enabled = true, limit = 200 }: { enabled?: boolean; limit?: number } = {}) {
+  return useQuery({
+    queryKey: ['invoices', 'overdue-inbox', limit],
+    enabled,
+    queryFn: () =>
+      fetchInvoicePage({ search: '', filter: 'OPEN', aging: 'VENCIDA', page: 0, pageSize: limit, sortBy: 'due_date', sortDir: 'asc' }),
+  });
+}
+
 export function useInvoiceSummary(p: Pick<InvoiceListParams, 'search' | 'filter' | 'organizationId' | 'aging'>) {
   return useQuery({
     queryKey: ['invoices', 'summary', { ...p, search: cleanSearch(p.search) }],
@@ -205,6 +219,29 @@ export function useCollectedPaymentPage(p: PaymentListParams) {
     queryKey: ['collections', 'page', p],
     queryFn: () => fetchCollectedPaymentPage(p),
     placeholderData: keepPreviousData,
+  });
+}
+
+/**
+ * ⌘K (V5 · F5): búsqueda de facturas y de cobros por número, cuenta o
+ * referencia, en el servidor (mismas vistas y RLS que sus listados) y con
+ * pocas filas. Sólo se pide con un término de 2+ letras.
+ */
+export function useInvoiceSearch(term: string, { enabled = true, limit = 8 }: { enabled?: boolean; limit?: number } = {}) {
+  return useQuery({
+    queryKey: ['invoices', 'search', cleanSearch(term), limit],
+    enabled: enabled && cleanSearch(term).length >= 2,
+    queryFn: () =>
+      fetchInvoicePage({ search: term, filter: 'ALL', page: 0, pageSize: limit, sortBy: 'issue_date', sortDir: 'desc' }),
+  });
+}
+
+export function usePaymentSearch(term: string, { enabled = true, limit = 8 }: { enabled?: boolean; limit?: number } = {}) {
+  return useQuery({
+    queryKey: ['collections', 'search', cleanSearch(term), limit],
+    enabled: enabled && cleanSearch(term).length >= 2,
+    queryFn: () =>
+      fetchCollectedPaymentPage({ search: term, filter: 'ALL', page: 0, pageSize: limit, sortBy: 'collected_on', sortDir: 'desc' }),
   });
 }
 

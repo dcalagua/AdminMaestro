@@ -1,6 +1,7 @@
 import type { Database } from '@/types/database.types';
 import type { OrgRole, PlatformRole, TenantRole } from '@/types/domain';
 import type { ProvisioningRole } from '@/lib/provisioning';
+import { userAppAccess } from './userAppAccess';
 
 /**
  * M5 · Modelo de «Usuarios y accesos».
@@ -175,16 +176,31 @@ export function accountStatus(user: AdminUser): { label: string; tone: 'ok' | 'w
   return { label: 'Activo', tone: 'ok' };
 }
 
-/** Resumen de accesos activos para una celda de tabla. */
-export function accessSummary(user: AdminUser): string[] {
+/**
+ * Accesos activos que NO son de una app: consola, organizaciones, rol de altas
+ * y vínculo comercial. Las apps van aparte (`userAppAccess`), como chips.
+ */
+export function consoleAccessSummary(user: AdminUser): string[] {
   const out: string[] = [];
   if (user.platformRole && user.platformRoleActive) out.push('Consola');
   for (const m of user.organizations.filter((x) => x.is_active)) out.push(m.organization_name);
-  const tenants = user.tenants.filter((t) => t.is_active).length;
-  if (tenants > 0) out.push(tenants === 1 ? '1 tenant' : `${tenants} tenants`);
   if (user.provisioningRoles.some((r) => r.is_active)) out.push('Altas en las apps');
   if (user.salesAgent) out.push('Comercial');
   return out;
+}
+
+/**
+ * Resumen de accesos activos en texto para una celda de tabla. V5 · F6: en vez
+ * de «1 tenant», las apps a las que entra con su rol («EWM · Admin»).
+ */
+export function accessSummary(user: AdminUser): string[] {
+  const apps = userAppAccess(user)
+    .filter((a) => a.active)
+    .map((a) => `${a.appName} · ${a.roleLabel}`);
+  const out = consoleAccessSummary(user);
+  const orgsEnd = out.findIndex((x) => x === 'Altas en las apps' || x === 'Comercial');
+  if (orgsEnd === -1) return [...out, ...apps];
+  return [...out.slice(0, orgsEnd), ...apps, ...out.slice(orgsEnd)];
 }
 
 /* ---------------------------------------------------------------------------

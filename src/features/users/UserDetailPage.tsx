@@ -17,11 +17,12 @@ import { useUserAdminScope } from './useUserAdminScope';
 import {
   ActivityPanel, ConsoleRolePanel, OrganizationsPanel, ProfilePanel, ProvisioningPanel, SalesAgentPanel, TenantsPanel,
 } from './UserAccessPanels';
+import { UserAppsPanel } from './UserAppsPanel';
 
 /**
  * Ficha de usuario (spec §6.4) con `SectionTabs` y deep-link por `#hash` (U-07):
- * Perfil · Rol de consola · Organizaciones · Tenants · Provisioning · Vendedor ·
- * Actividad. Desactivar / Reactivar es una acción de cabecera (super admin).
+ * Perfil · Apps y accesos (V5 · F6) · Rol de consola · Organizaciones ·
+ * Provisioning · Vendedor · Actividad. Desactivar / Reactivar es una acción de cabecera (super admin).
  *
  * Las pestañas se ocultan según el rol (UX); cada RPC vuelve a decidir.
  */
@@ -117,7 +118,7 @@ export function UserDetailPage() {
           ) : null}
           {scope.isSuperAdmin && !isSelf && !isTheSuperAdmin ? (
             u.isActive ? (
-              <button type="button" className="ebim-btn-secondary text-danger" onClick={() => { setReason(''); setReasonError(null); action.reset(); setStatusDialog('ban'); }}>
+              <button type="button" className="ebim-btn-ghost text-danger" onClick={() => { setReason(''); setReasonError(null); action.reset(); setStatusDialog('ban'); }}>
                 Desactivar
               </button>
             ) : (
@@ -171,9 +172,19 @@ export function UserDetailPage() {
       <SectionTabs
         tabs={[
           { id: 'perfil', label: 'Perfil', content: <ProfilePanel user={u} scope={scope} /> },
+          {
+            // V5 · F6: el id `tenants` se conserva para los enlaces con #tenants.
+            id: 'tenants',
+            label: 'Apps y accesos',
+            content: (
+              <div className="grid gap-4">
+                <UserAppsPanel user={u} managePlatform={scope.managePlatform} />
+                <TenantsPanel user={u} scope={scope} />
+              </div>
+            ),
+          },
           { id: 'consola', label: 'Rol de consola', hidden: !scope.isSuperAdmin, content: <ConsoleRolePanel user={u} /> },
           { id: 'organizaciones', label: 'Organizaciones', content: <OrganizationsPanel user={u} scope={scope} /> },
-          { id: 'tenants', label: 'Tenants', content: <TenantsPanel user={u} scope={scope} /> },
           {
             id: 'provisioning',
             label: 'Altas en las apps',

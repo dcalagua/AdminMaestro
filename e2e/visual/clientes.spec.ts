@@ -132,12 +132,12 @@ test.describe('clientes y catálogo · capturas', () => {
       await page.getByRole('searchbox').first().fill(DEMO_CUSTOMER);
       await page.locator('main a[href^="/organizations/"]').first().click();
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-      orgUrl = page.url().split('#')[0]!;
+      orgUrl = page.url().split(/[?#]/)[0]!;
     }
     if (orgUrl && wanted('org360')) {
       await page.goto(orgUrl);
       check(orgUrl, await shoot(page, name('org360', 'resumen-1440-claro'), shots));
-      await page.goto(`${orgUrl}#products`);
+      await page.goto(`${orgUrl}?tab=contratos#products`);
       await shoot(page, name('org360', 'productos-1440-claro'), shots);
     }
     if (wanted('tenant360')) {

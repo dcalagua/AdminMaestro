@@ -45,7 +45,7 @@ const NotFoundPage = lazyPage(() => import('@/features/settings/NotFoundPage'), 
 const WelcomePage = lazyPage(() => import('@/features/auth/WelcomePage'), 'WelcomePage');
 const UsersPage = lazyPage(() => import('@/features/users/UsersPage'), 'UsersPage');
 const UserDetailPage = lazyPage(() => import('@/features/users/UserDetailPage'), 'UserDetailPage');
-const InboxPage = lazyPage(() => import('@/features/hubs/PlaceholderPages'), 'InboxPage');
+const InboxPage = lazyPage(() => import('@/features/inbox/InboxPage'), 'InboxPage');
 const SuiteCenterPage = lazyPage(() => import('@/features/suite/SuiteCenterPage'), 'SuiteCenterPage');
 const AppDetailPage = lazyPage(() => import('@/features/suite/AppDetailPage'), 'AppDetailPage');
 

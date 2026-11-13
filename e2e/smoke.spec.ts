@@ -76,9 +76,11 @@ test.describe('Consola EBIM (super admin)', () => {
     await page.getByRole('link', { name: 'Empresa Enterprise Omega · eSupplier' }).click();
     await expect(page.getByRole('tab', { name: 'Resumen' })).toBeVisible();
 
-    await page.getByRole('tab', { name: 'Atribución comercial' }).click();
-    await expect(page).toHaveURL(/#commercial/);
-    await expect(page.getByRole('tab', { name: 'Atribución comercial' })).toHaveAttribute('aria-selected', 'true');
+    // V5 · F3: la atribución comercial vive en «Personas» (`?tab=personas`).
+    await page.getByRole('tab', { name: 'Personas' }).click();
+    await expect(page).toHaveURL(/tab=personas/);
+    await expect(page.getByRole('tab', { name: 'Personas' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('heading', { name: 'Atribución comercial' })).toBeVisible();
   });
 
   test('el buscador de listados filtra en un solo campo', async ({ page }) => {

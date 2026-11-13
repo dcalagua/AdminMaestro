@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Suspense, useEffect, useMemo, useRef, useState, type SyntheticEvent } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type SyntheticEvent } from 'react';
 import {
+  BellIcon,
   CaretDoubleLeftIcon,
   CaretDoubleRightIcon,
   CaretDownIcon,
@@ -13,15 +14,17 @@ import {
 } from '@phosphor-icons/react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAppearance } from '@/hooks/useAppearance';
+import { usePermissions } from '@/hooks/usePermissions';
+import { useIsTablet } from '@/hooks/useMediaQuery';
 import { navDestinations, navGroupsFor, routeMeta, visibleTabs, type NavGroup, type NavItem } from './navigation';
 import { useNavAccess } from './useNavAccess';
 import { EbimMark } from '@/components/ui/EbimMark';
 import { useModalFocus } from '@/components/ui/useModalFocus';
 import { PageTrailContext } from '@/components/ui/pageTrail';
 import { LoadingState, type Crumb } from '@/components/ui/primitives';
-import { useCriticalBillingAlertCount } from '@/services/queries';
 import { PLATFORM_ROLE_LABEL, ORG_ROLE_LABEL } from '@/types/domain';
 import { env } from '@/lib/env';
+import { TaskQueuePanel, TaskQueueProvider } from '@/components/ui/TaskQueue';
 import { AccountMenu } from './AccountMenu';
 import { CommandPalette, type PaletteAccess } from './CommandPalette';
 
@@ -40,6 +43,21 @@ import { CommandPalette, type PaletteAccess } from './CommandPalette';
  * El menú se adapta al rol, pero es UX: cada ruta tiene su guard y cada consulta
  * su RLS.
  */
+
+/**
+ * Campana de la Bandeja (V5 · F5): en diferido, para que su cálculo (cobranza,
+ * altas, salud, aprobaciones) no pese en la carga inicial del shell. Mientras
+ * llega, un icono quieto del mismo tamaño (sin salto de diseño).
+ */
+const InboxBell = lazy(() => import('@/features/inbox/InboxBell').then((m) => ({ default: m.InboxBell })));
+
+function BellPlaceholder() {
+  return (
+    <span className="ebim-icon-btn h-10 w-10" aria-hidden>
+      <BellIcon size={20} />
+    </span>
+  );
+}
 
 const RAIL_KEY = 'ebim-cp-sidebar-rail';
 const COLLAPSED_KEY = 'ebim-cp-nav-collapsed';
@@ -78,12 +96,6 @@ const ENV_STYLE: Record<string, string> = {
 
 const IS_MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 
-interface NavBadge {
-  count: number;
-  /** Texto para lectores de pantalla y tooltip. */
-  label: string;
-}
-
 export function AppShell() {
   const { roles, persona, signOut } = useAuth();
   const { mode, density, toggleMode, setDensity } = useAppearance();
@@ -91,6 +103,11 @@ export function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [rail, setRail] = useState<boolean>(() => readJson(RAIL_KEY, false));
+  // V5 · F7: en tableta (md–lg) el menú lateral se ve en modo iconos y se
+  // despliega encima del contenido; no se guarda (la preferencia es de escritorio).
+  const tablet = useIsTablet();
+  const [tabletOpen, setTabletOpen] = useState(false);
+  const compact = tablet ? !tabletOpen : rail;
   const [collapsed, setCollapsed] = useState<Partial<Record<NavGroup, boolean>>>(() =>
     readJson(COLLAPSED_KEY, {}),
   );
@@ -105,29 +122,37 @@ export function AppShell() {
   const items = useMemo(() => groups.flatMap((g) => g.items), [groups]);
   const meta = routeMeta(location.pathname);
   const destinations = useMemo(() => navDestinations(items, access), [items, access]);
-  // Las renovaciones viven ahora como pestaña de Cobranza (V5 · F1).
-  const cobranza = items.find((i) => i.to === '/cobranza');
-  const seesRenewals = Boolean(cobranza && visibleTabs(cobranza, access).some((t) => t.id === 'renovaciones'));
+  // V5 · F5: el antiguo badge de alertas críticas de Cobranza quedó redundante:
+  // esas alertas cuentan ahora en la campana de la Bandeja (topbar).
 
-  // Badges solo con un conteo barato (head: true) y solo si la pantalla se ve.
-  const criticalAlerts = useCriticalBillingAlertCount({ enabled: seesRenewals });
-  const badges: Record<string, NavBadge> = {};
-  if (criticalAlerts.data) {
-    const n = criticalAlerts.data;
-    badges['/cobranza'] = {
-      count: n,
-      label: `${n} alerta${n === 1 ? '' : 's'} crítica${n === 1 ? '' : 's'} de renovación abierta${n === 1 ? '' : 's'}`,
-    };
-  }
-
+  const perms = usePermissions();
   const paletteAccess = useMemo<PaletteAccess>(() => {
     const visible = new Set(items.map((i) => i.to));
+    const cobranza = items.find((i) => i.to === '/cobranza');
+    const billingTab = Boolean(cobranza && visibleTabs(cobranza, access).some((t) => t.id === 'facturacion'));
+    // «Usuarios» devuelve filas a un rol de consola o a un admin de su organización (`admin_list_users`).
+    const usersScope =
+      Boolean(roles?.platformRole) || (roles?.organizations ?? []).some((o) => o.role === 'PARTNER_ADMIN' || o.role === 'ORG_ADMIN');
+    const onboarding = visible.has('/onboarding');
     return {
       organizations: visible.has('/cuentas'),
       tenants: visible.has('/tenants'),
       subscriptions: visible.has('/subscriptions'),
+      invoices: billingTab,
+      payments: billingTab,
+      users: visible.has('/users') && usersScope,
+      partners: visible.has('/partners'),
+      apps: visible.has('/suite') ? 'suite' : visible.has('/catalogo') ? 'catalog' : null,
+      actions: {
+        issueInvoice: Boolean(cobranza) && perms.canReadFinance,
+        newSale: onboarding && (perms.canManagePlatform || perms.canManageCommercial),
+        newTenant: onboarding && perms.canManagePlatform,
+        // Qué app se puede verificar lo decide el permiso por app en el Centro de la suite.
+        checkHealth: visible.has('/suite'),
+        inbox: visible.has('/bandeja'),
+      },
     };
-  }, [items]);
+  }, [items, access, roles, perms]);
 
   // Migas de contexto para `PageContainer`: grupo y, en fichas, el listado.
   const trail = useMemo<Crumb[]>(() => {
@@ -146,6 +171,7 @@ export function AppShell() {
   if (lastPath !== location.pathname) {
     setLastPath(location.pathname);
     setMobileOpen(false);
+    setTabletOpen(false);
     setTip(null);
   }
 
@@ -223,6 +249,10 @@ export function AppShell() {
 
   const toggleRail = () => {
     setTip(null);
+    if (tablet) {
+      setTabletOpen((open) => !open);
+      return;
+    }
     setRail((current) => {
       writeJson(RAIL_KEY, !current);
       return !current;
@@ -245,8 +275,7 @@ export function AppShell() {
       : {};
 
   const renderItem = (item: NavItem, compact: boolean) => {
-    const badge = badges[item.to];
-    const name = badge ? `${item.label} (${badge.label})` : item.label;
+    const name = item.label;
     // Una ficha de detalle (`/products/:id`) marca la entrada dueña (Catálogo).
     const owns = meta.section?.to === item.to;
     return (
@@ -254,7 +283,7 @@ export function AppShell() {
         <NavLink
           to={item.to}
           end={item.to === '/'}
-          aria-label={compact || badge ? name : undefined}
+          aria-label={compact ? name : undefined}
           {...tipHandlers(compact, name)}
           className={({ isActive: linkActive }) => {
             const isActive = linkActive || owns;
@@ -281,23 +310,8 @@ export function AppShell() {
               ) : null}
               <span className="relative shrink-0">
                 <item.icon size={compact ? 20 : 18} weight={isActive ? 'fill' : 'regular'} aria-hidden />
-                {compact && badge ? (
-                  <span
-                    aria-hidden
-                    className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-[color:var(--danger-fill)] ring-2 ring-[color:var(--sidebar-base)]"
-                  />
-                ) : null}
               </span>
               {compact ? null : <span className="min-w-0 flex-1 truncate">{item.label}</span>}
-              {!compact && badge ? (
-                <span
-                  aria-hidden
-                  title={badge.label}
-                  className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[color:var(--danger-fill)] px-1.5 text-caption font-bold tabular-nums text-[color:var(--danger-fill-fg)]"
-                >
-                  {badge.count > 99 ? '99+' : badge.count}
-                </span>
-              ) : null}
             </>
             );
           }}
@@ -349,9 +363,10 @@ export function AppShell() {
     </div>
   );
 
-  const railLabel = rail ? 'Expandir menú lateral' : 'Reducir menú lateral a iconos';
+  const railLabel = compact ? 'Expandir menú lateral' : 'Reducir menú lateral a iconos';
 
   return (
+    <TaskQueueProvider>
     <div className="flex min-h-screen bg-bg">
       <a
         href="#contenido"
@@ -364,28 +379,39 @@ export function AppShell() {
            el gradiente para que la columna no se corte en páginas largas. ---- */}
       <aside
         data-print-hide
-        className={`ebim-on-brand hidden shrink-0 text-white transition-[width] duration-overlay ease-out lg:block ${
-          rail ? 'w-[76px]' : 'w-[248px]'
+        data-sidebar={compact ? 'rail' : 'full'}
+        className={`ebim-on-brand hidden shrink-0 text-white transition-[width] duration-overlay ease-out md:block ${
+          tablet || compact ? 'w-[76px]' : 'w-[248px]'
         }`}
         style={{ background: 'var(--sidebar-base)' }}
+        onKeyDown={(e) => {
+          if (tablet && tabletOpen && e.key === 'Escape') {
+            e.stopPropagation();
+            setTabletOpen(false);
+          }
+        }}
       >
-        <div className="sticky top-0 flex h-screen flex-col" style={{ background: 'var(--sidebar)' }}>
-          {brand(rail)}
+        {/* En tableta, desplegado, el panel se superpone al contenido (sin empujarlo). */}
+        <div
+          className={`sticky top-0 flex h-screen flex-col ${tablet && !compact ? 'relative z-40 w-[248px] shadow-modal' : ''}`}
+          style={{ background: 'var(--sidebar)' }}
+        >
+          {brand(compact)}
           <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pt-2" onScroll={() => setTip(null)}>
-            {renderNav(rail)}
+            {renderNav(compact)}
           </div>
-          <div className={`shrink-0 border-t border-white/10 py-3 ${rail ? 'px-2' : 'px-3'}`}>
+          <div className={`shrink-0 border-t border-white/10 py-3 ${compact ? 'px-2' : 'px-3'}`}>
             <button
               type="button"
               className={`flex h-9 items-center rounded-field text-compact font-medium text-white/[.86] transition-colors duration-fast ease-out hover:bg-white/10 hover:text-white ${
-                rail ? 'mx-auto w-11 justify-center' : 'w-full gap-3 px-3'
+                compact ? 'mx-auto w-11 justify-center' : 'w-full gap-3 px-3'
               }`}
               aria-label={railLabel}
-              aria-pressed={rail}
+              aria-pressed={compact}
               onClick={toggleRail}
-              {...tipHandlers(rail, railLabel)}
+              {...tipHandlers(compact, railLabel)}
             >
-              {rail ? (
+              {compact ? (
                 <CaretDoubleRightIcon size={18} aria-hidden />
               ) : (
                 <>
@@ -398,7 +424,7 @@ export function AppShell() {
         </div>
       </aside>
 
-      {tip && rail ? (
+      {tip && compact ? (
         <div aria-hidden className="ebim-tooltip -translate-y-1/2" style={{ top: tip.top, left: tip.left }}>
           {tip.label}
         </div>
@@ -406,7 +432,7 @@ export function AppShell() {
 
       {/* ---- Menú móvil: panel modal; cerrado no existe en el DOM ---- */}
       {mobileOpen ? (
-        <div className="fixed inset-0 z-40 lg:hidden">
+        <div className="fixed inset-0 z-40 md:hidden">
           <button
             type="button"
             tabIndex={-1}
@@ -444,7 +470,7 @@ export function AppShell() {
           <button
             ref={openerRef}
             type="button"
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-field border border-border text-fg lg:hidden"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-field border border-border text-fg md:hidden"
             aria-label="Abrir menú"
             aria-expanded={mobileOpen}
             onClick={() => setMobileOpen(true)}
@@ -475,6 +501,10 @@ export function AppShell() {
               <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-current" />
               {ENV_LABEL[env.appEnv] ?? env.appEnv}
             </span>
+
+            <Suspense fallback={<BellPlaceholder />}>
+              <InboxBell />
+            </Suspense>
 
             <button
               type="button"
@@ -513,6 +543,10 @@ export function AppShell() {
       {paletteOpen ? (
         <CommandPalette items={destinations} access={paletteAccess} onClose={() => setPaletteOpen(false)} />
       ) : null}
+
+      {/* Cola de tareas largas (V5 · F5): abajo a la izquierda del contenido; los avisos van a la derecha. */}
+      <TaskQueuePanel className={`left-3 ${tablet || compact ? 'md:left-[92px]' : 'md:left-[264px]'}`} />
     </div>
+    </TaskQueueProvider>
   );
 }

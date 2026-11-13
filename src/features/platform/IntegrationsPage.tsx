@@ -9,7 +9,7 @@ import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { useProvisioningAccess } from '@/hooks/useProvisioningAccess';
 import { StatusTabs } from '@/components/ui/SectionTabs';
 import {
-  PageContainer, Card, SearchBar, KpiTile, LoadingState, ErrorState, EmptyState, Badge,
+  PageContainer, Card, SearchBar, KpiTile, LoadingState, ErrorState, EmptyState, Badge, Skeleton,
 } from '@/components/ui/primitives';
 import { Avatar } from '@/components/ui/Avatar';
 import { KpiStrip } from '@/features/billing/financeUi';
@@ -205,7 +205,11 @@ export function IntegrationsPage() {
                     <section aria-label={`Salud de ${integration.code}`}>
                       <p className="mb-2 text-micro text-muted">Salud por entorno</p>
                       {targets.isLoading ? (
-                        <p className="text-compact text-muted" role="status">Leyendo destinos…</p>
+                        <div aria-busy="true" className="space-y-2">
+                          <span role="status" className="sr-only">Leyendo destinos…</span>
+                          <Skeleton className="block h-3 w-3/4" />
+                          <Skeleton className="block h-3 w-1/2" />
+                        </div>
                       ) : targets.error ? (
                         <p className="text-compact text-danger" role="alert">No se pudieron leer los destinos.</p>
                       ) : (

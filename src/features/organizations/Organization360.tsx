@@ -14,6 +14,10 @@ import { nativeInline } from '@/features/billing/financeModel';
 import { AccountMrrTile, AccountTrendCharts, HealthTile } from './AccountPanels';
 import { accountHealth } from './accountSeriesModel';
 import { capabilityText } from './organizationLabels';
+import { useAuth } from '@/hooks/useAuth';
+import { CELL, accountApps, type AccountAppTenant, type ProvisioningRow, type TenantRow } from '@/features/suite/suiteModel';
+import { ConfirmActiveButton, PendingConfirmNotice } from '@/features/suite/ConfirmActive';
+import { useConfirmActive } from '@/features/suite/useConfirmActive';
 import { tenantDimensions } from '@/features/tenants/tenantDimensions';
 import { TenantDimensionsInline } from '@/features/tenants/TenantDimensionsView';
 import { formatMoney, formatNumber, formatDate, formatDateTime } from '@/lib/format';
@@ -153,8 +157,19 @@ function Fact({ label, state, onRetry, children, hint }: {
   );
 }
 
-export function Org360Summary({ organizationId, organizationName, capabilities }: { organizationId: string; organizationName?: string; capabilities: string[] }) {
-  const series = useAccountSeries({ organizationId });
+export function Org360Summary({
+  organizationId,
+  organizationName,
+  capabilities,
+  showFinance = true,
+}: {
+  organizationId: string;
+  organizationName?: string;
+  capabilities: string[];
+  /** Sin vista financiera no se piden ni se pintan las series de MRR y cobro. */
+  showFinance?: boolean;
+}) {
+  const series = useAccountSeries({ organizationId: showFinance ? organizationId : undefined });
   const subs = useOrgSubscriptions(organizationId);
   const tenants = useOrgTenants(organizationId);
   const renewals = useRenewalPipeline(organizationId);
@@ -168,7 +183,7 @@ export function Org360Summary({ organizationId, organizationName, capabilities }
 
   return (
     <div className="space-y-4">
-      <AccountTrendCharts query={series} subject={organizationName ?? 'la organización'} />
+      {showFinance ? <AccountTrendCharts query={series} subject={organizationName ?? 'la organización'} /> : null}
       <Card title="La cuenta" description="Lo que tiene contratado y cómo se le cobra; el detalle está en cada pestaña.">
         <dl className="grid divide-y divide-border sm:grid-cols-2 sm:divide-y-0 xl:grid-cols-4 xl:divide-x">
           <Fact label="Productos contratados" state={ready(subs)} onRetry={() => void subs.refetch()}>
@@ -448,44 +463,121 @@ export function Org360Documents({ organizationId }: { organizationId: string }) 
   );
 }
 
-/* ------------------------------------------------------- Tenants y acceso */
+/* -------------------------------------------------------- Apps y accesos */
 
-export function Org360Tenants({ organizationId }: { organizationId: string }) {
+const RELATION_TEXT: Record<AccountAppTenant['relation'], string> = {
+  OWN: 'Propio (cliente)',
+  MANAGED: 'Administrado (canal)',
+};
+
+/**
+ * «Apps y accesos» (V5 · F3): por cada app, sus tenants con el estado del
+ * alta en la app, el estado aquí y las acciones de siempre. El estado combinado
+ * es el MISMO de la matriz del Centro de la suite (`accountApps`), y comercial,
+ * alta técnica y acceso del administrador siguen por separado: ninguno se
+ * deduce de otro.
+ */
+export function Org360Apps({ organizationId, organizationName }: { organizationId: string; organizationName: string }) {
+  const { persona } = useAuth();
   const tenants = useOrgTenants(organizationId);
   const saas = useOrgSaasProvisioning(organizationId);
   const targets = useProvisioningTargets();
+  const confirm = useConfirmActive();
+  const ebim = persona === 'EBIM';
+  const apps = accountApps(
+    organizationId,
+    (tenants.data ?? []) as TenantRow[],
+    (saas.data ?? []) as ProvisioningRow[],
+  );
+  const pending = apps.flatMap((a) => a.tenants).filter((t) => t.kind === 'PENDING_CONFIRM');
+
   return (
-    <Section
-      title="Tenants y acceso"
-      description="Comercial, alta técnica y acceso del administrador por separado. Ninguno se deduce de otro."
-      state={fromQuery(tenants)}
-      onRetry={() => void tenants.refetch()}
-      empty="La organización no tiene tenants propios ni administrados."
+    <Card
+      title="Apps y accesos"
+      description="Por cada app: el tenant, el estado del alta en la app y el estado aquí. Comercial, alta técnica y acceso del administrador van por separado."
+      actions={
+        ebim ? (
+          <Link className="ebim-btn-ghost ebim-btn-sm" to={`/suite?mq=${encodeURIComponent(organizationName)}`}>
+            Ver en el Centro de la suite
+          </Link>
+        ) : null
+      }
     >
-      {() => (
+      {tenants.data ? (
         <>
+          <PendingConfirmNotice count={pending.length} />
           {saas.error ? (
-            <p className="px-4 pt-3 text-caption font-semibold text-warn" role="status">
-              No se pudieron leer las altas SaaS: la columna de alta técnica y acceso puede estar incompleta.
+            <p className="px-5 pt-3 text-caption font-semibold text-warn" role="status">
+              No se pudieron leer las altas en las apps: el estado del alta y el acceso del administrador pueden estar incompletos.
             </p>
           ) : null}
-          <DataTable columns={['Tenant', 'Producto', 'Relación', 'Entorno', 'Estado por dimensión']}>
-            {tenants.data!.map((t) => {
-              const dims = tenantDimensions(t, (saas.data ?? []).filter((r) => r.tenant_id === t.tenant_id), targets.data ?? []);
-              return (
-                <tr key={t.tenant_id as string}>
-                  <td className="ebim-td"><Link className="ebim-link font-semibold" to={`/tenants/${t.tenant_id}`}>{t.name}</Link></td>
-                  <td className="ebim-td">{t.product_short_name}</td>
-                  <td className="ebim-td text-caption">{t.customer_organization_id === organizationId ? 'Propio (cliente)' : 'Administrado (canal)'}</td>
-                  <td className="ebim-td text-caption">{t.environment ?? '—'}</td>
-                  <td className="ebim-td"><TenantDimensionsInline dims={dims} /></td>
-                </tr>
-              );
-            })}
-          </DataTable>
+          {apps.length === 0 ? (
+            <div className="px-4">
+              <StateMessage state={{ status: 'empty' }} emptyText="La organización no tiene tenants propios ni administrados." />
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {apps.map((app) => (
+                <section key={app.productId} aria-labelledby={`app-${app.productId}`} data-account-app={app.productName}>
+                  <div className="flex flex-wrap items-center gap-2 px-5 pb-1 pt-4">
+                    <h3 id={`app-${app.productId}`} className="text-body font-semibold text-fg">{app.productName}</h3>
+                    <Badge tone={CELL[app.primary.kind].tone} dot>{CELL[app.primary.kind].label}</Badge>
+                    {ebim && app.productCode ? (
+                      <Link className="ebim-link ml-auto text-compact" to={`/apps/${app.productCode}`}>
+                        Ficha de {app.productName}
+                      </Link>
+                    ) : null}
+                  </div>
+                  <DataTable
+                    label={`Tenants en ${app.productName}`}
+                    columns={['Tenant', 'Alta en la app', 'Estado aquí', 'Por dimensión', { label: 'Acciones', srOnly: true }]}
+                  >
+                    {app.tenants.map((t) => {
+                      const row = (tenants.data ?? []).find((x) => x.tenant_id === t.tenantId);
+                      const dims = row
+                        ? tenantDimensions(row, (saas.data ?? []).filter((r) => r.tenant_id === t.tenantId), targets.data ?? [])
+                        : null;
+                      return (
+                        <tr key={t.tenantId} data-tenant-kind={t.kind}>
+                          <td className="ebim-td">
+                            <Link className="ebim-link font-semibold" to={`/tenants/${t.tenantId}`}>{t.tenantName}</Link>
+                            <span className="block text-caption text-muted">
+                              {RELATION_TEXT[t.relation]}
+                              {row?.environment ? ` · ${row.environment}` : ''}
+                            </span>
+                          </td>
+                          <td className="ebim-td">
+                            <span className="block text-compact">{t.requestStatusLabel ?? 'Sin alta registrada'}</span>
+                            <span className="mt-0.5 block">
+                              <Badge tone={CELL[t.kind].tone}>{CELL[t.kind].short}</Badge>
+                            </span>
+                          </td>
+                          <td className="ebim-td text-compact">{t.tenantStatusLabel}</td>
+                          <td className="ebim-td">{dims ? <TenantDimensionsInline dims={dims} /> : null}</td>
+                          <td className="ebim-td">
+                            <div className="flex flex-wrap justify-end gap-2">
+                              <Link className="ebim-btn-ghost ebim-btn-sm" to={`/tenants/${t.tenantId}`}>Abrir tenant</Link>
+                              {t.kind === 'PENDING_CONFIRM' ? (
+                                <ConfirmActiveButton confirm={confirm} target={{ tenantId: t.tenantId, tenantName: t.tenantName }} />
+                              ) : null}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </DataTable>
+                </section>
+              ))}
+            </div>
+          )}
         </>
+      ) : (
+        <div className="px-4">
+          <StateMessage state={fromQuery(tenants)} onRetry={() => void tenants.refetch()} />
+        </div>
       )}
-    </Section>
+      {confirm.dialog}
+    </Card>
   );
 }
 

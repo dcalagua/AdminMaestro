@@ -47,8 +47,9 @@ const SECTIONS: Record<string, { menu: string; tab?: string; path: string }> = {
 
 async function goToSection(page: Page, label: string) {
   const section = SECTIONS[label] ?? { menu: label, path: '' };
-  // El enlace puede llevar un contador en su nombre accesible
-  // («Cobranza (28 alertas críticas de renovación abiertas)», fase 06).
+  // El enlace pudo llevar un contador en su nombre accesible («Cobranza (28
+  // alertas críticas…)», fase 06); desde la V5 · F5 el contador vive en la
+  // campana de la Bandeja, pero se tolera por compatibilidad.
   const escaped = section.menu.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const nav = page.getByRole('navigation', { name: 'Navegación principal' });
   await nav.getByRole('link', { name: new RegExp(`^${escaped}( \\(.*\\))?$`) }).first().click();
@@ -78,7 +79,8 @@ test.describe('J1 · Canal: alta de partner y acuerdo por SaaS', () => {
     // La acción primaria de la fila es su nombre (las secundarias van al menú, A12).
     await page.locator('main tbody a[href^="/organizations/"]').first().click();
 
-    await page.getByRole('tab', { name: 'Productos autorizados' }).click();
+    // V5 · F3: los acuerdos de producto viven en «Contratos y cobranza».
+    await page.getByRole('tab', { name: 'Contratos y cobranza' }).click();
     await page.getByRole('button', { name: /Nuevo acuerdo|Crear el primer acuerdo/ }).first().click();
 
     const acuerdo = page.getByRole('dialog');
@@ -127,7 +129,11 @@ test.describe('J2 · Alta transaccional de cliente con fee de implementación', 
     await expect(page.getByText('Implementación (única)')).toBeVisible();
     await page.getByRole('button', { name: 'Crear cliente' }).click();
 
-    await expect(page.getByText('Alta completada')).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText('Cliente creado')).toBeVisible({ timeout: 20_000 });
+
+    // V5 · F4: el flujo sigue (factura, enlace, alta en las apps); se salta a la ficha del tenant.
+
+    await page.getByRole('link', { name: 'Ir a la ficha del tenant' }).click();
     // Aterriza en el detalle del tenant recién creado.
     // h1 de la ficha (los gráficos del resumen también nombran al tenant en su título).
     await expect(page.getByRole('heading', { level: 1, name: `Alpha E2E ${RUN}` })).toBeVisible({
@@ -207,10 +213,10 @@ test.describe('J7 · Un cliente, dos SaaS, dos métodos de cobro', () => {
     await page.getByRole('link', { name: 'GRUPASA', exact: true }).first().click();
 
     // La vista 360 es la demostración principal del Control Plane.
-    await expect(page.getByRole('tab', { name: 'Vista 360' })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('tab', { name: 'Resumen' })).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText('Métodos de cobro', { exact: true })).toBeVisible();
-    // Spec 2026-09-25 §11.1: la 360 se organiza por secciones (pestañas).
-    await page.getByRole('tab', { name: 'Productos y contratos' }).click();
+    // V5 · F3: cinco pestañas; contratos y cobranza van juntos.
+    await page.getByRole('tab', { name: 'Contratos y cobranza' }).click();
     await expect(page.getByText('Cobranza por SaaS')).toBeVisible();
 
     // El mismo cliente, dos métodos distintos, en la misma tabla.
@@ -354,14 +360,13 @@ test.describe('J13 · Vista 360 de organización', () => {
     await goToSection(page, 'Clientes');
     await page.locator('main tbody a[href^="/organizations/"]').first().click();
 
-    await expect(page.getByRole('tab', { name: 'Vista 360' })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('tab', { name: 'Resumen' })).toBeVisible({ timeout: 15_000 });
     // Spec 2026-09-25 §11.1: mismas preguntas, repartidas en secciones con su
     // propio estado de datos.
     await expect(page.getByText('Capacidades:')).toBeVisible();
     await expect(page.getByText('Saldo por cobrar').first()).toBeVisible();
-    await page.getByRole('tab', { name: 'Productos y contratos' }).click();
+    await page.getByRole('tab', { name: 'Contratos y cobranza' }).click();
     await expect(page.getByText('Cobranza por SaaS')).toBeVisible();
-    await page.getByRole('tab', { name: 'Cobros y saldo' }).click();
     await expect(page.getByText('Cobrado confirmado').first()).toBeVisible();
     await page.getByRole('tab', { name: 'Actividad' }).click();
     await expect(page.getByText('Comisiones asociadas')).toBeVisible();
@@ -376,7 +381,8 @@ test.describe('J14 · Datos de facturación del titular (V2.1)', () => {
     // Cliente EWM Norte llega sin contacto de facturación: es el estado en que
     // entra cualquier organización nueva.
     await page.getByRole('row', { name: /Cliente EWM Norte/ }).getByRole('link', { name: 'Cliente EWM Norte' }).click();
-    await page.getByRole('tab', { name: 'Identidad y sociedades' }).click();
+    // V5 · F3: los datos del titular viven en «Contratos y cobranza».
+    await page.getByRole('tab', { name: 'Contratos y cobranza' }).click();
 
     await expect(page.getByText('Datos de facturación del titular')).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText('Faltan 5')).toBeVisible();
@@ -392,7 +398,8 @@ test.describe('J14 · Datos de facturación del titular (V2.1)', () => {
     await login(page, USERS.superAdmin);
     await goToSection(page, 'Clientes');
     await page.getByRole('row', { name: /GRUPASA/ }).getByRole('link', { name: 'GRUPASA', exact: true }).click();
-    await page.getByRole('tab', { name: 'Identidad y sociedades' }).click();
+    // V5 · F3: los datos del titular viven en «Contratos y cobranza».
+    await page.getByRole('tab', { name: 'Contratos y cobranza' }).click();
 
     await expect(page.getByText('Datos de facturación del titular')).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText('Completos')).toBeVisible();

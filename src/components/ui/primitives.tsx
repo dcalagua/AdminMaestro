@@ -17,6 +17,9 @@ import { Sparkline } from './Sparkline';
 import { TablePager } from './TablePager';
 import { PAGE_SIZES } from '@/lib/paging';
 import { useClientPagination } from '@/hooks/useClientPagination';
+import { useIsMobile } from '@/hooks/useMediaQuery';
+import { MobileCardList } from './MobileCards';
+import { rowsToCards } from './tableCards';
 import { useEmbeddedPage, usePageTrail } from './pageTrail';
 import { formatDelta } from '@/lib/format';
 import { businessErrorMessage } from '@/lib/pgError';
@@ -114,7 +117,7 @@ export function PageContainer({
   }
   const crumbs = breadcrumbs ?? (trail.length > 0 ? [...trail, { label: title }] : null);
   return (
-    <div className="mx-auto w-full max-w-[1440px] px-6 py-6 2xl:px-8">
+    <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6 2xl:px-8">
       {crumbs ? (
         <div className="mb-2">
           {Array.isArray(crumbs) ? <Breadcrumbs items={crumbs as Crumb[]} /> : crumbs}
@@ -151,6 +154,7 @@ export function Card({
   footer,
   children,
   className = '',
+  id,
 }: {
   title?: string;
   description?: string;
@@ -159,9 +163,11 @@ export function Card({
   footer?: ReactNode;
   children: ReactNode;
   className?: string;
+  /** Ancla de sección (`#id`): deja sitio para la barra superior y la cabecera fija. */
+  id?: string;
 }) {
   return (
-    <section className={`ebim-card ${className}`}>
+    <section id={id} className={`ebim-card ${id ? 'scroll-mt-40 ' : ''}${className}`}>
       {title ? (
         <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
           <div className="min-w-0">
@@ -231,7 +237,10 @@ function DeltaLine({ delta }: { delta: KpiDelta }) {
 
 export interface KpiTileProps {
   label: string;
-  /** Valor YA formateado (cifra compacta). `null`/`undefined` = sin dato: se pinta «—», nunca un 0. */
+  /**
+   * Valor YA formateado (cifra compacta). `null`/`undefined`/`''`/`'—'` = sin dato:
+   * se pinta «— Sin datos» atenuado (V5 · F7), nunca un 0 ni con el peso de una cifra.
+   */
   value: ReactNode;
   /** Código ISO como prefijo pequeño junto a la cifra: `USD` **50.1 K**. */
   currency?: string;
@@ -284,7 +293,9 @@ export function KpiTile({
   className = '',
 }: KpiTileProps) {
   const minH = size === 'display' ? 'min-h-[148px]' : 'min-h-[120px]';
-  const shell = `ebim-card flex flex-col p-5 ${minH} ${className}`;
+  const empty = !loading && !error && (value === null || value === undefined || value === '' || value === '—');
+  // Sin datos (V5 · F7): borde punteado y texto atenuado; no compite con las cifras reales.
+  const shell = `ebim-card flex flex-col p-5 ${minH} ${empty ? 'border-dashed' : ''} ${className}`;
 
   if (loading) {
     return (
@@ -298,7 +309,6 @@ export function KpiTile({
   }
 
   const status = tone !== 'neutral' ? STATUS_ICON[tone] : null;
-  const empty = value === null || value === undefined || value === '';
 
   const body = (
     <>
@@ -339,10 +349,17 @@ export function KpiTile({
         </div>
       ) : (
         <>
-          <p className={`mt-2 flex min-w-0 items-baseline gap-1.5 break-words ${empty ? 'text-muted' : 'text-fg'}`}>
-            {currency && !empty ? <span className="text-h3 font-semibold text-muted">{currency}</span> : null}
-            <span className={`${valueSize(size, value)} min-w-0`}>{empty ? '—' : value}</span>
-          </p>
+          {empty ? (
+            <p className="mt-2 flex items-baseline gap-1.5 text-body text-muted" data-kpi-empty>
+              <span aria-hidden>—</span>
+              <span>Sin datos</span>
+            </p>
+          ) : (
+            <p className="mt-2 flex min-w-0 items-baseline gap-1.5 break-words text-fg">
+              {currency ? <span className="text-h3 font-semibold text-muted">{currency}</span> : null}
+              <span className={`${valueSize(size, value)} min-w-0`}>{value}</span>
+            </p>
+          )}
           {delta ? <DeltaLine delta={delta} /> : null}
           {trend ? (
             <div className="mt-auto pt-3">
@@ -535,7 +552,7 @@ export function LoadingState({
         </div>
       ) : null}
       {variant === 'page' ? (
-        <div className="mx-auto w-full max-w-[1440px] space-y-6 px-6 py-6" aria-hidden>
+        <div className="mx-auto w-full max-w-[1440px] space-y-6 px-4 py-6 sm:px-6" aria-hidden>
           <div>
             <Skeleton className="h-7 w-64" />
             <Skeleton className="mt-2 h-4 w-96 max-w-full" />
@@ -692,6 +709,10 @@ export type DataColumn = string | { label: string; align?: 'left' | 'right'; srO
  * fila hija (`<tr>`) cuenta como una; si cambia el número de filas (buscador,
  * pestaña) vuelve a la primera página. Las vistas «Tabla» de los gráficos y
  * las matrices con `rowSpan` lo desactivan con `paginate={false}`.
+ *
+ * Móvil (V5 · F7): con `mobileCards`, por debajo de `sm` cada fila se pinta como
+ * tarjeta (primera columna = título, el resto «etiqueta: valor», acciones al
+ * pie). Si las filas no son `<tr>` directos, se queda la tabla.
  */
 export function DataTable({
   columns,
@@ -703,6 +724,7 @@ export function DataTable({
   scrollRegion = false,
   paginate = true,
   pageSize: initialPageSize = PAGE_SIZES[0],
+  mobileCards = false,
 }: {
   columns: DataColumn[];
   children: ReactNode;
@@ -719,14 +741,20 @@ export function DataTable({
   paginate?: boolean;
   /** Filas por página iniciales. */
   pageSize?: number;
+  /** Por debajo de `sm`, filas como tarjetas (V5 · F7). */
+  mobileCards?: boolean;
 }) {
+  const mobile = useIsMobile();
   const rows = paginate ? Children.toArray(children) : null;
   const pager = useClientPagination(rows?.length ?? 0, initialPageSize);
   const paged = rows !== null && pager.active;
   const body = paged ? pager.slice(rows) : children;
+  const cards = mobileCards && mobile ? rowsToCards(Children.toArray(body), columns) : null;
   const style: CSSProperties | undefined = maxHeight ? { maxHeight, overflowY: 'auto' } : undefined;
   const region = scrollRegion ? { role: 'region', 'aria-label': label ?? caption, tabIndex: 0 } : {};
-  const table = (
+  const table = cards ? (
+    <MobileCardList label={label ?? caption} items={cards} />
+  ) : (
     // `relative`: el scroll horizontal también recorta a los descendientes
     // posicionados (p. ej. etiquetas sr-only); sin él ensanchan la página.
     <div className="relative overflow-x-auto" style={style} {...region}>

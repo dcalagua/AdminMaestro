@@ -19,6 +19,17 @@ import {
 import { formatCompactAmount, formatMoney, formatNumber, formatPercent } from '@/lib/format';
 import type { BridgeStep } from '@/features/dashboard/executiveModel';
 import { axisMonth, stepLabel, stepSign } from '@/features/dashboard/executiveModel';
+import { useIsMobile } from '@/hooks/useMediaQuery';
+import { axisInterval, summarizeSeries } from './chartSummary';
+
+/** Descripción en texto del gráfico (V5 · F7), enlazada por `aria-describedby`. */
+function ChartSummaryText({ id, children }: { id: string; children: string }) {
+  return (
+    <p id={id} className="sr-only" data-chart-summary>
+      {children}
+    </p>
+  );
+}
 
 /**
  * Gráficos del Resumen Ejecutivo (fase 09, VISUAL_SYSTEM_V2 §6, skill `dataviz`).
@@ -108,14 +119,23 @@ export function MrrEvolutionChart({
 }) {
   const axis = { ...AXIS, fontSize };
   const gradientId = `mrr-area-${useId().replace(/:/g, '')}`;
+  const descId = useId();
+  const mobile = useIsMobile();
   const last = data[data.length - 1];
   const picked = data.find((d) => d.month === analyzed);
+  const summary = summarizeSeries(
+    'MRR',
+    data.map((d) => ({ label: `${d.label}${d.partial ? ' (parcial)' : ''}`, value: d.mrr })),
+    (v) => formatMoney(v, currency),
+  );
   return (
-    <div role="img" aria-label={ariaLabel} style={{ height }}>
+    <>
+    <div role="img" aria-label={ariaLabel} aria-describedby={descId} style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart
           data={data}
-          margin={{ top: 28, right: 112, bottom: 4, left: 0 }}
+          // En móvil, menos margen para la etiqueta del último valor: el área no se aplasta.
+          margin={{ top: 28, right: mobile ? 64 : 112, bottom: 4, left: 0 }}
           onClick={(state) => {
             const i = Number(state?.activeTooltipIndex);
             const d = Number.isInteger(i) ? data[i] : undefined;
@@ -137,7 +157,8 @@ export function MrrEvolutionChart({
             tickLine={false}
             axisLine={{ stroke: 'var(--chart-baseline)' }}
             // Con más de 12 meses, un mes sí y uno no: ritmo regular (el último lleva etiqueta directa).
-            interval={data.length > 12 ? 1 : 0}
+            // En móvil, como mucho seis meses rotulados (V5 · F7).
+            interval={mobile ? axisInterval(data.length, true) : data.length > 12 ? 1 : 0}
             tickFormatter={(label: string) => axisMonth(data, data.find((d) => d.label === label)?.month)}
           />
           <YAxis
@@ -204,6 +225,8 @@ export function MrrEvolutionChart({
         </AreaChart>
       </ResponsiveContainer>
     </div>
+    <ChartSummaryText id={descId}>{summary}</ChartSummaryText>
+    </>
   );
 }
 
@@ -270,8 +293,11 @@ export function BridgeWaterfall({
 }) {
   const clickable = (s: BridgeStep) => Boolean(onSelect && s.movement && (s.customers ?? 0) > 0);
   const negativeEnd = (s: BridgeStep) => s.kind === 'neg' || (s.key === 'NET' && s.value < 0);
+  const descId = useId();
+  const summary = steps.map((s) => `${s.label}: ${stepLabel(s, currency)}`).join('. ') + '.';
   return (
-    <div role="img" aria-label={ariaLabel} style={{ height: steps.length * rowHeight + 12 }}>
+    <>
+    <div role="img" aria-label={ariaLabel} aria-describedby={descId} style={{ height: steps.length * rowHeight + 12 }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={steps} layout="vertical" margin={{ top: 4, right: fontSize > 12 ? 112 : 92, bottom: 4, left: 0 }} barCategoryGap="30%" accessibilityLayer>
           <CartesianGrid stroke="var(--chart-grid)" horizontal={false} />
@@ -327,6 +353,8 @@ export function BridgeWaterfall({
         </BarChart>
       </ResponsiveContainer>
     </div>
+    <ChartSummaryText id={descId}>{summary}</ChartSummaryText>
+    </>
   );
 }
 
@@ -415,8 +443,17 @@ export function BilledCollectedChart({
     const d = (entry as { payload?: BilledCollectedDatum }).payload ?? (entry as BilledCollectedDatum);
     if (d?.month) onSelect?.(d.month);
   };
+  const mobile = useIsMobile();
+  const descId = useId();
+  const money = (v: number) => formatMoney(v, currency);
+  const label = (d: BilledCollectedDatum) => `${d.label}${d.partial ? ' (parcial)' : ''}`;
+  const summary = [
+    summarizeSeries('Facturado', data.map((d) => ({ label: label(d), value: d.invoiced })), money),
+    summarizeSeries('Cobrado', data.map((d) => ({ label: label(d), value: d.collected })), money),
+  ].join(' ');
   return (
-    <div role="img" aria-label={ariaLabel} style={{ height }}>
+    <>
+    <div role="img" aria-label={ariaLabel} aria-describedby={descId} style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 8, bottom: 4, left: 0 }} barGap={2} barCategoryGap="24%" accessibilityLayer>
           <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
@@ -424,7 +461,8 @@ export function BilledCollectedChart({
             dataKey="label"
             tickLine={false}
             axisLine={{ stroke: 'var(--chart-baseline)' }}
-            interval={0}
+            // V5 · F7: a 390 px doce meses con su % no caben; en móvil se rotula uno de cada dos.
+            interval={mobile ? axisInterval(data.length, true) : 0}
             height={Math.round(fontSize * 3.7)}
             tick={<MonthRateTick data={data} fontSize={fontSize} />}
           />
@@ -453,5 +491,7 @@ export function BilledCollectedChart({
         </BarChart>
       </ResponsiveContainer>
     </div>
+    <ChartSummaryText id={descId}>{summary}</ChartSummaryText>
+    </>
   );
 }

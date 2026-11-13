@@ -9,7 +9,10 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { useId } from 'react';
 import { formatMoney, formatMoneyCompact } from '@/lib/format';
+import { useIsMobile } from '@/hooks/useMediaQuery';
+import { axisInterval, summarizeSeries } from './chartSummary';
 
 /**
  * Gráficos de la consola (Recharts 3.10.1, MIT). Reglas (spec §7.4 / dataviz):
@@ -18,7 +21,9 @@ import { formatMoney, formatMoneyCompact } from '@/lib/format';
  *  - colores desde tokens (`--chart-*`), texto con tokens de texto;
  *  - tooltip por marca y clic → detalle; la tabla alternativa del ChartPanel
  *    ofrece los mismos enlaces por teclado;
- *  - etiquetas directas sólo en conjuntos pequeños.
+ *  - etiquetas directas sólo en conjuntos pequeños;
+ *  - V5 · F7: descripción en texto (`aria-describedby`) y, en móvil, menos
+ *    etiquetas en el eje X para que no se superpongan a 390 px.
  */
 
 export interface BarDatum {
@@ -79,9 +84,19 @@ export function SingleBars({
   ariaLabel: string;
 }) {
   const horizontal = layout === 'horizontal-bars';
-  const labelled = data.length <= 8;
+  const mobile = useIsMobile();
+  const descId = useId();
+  // En móvil las etiquetas directas de 8 barras verticales chocan entre sí.
+  const labelled = data.length <= (mobile && !horizontal ? 4 : 8);
+  const summary = summarizeSeries(ariaLabel, data, (v) => formatMoney(v, currency));
   return (
-    <div role="img" aria-label={ariaLabel} style={{ height: horizontal ? Math.max(160, data.length * 40 + 40) : height }}>
+    <>
+    <div
+      role="img"
+      aria-label={ariaLabel}
+      aria-describedby={descId}
+      style={{ height: horizontal ? Math.max(160, data.length * 40 + 40) : height }}
+    >
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={data}
@@ -102,8 +117,9 @@ export function SingleBars({
                 tick={AXIS}
                 tickLine={false}
                 axisLine={{ stroke: 'var(--chart-baseline)' }}
-                // En pantallas estrechas Recharts omite etiquetas que chocarían.
-                interval="preserveStartEnd"
+                // En móvil, como mucho seis etiquetas a ritmo regular; en escritorio,
+                // Recharts omite las que chocarían.
+                interval={mobile ? axisInterval(data.length, true) : 'preserveStartEnd'}
                 minTickGap={6}
               />
               <YAxis
@@ -138,6 +154,10 @@ export function SingleBars({
         </BarChart>
       </ResponsiveContainer>
     </div>
+    <p id={descId} className="sr-only" data-chart-summary>
+      {summary}
+    </p>
+    </>
   );
 }
 
@@ -162,12 +182,28 @@ export function ComponentBars({
   ariaLabel: string;
 }) {
   const click = (entry: unknown) => onSelect?.(entry as ComponentDatum);
+  const mobile = useIsMobile();
+  const descId = useId();
+  const money = (v: number) => formatMoney(v, currency);
+  const summary = [
+    summarizeSeries('Cobrado', data.map((d) => ({ label: d.label, value: d.collected })), money),
+    summarizeSeries('Costo directo', data.map((d) => ({ label: d.label, value: d.cost })), money),
+    summarizeSeries('Comisión', data.map((d) => ({ label: d.label, value: d.commission })), money),
+  ].join(' ');
   return (
-    <div role="img" aria-label={ariaLabel} style={{ height: 280 }}>
+    <>
+    <div role="img" aria-label={ariaLabel} aria-describedby={descId} style={{ height: 280 }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 8, bottom: 4, left: 0 }} barGap={2} accessibilityLayer>
           <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
-          <XAxis dataKey="label" tick={AXIS} tickLine={false} axisLine={{ stroke: 'var(--chart-baseline)' }} interval="preserveStartEnd" minTickGap={6} />
+          <XAxis
+            dataKey="label"
+            tick={AXIS}
+            tickLine={false}
+            axisLine={{ stroke: 'var(--chart-baseline)' }}
+            interval={mobile ? axisInterval(data.length, true) : 'preserveStartEnd'}
+            minTickGap={6}
+          />
           <YAxis tick={AXIS} tickFormatter={(v: number) => formatMoneyCompact(v, currency)} width={84} tickLine={false} axisLine={false} />
           <Tooltip cursor={{ fill: 'var(--hover)' }} content={<MoneyTooltip currency={currency} />} />
           <Legend verticalAlign="top" align="left" wrapperStyle={{ fontSize: 13, color: 'var(--text-2)', paddingBottom: 8 }} iconType="square" iconSize={10} />
@@ -177,5 +213,9 @@ export function ComponentBars({
         </BarChart>
       </ResponsiveContainer>
     </div>
+    <p id={descId} className="sr-only" data-chart-summary>
+      {summary}
+    </p>
+    </>
   );
 }

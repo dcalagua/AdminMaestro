@@ -148,7 +148,20 @@ vi.mock('@/features/executive/components/executiveCharts', () => ({
   BilledCollectedChart: () => <div data-testid="chart-billed" />,
 }));
 
+// La Bandeja resumida (móvil) tiene su propio cálculo y test en `features/inbox`.
+vi.mock('@/features/inbox/useInbox', () => ({
+  useInbox: () => ({
+    loading: false,
+    audience: { invoice: true },
+    items: [
+      { key: 'k1', kind: 'invoice', priority: 1, title: 'Factura F-9 vencida hace 40 días', account: { name: 'Andina' }, app: 'EWM', ageText: 'hace 40 días',
+        screen: { label: 'Abrir', to: '/cobranza' }, action: { type: 'link', label: 'Gestionar', to: '/cobranza?factura=F-9' } },
+    ],
+  }),
+}));
+
 import { DashboardPage } from './DashboardPage';
+import { mockViewport } from '@/test/matchMedia';
 
 const superAdmin: SessionRoles = { userId: 'u', email: 'a@ebim.pe', fullName: 'A', platformRole: 'EBIM_SUPER_ADMIN', organizations: [], tenantRoles: [], salesAgentId: null, provisioningRoles: [], ownedProductIds: [] };
 
@@ -496,5 +509,34 @@ describe('Modo presentación (fase 14)', () => {
     expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
     expect(where()).toBeNull();
     document.documentElement.removeAttribute('data-theme');
+  });
+});
+
+describe('Resumen en móvil «de consulta» (V5 · F7)', () => {
+  it('a 390 px muestra los KPI y la Bandeja; los gráficos quedan detrás de un botón', async () => {
+    const restore = mockViewport('mobile');
+    try {
+      const { container } = renderHome();
+      expect((container.querySelector('[data-hero]') as HTMLElement).children).toHaveLength(6);
+      vi.useRealTimers();
+      const urgent = await screen.findByRole('list', { name: 'Lo más urgente' });
+      expect(within(urgent).getByRole('link', { name: /Factura F-9 vencida/ })).toHaveAttribute('href', '/cobranza?factura=F-9');
+      expect(screen.getByRole('link', { name: 'Ver toda la bandeja' })).toHaveAttribute('href', '/bandeja');
+      const charts = container.querySelector('#resumen-graficos') as HTMLElement;
+      expect(charts).not.toBeVisible();
+      const toggle = screen.getByRole('button', { name: 'Ver gráficos y detalle' });
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      fireEvent.click(toggle);
+      expect(charts).toBeVisible();
+      expect(screen.getByRole('button', { name: 'Ocultar gráficos' })).toHaveAttribute('aria-expanded', 'true');
+    } finally {
+      restore();
+    }
+  });
+
+  it('en escritorio no hay bandeja resumida y los gráficos se ven', () => {
+    const { container } = renderHome();
+    expect(screen.queryByRole('button', { name: 'Ver gráficos y detalle' })).not.toBeInTheDocument();
+    expect(container.querySelector('#resumen-graficos')).toBeVisible();
   });
 });

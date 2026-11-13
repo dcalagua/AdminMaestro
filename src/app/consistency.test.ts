@@ -55,4 +55,8 @@ describe('consistencia del sistema de diseño (V5 · F0)', () => {
   it('no usa <input type="month">: el período se elige en español', () => {
     expect(offenders(/type=["']month["']/)).toEqual([]);
   });
+
+  it('V5 · F7: las pantallas cargan con esqueletos, no con el spinner de LoadingState', () => {
+    expect(offenders(/<LoadingState[^>]*variant=["']inline["']/)).toEqual([]);
+  });
 });
