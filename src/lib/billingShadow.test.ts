@@ -55,7 +55,7 @@ describe('parseShadowLocal (BILLING_SHADOW, D-14)', () => {
 
 describe('etiquetas y períodos de uso', () => {
   it('una decisión abierta nunca se pinta como 0 ni «gratis»', () => {
-    expect(undecidedText('D-06')).toBe('No decidido (D-06)');
+    expect(undecidedText('D-06')).toBe('No decidido');
   });
 
   it('el eje BILLING avanza o retrocede un paso y nunca ofrece el retiro', () => {
@@ -73,7 +73,7 @@ describe('etiquetas y períodos de uso', () => {
   });
 
   it('pools', () => {
-    expect(poolLabel('TENANT')).toBe('Pool del tenant');
-    expect(poolLabel('PRODUCT:ewm')).toBe('Pool del producto ewm');
+    expect(poolLabel('TENANT')).toBe('Bolsa del tenant');
+    expect(poolLabel('PRODUCT:ewm')).toBe('Bolsa del producto ewm');
   });
 });

@@ -13,7 +13,7 @@ import { FormDialog } from '@/components/ui/FormDialog';
 import { FieldRow, MonthField, SelectField, TextAreaField, TextField } from '@/components/ui/fields';
 import { Money } from '@/components/ui/Money';
 import { useToast } from '@/components/ui/toast-context';
-import { formatDateTime } from '@/lib/format';
+import { formatDateTime, formatCountNoun } from '@/lib/format';
 import {
   parseShadowLocal, toShadowDiffs, toShadowExpected, toShadowLocal, type ShadowDiff,
 } from '@/lib/billingShadow';
@@ -62,14 +62,14 @@ export function ShadowHistoryTab() {
   return (
     <Card
       title="Historial de comparaciones"
-      description="Reportes append-only. Verde = el biller local y MasterAdmin coinciden línea a línea (cantidad, importe al centavo y moneda)."
+      description="Reportes que no se editan ni se borran. Verde: el cobro propio de la app y el Admin Maestro coinciden línea a línea (cantidad, importe al centavo y moneda)."
       actions={
         perms.canReadFinance ? (
           <button
             type="button"
             className="ebim-btn-primary ebim-btn-sm"
             disabled={!canRegister}
-            title={canRegister ? undefined : 'Ningún producto tiene el eje de facturación en BILLING_SHADOW'}
+            title={canRegister ? undefined : 'Ningún producto está en la etapa «En comparación»'}
             onClick={() => setRegistering(true)}
           >
             Registrar comparación
@@ -103,7 +103,7 @@ export function ShadowHistoryTab() {
           description={
             hasAny
               ? 'Prueba con otra búsqueda o cambia de pestaña.'
-              : 'Se registran con el eje de facturación del producto en BILLING_SHADOW.'
+              : 'Se registran cuando el producto está en la etapa «En comparación».'
           }
         />
       ) : (
@@ -118,7 +118,7 @@ export function ShadowHistoryTab() {
                 {c.mismatches === 0 ? (
                   <Badge tone="ok">Verde · sin diferencias</Badge>
                 ) : (
-                  <Badge tone="danger">Rojo · {c.mismatches} diferencia(s)</Badge>
+                  <Badge tone="danger">Rojo · {formatCountNoun(c.mismatches, 'diferencia')}</Badge>
                 )}
               </td>
               <td className="ebim-td font-mono text-caption text-muted" title={c.report_checksum}>
@@ -182,17 +182,17 @@ function ComparisonDrawer({
             {comparison.mismatches === 0 ? (
               <Badge tone="ok">Verde · sin diferencias</Badge>
             ) : (
-              <Badge tone="danger">Rojo · {comparison.mismatches} diferencia(s)</Badge>
+              <Badge tone="danger">Rojo · {formatCountNoun(comparison.mismatches, 'diferencia')}</Badge>
             )}
           </div>
           <DetailList
             items={[
-              ['Checksum del reporte', <span key="c" className="font-mono text-compact">{comparison.report_checksum}</span>],
+              ['Huella del reporte (checksum)', <span key="c" className="font-mono text-compact">{comparison.report_checksum}</span>],
               ['Origen', comparison.source],
               ['Registrado por', comparison.actor],
               ['Fecha', formatDateTime(comparison.created_at)],
-              ['Total MasterAdmin', expected ? <Money key="e" amount={expected.total} currency={expected.currency} /> : '—'],
-              ['Total biller local', local ? <Money key="l" amount={local.total} currency={local.currency} /> : '—'],
+              ['Total del Admin Maestro', expected ? <Money key="e" amount={expected.total} currency={expected.currency} /> : '—'],
+              ['Total del cobro de la app', local ? <Money key="l" amount={local.total} currency={local.currency} /> : '—'],
             ]}
           />
           <section aria-label="Diferencias línea a línea">
@@ -200,7 +200,7 @@ function ComparisonDrawer({
             {diffs.length === 0 ? (
               <p className="text-body text-ok">Todas las líneas coinciden.</p>
             ) : (
-              <DataTable columns={['Línea', 'Diferencia', 'MasterAdmin', 'Biller local']}>
+              <DataTable columns={['Línea', 'Diferencia', 'Admin Maestro', 'Cobro de la app']}>
                 {diffs.map((d) => {
                   const t = labelOf(DIFF_TYPE, d.type);
                   return (
@@ -228,7 +228,7 @@ const registerSchema = z.object({
   tenant_id: z.string().min(1, 'Elige el tenant'),
   month: z.string().regex(/^\d{4}-\d{2}$/, 'Elige el mes'),
   actor: z.string().trim().min(1, 'Indica quién ejecuta la comparación').max(200),
-  local: z.string().trim().min(2, 'Pega el JSON del biller local'),
+  local: z.string().trim().min(2, 'Pega el JSON del cobro de la app'),
 });
 type RegisterValues = z.input<typeof registerSchema>;
 
@@ -282,8 +282,8 @@ function RegisterComparisonDialog({
         p_local: parsed.value,
         p_actor: v.actor,
       })) as { green?: boolean; mismatches?: number } | null;
-      if (result?.green) toast.success('Comparación verde', 'Sin diferencias con el biller local.');
-      else toast.error('Comparación con diferencias', `${result?.mismatches ?? '?'} diferencia(s): revisa el historial.`);
+      if (result?.green) toast.success('Comparación verde', 'Sin diferencias con el cobro de la app.');
+      else toast.error('Comparación con diferencias', `${result?.mismatches == null ? 'Hay diferencias' : formatCountNoun(result.mismatches, 'diferencia')}: revisa el historial.`);
       onClose();
     } catch {
       /* visible en el diálogo */
@@ -294,8 +294,8 @@ function RegisterComparisonDialog({
     <FormDialog
       open={open}
       wide
-      title="Registrar comparación BILLING_SHADOW"
-      description="Pega el cálculo del biller local del SaaS. MasterAdmin lo compara con lo que facturaría y guarda el reporte con su checksum. Nunca emite facturas ni cobra."
+      title="Registrar comparación de cobro"
+      description="Pega el cálculo del cobro propio de la app. El Admin Maestro lo compara con lo que facturaría y guarda el reporte con su huella (checksum). Nunca emite facturas ni cobra."
       submitLabel="Comparar y registrar"
       busy={record.isPending}
       error={record.error}
@@ -303,17 +303,17 @@ function RegisterComparisonDialog({
       onCancel={onClose}
     >
       <FieldRow>
-        <SelectField label="Producto (en BILLING_SHADOW)" required placeholder="Elige el producto…" options={products}
+        <SelectField label="Producto (en comparación)" required placeholder="Elige el producto…" options={products}
           error={form.formState.errors.product_code} {...form.register('product_code')} />
         <SelectField label="Tenant" required placeholder="Elige el tenant…" options={tenantOptions}
           error={form.formState.errors.tenant_id} {...form.register('tenant_id')} />
       </FieldRow>
       <FieldRow>
         <MonthField label="Mes" required error={form.formState.errors.month} {...form.register('month')} />
-        <TextField label="Ejecutado por" required hint="Persona o proceso que corrió el biller local."
+        <TextField label="Ejecutado por" required hint="Persona o proceso que corrió el cobro de la app."
           error={form.formState.errors.actor} {...form.register('actor')} />
       </FieldRow>
-      <TextAreaField label="JSON del biller local" required spellCheck={false} className="font-mono"
+      <TextAreaField label="JSON del cobro de la app" required spellCheck={false} className="font-mono"
         placeholder={LOCAL_EXAMPLE}
         hint='Forma: {"currency":"PEN","lines":[{"itemCode","quantity","amount"}]}; itemCode único por línea.'
         error={form.formState.errors.local} {...form.register('local')} />

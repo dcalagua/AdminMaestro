@@ -97,7 +97,6 @@ vi.mock('./org360Queries', () => ({
 }));
 // Las secciones tienen sus propios tests: aquí sólo importa en qué pestaña viven.
 vi.mock('./Organization360', () => ({
-  Org360KpiStrip: () => <div>Franja de indicadores</div>,
   Org360Summary: () => <div>Resumen de la cuenta</div>,
   Org360Apps: () => <div>Tabla de apps y accesos</div>,
   Org360Contracts: () => <div>Cobranza por SaaS</div>,
@@ -171,7 +170,7 @@ describe('cabecera fija', () => {
     expect(bar.querySelector('[data-owner]')).toHaveTextContent('Rosa Quispe');
   });
 
-  it('un perfil técnico EBIM (sin vista financiera) no ve MRR, saldo vencido ni la franja de indicadores', () => {
+  it('un perfil técnico EBIM (sin vista financiera) no ve MRR, saldo vencido ', () => {
     state.platformRole = null;
     renderAt();
     const bar = header();
@@ -180,7 +179,6 @@ describe('cabecera fija', () => {
     expect(within(bar).queryByText('Saldo vencido')).toBeNull();
     // Las apps y el estado sí: no son información financiera.
     expect(bar.querySelector('[data-app-chip="EWM"]')).not.toBeNull();
-    expect(screen.queryByText('Franja de indicadores')).toBeNull();
   });
 
   it('el partner ve los importes de su propia cuenta (RLS decide qué filas llegan)', () => {

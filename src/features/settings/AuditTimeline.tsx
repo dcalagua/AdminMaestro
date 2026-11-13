@@ -19,14 +19,17 @@ import {
   groupByDay,
   type AuditKind,
 } from './auditActions';
-import { correlationOf, metadataSummary } from './auditFormat';
+import { Link } from 'react-router-dom';
+import { changedFieldsOf, metadataSummary } from './auditFormat';
+import type { AuditEntityView } from './auditEntities';
 
 /**
  * Línea de tiempo de auditoría (fase 12, VISUAL_SYSTEM_V2 §8 PT-TIMELINE).
  *
  * Agrupa por día (zona del navegador) filas YA ordenadas por la consulta; cada
- * evento dice QUÉ pasó en español (con el código original al lado), QUIÉN y
- * CUÁNDO, con un icono por tipo de acción. El detalle (diff y metadata redactada)
+ * evento dice QUÉ pasó en español, SOBRE QUÉ (con su nombre si se conoce), QUIÉN
+ * y CUÁNDO, con un icono por tipo de acción. El código original, los ids y la
+ * correlación van al detalle (V6 · F4). El detalle (diff y metadata redactada)
  * se despliega bajo el evento: el JSON nunca es contenido principal (spec §12).
  */
 
@@ -37,6 +40,8 @@ export interface TimelineEvent {
   actor_email: string | null;
   entity_type: string | null;
   entity_id: string | null;
+  tenant_id?: string | null;
+  organization_id?: string | null;
   metadata: unknown;
 }
 
@@ -51,7 +56,6 @@ const KIND: Record<AuditKind, { Icon: typeof PlusIcon; cls: string; sr: string }
   failure: { Icon: WarningCircleIcon, cls: 'bg-danger-soft text-danger', sr: 'Fallo' },
 };
 
-const short = (id: string) => (id.length > 12 ? `${id.slice(0, 8)}…` : id);
 
 export function AuditTimeline<Row extends TimelineEvent>({
   rows,
@@ -61,6 +65,7 @@ export function AuditTimeline<Row extends TimelineEvent>({
   actionLabel = auditActionLabel,
   actorOf = (row) => row.actor_email ?? 'Sistema',
   extraOf,
+  entityOf,
 }: {
   rows: readonly Row[];
   /** Nombre accesible de la línea de tiempo. */
@@ -75,6 +80,8 @@ export function AuditTimeline<Row extends TimelineEvent>({
   actorOf?: (row: Row) => string;
   /** Dato breve propio de la pantalla (rol, motivo) junto a quién/cuándo. */
   extraOf?: (row: Row) => string | null;
+  /** Nombre legible de la entidad (V6 · F4); sin él, solo el tipo. */
+  entityOf?: (row: Row) => AuditEntityView;
 }) {
   const [open, setOpen] = useState<Row['id'] | null>(null);
   return (
@@ -89,7 +96,8 @@ export function AuditTimeline<Row extends TimelineEvent>({
               const human = label && label !== row.action ? label : null;
               const extra = extraOf?.(row) ?? null;
               const expanded = open === row.id;
-              const correlation = correlationOf(row.metadata);
+              const entity = entityOf?.(row) ?? { type: entityTypeLabel(row.entity_type), name: null, to: null };
+              const changed = changedFieldsOf(row.metadata).length;
               const detailId = `audit-event-${row.id}`;
               const last = i === group.rows.length - 1;
               return (
@@ -108,12 +116,19 @@ export function AuditTimeline<Row extends TimelineEvent>({
                     <div className="min-w-0">
                       <p className="flex flex-wrap items-baseline gap-x-2 text-body">
                         <span className="font-semibold text-fg">{human ?? row.action}</span>
-                        <span className="text-fg-2">
-                          {entityTypeLabel(row.entity_type)}
-                          {row.entity_id ? (
-                            <span className="ml-1 font-mono text-caption text-muted" title={row.entity_id}>
-                              {short(row.entity_id)}
-                            </span>
+                        <span className="text-fg-2" data-audit-entity>
+                          {entity.type}
+                          {entity.name ? (
+                            <>
+                              {' · '}
+                              {entity.to ? (
+                                <Link to={entity.to} className="ebim-link font-medium">
+                                  {entity.name}
+                                </Link>
+                              ) : (
+                                <span className="font-medium text-fg">{entity.name}</span>
+                              )}
+                            </>
                           ) : null}
                         </span>
                       </p>
@@ -129,24 +144,10 @@ export function AuditTimeline<Row extends TimelineEvent>({
                             <span className="text-fg-2">{extra}</span>
                           </>
                         ) : null}
-                        {human ? (
-                          <>
-                            <span aria-hidden>·</span>
-                            <span className="font-mono">{row.action}</span>
-                          </>
-                        ) : null}
-                        {showSummary ? (
+                        {showSummary && changed > 0 ? (
                           <>
                             <span aria-hidden>·</span>
                             <span>{metadataSummary(row.metadata)}</span>
-                          </>
-                        ) : null}
-                        {showSummary && correlation ? (
-                          <>
-                            <span aria-hidden>·</span>
-                            <span className="font-mono" title={correlation}>
-                              {short(correlation)}
-                            </span>
                           </>
                         ) : null}
                       </p>
@@ -159,7 +160,8 @@ export function AuditTimeline<Row extends TimelineEvent>({
                       aria-controls={detailId}
                       onClick={() => setOpen(expanded ? null : row.id)}
                     >
-                      {expanded ? 'Ocultar' : 'Ver detalle'}
+                      {/* En móvil solo el icono: el texto del evento necesita el ancho (el nombre accesible se conserva). */}
+                      <span className="max-sm:sr-only">{expanded ? 'Ocultar' : 'Ver detalle'}</span>
                       <CaretDownIcon
                         size={12}
                         weight="bold"

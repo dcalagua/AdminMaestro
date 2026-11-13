@@ -111,22 +111,24 @@ describe('ShadowAxisTab', () => {
     integrationsHook.mockReturnValue(ok([integration()]));
     const { unmount } = wrap(<ShadowAxisTab />);
     const row = screen.getByRole('row', { name: /eExpense/ });
-    expect(within(row).getByText('Biller local (legacy)')).toBeInTheDocument();
+    // Etapa en la insignia y en el recorrido compacto, con nombre de negocio.
+    expect(within(row).getAllByText('Cobra la app').length).toBeGreaterThan(0);
+    expect(row).not.toHaveTextContent(/LEGACY|SHADOW/);
     expect(within(row).queryByRole('button')).toBeNull();
     unmount();
 
     permissions.mockReturnValue(COMMERCIAL_ONLY);
     wrap(<ShadowAxisTab />);
-    expect(screen.getByRole('button', { name: 'Avanzar a SHADOW' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /RETIRED/ })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Avanzar a «En comparación»' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Migración completa|RETIRED/ })).toBeNull();
   });
 
   it('desde SHADOW avanza a PRIMARY o retrocede; nunca ofrece el retiro', () => {
     permissions.mockReturnValue(FINANCE);
     integrationsHook.mockReturnValue(ok([integration({ cutover_state_billing: 'BILLING_PRIMARY' })]));
     wrap(<ShadowAxisTab />);
-    expect(screen.getByRole('button', { name: 'Retroceder a SHADOW' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /RETIRED/ })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Retroceder a «En comparación»' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Migración completa|RETIRED/ })).toBeNull();
   });
 
   it('la transición exige motivo y llama a set_commercial_cutover_state con el eje BILLING', async () => {
@@ -135,15 +137,15 @@ describe('ShadowAxisTab', () => {
     integrationsHook.mockReturnValue(ok([integration()]));
     setCutover.mockResolvedValue('BILLING_SHADOW');
     wrap(<ShadowAxisTab />);
-    await user.click(screen.getByRole('button', { name: 'Avanzar a SHADOW' }));
+    await user.click(screen.getByRole('button', { name: 'Avanzar a «En comparación»' }));
     const dialog = screen.getByRole('dialog');
     await user.type(within(dialog).getByLabelText(/Motivo/), '  ');
-    await user.click(within(dialog).getByRole('button', { name: 'Cambiar eje' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Cambiar etapa' }));
     expect(await within(dialog).findByText('El motivo es obligatorio')).toBeInTheDocument();
     expect(setCutover).not.toHaveBeenCalled();
     await user.clear(within(dialog).getByLabelText(/Motivo/));
     await user.type(within(dialog).getByLabelText(/Motivo/), 'D-14 DEV: inicia shadow');
-    await user.click(within(dialog).getByRole('button', { name: 'Cambiar eje' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Cambiar etapa' }));
     expect(setCutover).toHaveBeenCalledWith({
       p_integration_id: 'int-eexp', p_axis: 'BILLING', p_to_state: 'BILLING_SHADOW', p_reason: 'D-14 DEV: inicia shadow',
     });
@@ -218,7 +220,7 @@ describe('ShadowHistoryTab', () => {
   it('verde/rojo, checksum y diff línea a línea', async () => {
     comparisonsHook.mockReturnValue(ok([comparison(), comparison({ id: 'cmp-2', mismatches: 0, diffs: [], tenant_id: 't-gm', saas_product_id: 'p-gmao' })]));
     wrap(<ShadowHistoryTab />);
-    expect(within(screen.getByRole('row', { name: /Alpha Retail/ })).getByText('Rojo · 1 diferencia(s)')).toBeInTheDocument();
+    expect(within(screen.getByRole('row', { name: /Alpha Retail/ })).getByText('Rojo · 1 diferencia')).toBeInTheDocument();
     expect(within(screen.getByRole('row', { name: /Planta Norte/ })).getByText('Verde · sin diferencias')).toBeInTheDocument();
     await userEvent.click(within(screen.getByRole('row', { name: /Alpha Retail/ })).getByRole('button', { name: 'Ver diferencias' }));
     const drawer = screen.getByRole('dialog');
@@ -252,7 +254,7 @@ describe('ShadowHistoryTab', () => {
     const dialog = screen.getByRole('dialog');
     await user.selectOptions(within(dialog).getByLabelText(/^Tenant/), 't-alpha');
     fireEvent.change(within(dialog).getByLabelText(/^Mes/), { target: { value: '2026-09' } });
-    const json = within(dialog).getByLabelText(/JSON del biller local/);
+    const json = within(dialog).getByLabelText(/JSON del cobro de la app/);
     fireEvent.change(json, { target: { value: '{"currency":"PEN","lines":[{"itemCode":"a","quantity":1,"amount":"x"}]}' } });
     await user.click(within(dialog).getByRole('button', { name: 'Comparar y registrar' }));
     expect(await within(dialog).findByText(/amount debe ser numérico/)).toBeInTheDocument();

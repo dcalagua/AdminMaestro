@@ -122,6 +122,15 @@ describe('AppShell', () => {
     expect(document.activeElement).toBe(h1);
   });
 
+  it('V6 · T10: la ficha de app marca solo su entrada dueña (Centro de la suite), no también «Apps»', () => {
+    renderAt('/apps/ewm');
+    const nav = screen.getByRole('navigation', { name: 'Navegación principal' });
+    expect(within(nav).getByRole('link', { name: 'Centro de la suite' }).className).toContain('font-semibold');
+    const apps = within(nav).getByRole('link', { name: 'Apps' });
+    expect(apps).not.toHaveAttribute('aria-current');
+    expect(apps.className).not.toContain('font-semibold');
+  });
+
   it('marca el ítem activo y muestra el lockup Admin Maestro', () => {
     renderAt('/cobranza');
     const nav = screen.getByRole('navigation', { name: 'Navegación principal' });

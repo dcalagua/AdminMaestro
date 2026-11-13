@@ -65,7 +65,7 @@ export function IngestTab() {
       <div role="note" className="rounded-lg border border-warn bg-warn-soft px-4 py-3 text-body text-fg">
         <strong>Interruptor global fuera de la consola.</strong> <code className="font-mono">USAGE_INGEST_ENABLED</code> es
         una variable de entorno de la Edge Function <code className="font-mono">usage-ingest</code> y está apagada hasta
-        que se apruebe <strong>D-12</strong> (credencial por producto + validación del alta del tenant). Encender un
+        que se aprueben la credencial por producto + validación del alta del tenant). Encender un
         producto aquí no recibe eventos mientras ese flag siga apagado.
       </div>
 
@@ -97,7 +97,7 @@ export function IngestTab() {
                 <td className="ebim-td text-right">
                   {canSwitch && s.productCode ? (
                     <button type="button" className="ebim-link text-compact" onClick={() => setSwitching(s)}>
-                      {s.enabled ? 'Apagar ingest' : 'Encender ingest'}
+                      {s.enabled ? 'Apagar conexión de uso' : 'Encender conexión de uso'}
                     </button>
                   ) : null}
                 </td>
@@ -108,8 +108,8 @@ export function IngestTab() {
       </Card>
 
       <Card
-        title="Credenciales de ingest"
-        description="Clave PÚBLICA ES256 con la que MasterAdmin verifica el JWT de cada SaaS, por producto × ambiente × emisor. Solo se guarda el nombre de la variable de entorno; la clave privada vive en el SaaS."
+        title="Credenciales de la conexión de uso"
+        description="Clave PÚBLICA ES256 con la que el Admin Maestro verifica el JWT de cada SaaS, por producto × ambiente × emisor. Solo se guarda el nombre de la variable de entorno; la clave privada vive en el SaaS."
         actions={
           perms.canManagePlatform ? (
             <button type="button" className="ebim-btn-primary h-8 px-3 text-caption" onClick={() => setConfiguring('new')}>
@@ -124,7 +124,7 @@ export function IngestTab() {
           <ErrorState error={credentials.error} onRetry={() => void credentials.refetch()} />
         ) : (credentials.data ?? []).length === 0 ? (
           <EmptyState
-            title="Sin credenciales de ingest"
+            title="Sin credenciales de la conexión de uso"
             description="Ningún producto tiene aún su clave pública registrada para enviar su uso."
           />
         ) : (
@@ -191,7 +191,7 @@ function IngestSwitchDialog({ target, onClose }: { target: ProductSwitch | null;
     const v = reasonSchema.parse(values);
     try {
       await setEnabled.mutateAsync({ p_product_code: target.productCode, p_enabled: turningOn, p_reason: v.reason });
-      toast.success(turningOn ? 'Ingest encendido' : 'Ingest apagado', target.productName);
+      toast.success(turningOn ? 'Conexión de uso encendida' : 'Conexión de uso apagada', target.productName);
       onClose();
     } catch {
       /* visible en el diálogo */
@@ -201,10 +201,10 @@ function IngestSwitchDialog({ target, onClose }: { target: ProductSwitch | null;
   return (
     <FormDialog
       open={Boolean(target)}
-      title={`${turningOn ? 'Encender' : 'Apagar'} el ingest de ${target?.productName ?? ''}`}
+      title={`${turningOn ? 'Encender' : 'Apagar'} la conexión de uso de ${target?.productName ?? ''}`}
       description={
         turningOn
-          ? 'Solo tiene efecto si USAGE_INGEST_ENABLED está encendido en el entorno (D-12) y el producto tiene credencial habilitada.'
+          ? 'Solo tiene efecto si USAGE_INGEST_ENABLED está encendido en el entorno y el producto tiene credencial habilitada.'
           : 'Efecto inmediato para este producto. El SaaS reintenta con backoff: no pierde eventos.'
       }
       submitLabel={turningOn ? 'Encender' : 'Apagar'}
@@ -213,7 +213,7 @@ function IngestSwitchDialog({ target, onClose }: { target: ProductSwitch | null;
       onSubmit={() => void submit()}
       onCancel={onClose}
     >
-      <TextAreaField label="Motivo" required hint="Queda en la auditoría (incluye la referencia a D-12 al encender)."
+      <TextAreaField label="Motivo" required hint="Queda en la auditoría."
         error={form.formState.errors.reason} {...form.register('reason')} />
     </FormDialog>
   );
@@ -301,7 +301,7 @@ function CredentialDialog({
     <FormDialog
       open={open}
       wide
-      title={credential ? `Editar credencial · ${credential.issuer}` : 'Configurar credencial de ingest'}
+      title={credential ? `Editar credencial · ${credential.issuer}` : 'Configurar credencial de la conexión de uso'}
       description="Emisor × ambiente es único: configurar uno existente lo reemplaza. La referencia de la clave pública no se puede leer de vuelta; al editar hay que volver a indicarla."
       submitLabel="Guardar"
       busy={configure.isPending}
@@ -332,7 +332,7 @@ function CredentialDialog({
         error={form.formState.errors.public_key_ref} {...form.register('public_key_ref')} />
       <FieldRow>
         <TextField label="kid" hint="Opcional." error={form.formState.errors.kid} {...form.register('kid')} />
-        <CheckboxField label="Credencial habilitada" hint="Deshabilitada, el ingest de este emisor se rechaza."
+        <CheckboxField label="Credencial habilitada" hint="Deshabilitada, el uso de este emisor se rechaza."
           {...form.register('enabled')} />
       </FieldRow>
     </FormDialog>

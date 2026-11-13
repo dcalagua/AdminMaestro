@@ -4,7 +4,6 @@ import {
   CartesianGrid,
   LabelList,
   Legend,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
@@ -13,6 +12,7 @@ import { useId } from 'react';
 import { formatMoney, formatMoneyCompact } from '@/lib/format';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { axisInterval, summarizeSeries } from './chartSummary';
+import { ChartFrame } from '@/components/ui/ChartFrame';
 
 /**
  * Gráficos de la consola (Recharts 3.10.1, MIT). Reglas (spec §7.4 / dataviz):
@@ -83,8 +83,10 @@ export function SingleBars({
   onSelect?: (d: BarDatum) => void;
   ariaLabel: string;
 }) {
-  const horizontal = layout === 'horizontal-bars';
   const mobile = useIsMobile();
+  // V6 · F5: en móvil, más de 4 categorías con nombre («31–60 días», «Más de 90
+  // días») se encimaban en el eje X: pasan a barras horizontales.
+  const horizontal = layout === 'horizontal-bars' || (mobile && data.length > 4);
   const descId = useId();
   // En móvil las etiquetas directas de 8 barras verticales chocan entre sí.
   const labelled = data.length <= (mobile && !horizontal ? 4 : 8);
@@ -97,7 +99,7 @@ export function SingleBars({
       aria-describedby={descId}
       style={{ height: horizontal ? Math.max(160, data.length * 40 + 40) : height }}
     >
-      <ResponsiveContainer width="100%" height="100%">
+      <ChartFrame>
         <BarChart
           data={data}
           layout={horizontal ? 'vertical' : 'horizontal'}
@@ -152,7 +154,7 @@ export function SingleBars({
             ) : null}
           </Bar>
         </BarChart>
-      </ResponsiveContainer>
+      </ChartFrame>
     </div>
     <p id={descId} className="sr-only" data-chart-summary>
       {summary}
@@ -193,7 +195,7 @@ export function ComponentBars({
   return (
     <>
     <div role="img" aria-label={ariaLabel} aria-describedby={descId} style={{ height: 280 }}>
-      <ResponsiveContainer width="100%" height="100%">
+      <ChartFrame>
         <BarChart data={data} margin={{ top: 8, right: 8, bottom: 4, left: 0 }} barGap={2} accessibilityLayer>
           <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
           <XAxis
@@ -211,7 +213,7 @@ export function ComponentBars({
           <Bar dataKey="cost" name="Costo directo" fill="var(--chart-cost)" radius={[4, 4, 0, 0]} maxBarSize={24} isAnimationActive={false} onClick={click} cursor={onSelect ? 'pointer' : undefined} />
           <Bar dataKey="commission" name="Comisión" fill="var(--chart-commission)" radius={[4, 4, 0, 0]} maxBarSize={24} isAnimationActive={false} onClick={click} cursor={onSelect ? 'pointer' : undefined} />
         </BarChart>
-      </ResponsiveContainer>
+      </ChartFrame>
     </div>
     <p id={descId} className="sr-only" data-chart-summary>
       {summary}

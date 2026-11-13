@@ -1,4 +1,4 @@
-import { SectionTabs } from '@/components/ui/SectionTabs';
+import { SubSections } from '@/components/ui/SubSections';
 import { KpiTile, PageContainer, DataTable } from '@/components/ui/primitives';
 import { useAiCreditBalances } from '@/services/queries';
 import { fromQuery } from '@/features/executive/dataState';
@@ -32,7 +32,8 @@ export function AiCreditsPage() {
       description="La unidad comercial de la IA es el crédito EBIM. Se consume al finalizar los agregados de uso de cada capacidad, según su peso vigente y la política del plan o add-on."
     >
       <CreditsOverview />
-      <SectionTabs
+      <SubSections
+        label="Secciones de créditos IA"
         tabs={[
           { id: 'balances', label: 'Saldos', content: <BalancesTab /> },
           { id: 'ledger', label: 'Movimientos', content: <LedgerTab /> },
@@ -92,6 +93,10 @@ function CreditsOverview() {
   const state = fromQuery(balances, { isEmpty: (rows) => rows.length === 0 });
   const chart = trend.slice(-12);
 
+  // V6 · 3.6: sin ningún saldo, cuatro KPI «Sin datos» y un gráfico vacío no dicen
+  // nada; queda un único estado vacío (el de la sección «Saldos»).
+  if (state.status === 'empty') return null;
+
   return (
     <>
       <KpiStrip label="Indicadores de créditos IA">
@@ -129,7 +134,7 @@ function CreditsOverview() {
         />
         <KpiTile
           label={`Sobre su incluido · ${name}`}
-          info="Tenants con saldo negativo en algún pool del período: consumieron más de lo que tenían."
+          info="Tenants con saldo negativo en alguna bolsa del período: consumieron más de lo que tenían."
           value={current ? formatNumber(current.overIncluded) : null}
           tone={current && current.overIncluded > 0 ? 'warn' : 'neutral'}
           footer={current ? `tenants, de ${formatNumber(current.tenants)} con saldo` : undefined}
@@ -143,10 +148,10 @@ function CreditsOverview() {
           unit="Créditos EBIM incluidos y consumidos por mes (todos los tenants visibles)"
           period={`${chart[0] ? monthShortLabel(chart[0].month.slice(0, 7)) : ''} – ${monthShortLabel(month)} · meses cerrados`}
           source="v_ai_credit_balances"
-          coverage="Créditos, no dinero; el saldo deriva del ledger"
+          coverage="Créditos, no dinero; el saldo sale de los movimientos registrados"
           state={state}
           onRetry={() => void balances.refetch()}
-          emptyText="Sin movimientos de créditos todavía: las políticas siguen sin decidir (D-03)"
+          emptyText="Sin movimientos de créditos todavía: las políticas de créditos aún no están decididas"
           legend={<ChartLegend items={CREDIT_SERIES.map((c) => ({ label: c.label, color: c.color }))} />}
           chart={() => (
             <PeriodBars

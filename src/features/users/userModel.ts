@@ -171,7 +171,7 @@ export function userTabs(users: AdminUser[]): Array<{ id: UserTab; label: string
 /** Etiqueta corta de estado de la cuenta para la lista y la ficha. */
 export function accountStatus(user: AdminUser): { label: string; tone: 'ok' | 'warn' | 'danger' | 'neutral' } {
   if (!user.isActive) return { label: 'Desactivado', tone: 'danger' };
-  if (user.banned) return { label: 'Bloqueado en Auth', tone: 'danger' };
+  if (user.banned) return { label: 'Inicio de sesión bloqueado', tone: 'danger' };
   if (isPendingInvitation(user)) return { label: 'Invitación pendiente', tone: 'warn' };
   return { label: 'Activo', tone: 'ok' };
 }

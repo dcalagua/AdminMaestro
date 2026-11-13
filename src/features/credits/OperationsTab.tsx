@@ -53,7 +53,7 @@ export function OperationsTab() {
     {
       id: 'OPEN',
       title: 'Abrir período',
-      text: 'Acredita los créditos incluidos de la política vigente del tenant para el mes. Idempotente: repetirlo no duplica. Sin política responde «No decidido (D-03)».',
+      text: 'Acredita los créditos incluidos de la política vigente del tenant para el mes. Idempotente: repetirlo no duplica. Sin política responde «No decidido».',
       action: 'Abrir período',
     },
     {
@@ -191,7 +191,7 @@ function OpenPeriodDialog({
 const manualSchema = z
   .object({
     tenant_id: z.string().min(1, 'Elige el tenant'),
-    pool_key: z.string().min(1, 'Elige el pool'),
+    pool_key: z.string().min(1, 'Elige la bolsa'),
     month: monthField,
     entry_type: z.enum(['GRANT_BONUS', 'ADJUST']),
     credits: z.coerce.number({ error: 'Número de créditos' }),
@@ -246,7 +246,7 @@ function ManualEntryDialog({
         tone: 'ok',
         lines: [
           ['Créditos', formatQuantity(v.credits)],
-          ['Pool', poolLabel(v.pool_key)],
+          ['Bolsa', poolLabel(v.pool_key)],
           ['Movimiento', <span key="id" className="font-mono text-compact">{String(id)}</span>],
         ],
       });
@@ -272,7 +272,7 @@ function ManualEntryDialog({
       <FieldRow>
         <SelectField label="Tenant" required placeholder="Elige el tenant…" options={lookups.tenantOptions}
           error={form.formState.errors.tenant_id} {...form.register('tenant_id')} />
-        <SelectField label="Pool" required options={poolOptions(productCode)}
+        <SelectField label="Bolsa" required options={poolOptions(productCode)}
           error={form.formState.errors.pool_key} {...form.register('pool_key')} />
       </FieldRow>
       <FieldRow>
@@ -299,7 +299,7 @@ const purchaseSchema = z.object({
   subscription_id: z.string().min(1, 'Elige el contrato'),
   catalog_item_code: z.string().min(1, 'Elige el paquete'),
   packs: z.coerce.number({ error: 'Número de paquetes' }).int('Paquetes enteros').min(1, 'Al menos 1 paquete'),
-  pool_key: z.string().min(1, 'Elige el pool'),
+  pool_key: z.string().min(1, 'Elige la bolsa'),
   month: monthField,
   reason: z.string().trim().min(3, 'El motivo es obligatorio'),
 });
@@ -383,7 +383,7 @@ function PurchaseDialog({
       open={open}
       wide
       title="Compra de créditos"
-      description="Requiere créditos por paquete (D-03) y tarifa CREDIT_PURCHASE vigente en el mercado y moneda del contrato (D-02). Un tenant DEMO/SANDBOX no compra: usa un bono."
+      description="Requiere créditos por paquete y tarifa CREDIT_PURCHASE vigente en el mercado y moneda del contrato. Un tenant DEMO/SANDBOX no compra: usa un bono."
       submitLabel="Registrar compra"
       busy={purchase.isPending}
       error={purchase.error}
@@ -398,14 +398,14 @@ function PurchaseDialog({
           }))}
           error={form.formState.errors.subscription_id} {...form.register('subscription_id')} />
         <SelectField label="Paquete" required
-          placeholder={packs.length === 0 ? `Ningún paquete decidido (D-03)` : 'Elige el paquete…'}
+          placeholder={packs.length === 0 ? `Ningún paquete decidido` : 'Elige el paquete…'}
           options={packs.map((i) => ({ value: i.code, label: `${i.name} · ${formatQuantity(i.credit_pack_credits)} créditos` }))}
           error={form.formState.errors.catalog_item_code} {...form.register('catalog_item_code')} />
       </FieldRow>
       <FieldRow>
         <NumberField label="Paquetes" required min={1} step={1} error={form.formState.errors.packs} {...form.register('packs')} />
-        <SelectField label="Pool" required options={poolOptions(productCode)}
-          hint="Debe ser el pool de la política vigente del período."
+        <SelectField label="Bolsa" required options={poolOptions(productCode)}
+          hint="Debe ser la bolsa de la política vigente del período."
           error={form.formState.errors.pool_key} {...form.register('pool_key')} />
       </FieldRow>
       <MonthField label="Mes" required error={form.formState.errors.month} {...form.register('month')} />

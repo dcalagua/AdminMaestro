@@ -1,29 +1,71 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { CheckCircleIcon, InfoIcon, MinusCircleIcon, WarningCircleIcon, XCircleIcon } from '@phosphor-icons/react';
 import { useProvisioningTargets, useSaasProvisioningRequests, useTenantOverview } from '@/services/queries';
-import { tenantDimensions } from './tenantDimensions';
-import { TenantDimensionsInline } from './TenantDimensionsView';
+import { tenantDimensions, type Dimension, type DimTone } from './tenantDimensions';
 import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { StatusTabs } from '@/components/ui/SectionTabs';
 import {
-  PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge, KpiTile,
+  PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Skeleton, type DataTableSort,
 } from '@/components/ui/primitives';
+import { StatCell, StatStrip } from '@/components/ui/StatStrip';
+import { CellTitle, MoneyCell, StatusCell } from '@/components/ui/cells';
+import { nextSort } from '@/components/ui/tableSort';
 import { ActionMenu } from '@/components/ui/ActionMenu';
-import { KpiStrip, NativeAmountTile } from '@/features/billing/financeUi';
-import { fromQuery } from '@/features/executive/dataState';
+import { Avatar } from '@/components/ui/Avatar';
 import { usePermissions } from '@/hooks/usePermissions';
-import { formatMoney, sumByCurrency, formatNumber } from '@/lib/format';
-import { DEPLOYMENT_MODE_LABEL, TENANT_TYPE_LABEL, TENANT_STATUS_LABEL } from '@/types/domain';
+import { formatCountNoun, formatNumber, sumByCurrency } from '@/lib/format';
 import { TenantStatusDialog } from './TenantDialogs';
+import {
+  TENANT_FILTER_LABEL,
+  altaState,
+  commercialState,
+  latestRequestByTenant,
+  matchesTenantFilter,
+  modelLabel,
+  sortTenants,
+  type AltaState,
+  type TenantFilter,
+  type TenantSortKey,
+} from './tenantListModel';
 
-type TenantFilter = 'ALL' | 'PRODUCTION' | 'DEMO_TRIAL' | 'SHARED' | 'DEDICATED';
+const TABS: TenantFilter[] = ['ALL', 'PRODUCTION', 'DEMO_TRIAL', 'SHARED', 'DEDICATED', 'NO_ALTA'];
+
+const PROVIDER_LABEL: Record<string, string> = {
+  SUPABASE: 'Supabase',
+  AWS: 'AWS',
+  AZURE: 'Azure',
+  GCP: 'Google Cloud',
+  ON_PREMISE: 'Servidor propio',
+};
+
+const DIM_ICON: Record<DimTone, typeof InfoIcon> = {
+  ok: CheckCircleIcon,
+  warn: WarningCircleIcon,
+  danger: XCircleIcon,
+  info: InfoIcon,
+  neutral: MinusCircleIcon,
+};
+const DIM_TONE: Record<DimTone, string> = {
+  ok: 'text-ok',
+  warn: 'text-warn',
+  danger: 'text-danger',
+  info: 'text-info',
+  neutral: 'text-muted',
+};
 
 /**
- * Listado de tenants.
+ * Listado de tenants (V6 · F2, plan §3.3).
  *
- * Un solo buscador general + tabs de estado (contrato §8): nada de paneles con
- * dropdowns de producto/partner/modelo/estado. El buscador cubre producto,
- * cliente, partner y slug a la vez.
+ * Filas de una línea principal y una secundaria: tenant y app, cuenta y canal,
+ * modelo en una insignia («Compartido · Producción»), MRR, estado (comercial
+ * como insignia y, debajo, alta en la app y administrador con icono) e
+ * infraestructura (proveedor y región; el código del destino va al tooltip).
+ * Arriba, una franja compacta cuyas cifras filtran la tabla.
+ *
+ * Un solo buscador general + pestañas de estado (contrato §8). Las cuatro
+ * dimensiones siguen sin semáforo global: cada una conserva su texto completo
+ * en el `title` y en la ficha (spec §11.2).
  */
 export function TenantsPage() {
   const tenants = useTenantOverview();
@@ -33,6 +75,7 @@ export function TenantsPage() {
   const targets = useProvisioningTargets();
   const perms = usePermissions();
   const [tab, setTab] = useState<TenantFilter>('ALL');
+  const [sort, setSort] = useState<DataTableSort>({ key: 'name', dir: 'asc' });
   const [statusTarget, setStatusTarget] = useState<{
     id: string;
     name: string;
@@ -40,29 +83,28 @@ export function TenantsPage() {
   } | null>(null);
   const { term, setTerm, filtered } = useSearchFilter(tenants.data, (t) => [
     t.name, t.slug, t.customer_name, t.managing_name, t.product_short_name,
-    t.deployment_mode, t.tenant_type, t.admin_email,
+    t.deployment_mode, t.tenant_type, t.admin_email, t.deployment_target_code, t.deployment_region,
   ]);
 
-  const inTab = (t: (typeof filtered)[number], id: TenantFilter) => {
-    switch (id) {
-      case 'PRODUCTION': return t.tenant_type === 'PRODUCTION';
-      case 'DEMO_TRIAL': return t.tenant_type === 'DEMO' || t.tenant_type === 'TRIAL';
-      case 'SHARED': return t.deployment_mode === 'SHARED';
-      case 'DEDICATED': return t.deployment_mode !== 'SHARED';
-      default: return true;
-    }
-  };
-  const rows = filtered.filter((t) => inTab(t, tab));
-  const count = (id: TenantFilter) => filtered.filter((t) => inTab(t, id)).length;
+  const requests = useMemo(() => saas.data ?? [], [saas.data]);
+  const latest = useMemo(() => latestRequestByTenant(requests), [requests]);
+  const altaOf = (id: string | null | undefined): AltaState => altaState(id ? latest.get(id) : undefined);
 
   const all = tenants.data ?? [];
+  const inTab = (t: (typeof all)[number], id: TenantFilter) => matchesTenantFilter(t, id, altaOf(t.tenant_id));
+  const count = (id: TenantFilter) => filtered.filter((t) => inTab(t, id)).length;
+  const rows = sortTenants(filtered.filter((t) => inTab(t, tab)), sort.key as TenantSortKey, sort.dir);
+
   // V3 · por moneda: el MRR de un tenant BOB no se suma al de uno USD (R-7).
   const totalMrr = sumByCurrency(all, (t) => t.mrr, (t) => t.currency);
+  const withMrr = all.filter((t) => Number(t.mrr) > 0 && t.currency).length;
+  const noAlta = saas.data ? all.filter((t) => inTab(t, 'NO_ALTA')).length : null;
+  const toggle = (id: TenantFilter) => setTab((current) => (current === id ? 'ALL' : id));
 
   return (
     <PageContainer
       title="Tenants"
-      description="Un tenant es el espacio del cliente en una app de la suite: pertenece a UNA sola app. Dónde vive físicamente lo decide su modo de despliegue, no su jerarquía comercial."
+      description="El espacio de cada cliente en una app de la suite: un tenant pertenece a una sola app."
       actions={
         perms.canManagePlatform ? (
           // «Nuevo tenant» abre el flujo guiado en modo «solo alta en una app» (V5 · F4).
@@ -72,52 +114,70 @@ export function TenantsPage() {
         ) : null
       }
     >
-      <KpiStrip label="Resumen de tenants">
-        <KpiTile
-          label="Tenants"
-          loading={tenants.isLoading}
-          value={tenants.data ? formatNumber(all.length) : null}
-          footer="Visibles para tu perfil"
-        />
-        <KpiTile
-          label="Productivos"
-          loading={tenants.isLoading}
-          value={tenants.data ? formatNumber(all.filter((t) => t.tenant_type === 'PRODUCTION').length) : null}
-          footer={`${formatNumber(all.filter((t) => t.status === 'ACTIVE').length)} activos en total`}
-        />
-        <KpiTile
-          label="Demo / trial"
-          loading={tenants.isLoading}
-          value={tenants.data ? formatNumber(all.filter((t) => t.tenant_type === 'DEMO' || t.tenant_type === 'TRIAL').length) : null}
-          footer="No generan recurrente"
-        />
-        <NativeAmountTile
-          label="MRR vigente"
-          info="Suma del MRR de los tenants por moneda: nunca se mezclan monedas"
-          amounts={totalMrr}
-          state={fromQuery(tenants, { isEmpty: () => false })}
-          onRetry={() => void tenants.refetch()}
-          emptyLabel="Sin recurrente vigente"
-          footer="Foto actual, por moneda"
-        />
-      </KpiStrip>
+      {tenants.isLoading || all.length > 0 ? (
+        <StatStrip label="Resumen de tenants">
+          <StatCell
+            label="Tenants"
+            loading={tenants.isLoading}
+            value={formatNumber(all.length)}
+            context={`${formatNumber(all.filter((t) => t.status === 'ACTIVE').length)} activos`}
+            onSelect={() => setTab('ALL')}
+            selected={tab === 'ALL'}
+          />
+          <StatCell
+            label="Productivos"
+            loading={tenants.isLoading}
+            value={formatNumber(all.filter((t) => t.tenant_type === 'PRODUCTION').length)}
+            context="Generan recurrente"
+            onSelect={() => toggle('PRODUCTION')}
+            selected={tab === 'PRODUCTION'}
+          />
+          <StatCell
+            label="Demo / trial"
+            loading={tenants.isLoading}
+            value={formatNumber(all.filter((t) => t.tenant_type === 'DEMO' || t.tenant_type === 'TRIAL').length)}
+            context="No generan recurrente"
+            onSelect={() => toggle('DEMO_TRIAL')}
+            selected={tab === 'DEMO_TRIAL'}
+          />
+          <StatCell
+            label="MRR vigente"
+            amounts={totalMrr}
+            loading={tenants.isLoading}
+            emptyLabel="Sin recurrente"
+            info="Suma del MRR de los tenants por moneda: nunca se mezclan monedas."
+            context={`${formatCountNoun(withMrr, 'tenant')} con recurrente`}
+          />
+          <StatCell
+            label="Sin alta en la app"
+            value={noAlta === null ? null : formatNumber(noAlta)}
+            loading={tenants.isLoading || saas.isLoading}
+            error={saas.error}
+            onRetry={() => void saas.refetch()}
+            tone={noAlta ? 'warn' : 'neutral'}
+            context="Sin alta, fallida o cancelada"
+            onSelect={() => toggle('NO_ALTA')}
+            selected={tab === 'NO_ALTA'}
+          />
+        </StatStrip>
+      ) : null}
 
       <Card>
         <SearchBar
           value={term}
           onChange={setTerm}
-          placeholder="Buscar por tenant, cliente, partner, producto o código…"
+          total={tenants.isLoading ? undefined : all.length}
+          placeholder="Buscar por tenant, cliente, partner, app o código…"
           right={
             <StatusTabs
+              label="Tipo de tenant"
               value={tab}
               onChange={setTab}
-              options={[
-                { id: 'ALL', label: 'Todos', count: filtered.length },
-                { id: 'PRODUCTION', label: 'Productivos', count: count('PRODUCTION') },
-                { id: 'DEMO_TRIAL', label: 'Demo / Trial', count: count('DEMO_TRIAL') },
-                { id: 'SHARED', label: 'Compartidos', count: count('SHARED') },
-                { id: 'DEDICATED', label: 'Dedicados', count: count('DEDICATED') },
-              ]}
+              options={TABS.filter((id) => id !== 'NO_ALTA' || tab === 'NO_ALTA').map((id) => ({
+                id,
+                label: TENANT_FILTER_LABEL[id],
+                count: id === 'ALL' ? filtered.length : count(id),
+              }))}
             />
           }
         />
@@ -125,93 +185,144 @@ export function TenantsPage() {
           <LoadingState />
         ) : tenants.error ? (
           <ErrorState error={tenants.error} onRetry={() => void tenants.refetch()} />
-        ) : rows.length === 0 ? (
+        ) : all.length === 0 ? (
           <EmptyState
             title="Sin tenants"
-            description="No hay tenants visibles para tu rol que coincidan con el filtro."
+            description="Todavía no hay tenants visibles para tu perfil."
+            action={
+              perms.canManagePlatform ? (
+                <Link className="ebim-btn-primary" to="/onboarding?modo=app">
+                  Nuevo tenant
+                </Link>
+              ) : undefined
+            }
+          />
+        ) : rows.length === 0 ? (
+          <EmptyState
+            variant="no-results"
+            title={term ? `Ningún resultado para «${term}»` : `Ningún tenant en «${TENANT_FILTER_LABEL[tab]}»`}
+            description="Prueba con otra búsqueda o cambia de pestaña."
+            onClear={() => {
+              setTerm('');
+              setTab('ALL');
+            }}
           />
         ) : (
           <DataTable
-            mobileCards
             label="Tenants"
+            minWidth={980}
+            sort={sort}
+            onSort={(key) => setSort((s) => nextSort(s, key))}
             columns={[
-              'Tenant',
-              'Cliente',
-              'Tipo y modelo',
-              'Infraestructura',
-              { label: 'MRR vigente', align: 'right' },
-              'Comercial · alta · admin',
+              { label: 'Tenant', sticky: true, sortKey: 'name' },
+              { label: 'Cuenta' },
+              { label: 'Modelo e infraestructura', mobile: false },
+              { label: 'MRR', align: 'right', sortKey: 'mrr' },
+              { label: 'Estado' },
               { label: 'Acciones', srOnly: true },
             ]}
           >
-            {rows.map((t) => (
-              <tr key={t.tenant_id as string}>
-                <td className="ebim-td">
-                  <Link className="font-semibold text-fg hover:underline" to={`/tenants/${t.tenant_id}`}>{t.name}</Link>
-                  <div className="text-compact text-fg-2">{t.product_short_name}</div>
-                </td>
-                <td className="ebim-td">
-                  <div>{t.customer_name}</div>
-                  <div className="text-compact text-fg-2">{t.managing_name ? `vía ${t.managing_name}` : 'Directo EBIM'}</div>
-                </td>
-                <td className="ebim-td">
-                  <Badge tone={t.tenant_type === 'PRODUCTION' ? 'neutral' : 'info'}>
-                    {TENANT_TYPE_LABEL[t.tenant_type as keyof typeof TENANT_TYPE_LABEL]}
-                  </Badge>
-                  <div className="mt-1 text-compact text-fg-2">
-                    {DEPLOYMENT_MODE_LABEL[t.deployment_mode as keyof typeof DEPLOYMENT_MODE_LABEL]}
-                  </div>
-                </td>
-                <td className="ebim-td">
-                  <span
-                    className="block max-w-[120px] truncate whitespace-nowrap font-mono text-compact"
-                    title={(t.deployment_target_code as string) ?? undefined}
-                  >
-                    {t.deployment_target_code ?? <span className="font-sans text-muted">Sin asignar</span>}
-                  </span>
-                  <span className="text-compact text-fg-2">{t.deployment_region ?? ''}</span>
-                </td>
-                <td className="ebim-td ebim-num whitespace-nowrap">
-                  {Number(t.mrr) === 0 || !t.currency ? <span className="text-muted">Sin recurrente</span> : formatMoney(Number(t.mrr), t.currency as string | null)}
-                </td>
-                <td className="ebim-td">
-                  <span className="sr-only">{TENANT_STATUS_LABEL[t.status as keyof typeof TENANT_STATUS_LABEL]}</span>
-                  {saas.error ? (
-                    <span className="text-compact text-warn">Alta y acceso: no se pudo leer</span>
-                  ) : (
-                    <TenantDimensionsInline
-                      dims={tenantDimensions(t, (saas.data ?? []).filter((r) => r.tenant_id === t.tenant_id), targets.data ?? [])}
+            {rows.map((t) => {
+              const commercial = commercialState(t.status);
+              const alta = altaOf(t.tenant_id);
+              const dims = saas.data
+                ? tenantDimensions(t, requests.filter((r) => r.tenant_id === t.tenant_id), targets.data ?? [])
+                : null;
+              const provider = t.deployment_provider ? PROVIDER_LABEL[t.deployment_provider] ?? t.deployment_provider : null;
+              return (
+                <tr key={t.tenant_id as string} data-tenant={t.slug ?? ''}>
+                  <td className="ebim-td py-2">
+                    <div className="max-w-[250px]">
+                      <CellTitle
+                        title={t.name ?? '—'}
+                        to={`/tenants/${t.tenant_id}`}
+                        tooltip={t.slug ? `${t.name}\nCódigo: ${t.slug}` : undefined}
+                        leading={<Avatar name={t.product_short_name ?? t.name ?? '—'} />}
+                        secondary={[t.product_short_name]}
+                      />
+                    </div>
+                  </td>
+                  <td className="ebim-td py-2">
+                    <div className="max-w-[200px]">
+                      <CellTitle
+                        title={t.customer_name ?? '—'}
+                        to={t.customer_organization_id ? `/organizations/${t.customer_organization_id}` : undefined}
+                        secondary={[t.managing_name ? `Vía ${t.managing_name}` : 'Directo EBIM']}
+                      />
+                    </div>
+                  </td>
+                  <td className="ebim-td py-2 text-compact">
+                    <span
+                      className="block max-w-[200px] leading-tight"
+                      title={
+                        t.deployment_target_code
+                          ? `Destino: ${t.deployment_target_code}${t.deployment_region ? `\nRegión: ${t.deployment_region}` : ''}`
+                          : undefined
+                      }
+                    >
+                      <span className="block truncate font-semibold text-fg">{modelLabel(t)}</span>
+                      <span className="block truncate text-caption text-muted">
+                        {t.deployment_target_code
+                          ? [provider ?? 'Destino propio', t.deployment_region].filter(Boolean).join(' · ')
+                          : t.deployment_mode === 'SHARED'
+                            ? 'Infraestructura de la suite'
+                            : 'Destino sin asignar'}
+                      </span>
+                    </span>
+                  </td>
+                  <td className="ebim-td ebim-num">
+                    <MoneyCell amount={t.mrr} currency={t.currency} />
+                  </td>
+                  <td className="ebim-td py-2">
+                    <StatusCell
+                      label={commercial.short}
+                      tone={commercial.tone}
+                      help={dims ? `Comercial: ${dims.commercial.label}` : undefined}
+                      detail={
+                        saas.isLoading ? (
+                          <Skeleton className="mt-0.5 h-3 w-32" />
+                        ) : saas.error ? (
+                          <span className="text-warn">Alta y acceso: no se pudo leer</span>
+                        ) : dims ? (
+                          <span className="inline-flex items-center gap-2">
+                            <DimMark name="Alta" short={alta.short} dim={dims.technical} />
+                            {/* «Sin dato del producto» es lo habitual: solo se pinta cuando la app informó algo. */}
+                            {dims.admin.label !== 'Sin dato del producto' ? (
+                              <DimMark name="Admin" short={adminShort(dims.admin)} dim={dims.admin} />
+                            ) : null}
+                          </span>
+                        ) : null
+                      }
                     />
-                  )}
-                </td>
-                <td className="ebim-td w-12 text-right">
-                  <ActionMenu
-                    label={`Acciones de ${t.name}`}
-                    items={[
-                      { label: 'Abrir Tenant 360', to: `/tenants/${t.tenant_id}` },
-                      t.customer_organization_id
-                        ? { label: 'Ficha del cliente', to: `/organizations/${t.customer_organization_id}` }
-                        : null,
-                      perms.canManagePlatform || perms.canManageOrganization(t.customer_organization_id as string)
-                        ? {
-                            label: 'Cambiar estado…',
-                            onSelect: () =>
-                              setStatusTarget({
-                                id: t.tenant_id as string,
-                                name: t.name as string,
-                                status: t.status as string,
-                              }),
-                          }
-                        : null,
-                    ]}
-                  />
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td className="ebim-td w-12 text-right">
+                    <ActionMenu
+                      label={`Acciones de ${t.name}`}
+                      items={[
+                        { label: 'Abrir Tenant 360', to: `/tenants/${t.tenant_id}` },
+                        t.customer_organization_id
+                          ? { label: 'Ficha del cliente', to: `/organizations/${t.customer_organization_id}` }
+                          : null,
+                        perms.canManagePlatform || perms.canManageOrganization(t.customer_organization_id as string)
+                          ? {
+                              label: 'Cambiar estado…',
+                              onSelect: () =>
+                                setStatusTarget({
+                                  id: t.tenant_id as string,
+                                  name: t.name as string,
+                                  status: t.status as string,
+                                }),
+                            }
+                          : null,
+                      ]}
+                    />
+                  </td>
+                </tr>
+              );
+            })}
           </DataTable>
         )}
       </Card>
-
 
       <TenantStatusDialog
         open={Boolean(statusTarget)}
@@ -221,5 +332,23 @@ export function TenantsPage() {
         onClose={() => setStatusTarget(null)}
       />
     </PageContainer>
+  );
+}
+
+/** «Admin»: lo que informó el producto, en corto. */
+function adminShort(dim: Dimension): string {
+  if (dim.label === 'Sin dato del producto') return 'sin dato';
+  if (dim.label === 'Administrador preaprovisionado') return 'preaprovisionado';
+  return dim.label.replace(/^Administrador:\s*/, '');
+}
+
+/** Una dimensión en una línea: icono con tono, nombre y estado corto; el detalle completo en el `title`. */
+function DimMark({ name, short, dim }: { name: string; short: string; dim: Dimension }) {
+  const Icon = DIM_ICON[dim.tone];
+  return (
+    <span className="inline-flex items-center gap-1 whitespace-nowrap" title={`${name}: ${dim.label}\n${dim.detail}`}>
+      <Icon size={12} aria-hidden className={`shrink-0 ${DIM_TONE[dim.tone]}`} />
+      {name === 'Alta' ? short : `${name} ${short}`}
+    </span>
   );
 }

@@ -2,37 +2,34 @@ import { describe, expect, it } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import { CutoverStepper } from './CutoverStepper';
 
-describe('CutoverStepper', () => {
-  it('marca el paso actual sin depender del color y los anteriores como completados', () => {
+describe('CutoverStepper (V6 · T6/T7)', () => {
+  it('marca la etapa actual sin depender del color y las anteriores como completadas, en lenguaje de negocio', () => {
     render(<CutoverStepper axis="entitlements" state="DUAL_READ" />);
-    const steps = within(screen.getByRole('list', { name: 'Migración de módulos habilitados: Lectura dual' })).getAllByRole('listitem');
+    const steps = within(
+      screen.getByRole('list', { name: 'Migración de módulos habilitados: Doble control (3 de 5)' }),
+    ).getAllByRole('listitem');
     expect(steps).toHaveLength(5);
     expect(steps[2]).toHaveAttribute('aria-current', 'step');
-    expect(steps[0]).toHaveTextContent('Legacy (completado)');
-    expect(steps[1]).toHaveTextContent('Comparación (completado)');
-    expect(steps[3]).toHaveTextContent(/^Primario$/);
+    expect(steps[0]).toHaveTextContent('La app manda (completado)');
+    expect(steps[1]).toHaveTextContent('En comparación (completado)');
+    expect(steps[3]).toHaveTextContent(/^Manda el Admin Maestro$/);
   });
 
-  it('el eje de facturación tiene sus cuatro pasos y un estado desconocido no marca ninguno', () => {
+  it('el eje de cobro tiene cuatro etapas y un estado desconocido no marca ninguna', () => {
     render(<CutoverStepper axis="billing" state="ALGO_RARO" />);
-    const list = screen.getByRole('list', { name: /Migración de facturación: ALGO_RARO/ });
+    const list = screen.getByRole('list', { name: 'Migración de cobro: Etapa fuera del recorrido' });
     const steps = within(list).getAllByRole('listitem');
     expect(steps).toHaveLength(4);
     expect(steps.some((s) => s.getAttribute('aria-current') === 'step')).toBe(false);
   });
 
-  it('V5 · F7: cada paso tiene su nombre visible (no solo un círculo) y la posición en texto', () => {
+  it('solo la etapa actual lleva nombre visible (nada encimado); el resto va al tooltip', () => {
     const { container } = render(<CutoverStepper axis="billing" state="BILLING_SHADOW" />);
-    const list = screen.getByRole('list', { name: 'Migración de facturación: Comparación' });
-    const steps = within(list).getAllByRole('listitem');
-    // Texto visible (fuera de sr-only) en cada paso.
-    expect(steps.map((s) => [...s.querySelectorAll('span')].find((e) => e.className.includes('text-center'))?.firstChild?.textContent)).toEqual([
-      'Legacy', 'Comparación', 'Primario', 'Retirado',
-    ]);
-    expect(steps[1]).toHaveAttribute('aria-current', 'step');
-    expect(steps[1]).toHaveTextContent('Comparación (actual)');
-    expect(container).toHaveTextContent('Paso 2 de 4');
-    // Los círculos son decoración: no duplican el texto para el lector.
-    for (const s of steps) expect(s.querySelector('[aria-hidden]')).not.toBeNull();
+    const visible = [...container.querySelectorAll('p')].map((p) => p.textContent);
+    expect(visible).toEqual(['Cobro', 'En comparación']);
+    expect(container.querySelector('[data-stepper-bar]')!.children).toHaveLength(4);
+    expect(container.querySelector('[title]')!.getAttribute('title')).toContain('3. Cobra el Admin Maestro');
+    // Ninguna jerga técnica en lo visible ni en el tooltip.
+    expect(container.innerHTML).not.toMatch(/Legacy|Primario|Lectura dual|Paso \d de/);
   });
 });

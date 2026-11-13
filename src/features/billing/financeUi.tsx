@@ -1,9 +1,11 @@
 import type { ReactNode } from 'react';
 import { WarningCircleIcon } from '@phosphor-icons/react';
 import { KpiTile, Skeleton, type KpiDelta } from '@/components/ui/primitives';
+import { StatCell } from '@/components/ui/StatStrip';
+import { useStatStripVariant } from '@/components/ui/statStripContext';
 import type { DataState } from '@/features/executive/dataState';
 import type { CurrencyAmounts } from '@/features/executive/reportContext';
-import { formatCompactAmount, formatMoney } from '@/lib/format';
+import { formatAmountsCompact, formatCompactAmount, formatMoney } from '@/lib/format';
 import { nativeInline, sortedEntries } from './financeModel';
 
 /**
@@ -15,21 +17,23 @@ import { nativeInline, sortedEntries } from './financeModel';
 
 /* ---- Franja de KPIs ---------------------------------------------------------------- */
 
-/** Rejilla de la franja de 3–4 KpiTile bajo el encabezado. */
-export function KpiStrip({ children, label }: { children: ReactNode; label: string }) {
-  return (
-    <section aria-label={label} className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4" data-kpi-strip>
-      {children}
-    </section>
-  );
-}
+/**
+ * V6 · T2: la franja vive en `src/components/ui/StatStrip.tsx`. `KpiStrip` es
+ * su alias: compacta (`band`) por defecto; las pantallas con tendencia pasan
+ * `variant="tiles"`.
+ */
+export { KpiStrip } from '@/components/ui/StatStrip';
 
 /** Cifras compactas por moneda, una por línea, con el código como prefijo pequeño (§5.6). */
 function NativeLines({ amounts }: { amounts: CurrencyAmounts }) {
   return (
     <span className="flex flex-col gap-0.5">
       {sortedEntries(amounts).map(([currency, amount]) => (
-        <span key={currency} className="flex items-baseline gap-1.5 text-h2" title={formatMoney(amount, currency)}>
+        <span
+          key={currency}
+          className="flex items-baseline gap-1.5 text-h2"
+          title={formatMoney(amount, currency)}
+        >
           <span className="text-caption font-semibold text-muted">{currency}</span>
           <span>{formatCompactAmount(amount)}</span>
         </span>
@@ -67,8 +71,36 @@ export function NativeAmountTile({
   tone?: 'neutral' | 'ok' | 'warn' | 'danger';
   delta?: KpiDelta;
 }) {
+  // V6 · T2: en una franja compacta, una sola línea por monedas (`PEN 3.2 K · USD 22.7 K`).
+  const strip = useStatStripVariant();
+  if (strip === 'band') {
+    const blocked = state.status === 'forbidden' || state.status === 'unavailable';
+    return (
+      <StatCell
+        label={label}
+        info={info}
+        to={to}
+        tone={tone}
+        loading={state.status === 'loading'}
+        error={state.status === 'error' ? state.message : undefined}
+        onRetry={onRetry}
+        amounts={blocked ? {} : amounts}
+        emptyLabel={blocked ? 'Sin datos' : emptyLabel}
+        context={
+          blocked
+            ? state.status === 'forbidden'
+              ? 'Sin acceso con tu perfil'
+              : state.reason
+            : footer
+        }
+      />
+    );
+  }
   if (state.status === 'loading') return <KpiTile label={label} value={null} loading />;
-  if (state.status === 'error') return <KpiTile label={label} value={null} error={state.message} onRetry={onRetry} info={info} />;
+  if (state.status === 'error')
+    return (
+      <KpiTile label={label} value={null} error={state.message} onRetry={onRetry} info={info} />
+    );
   if (state.status === 'forbidden' || state.status === 'unavailable') {
     return (
       <KpiTile
@@ -121,12 +153,18 @@ export function FilterTotals({
   state,
   onRetry,
   note,
+  compact = false,
 }: {
   items: FilterTotal[];
   state: DataState<unknown>;
   onRetry?: () => void;
   /** Nota de consistencia resumen ↔ tabla. */
   note?: ReactNode;
+  /**
+   * V6 · T9: montos compactos (`PEN 3.2 K · USD 22.7 K`) con el completo en el
+   * `title`, como el resto de los listados. Opcional para no cambiar otras fichas.
+   */
+  compact?: boolean;
 }) {
   return (
     <div className="border-b border-border px-5 py-3" data-filter-totals>
@@ -155,7 +193,7 @@ export function FilterTotals({
       ) : (
         <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2 xl:grid-cols-4">
           {items.map((i) => {
-            const text = nativeInline(i.amounts);
+            const text = compact ? formatAmountsCompact(i.amounts) : nativeInline(i.amounts);
             return (
               <div key={i.label} className="min-w-0" data-total={i.label}>
                 <dt className="text-micro text-muted" title={i.hint}>
@@ -163,7 +201,11 @@ export function FilterTotals({
                 </dt>
                 <dd
                   className={`mt-0.5 text-compact font-semibold tabular-nums ${text ? 'text-fg' : 'text-muted'}`}
-                  title={sortedEntries(i.amounts).map(([c, a]) => formatMoney(a, c)).join(' · ') || undefined}
+                  title={
+                    sortedEntries(i.amounts)
+                      .map(([c, a]) => formatMoney(a, c))
+                      .join(' · ') || undefined
+                  }
                 >
                   {text || (i.emptyLabel ?? 'Sin importes')}
                 </dd>
@@ -176,4 +218,3 @@ export function FilterTotals({
     </div>
   );
 }
-

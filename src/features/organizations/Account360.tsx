@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { AppChip } from '@/components/ui/cells';
 import { useAccountSeries, useAdminUsers } from '@/services/queries';
 import { useInvoiceSummary, useRenewalPipeline } from '@/services/financeRead';
 import { Badge, Card, DataTable, EmptyState, ErrorState, LoadingState } from '@/components/ui/primitives';
@@ -61,20 +62,19 @@ function FinanceItems({ organizationId }: { organizationId: string }) {
   );
 }
 
-/** Chips por app con el estado combinado (alta en la app × estado aquí). */
+/**
+ * Píldoras por app con el estado combinado (alta en la app × estado aquí).
+ * V6 · T12: el mismo `AppChip` de los listados (punto + nombre en su caja
+ * real); en la ficha el estado corto queda además a la vista.
+ */
 export function AppChips({ apps, to }: { apps: AccountApp[]; to?: string }) {
   return (
     <ul className="flex flex-wrap gap-1.5" aria-label="Apps de la cuenta">
       {apps.map((a) => {
         const meta = CELL[a.primary.kind];
-        const chip = (
-          <Badge tone={meta.tone} dot title={meta.help}>
-            {a.productName} · {meta.short}
-          </Badge>
-        );
         return (
-          <li key={a.productId} data-app-chip={a.productName} data-kind={a.primary.kind}>
-            {to ? <Link to={to} className="rounded-full focus-visible:outline-offset-2">{chip}</Link> : chip}
+          <li key={a.productId} className="min-w-0" data-app-chip={a.productName} data-kind={a.primary.kind}>
+            <AppChip name={`${a.productName} · ${meta.short}`} tone={meta.tone} help={meta.help} to={to} />
           </li>
         );
       })}

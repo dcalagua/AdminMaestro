@@ -1,8 +1,10 @@
 import { useId } from 'react';
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Tooltip, XAxis, YAxis } from 'recharts';
 import { formatCompactAmount, formatMoney, formatNumber } from '@/lib/format';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { axisInterval, summarizeSeries } from '@/features/executive/components/chartSummary';
+import { ChartFrame } from '@/components/ui/ChartFrame';
+import { isolatedIndexes } from '@/features/executive/components/isolatedPoints';
 
 /**
  * Barras por período de las pantallas de Finanzas (fase 10; VISUAL_SYSTEM_V2 §6,
@@ -118,7 +120,7 @@ export function PeriodBars({
   return (
     <>
     <div role="img" aria-label={ariaLabel} aria-describedby={descId} style={{ height }}>
-      <ResponsiveContainer width="100%" height="100%">
+      <ChartFrame>
         <BarChart
           data={rows}
           margin={{ top: 8, right: 8, bottom: 4, left: 0 }}
@@ -163,7 +165,7 @@ export function PeriodBars({
             );
           })}
         </BarChart>
-      </ResponsiveContainer>
+      </ChartFrame>
     </div>
     <p id={descId} className="sr-only" data-chart-summary>
       {describePeriods(data, series, unit)}
@@ -196,10 +198,11 @@ export function PeriodArea({
   const last = data[data.length - 1];
   const mobile = useIsMobile();
   const descId = useId();
+  const lone = isolatedIndexes(data.map((d) => d.values[series.key]));
   return (
     <>
     <div role="img" aria-label={ariaLabel} aria-describedby={descId} style={{ height }}>
-      <ResponsiveContainer width="100%" height="100%">
+      <ChartFrame>
         <AreaChart data={rows} margin={{ top: 12, right: 12, bottom: 4, left: 0 }} accessibilityLayer>
           <defs>
             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
@@ -242,6 +245,9 @@ export function PeriodArea({
             dot={(props: { cx?: number; cy?: number; index?: number }) =>
               props.index === data.length - 1 && last?.partial && props.cx != null && props.cy != null ? (
                 <circle key="partial" cx={props.cx} cy={props.cy} r={4} fill="var(--card)" stroke={series.color} strokeWidth={2} />
+              ) : props.index != null && lone.has(props.index) && props.cx != null && props.cy != null ? (
+                // Mes con dato entre meses sin dato: sin este punto no se vería y el eje no se explicaría.
+                <circle key={`lone${props.index}`} cx={props.cx} cy={props.cy} r={3.5} fill={series.color} stroke="var(--card)" strokeWidth={1.5} />
               ) : (
                 <g key={`d${props.index}`} />
               )
@@ -249,7 +255,7 @@ export function PeriodArea({
             activeDot={{ r: 5, fill: series.color, stroke: 'var(--card)', strokeWidth: 2 }}
           />
         </AreaChart>
-      </ResponsiveContainer>
+      </ChartFrame>
     </div>
     <p id={descId} className="sr-only" data-chart-summary>
       {describePeriods(data, [series], unit)}

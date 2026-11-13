@@ -109,7 +109,7 @@ describe('SuiteControlPage', () => {
     expect(headers).toEqual(['Cuenta', 'eSupplier', 'EWM', 'TMS']);
     const firstRow = within(table).getAllByRole('row')[1]!;
     expect(firstRow).toHaveTextContent('Beta Logística');
-    expect(within(firstRow).getByRole('link')).toHaveAttribute('href', '/tenants/t-b1');
+    expect(within(firstRow).getAllByRole('link').map((l) => l.getAttribute('href'))).toContain('/tenants/t-b1');
     expect(firstRow).toHaveTextContent('Impago');
     expect(firstRow).toHaveTextContent('Entrega pendiente');
   });
@@ -132,7 +132,7 @@ describe('SuiteControlPage', () => {
     expect(rows).toHaveLength(3);
     const beta = rows.find((r) => r.textContent?.includes('Beta · EWM'))!;
     expect(beta).toHaveTextContent('Suspendido por impago');
-    expect(beta).toHaveTextContent('2 factura(s) · 45 día(s) de atraso');
+    expect(beta).toHaveTextContent('2 facturas · 45 días de atraso');
     expect(within(beta).getByRole('button', { name: 'Reactivar' })).toBeInTheDocument();
     const ceta = rows.find((r) => r.textContent?.includes('Ceta · TMS'))!;
     expect(ceta).toHaveTextContent('Sin canal');
@@ -184,13 +184,13 @@ describe('SuiteControlPage', () => {
   it('la política solo la cambia el super admin', async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(screen.getByRole('tab', { name: /Política y jobs/ }));
+    await user.click(screen.getByRole('tab', { name: /Política y tareas programadas/ }));
     expect(screen.getByRole('switch', { name: 'Suspensión automática por impago' })).toBeDisabled();
 
     Object.assign(perms, { isSuperAdmin: true });
     saveMutateAsync.mockResolvedValue({});
     const view = renderPage();
-    const tab = within(view.container).getByRole('tab', { name: /Política y jobs/ });
+    const tab = within(view.container).getByRole('tab', { name: /Política y tareas programadas/ });
     await user.click(tab);
     const sw = within(view.container).getByRole('switch', { name: 'Suspensión automática por impago' });
     expect(sw).toBeEnabled();

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent, ReactNode } from 'react';
+import { CaretDownIcon } from '@phosphor-icons/react';
 import { nextTabIndex } from './tabKeys';
+import { useIsMobile } from '@/hooks/useMediaQuery';
 
 /**
  * Tabs CENTRADOS con deep-link por `#hash` — contrato §8, regla `gmao-025`.
@@ -105,6 +107,7 @@ export function TabStrip({
 }) {
   const buttons = useRef<Array<HTMLButtonElement | null>>([]);
   const scroller = useRef<HTMLDivElement>(null);
+  const mobile = useIsMobile();
 
   // Con más pestañas de las que caben, la activa (p. ej. al entrar por enlace) se
   // desplaza a la vista dentro de la fila, sin mover la página.
@@ -127,6 +130,28 @@ export function TabStrip({
     onSelect(tabs[target]!.id);
     buttons.current[target]?.focus();
   };
+
+  // V6 · F5: en móvil, si la fila no cabe, un `select` en lugar de pestañas
+  // recortadas por el borde (antes «uración y cobros»).
+  if (mobile && !tabStripFits(tabs, typeof window === 'undefined' ? 390 : Math.min(window.innerWidth, 640))) {
+    return (
+      <div className="relative mb-4" data-tab-select>
+        <select
+          aria-label={label}
+          className="ebim-input ebim-input-select h-10 text-compact font-semibold"
+          value={activeId ?? tabs[0]?.id ?? ''}
+          onChange={(e) => onSelect(e.target.value)}
+        >
+          {tabs.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.count !== undefined ? `${t.label} (${t.count})` : t.label}
+            </option>
+          ))}
+        </select>
+        <CaretDownIcon size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden />
+      </div>
+    );
+  }
 
   return (
     // Centradas (U-07). Si no caben, scroll horizontal en UNA fila (nunca
@@ -166,6 +191,16 @@ export function TabStrip({
   );
 }
 
+/**
+ * ¿La fila de pestañas cabe en `viewport` px (menos los 16 px de margen a cada
+ * lado)? Estimación sin medir (evita un parpadeo): ~7.5 px por carácter de
+ * `text-compact` semibold, 32 px de padding por pestaña y 26 px por contador.
+ */
+export function tabStripFits(tabs: Array<{ label: string; count?: number }>, viewport: number): boolean {
+  const width = tabs.reduce((w, t) => w + t.label.length * 7.5 + 36 + (t.count !== undefined ? 26 : 0), 0);
+  return width <= viewport - 32;
+}
+
 /** Contador de pestaña: `text-caption` tabular en pastilla. */
 function TabCount({ value, active }: { value: number; active: boolean }) {
   return (
@@ -180,8 +215,21 @@ function TabCount({ value, active }: { value: number; active: boolean }) {
 }
 
 /**
+ * ¿El control segmentado cabe en una fila a 390 px? Más de 3 opciones, o más
+ * de ~28 caracteres entre etiquetas y contadores, se parte en dos renglones.
+ */
+export function statusTabsFitMobile(options: Array<{ label: string; count?: number }>): boolean {
+  const chars = options.reduce((n, o) => n + o.label.length + (o.count !== undefined ? String(o.count).length + 2 : 0), 0);
+  return options.length <= 3 && chars <= 28;
+}
+
+/**
  * Tabs de ESTADO para listados (Todos / Activos / …).
  * El contrato prohíbe paneles de filtros multi-campo, pero permite estos tabs.
+ *
+ * V6 · F5: por debajo de `sm`, si no caben en una fila (`statusTabsFitMobile`),
+ * se pintan como un `select` nativo con el mismo nombre accesible y los
+ * contadores entre paréntesis.
  */
 export function StatusTabs<T extends string>({
   options,
@@ -196,7 +244,27 @@ export function StatusTabs<T extends string>({
   label?: string;
 }) {
   const buttons = useRef<Array<HTMLButtonElement | null>>([]);
+  const mobile = useIsMobile();
   const current = Math.max(0, options.findIndex((o) => o.id === value));
+  if (mobile && !statusTabsFitMobile(options)) {
+    return (
+      <div className="relative w-full" data-status-select>
+        <select
+          aria-label={label}
+          className="ebim-input ebim-input-select h-9 text-compact font-semibold"
+          value={value}
+          onChange={(e) => onChange(e.target.value as T)}
+        >
+          {options.map((o) => (
+            <option key={o.id} value={o.id}>
+              {o.count !== undefined ? `${o.label} (${o.count})` : o.label}
+            </option>
+          ))}
+        </select>
+        <CaretDownIcon size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden />
+      </div>
+    );
+  }
   return (
     // Control segmentado (§5.8): pozo --sunken, pestaña activa elevada sobre --card.
     <div

@@ -71,7 +71,7 @@ describe('DeploymentsPage', () => {
     expect(screen.getByRole('heading', { name: 'Entornos y despliegues' })).toBeInTheDocument();
     expect(screen.queryByText('Caído')).not.toBeInTheDocument();
     expect(screen.getAllByText('No evaluado').length).toBeGreaterThan(0);
-    expect(screen.getByText('Entorno: Calidad')).toBeInTheDocument();
+    expect(screen.getByRole('table', { name: 'Destinos de despliegue' })).toHaveTextContent('Calidad');
     // El código del destino aparece una sola vez (el smoke e2e lo busca en modo estricto).
     expect(screen.getAllByText('qas-shared')).toHaveLength(1);
     expect(screen.getByRole('button', { name: 'Verificar conexión' })).toBeInTheDocument();

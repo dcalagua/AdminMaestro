@@ -1,5 +1,6 @@
 # Sistema visual V2 — EBIM Admin Maestro («ejecutivo sobrio premium»)
 
+Versión 2.2 · 2026-11-13 · **V6 (densidad y patrones de listado) en el §10**; donde §5 y §10 difieren, manda el §10.
 Versión 2.1 · 2026-10-05 · Escrita en la fase 03 de la corrida V4 «visual para Gerencia»; **actualizada en la fase 16 con lo que
 realmente quedó implementado** (los desvíos respecto de la 2.0 están marcados *(real)* en cada sección y resumidos en el §9).
 Fuentes: `DECISIONS.md` D-V01…D-V08, `BASELINE.md` (auditoría A01–A16), `EBIM_CONVENTIONS.md` (U-01…U-15),
@@ -271,6 +272,9 @@ solo si el cuerpo es tabla. Cuerpo `p-5`. Pie opcional `px-5 py-3` `text-caption
 
 ### 5.6 KPI tile (`KpiTile`, evoluciona `StatCard`)
 
+> **V6:** en listados y fichas la cifra va en una franja `StatStrip` de ~72 px (§10.2). El `KpiTile` grande con sparkline queda
+> para las pantallas de tendencia (Resumen ejecutivo, Facturación, Costos, Comisiones: `StatStrip variant="tiles"`).
+
 Orden vertical, `p-5`, alto mínimo 148 (dashboard) / 120 (interno):
 1. **Etiqueta** `text-micro --muted` (+ icono opcional 16 px `--muted`; + `InfoTooltip` con la definición del KPI).
 2. **Valor** `text-display` (dashboard) o `text-kpi` (interno), `--text`, cifras proporcionales. La moneda va como prefijo
@@ -286,6 +290,9 @@ por qué («Sin cobros en el período»), nunca un `0` que parezca dato (A04, A0
 Si el tile navega al detalle, todo el tile es el enlace (U: continuidad resumen → detalle).
 
 ### 5.7 Tabla (`DataTable` / `PagedTable`)
+
+> **V6:** celdas tipadas, columnas `width/sticky/sortKey/mobile`, tarjetas móviles por defecto y menú «⋯» junto al título en
+> móvil (§10.3). Las reglas de abajo siguen valiendo.
 
 - Contenedor dentro de tarjeta; `overflow-x-auto` con la primera columna `sticky left-0` si hay scroll horizontal.
 - Cabecera **sticky** (`top-0` del área de scroll), fondo `--sunken`, borde inferior `--border`, `text-micro --muted`, alto 40.
@@ -304,6 +311,9 @@ Si el tile navega al detalle, todo el tile es el enlace (U: continuidad resumen 
   luego se truncan nombres con `title`; nunca se quita un dato ni una columna del CSV. Las filas de pestañas sí pueden desbordar.
 
 ### 5.8 Pestañas
+
+> **V6:** las pestañas de sección **siguen centradas** (D-013). Un solo nivel de pestañas subrayadas por pantalla; el segundo
+> nivel es `SubSections` (segmentado). En móvil, una fila que no cabe se vuelve `select` (§10.4).
 
 - **`SectionTabs`** (fichas, U-07): subrayado. Alto 44, `text-compact` 600, inactiva `--muted`, hover `--text`, activa `--accent-deep`
   con barra inferior 2 px `--accent-deep`; borde inferior del grupo `--border`. Deep-link `#hash`. Más de 7 pestañas → scroll horizontal
@@ -341,6 +351,9 @@ con `prefers-reduced-motion` es estático. Formas: tabla (cabecera + 6 filas con
 En recargas (refetch) **no** se vuelve a mostrar el skeleton: se mantiene el contenido con opacidad 0.6.
 
 ### 5.13 Encabezado de página (`PageContainer`)
+
+> **V6:** cabecera única de lista (§10.1): título + «¿Qué es esto?» (`InfoHint`) + acciones en una fila; la descripción larga va
+> plegada en el `InfoHint`, nunca como párrafo bajo las pestañas.
 
 Migas (`text-caption --muted`, separador `CaretRight` 12 px, la última sin enlace) → 8 → fila: título `text-h1 --text` + descripción
 `text-body --text-2` (máx. 72 ch) a la izquierda; acciones a la derecha (máx. 1 primaria + 2 secundarias/fantasma; el resto en menú
@@ -626,6 +639,80 @@ Signo negativo: `−` (U+2212) en etiquetas de gráfico y deltas. Ninguna cifra 
   de Tenant 360 (provisioning, features, add-ons).
 - Sidebar largo (35 ítems) sin indicación de scroll a 900 px de alto.
 - La pestaña de sección (Ejecutivo/Finanzas/Operación) sigue visible al imprimir el tablero normal.
+
+---
+
+## 10. V6 · densidad y patrones de listado (2026-11-13)
+
+Plan: `docs/design/PLAN_MEJORA_UI_UX_V6.md`. Decisiones: `docs/nightly/DECISIONS.md` D-013…D-015. Todo vive UNA vez en
+`src/components/ui/`; una pantalla nueva compone estas piezas y no inventa otras.
+
+### 10.1 Cabecera de lista (`PageContainer` + `HubPage`)
+- Una fila: `h1` · `InfoHint` («¿Qué es esto?», con la descripción completa) · acciones a la derecha (1 primaria + 2 secundarias;
+  el resto en `ActionMenu variant="page"`). La descripción de `navigation.ts` es de una línea (≤ 90 caracteres, test).
+- En un hub, la pestaña incrustada lleva sus acciones y su descripción a la cabecera del hub (portal `EmbeddedSlots`): bajo las
+  pestañas empieza el contenido, sin párrafos repetidos.
+- Orden de lectura de un listado: cabecera → `StatStrip` → tarjeta con `SearchBar` (+ `StatusTabs` a la derecha) → tabla.
+
+### 10.2 `StatStrip` / `StatCell`
+- Una `ebim-card` de ~72 px con 3 a 6 celdas separadas por hairline (`gap-px` sobre `--border`): etiqueta `text-micro`, cifra
+  `text-h2`, una línea de contexto `text-caption`. Móvil: 2 columnas, la última impar a lo ancho; desde `lg`, una fila.
+- Etiqueta y contexto: una línea con `…` y `title` desde `lg`; **hasta 2 líneas por debajo** (nada de «ALERTAS CRÍTIC…»).
+- Dinero: `amounts` por moneda, nunca sumadas; cada importe entero pasa a la línea siguiente si no cabe.
+- Tono = icono junto a la etiqueta (la cifra no se colorea). Sin dato = «— Sin datos», nunca 0.
+- Una celda puede filtrar la tabla (`onSelect` + `selected`, `aria-pressed`) o navegar (`to`).
+- `KpiStrip` es alias; un `KpiTile` dentro de una banda se pinta como `StatCell`.
+- `variant="tiles"` (tarjetas con sparkline) solo desde 640 px: en móvil se pinta como banda.
+
+### 10.3 Tabla densa y celdas tipadas (`cells.tsx`)
+- Fila gerencial de 44–48 px: una línea principal y como mucho una secundaria.
+- `CellTitle`: nombre (enlace, `title` siempre) + segunda línea `text-caption` (partes vacías fuera, códigos en mono, `title` con el
+  texto completo también cuando la segunda línea es un nodo). Las insignias (`aside`) bajan de línea si no caben: el nombre nunca
+  queda en «C…».
+- `MoneyCell`: compacto en su moneda (`USD 22.7 K`) con el completo en `title`; el contexto («2 facturas · 45 días») se ve también
+  sin importe.
+- `AppChip(s)`: punto de estado + nombre, «+N» con el resto en `title`. `StatusCell`: insignia con punto + antigüedad.
+- Columnas: `width`, `sticky` (solo la primera), `sortKey` (+ `aria-sort`), `mobile: false` (la tarjeta móvil la omite) y `label`
+  como nodo (con `name` en texto plano para la tarjeta).
+- Móvil (< 640 px): cada fila es una tarjeta (título, pares «etiqueta: valor», acciones al pie). Si la única acción es el menú «⋯»,
+  va a la derecha del título, sin fila propia. Las filas deben ser `<tr>` directos (o una función que devuelve `<tr key>`): un
+  componente de fila deja la tabla con scroll horizontal en móvil.
+- Vacío: `EmptyState variant="empty"` (con acción si el rol puede) o `variant="no-results"` (con «Limpiar búsqueda»); con el
+  conjunto vacío, el buscador y las pestañas de estado se ocultan. En paneles pequeños, `illustration="none"`.
+- Un gráfico sin datos se pliega a una línea (`EmptyChartLine`).
+
+### 10.4 Pestañas y secciones
+- Pestañas de sección subrayadas y **centradas** (`TabStrip`), un solo nivel por pantalla.
+- Segundo nivel: `SubSections` (control segmentado a la izquierda, con `aside`; `layout="side"` = lista vertical desde 1024 px).
+  Deep-link por `#hash` reescrito con `replaceState`.
+- `StatusTabs` (estado de un listado): segmentado.
+- **Móvil:** si la fila no cabe a lo ancho (`tabStripFits`, `statusTabsFitMobile`), se pinta un `select` nativo con el mismo nombre
+  accesible y los contadores entre paréntesis; ninguna pestaña queda cortada por el borde.
+
+### 10.5 `CompactStepper`
+- Barra segmentada (un segmento de 6 px por etapa) y, debajo, solo el nombre de la etapa actual; la lista completa en `title` y en
+  una lista `sr-only` («(completado)», «(actual)»). Para tablas, tarjetas y fichas; los asistentes con pocos pasos conservan su
+  stepper grande.
+
+### 10.6 `SummaryBar` (cabecera de ficha)
+- 4–6 datos que responden «¿cómo está?»: texto compacto, sin cifras gigantes. Escritorio: una fila pegada bajo la barra superior
+  (`md:sticky top-16`), separadores verticales; `grow` para la lista de apps.
+- **Móvil: grilla de 2 columnas** (antes, un dato por fila); `grow` y el último impar a lo ancho. Fluye con la página.
+- Los pares etiqueta → valor del cuerpo de la ficha van en `DetailFacts` (2–4 columnas, etiqueta encima).
+
+### 10.7 Densidad y primera pantalla
+- Nada de párrafos de relleno: lo explicativo va en `InfoHint` o en el contexto de la celda.
+- A 390 px el primer dato útil (franja, primera fila o primera cifra) entra en la primera pantalla: filtros plegados en un botón
+  (Resumen), franjas en 2 columnas, cabeceras de ficha en 2 columnas.
+- Gráficos de barras con más de 4 categorías pasan a horizontales en móvil.
+
+### 10.8 Guardas automáticas
+- `e2e/visual/solapes.spec.ts` (con `playwright.visual.config.ts`, contra una URL ya servida, sin stack local): recorre con login
+  cada entrada del menú, cada pestaña `?tab=`, cada sección y una ficha de cada tipo (las 8 de app) a 1440 y 390, y falla si dos
+  textos visibles se enciman (cajas de línea recortadas por sus contenedores) o si un texto se corta sin `title`.
+  `BASE_URL=… GUARD_EMAIL=… GUARD_PASSWORD=… npx playwright test -c playwright.visual.config.ts`; `GUARD_SHOTS=dir` guarda la
+  captura de cada pantalla con hallazgos, marcados en rojo.
+- `e2e/visual/desbordes.spec.ts` sigue vigilando que ninguna tabla esconda columnas a 1280/1440 (stack local).
 
 ---
 

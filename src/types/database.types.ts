@@ -5511,6 +5511,8 @@ export type Database = {
           health_path_template: string | null;
           id: string;
           integration_type: Database['platform']['Enums']['integration_type'];
+          inventory_path: string | null;
+          inventory_read_scope: string | null;
           issuer: string;
           lifecycle_path: string | null;
           lifecycle_read_scope: string | null;
@@ -5551,6 +5553,8 @@ export type Database = {
           health_path_template?: string | null;
           id?: string;
           integration_type: Database['platform']['Enums']['integration_type'];
+          inventory_path?: string | null;
+          inventory_read_scope?: string | null;
           issuer?: string;
           lifecycle_path?: string | null;
           lifecycle_read_scope?: string | null;
@@ -5591,6 +5595,8 @@ export type Database = {
           health_path_template?: string | null;
           id?: string;
           integration_type?: Database['platform']['Enums']['integration_type'];
+          inventory_path?: string | null;
+          inventory_read_scope?: string | null;
           issuer?: string;
           lifecycle_path?: string | null;
           lifecycle_read_scope?: string | null;
@@ -8400,6 +8406,7 @@ export type Database = {
           id: boolean;
           last_cycle_at: string | null;
           last_cycle_result: Json | null;
+          tenant_sync_enabled: boolean;
           updated_at: string;
           updated_by: string | null;
         };
@@ -8411,6 +8418,7 @@ export type Database = {
           id?: boolean;
           last_cycle_at?: string | null;
           last_cycle_result?: Json | null;
+          tenant_sync_enabled?: boolean;
           updated_at?: string;
           updated_by?: string | null;
         };
@@ -8422,6 +8430,7 @@ export type Database = {
           id?: boolean;
           last_cycle_at?: string | null;
           last_cycle_result?: Json | null;
+          tenant_sync_enabled?: boolean;
           updated_at?: string;
           updated_by?: string | null;
         };
@@ -8739,6 +8748,487 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'tenants';
             referencedColumns: ['id'];
+          },
+        ];
+      };
+      tenant_sync_findings: {
+        Row: {
+          app_code: string | null;
+          app_name: string | null;
+          app_state: string | null;
+          app_status: string | null;
+          deployment_target_id: string;
+          detail: Json;
+          external_company_id: string | null;
+          external_organization_id: string | null;
+          external_tenant_id: string | null;
+          fingerprint: string;
+          first_run_id: string | null;
+          first_seen_at: string;
+          id: string;
+          kind: string;
+          last_run_id: string | null;
+          last_seen_at: string;
+          mapping_id: string | null;
+          masteradmin_state: string | null;
+          registered_tenant_id: string | null;
+          resolution: string | null;
+          resolution_reason: string | null;
+          resolved_at: string | null;
+          resolved_by: string | null;
+          saas_product_id: string;
+          status: string;
+          tenant_id: string | null;
+          times_seen: number;
+        };
+        Insert: {
+          app_code?: string | null;
+          app_name?: string | null;
+          app_state?: string | null;
+          app_status?: string | null;
+          deployment_target_id: string;
+          detail?: Json;
+          external_company_id?: string | null;
+          external_organization_id?: string | null;
+          external_tenant_id?: string | null;
+          fingerprint: string;
+          first_run_id?: string | null;
+          first_seen_at?: string;
+          id?: string;
+          kind: string;
+          last_run_id?: string | null;
+          last_seen_at?: string;
+          mapping_id?: string | null;
+          masteradmin_state?: string | null;
+          registered_tenant_id?: string | null;
+          resolution?: string | null;
+          resolution_reason?: string | null;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          saas_product_id: string;
+          status?: string;
+          tenant_id?: string | null;
+          times_seen?: number;
+        };
+        Update: {
+          app_code?: string | null;
+          app_name?: string | null;
+          app_state?: string | null;
+          app_status?: string | null;
+          deployment_target_id?: string;
+          detail?: Json;
+          external_company_id?: string | null;
+          external_organization_id?: string | null;
+          external_tenant_id?: string | null;
+          fingerprint?: string;
+          first_run_id?: string | null;
+          first_seen_at?: string;
+          id?: string;
+          kind?: string;
+          last_run_id?: string | null;
+          last_seen_at?: string;
+          mapping_id?: string | null;
+          masteradmin_state?: string | null;
+          registered_tenant_id?: string | null;
+          resolution?: string | null;
+          resolution_reason?: string | null;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          saas_product_id?: string;
+          status?: string;
+          tenant_id?: string | null;
+          times_seen?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'tenant_sync_findings_deployment_target_id_fkey';
+            columns: ['deployment_target_id'];
+            isOneToOne: false;
+            referencedRelation: 'deployment_targets';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_deployment_target_id_fkey';
+            columns: ['deployment_target_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_provisioning_targets';
+            referencedColumns: ['deployment_target_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_deployment_target_id_fkey';
+            columns: ['deployment_target_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['deployment_target_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_deployment_target_id_fkey';
+            columns: ['deployment_target_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['deployment_target_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_first_run_id_fkey';
+            columns: ['first_run_id'];
+            isOneToOne: false;
+            referencedRelation: 'tenant_sync_runs';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_first_run_id_fkey';
+            columns: ['first_run_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_runs';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_last_run_id_fkey';
+            columns: ['last_run_id'];
+            isOneToOne: false;
+            referencedRelation: 'tenant_sync_runs';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_last_run_id_fkey';
+            columns: ['last_run_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_runs';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_mapping_id_fkey';
+            columns: ['mapping_id'];
+            isOneToOne: false;
+            referencedRelation: 'tenant_product_mappings';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_mapping_id_fkey';
+            columns: ['mapping_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_saas_provisioning';
+            referencedColumns: ['mapping_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_registered_tenant_id_fkey';
+            columns: ['registered_tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_registered_tenant_id_fkey';
+            columns: ['registered_tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_registered_tenant_id_fkey';
+            columns: ['registered_tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_registered_tenant_id_fkey';
+            columns: ['registered_tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_margin';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_registered_tenant_id_fkey';
+            columns: ['registered_tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_resolved_by_fkey';
+            columns: ['resolved_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'saas_products';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_product_finance';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_product_margin';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_margin';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['tenant_id'];
+          },
+        ];
+      };
+      tenant_sync_runs: {
+        Row: {
+          error_code: string | null;
+          findings_closed: number;
+          findings_opened: number;
+          finished_at: string | null;
+          id: string;
+          requested_by: string | null;
+          started_at: string;
+          status: string;
+          targets_checked: number;
+          targets_total: number;
+          trigger_kind: string;
+        };
+        Insert: {
+          error_code?: string | null;
+          findings_closed?: number;
+          findings_opened?: number;
+          finished_at?: string | null;
+          id?: string;
+          requested_by?: string | null;
+          started_at?: string;
+          status?: string;
+          targets_checked?: number;
+          targets_total?: number;
+          trigger_kind: string;
+        };
+        Update: {
+          error_code?: string | null;
+          findings_closed?: number;
+          findings_opened?: number;
+          finished_at?: string | null;
+          id?: string;
+          requested_by?: string | null;
+          started_at?: string;
+          status?: string;
+          targets_checked?: number;
+          targets_total?: number;
+          trigger_kind?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'tenant_sync_runs_requested_by_fkey';
+            columns: ['requested_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      tenant_sync_target_results: {
+        Row: {
+          checked_at: string;
+          deployment_target_id: string;
+          error_code: string | null;
+          findings_closed: number;
+          findings_opened: number;
+          id: string;
+          inventory_items: number;
+          inventory_status: string;
+          inventory_unknown: number;
+          links_broken: number;
+          links_ok: number;
+          links_state_mismatch: number;
+          links_total: number;
+          links_unverified: number;
+          outcome: string;
+          product_integration_id: string | null;
+          run_id: string;
+          saas_product_id: string;
+          verify_methods: string[];
+        };
+        Insert: {
+          checked_at?: string;
+          deployment_target_id: string;
+          error_code?: string | null;
+          findings_closed?: number;
+          findings_opened?: number;
+          id?: string;
+          inventory_items?: number;
+          inventory_status?: string;
+          inventory_unknown?: number;
+          links_broken?: number;
+          links_ok?: number;
+          links_state_mismatch?: number;
+          links_total?: number;
+          links_unverified?: number;
+          outcome: string;
+          product_integration_id?: string | null;
+          run_id: string;
+          saas_product_id: string;
+          verify_methods?: string[];
+        };
+        Update: {
+          checked_at?: string;
+          deployment_target_id?: string;
+          error_code?: string | null;
+          findings_closed?: number;
+          findings_opened?: number;
+          id?: string;
+          inventory_items?: number;
+          inventory_status?: string;
+          inventory_unknown?: number;
+          links_broken?: number;
+          links_ok?: number;
+          links_state_mismatch?: number;
+          links_total?: number;
+          links_unverified?: number;
+          outcome?: string;
+          product_integration_id?: string | null;
+          run_id?: string;
+          saas_product_id?: string;
+          verify_methods?: string[];
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'tenant_sync_target_results_deployment_target_id_fkey';
+            columns: ['deployment_target_id'];
+            isOneToOne: false;
+            referencedRelation: 'deployment_targets';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_target_results_deployment_target_id_fkey';
+            columns: ['deployment_target_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_provisioning_targets';
+            referencedColumns: ['deployment_target_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_target_results_deployment_target_id_fkey';
+            columns: ['deployment_target_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['deployment_target_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_target_results_deployment_target_id_fkey';
+            columns: ['deployment_target_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['deployment_target_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_target_results_product_integration_id_fkey';
+            columns: ['product_integration_id'];
+            isOneToOne: false;
+            referencedRelation: 'product_integrations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_target_results_product_integration_id_fkey';
+            columns: ['product_integration_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['integration_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_target_results_run_id_fkey';
+            columns: ['run_id'];
+            isOneToOne: false;
+            referencedRelation: 'tenant_sync_runs';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_target_results_run_id_fkey';
+            columns: ['run_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_runs';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_target_results_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'saas_products';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_target_results_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_product_finance';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_target_results_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_product_margin';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_target_results_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_target_results_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
           },
         ];
       };
@@ -13409,6 +13899,274 @@ export type Database = {
         };
         Relationships: [];
       };
+      v_tenant_sync_findings: {
+        Row: {
+          app_code: string | null;
+          app_name: string | null;
+          app_state: string | null;
+          app_status: string | null;
+          deployment_code: string | null;
+          deployment_target_id: string | null;
+          detail: Json | null;
+          environment: string | null;
+          external_company_id: string | null;
+          external_organization_id: string | null;
+          external_tenant_id: string | null;
+          first_seen_at: string | null;
+          id: string | null;
+          kind: string | null;
+          last_seen_at: string | null;
+          mapping_id: string | null;
+          masteradmin_state: string | null;
+          product_accent_color: string | null;
+          product_code: string | null;
+          product_short_name: string | null;
+          registered_tenant_id: string | null;
+          registered_tenant_name: string | null;
+          resolution: string | null;
+          resolution_reason: string | null;
+          resolved_at: string | null;
+          resolved_by: string | null;
+          resolved_by_name: string | null;
+          saas_product_id: string | null;
+          status: string | null;
+          tenant_id: string | null;
+          tenant_name: string | null;
+          tenant_slug: string | null;
+          times_seen: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'tenant_sync_findings_deployment_target_id_fkey';
+            columns: ['deployment_target_id'];
+            isOneToOne: false;
+            referencedRelation: 'deployment_targets';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_deployment_target_id_fkey';
+            columns: ['deployment_target_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_provisioning_targets';
+            referencedColumns: ['deployment_target_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_deployment_target_id_fkey';
+            columns: ['deployment_target_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['deployment_target_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_deployment_target_id_fkey';
+            columns: ['deployment_target_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['deployment_target_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_mapping_id_fkey';
+            columns: ['mapping_id'];
+            isOneToOne: false;
+            referencedRelation: 'tenant_product_mappings';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_mapping_id_fkey';
+            columns: ['mapping_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_saas_provisioning';
+            referencedColumns: ['mapping_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_registered_tenant_id_fkey';
+            columns: ['registered_tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_registered_tenant_id_fkey';
+            columns: ['registered_tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_registered_tenant_id_fkey';
+            columns: ['registered_tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_registered_tenant_id_fkey';
+            columns: ['registered_tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_margin';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_registered_tenant_id_fkey';
+            columns: ['registered_tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_resolved_by_fkey';
+            columns: ['resolved_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'saas_products';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_product_finance';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_product_margin';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_margin';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_findings_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['tenant_id'];
+          },
+        ];
+      };
+      v_tenant_sync_runs: {
+        Row: {
+          error_code: string | null;
+          findings_closed: number | null;
+          findings_opened: number | null;
+          finished_at: string | null;
+          id: string | null;
+          requested_by: string | null;
+          requested_by_name: string | null;
+          started_at: string | null;
+          status: string | null;
+          targets_checked: number | null;
+          targets_total: number | null;
+          trigger_kind: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'tenant_sync_runs_requested_by_fkey';
+            columns: ['requested_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      v_tenant_sync_targets: {
+        Row: {
+          active_links: number | null;
+          can_check_existence: boolean | null;
+          can_check_state: boolean | null;
+          deployment_code: string | null;
+          deployment_name: string | null;
+          deployment_target_id: string | null;
+          environment: string | null;
+          integration_code: string | null;
+          integration_id: string | null;
+          inventory_available: boolean | null;
+          last_checked_at: string | null;
+          last_error_code: string | null;
+          last_inventory_items: number | null;
+          last_inventory_status: string | null;
+          last_inventory_unknown: number | null;
+          last_links_broken: number | null;
+          last_links_ok: number | null;
+          last_links_state_mismatch: number | null;
+          last_links_total: number | null;
+          last_links_unverified: number | null;
+          last_outcome: string | null;
+          last_run_id: string | null;
+          last_verify_methods: string[] | null;
+          open_findings: number | null;
+          product_accent_color: string | null;
+          product_code: string | null;
+          product_short_name: string | null;
+          product_sort_order: number | null;
+          provisioning_enabled: boolean | null;
+          saas_product_id: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'tenant_sync_target_results_run_id_fkey';
+            columns: ['last_run_id'];
+            isOneToOne: false;
+            referencedRelation: 'tenant_sync_runs';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenant_sync_target_results_run_id_fkey';
+            columns: ['last_run_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_runs';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       v_usage_alerts: {
         Row: {
           ack_id: string | null;
@@ -13744,6 +14502,10 @@ export type Database = {
         Args: { p_actor_id?: string; p_actor_role?: string; p_request_id: string };
         Returns: Json;
       };
+      begin_tenant_sync_run: {
+        Args: { p_requested_by?: string; p_trigger: string };
+        Returns: string;
+      };
       billing_shadow_expected_lines: {
         Args: { p_period_start: string; p_saas_product_code: string; p_tenant_id: string };
         Returns: Json;
@@ -13760,6 +14522,7 @@ export type Database = {
       can_manage_regional_catalog: { Args: Record<PropertyKey, never>; Returns: boolean };
       can_manage_subscription_documents: { Args: { p_subscription_id: string }; Returns: boolean };
       can_manage_tenant: { Args: { p_tenant: string }; Returns: boolean };
+      can_manage_tenant_sync: { Args: Record<PropertyKey, never>; Returns: boolean };
       can_read_commercial_cutover: { Args: { p_saas_product_id: string }; Returns: boolean };
       can_read_entitlement_sync: { Args: { p_tenant_id: string }; Returns: boolean };
       can_read_finance: { Args: Record<PropertyKey, never>; Returns: boolean };
@@ -14026,6 +14789,10 @@ export type Database = {
           p_read_scope: string;
           p_write_scope: string;
         };
+        Returns: string;
+      };
+      configure_inventory_integration: {
+        Args: { p_integration_id: string; p_inventory_path: string; p_read_scope: string };
         Returns: string;
       };
       configure_lifecycle_integration: {
@@ -14598,6 +15365,10 @@ export type Database = {
         };
         Returns: string;
       };
+      finish_tenant_sync_run: {
+        Args: { p_error_code?: string; p_run_id: string; p_targets_total?: number };
+        Returns: Json;
+      };
       fx_convert: {
         Args: {
           p_amount: number;
@@ -14738,6 +15509,50 @@ export type Database = {
       link_user_sales_agent: {
         Args: { p_reason?: string; p_sales_agent_id: string; p_user_id: string };
         Returns: string;
+      };
+      list_tenant_sync_findings: {
+        Args: { p_limit?: number; p_saas_product_id?: string; p_status?: string };
+        Returns: {
+          app_code: string | null;
+          app_name: string | null;
+          app_state: string | null;
+          app_status: string | null;
+          deployment_code: string | null;
+          deployment_target_id: string | null;
+          detail: Json | null;
+          environment: string | null;
+          external_company_id: string | null;
+          external_organization_id: string | null;
+          external_tenant_id: string | null;
+          first_seen_at: string | null;
+          id: string | null;
+          kind: string | null;
+          last_seen_at: string | null;
+          mapping_id: string | null;
+          masteradmin_state: string | null;
+          product_accent_color: string | null;
+          product_code: string | null;
+          product_short_name: string | null;
+          registered_tenant_id: string | null;
+          registered_tenant_name: string | null;
+          resolution: string | null;
+          resolution_reason: string | null;
+          resolved_at: string | null;
+          resolved_by: string | null;
+          resolved_by_name: string | null;
+          saas_product_id: string | null;
+          status: string | null;
+          tenant_id: string | null;
+          tenant_name: string | null;
+          tenant_slug: string | null;
+          times_seen: number | null;
+        }[];
+        SetofOptions: {
+          from: '*';
+          to: 'v_tenant_sync_findings';
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
       };
       log_audit: {
         Args: {
@@ -15057,6 +15872,10 @@ export type Database = {
         };
         Returns: number;
       };
+      record_tenant_sync_target_result: {
+        Args: { p_deployment_target_id: string; p_result: Json; p_run_id: string };
+        Returns: Json;
+      };
       record_user_invitation: {
         Args: {
           p_delivery: string;
@@ -15148,6 +15967,24 @@ export type Database = {
           p_metadata?: Json;
           p_plan_id: string;
           p_provider_account_id: string;
+        };
+        Returns: Json;
+      };
+      register_tenant_sync_finding: {
+        Args: {
+          p_admin_email?: string;
+          p_existing_tenant_id?: string;
+          p_finding_id: string;
+          p_note?: string;
+          p_org_country_code?: string;
+          p_org_display_name?: string;
+          p_org_legal_name?: string;
+          p_org_slug?: string;
+          p_org_tax_id?: string;
+          p_organization_id?: string;
+          p_tenant_name?: string;
+          p_tenant_slug?: string;
+          p_tenant_type?: Database['platform']['Enums']['tenant_type'];
         };
         Returns: Json;
       };
@@ -15252,6 +16089,10 @@ export type Database = {
         Returns: string;
       };
       resolve_org_card_account: { Args: { p_organization_id: string }; Returns: string };
+      resolve_tenant_sync_finding: {
+        Args: { p_action: string; p_finding_id: string; p_reason: string };
+        Returns: string;
+      };
       resume_tenant_addon: {
         Args: { p_reason: string; p_tenant_addon_id: string };
         Returns: undefined;
@@ -15492,6 +16333,7 @@ export type Database = {
         };
         Returns: undefined;
       };
+      set_tenant_sync_enabled: { Args: { p_enabled: boolean }; Returns: boolean };
       set_usage_ingest_enabled: {
         Args: { p_enabled: boolean; p_product_code: string; p_reason: string };
         Returns: number;
@@ -15564,6 +16406,11 @@ export type Database = {
           total: number;
         }[];
       };
+      tenant_sync_expected_state: {
+        Args: { p_status: Database['platform']['Enums']['tenant_status'] };
+        Returns: string;
+      };
+      tenant_sync_plan: { Args: Record<PropertyKey, never>; Returns: Json };
       to_reporting_amount: {
         Args: {
           p_amount: number;

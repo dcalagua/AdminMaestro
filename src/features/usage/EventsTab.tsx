@@ -38,7 +38,7 @@ export function EventsTab() {
     <div className="space-y-4">
       <Card
         title="Eventos"
-        description={`Eventos aceptados por el ingest, por fecha de ocurrencia (UTC). Se muestran hasta ${USAGE_LIST_LIMIT} por consulta; acota por tenant para ver todo un mes.`}
+        description={`Eventos aceptados por la conexión de uso, por fecha de ocurrencia (UTC). Se muestran hasta ${USAGE_LIST_LIMIT} por consulta; acota por tenant para ver todo un mes.`}
       >
         <div className="flex flex-wrap items-end gap-3 border-b border-border px-4 py-3">
           <SelectField
@@ -88,7 +88,7 @@ export function EventsTab() {
             description={
               rows.length > 0
                 ? 'Prueba con otra búsqueda.'
-                : 'El ingest está apagado hasta D-12 o el tenant no emitió uso en este período.'
+                : 'La conexión de uso está apagada o el tenant no emitió uso en este período.'
             }
           />
         ) : (

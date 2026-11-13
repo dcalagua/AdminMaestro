@@ -64,6 +64,9 @@ export function UsersPage() {
     );
   }
 
+  // V6 · 3.6: una columna que dice «Sin apps» en todas las filas no informa; se oculta.
+  const anyApps = visible.some((u) => userAppAccess(u, appContext).some((a) => a.active));
+
   return (
     <PageContainer
       title="Usuarios y accesos"
@@ -85,12 +88,18 @@ export function UsersPage() {
             tone={kpis.pending > 0 ? 'warn' : 'neutral'}
             footer="Aún no aceptan su invitación."
           />
-          <KpiTile label="Ingresaron en 30 días" value={formatNumber(kpis.recent)} footer="Último ingreso registrado en Auth." />
+          <KpiTile label="Ingresaron en 30 días" value={formatNumber(kpis.recent)} footer="Último inicio de sesión registrado." />
           <KpiTile label="Desactivados" value={formatNumber(kpis.inactive)} footer="Conservan su historial; no ingresan." />
         </KpiStrip>
       ) : null}
 
-      <Card>
+      <Card
+        footer={
+          visible.length > 0 && !anyApps
+            ? 'Nadie de esta lista entra todavía a una app: la columna «Apps» aparece cuando exista el canal de usuarios por app.'
+            : undefined
+        }
+      >
         <SearchBar
           value={term}
           onChange={setTerm}
@@ -121,7 +130,14 @@ export function UsersPage() {
           <DataTable
             label="Usuarios"
             mobileCards
-            columns={['Usuario', 'Roles y cuentas', 'Apps', 'Último ingreso', 'Estado', { label: 'Acciones', srOnly: true }]}
+            columns={[
+              'Usuario',
+              'Roles y cuentas',
+              ...(anyApps ? ['Apps'] : []),
+              'Último ingreso',
+              'Estado',
+              { label: 'Acciones', srOnly: true },
+            ]}
           >
             {visible.map((u) => {
               const status = accountStatus(u);
@@ -158,9 +174,11 @@ export function UsersPage() {
                       {access.length === 0 ? <span className="text-caption text-muted">Sin accesos activos</span> : null}
                     </div>
                   </td>
-                  <td className="ebim-td">
-                    <AppAccessChips apps={apps} />
-                  </td>
+                  {anyApps ? (
+                    <td className="ebim-td">
+                      <AppAccessChips apps={apps} />
+                    </td>
+                  ) : null}
                   <td className="ebim-td whitespace-nowrap text-compact text-muted">
                     {u.lastSignInAt ? formatDateTime(u.lastSignInAt) : 'Nunca'}
                   </td>

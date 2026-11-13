@@ -1,10 +1,14 @@
 import { Children, type CSSProperties, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import {
   ArrowClockwiseIcon,
   ArrowDownRightIcon,
   ArrowUpRightIcon,
+  CaretDownIcon,
   CaretRightIcon,
+  CaretUpDownIcon,
+  CaretUpIcon,
   CheckCircleIcon,
   InfoIcon,
   MinusIcon,
@@ -19,8 +23,14 @@ import { PAGE_SIZES } from '@/lib/paging';
 import { useClientPagination } from '@/hooks/useClientPagination';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { MobileCardList } from './MobileCards';
+import { StatCell } from './StatStrip';
+import { useStatStripVariant } from './statStripContext';
+import type { DataTableSort } from './tableSort';
+
+export type { DataTableSort } from './tableSort';
 import { rowsToCards } from './tableCards';
-import { useEmbeddedPage, usePageTrail } from './pageTrail';
+import { useEmbeddedSlots, usePageTrail } from './pageTrail';
+import { InfoHint } from './InfoHint';
 import { formatDelta } from '@/lib/format';
 import { businessErrorMessage } from '@/lib/pgError';
 
@@ -95,21 +105,28 @@ export function PageContainer({
   children: ReactNode;
 }) {
   const trail = usePageTrail();
-  const embedded = useEmbeddedPage();
-  if (embedded) {
-    // Pestaña de otra pantalla: sin migas ni `h1` (los pone la contenedora).
+  const slots = useEmbeddedSlots();
+  if (slots) {
+    // Pestaña de otra pantalla (V6 · T1): sin migas ni `h1`; las acciones y la
+    // descripción suben a la cabecera de la contenedora (portal). Aquí solo
+    // queda, si lo hay, el estado o los metadatos de la pestaña en una línea.
     return (
       <section aria-label={title}>
         <h2 className="sr-only">{title}</h2>
-        {description || meta || actions || titleAside ? (
-          <header className="mb-5 flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
-            <div className="min-w-0">
-              {titleAside ? <div className="mb-1 flex flex-wrap items-center gap-1.5">{titleAside}</div> : null}
-              {description ? <p className="max-w-[72ch] text-body text-fg-2">{description}</p> : null}
-              {meta ? <div className="mt-2 text-caption text-muted">{meta}</div> : null}
-            </div>
-            {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
-          </header>
+        {actions && slots.actions ? createPortal(actions, slots.actions) : null}
+        {description && slots.hint
+          ? createPortal(
+              <InfoHint label={`Qué es «${title}»`} title={title}>
+                {description}
+              </InfoHint>,
+              slots.hint,
+            )
+          : null}
+        {meta || titleAside ? (
+          <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-caption text-muted" data-embedded-meta>
+            {titleAside ? <div className="flex flex-wrap items-center gap-1.5">{titleAside}</div> : null}
+            {meta ? <div>{meta}</div> : null}
+          </div>
         ) : null}
         {children}
       </section>
@@ -123,8 +140,10 @@ export function PageContainer({
           {Array.isArray(crumbs) ? <Breadcrumbs items={crumbs as Crumb[]} /> : crumbs}
         </div>
       ) : null}
+      {/* V6 · T1: título y acciones en la MISMA fila mientras quepan (el título cede
+          ancho y la descripción se parte); solo en pantallas estrechas bajan. */}
       <header className="mb-6 flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
-        <div className="flex min-w-0 items-start gap-4">
+        <div className="flex min-w-[min(100%,320px)] flex-1 items-start gap-4">
           {leading}
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -138,7 +157,7 @@ export function PageContainer({
             {meta ? <div className="mt-2 text-caption text-muted">{meta}</div> : null}
           </div>
         </div>
-        {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+        {actions ? <div className="flex flex-wrap items-center justify-end gap-2 max-sm:justify-start">{actions}</div> : null}
       </header>
       {children}
     </div>
@@ -292,6 +311,40 @@ export function KpiTile({
   onRetry,
   className = '',
 }: KpiTileProps) {
+  // V6 · T2: dentro de una franja compacta, el tile se pinta como celda de ~72 px
+  // (la sparkline se omite: la tendencia queda para `variant="tiles"`).
+  const strip = useStatStripVariant();
+  if (strip === 'band') {
+    return (
+      <StatCell
+        label={label}
+        value={value}
+        currency={currency}
+        tone={tone}
+        info={info}
+        to={to}
+        loading={loading}
+        error={error}
+        onRetry={onRetry}
+        className={className}
+        context={
+          !delta ? (
+            footer
+          ) : (
+            <>
+              {delta ? (
+                <span className="mr-1.5 font-semibold tabular-nums text-fg-2">
+                  {formatDelta(delta.value, delta.kind)}
+                  {delta.comparison ? <span className="font-normal text-muted"> {delta.comparison}</span> : null}
+                </span>
+              ) : null}
+              {footer}
+            </>
+          )
+        }
+      />
+    );
+  }
   const minH = size === 'display' ? 'min-h-[148px]' : 'min-h-[120px]';
   const empty = !loading && !error && (value === null || value === undefined || value === '' || value === '—');
   // Sin datos (V5 · F7): borde punteado y texto atenuado; no compite con las cifras reales.
@@ -600,25 +653,56 @@ function SearchIllustration() {
   );
 }
 
+/**
+ * Estado vacío (§5.14). V6 · T5 distingue dos casos:
+ *
+ * - `variant="empty"` (por defecto): el conjunto no tiene nada todavía. Ilustración
+ *   de la tarjeta y, si el rol puede, una `action` que crea algo («Nuevo cliente»).
+ * - `variant="no-results"`: hay datos pero la búsqueda o el filtro no encontró
+ *   nada. Lupa y, con `onClear`, el botón «Limpiar búsqueda».
+ *
+ * Con el conjunto vacío, el listado oculta además su buscador y sus pestañas de
+ * estado (`SearchBar total={0}`): nada de «Todos 0 · Activos 0 · Borrador 0».
+ */
 export function EmptyState({
   title,
   description,
   action,
-  illustration = 'empty',
+  illustration,
+  variant = 'empty',
+  onClear,
+  clearLabel = 'Limpiar búsqueda',
 }: {
   title: string;
   description?: string;
   action?: ReactNode;
-  /** `search` para «sin resultados»; `none` en paneles muy pequeños. */
+  /** Fuerza la ilustración: `search`, `empty` o `none` (paneles muy pequeños). Por defecto, la de la variante. */
   illustration?: 'empty' | 'search' | 'none';
+  /** `empty`: no hay nada aún · `no-results`: la búsqueda o el filtro no encontró nada. */
+  variant?: 'empty' | 'no-results';
+  /** Solo con `no-results`: vacía la búsqueda y los filtros. */
+  onClear?: () => void;
+  clearLabel?: string;
 }) {
+  const art = illustration ?? (variant === 'no-results' ? 'search' : 'empty');
+  const clear =
+    variant === 'no-results' && onClear ? (
+      <button type="button" className="ebim-btn-ghost ebim-btn-sm" onClick={onClear}>
+        {clearLabel}
+      </button>
+    ) : null;
   return (
-    <div className={`px-4 text-center ${illustration === 'none' ? 'py-10' : 'py-12'}`}>
-      {illustration === 'empty' ? <EmptyIllustration /> : null}
-      {illustration === 'search' ? <SearchIllustration /> : null}
-      <p className={`text-h3 text-fg ${illustration === 'none' ? '' : 'mt-4'}`}>{title}</p>
+    <div className={`px-4 text-center ${art === 'none' ? 'py-10' : 'py-12'}`} data-empty-variant={variant}>
+      {art === 'empty' ? <EmptyIllustration /> : null}
+      {art === 'search' ? <SearchIllustration /> : null}
+      <p className={`text-h3 text-fg ${art === 'none' ? '' : 'mt-4'}`}>{title}</p>
       {description ? <p className="mx-auto mt-1 max-w-[48ch] text-body text-fg-2">{description}</p> : null}
-      {action ? <div className="mt-5 flex justify-center gap-2">{action}</div> : null}
+      {action || clear ? (
+        <div className="mt-5 flex justify-center gap-2">
+          {clear}
+          {action}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -674,12 +758,20 @@ export function SearchBar({
   onChange,
   placeholder = 'Buscar…',
   right,
+  total,
 }: {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   right?: ReactNode;
+  /**
+   * V6 · T5: cantidad de elementos del conjunto SIN filtrar. Con `0` y sin nada
+   * escrito, ni el buscador ni las pestañas (`right`) se pintan: solo queda el
+   * estado vacío. Sin la prop, la barra se pinta siempre (compatibilidad).
+   */
+  total?: number;
 }) {
+  if (total === 0 && value === '') return null;
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-3">
       <SearchField value={value} onChange={onChange} placeholder={placeholder} className="flex-1" />
@@ -690,7 +782,31 @@ export function SearchBar({
 
 /* ---- Tabla (§5.7) ---------------------------------------------------------------- */
 
-export type DataColumn = string | { label: string; align?: 'left' | 'right'; srOnly?: boolean };
+export type DataColumn =
+  | string
+  | {
+      /**
+       * Cabecera. V6 · F5: también un nodo (p. ej. texto + `InfoHint`); entonces
+       * conviene `name` para la clave y la etiqueta de la tarjeta móvil.
+       */
+      label: ReactNode;
+      /** Texto plano de la cabecera cuando `label` es un nodo (tarjeta móvil, clave). */
+      name?: string;
+      align?: 'left' | 'right';
+      /** Cabecera solo para lector de pantalla (acciones): en móvil va al pie de la tarjeta. */
+      srOnly?: boolean;
+      /** V6 · T4: ancho de la columna (`180`, `'22%'`). El contenido largo lo recortan las celdas (`CellTitle`). */
+      width?: number | string;
+      /**
+       * V6 · T4: SOLO la primera columna. Queda fija a la izquierda cuando la
+       * tabla hace scroll horizontal (VISUAL_SYSTEM §5.7).
+       */
+      sticky?: boolean;
+      /** V6 · T4: columna ordenable; la página ordena las filas y recibe `onSort(sortKey)`. */
+      sortKey?: string;
+      /** V6 · T4: `false` = la tarjeta móvil la omite (dato secundario; en escritorio sigue). */
+      mobile?: boolean;
+    };
 
 /**
  * Tabla de listado: cabecera micro sobre `--sunken` (sticky dentro de su área de
@@ -713,7 +829,18 @@ export type DataColumn = string | { label: string; align?: 'left' | 'right'; srO
  * Móvil (V5 · F7): con `mobileCards`, por debajo de `sm` cada fila se pinta como
  * tarjeta (primera columna = título, el resto «etiqueta: valor», acciones al
  * pie). Si las filas no son `<tr>` directos, se queda la tabla.
+ *
+ * V6 · T4: `mobileCards` está activo por defecto (las matrices y las vistas
+ * «Tabla» de los gráficos pasan `mobileCards={false}`). Columnas con `width`,
+ * primera columna fija (`sticky`) y cabeceras ordenables (`sortKey` + `sort` +
+ * `onSort`, con `aria-sort`). Para las celdas: `src/components/ui/cells.tsx`.
  */
+/** Primera columna fija: fondo opaco (también en hover) y por encima del resto al desplazar. */
+const STICKY_FIRST =
+  '[&_tr>*:first-child]:sticky [&_tr>*:first-child]:left-0 [&_tr>*:first-child]:z-[1] ' +
+  '[&_tbody_tr>*:first-child]:bg-card [&_tbody_tr:hover>*:first-child]:bg-hover ' +
+  '[&_tr>*:first-child]:shadow-[1px_0_0_var(--border)]';
+
 export function DataTable({
   columns,
   children,
@@ -724,7 +851,9 @@ export function DataTable({
   scrollRegion = false,
   paginate = true,
   pageSize: initialPageSize = PAGE_SIZES[0],
-  mobileCards = false,
+  mobileCards = true,
+  sort,
+  onSort,
 }: {
   columns: DataColumn[];
   children: ReactNode;
@@ -741,10 +870,16 @@ export function DataTable({
   paginate?: boolean;
   /** Filas por página iniciales. */
   pageSize?: number;
-  /** Por debajo de `sm`, filas como tarjetas (V5 · F7). */
+  /** Por debajo de `sm`, filas como tarjetas (V5 · F7). Por defecto, sí (V6). */
   mobileCards?: boolean;
+  /** Orden activo (columnas con `sortKey`). */
+  sort?: DataTableSort;
+  /** Pulsar una cabecera ordenable: la página reordena (ver `nextSort`). */
+  onSort?: (key: string) => void;
 }) {
   const mobile = useIsMobile();
+  const first = columns[0];
+  const stickyFirst = typeof first === 'object' && Boolean(first.sticky);
   const rows = paginate ? Children.toArray(children) : null;
   const pager = useClientPagination(rows?.length ?? 0, initialPageSize);
   const paged = rows !== null && pager.active;
@@ -758,15 +893,49 @@ export function DataTable({
     // `relative`: el scroll horizontal también recorta a los descendientes
     // posicionados (p. ej. etiquetas sr-only); sin él ensanchan la página.
     <div className="relative overflow-x-auto" style={style} {...region}>
-      <table className="w-full border-collapse" aria-label={label} style={minWidth ? { minWidth } : undefined}>
+      <table
+        className={`w-full border-collapse ${stickyFirst ? STICKY_FIRST : ''}`}
+        aria-label={label}
+        style={minWidth ? { minWidth } : undefined}
+      >
         {caption ? <caption className="sr-only">{caption}</caption> : null}
         <thead className="sticky top-0 z-[1] border-b border-border bg-sunken">
           <tr>
             {columns.map((c, i) => {
               const col = typeof c === 'string' ? { label: c } : c;
+              const sortable = Boolean(col.sortKey && onSort);
+              const active = sortable && sort?.key === col.sortKey;
+              const ariaSort = sortable ? (active ? (sort!.dir === 'asc' ? 'ascending' : 'descending') : 'none') : undefined;
               return (
-                <th key={`${col.label}-${i}`} scope="col" className={`ebim-th ${col.align === 'right' ? 'text-right' : ''}`}>
-                  {col.srOnly ? <span className="sr-only">{col.label}</span> : col.label}
+                <th
+                  key={`${typeof col.label === 'string' ? col.label : (('name' in col && col.name) || 'col')}-${i}`}
+                  scope="col"
+                  aria-sort={ariaSort}
+                  className={`ebim-th ${col.align === 'right' ? 'text-right' : ''}`}
+                  style={col.width !== undefined ? { width: col.width } : undefined}
+                >
+                  {col.srOnly ? (
+                    <span className="sr-only">{col.label}</span>
+                  ) : sortable ? (
+                    <button
+                      type="button"
+                      className={`inline-flex items-center gap-1 rounded-sm uppercase hover:text-fg ${active ? 'text-fg' : ''}`}
+                      onClick={() => onSort!(col.sortKey!)}
+                    >
+                      {col.label}
+                      {active ? (
+                        sort!.dir === 'asc' ? (
+                          <CaretUpIcon size={12} weight="bold" aria-hidden />
+                        ) : (
+                          <CaretDownIcon size={12} weight="bold" aria-hidden />
+                        )
+                      ) : (
+                        <CaretUpDownIcon size={12} className="opacity-60" aria-hidden />
+                      )}
+                    </button>
+                  ) : (
+                    col.label
+                  )}
                 </th>
               );
             })}

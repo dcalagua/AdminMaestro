@@ -10,7 +10,6 @@ import {
   Rectangle,
   ReferenceDot,
   ReferenceLine,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
@@ -21,6 +20,8 @@ import type { BridgeStep } from '@/features/dashboard/executiveModel';
 import { axisMonth, stepLabel, stepSign } from '@/features/dashboard/executiveModel';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { axisInterval, summarizeSeries } from './chartSummary';
+import { ChartFrame } from '@/components/ui/ChartFrame';
+import { isolatedIndexes } from './isolatedPoints';
 
 /** Descripción en texto del gráfico (V5 · F7), enlazada por `aria-describedby`. */
 function ChartSummaryText({ id, children }: { id: string; children: string }) {
@@ -123,6 +124,7 @@ export function MrrEvolutionChart({
   const mobile = useIsMobile();
   const last = data[data.length - 1];
   const picked = data.find((d) => d.month === analyzed);
+  const lone = isolatedIndexes(data.map((d) => d.mrr));
   const summary = summarizeSeries(
     'MRR',
     data.map((d) => ({ label: `${d.label}${d.partial ? ' (parcial)' : ''}`, value: d.mrr })),
@@ -131,7 +133,7 @@ export function MrrEvolutionChart({
   return (
     <>
     <div role="img" aria-label={ariaLabel} aria-describedby={descId} style={{ height }}>
-      <ResponsiveContainer width="100%" height="100%">
+      <ChartFrame>
         <AreaChart
           data={data}
           // En móvil, menos margen para la etiqueta del último valor: el área no se aplasta.
@@ -183,7 +185,14 @@ export function MrrEvolutionChart({
             fill={`url(#${gradientId})`}
             isAnimationActive={false}
             connectNulls={false}
-            dot={false}
+            // Un mes con dato entre meses sin tasa no se une con nada: se marca como punto suelto.
+            dot={(props: { cx?: number; cy?: number; index?: number }) =>
+              props.index != null && lone.has(props.index) && props.cx != null && props.cy != null ? (
+                <circle key={`lone${props.index}`} cx={props.cx} cy={props.cy} r={3.5} fill="var(--chart-1)" stroke="var(--card)" strokeWidth={1.5} />
+              ) : (
+                <g key={`d${props.index}`} />
+              )
+            }
             activeDot={{ r: 5, fill: 'var(--chart-1)', stroke: 'var(--card)', strokeWidth: 2 }}
           />
           {picked && picked.mrr != null && picked !== last ? (
@@ -223,7 +232,7 @@ export function MrrEvolutionChart({
             />
           ) : null}
         </AreaChart>
-      </ResponsiveContainer>
+      </ChartFrame>
     </div>
     <ChartSummaryText id={descId}>{summary}</ChartSummaryText>
     </>
@@ -298,7 +307,7 @@ export function BridgeWaterfall({
   return (
     <>
     <div role="img" aria-label={ariaLabel} aria-describedby={descId} style={{ height: steps.length * rowHeight + 12 }}>
-      <ResponsiveContainer width="100%" height="100%">
+      <ChartFrame>
         <BarChart data={steps} layout="vertical" margin={{ top: 4, right: fontSize > 12 ? 112 : 92, bottom: 4, left: 0 }} barCategoryGap="30%" accessibilityLayer>
           <CartesianGrid stroke="var(--chart-grid)" horizontal={false} />
           <XAxis type="number" hide domain={[(min: number) => Math.min(0, min), (max: number) => Math.max(0, max)]} />
@@ -351,7 +360,7 @@ export function BridgeWaterfall({
             />
           </Bar>
         </BarChart>
-      </ResponsiveContainer>
+      </ChartFrame>
     </div>
     <ChartSummaryText id={descId}>{summary}</ChartSummaryText>
     </>
@@ -454,7 +463,7 @@ export function BilledCollectedChart({
   return (
     <>
     <div role="img" aria-label={ariaLabel} aria-describedby={descId} style={{ height }}>
-      <ResponsiveContainer width="100%" height="100%">
+      <ChartFrame>
         <BarChart data={data} margin={{ top: 8, right: 8, bottom: 4, left: 0 }} barGap={2} barCategoryGap="24%" accessibilityLayer>
           <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
           <XAxis
@@ -489,7 +498,7 @@ export function BilledCollectedChart({
             cursor={onSelect ? 'pointer' : undefined}
           />
         </BarChart>
-      </ResponsiveContainer>
+      </ChartFrame>
     </div>
     <ChartSummaryText id={descId}>{summary}</ChartSummaryText>
     </>

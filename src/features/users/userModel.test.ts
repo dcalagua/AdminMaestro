@@ -60,7 +60,7 @@ describe('userModel', () => {
   it('estado de la cuenta: desactivado, bloqueado, invitación pendiente o activo', () => {
     const base = (p: Partial<AdminUserRow>): AdminUser => toAdminUser(row(p));
     expect(accountStatus(base({ is_active: false })).label).toBe('Desactivado');
-    expect(accountStatus(base({ banned: true })).label).toBe('Bloqueado en Auth');
+    expect(accountStatus(base({ banned: true })).label).toBe('Inicio de sesión bloqueado');
     expect(accountStatus(base({ invited_at: '2026-10-01T00:00:00Z', email_confirmed_at: null as never, last_sign_in_at: null as never })).label)
       .toBe('Invitación pendiente');
     expect(accountStatus(base({})).label).toBe('Activo');

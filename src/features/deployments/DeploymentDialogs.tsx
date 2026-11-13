@@ -34,11 +34,11 @@ const targetSchema = z
   // Las dos caras de la misma regla del CHECK `deployment_targets_owner_ck`.
   .refine((v) => v.deployment_mode === 'SHARED' || Boolean(v.owner_organization_id), {
     path: ['owner_organization_id'],
-    message: 'Un target dedicado necesita una organización dueña',
+    message: 'Un destino dedicado necesita una organización dueña',
   })
   .refine((v) => v.deployment_mode !== 'SHARED' || !v.owner_organization_id, {
     path: ['owner_organization_id'],
-    message: 'Un target compartido no pertenece a una organización concreta',
+    message: 'Un destino compartido no pertenece a una organización concreta',
   });
 
 type TargetValues = z.infer<typeof targetSchema>;
@@ -144,7 +144,7 @@ export function DeploymentTargetDialog({
         p_cost_center: values.cost_center || undefined,
         p_status: values.status,
       });
-      toast.success(isEdit ? 'Target actualizado' : 'Target creado', values.code);
+      toast.success(isEdit ? 'Destino actualizado' : 'Destino creado', values.code);
       onClose();
     } catch {
       /* visible en el diálogo */
@@ -154,9 +154,9 @@ export function DeploymentTargetDialog({
   return (
     <FormDialog
       open={open}
-      title={isEdit ? `Editar ${target?.code}` : 'Nuevo deployment target'}
-      description="Un target guarda REFERENCIAS públicas (región, project ref), nunca credenciales: un trigger de la base rechaza cualquier metadata que huela a secreto."
-      submitLabel={isEdit ? 'Guardar cambios' : 'Crear target'}
+      title={isEdit ? `Editar ${target?.code}` : 'Nuevo destino de despliegue'}
+      description="Un destino guarda REFERENCIAS públicas (región, project ref), nunca credenciales: la base rechaza cualquier dato que parezca un secreto."
+      submitLabel={isEdit ? 'Guardar cambios' : 'Crear destino'}
       busy={upsert.isPending}
       error={upsert.error}
       onSubmit={() => void submit()}
@@ -186,7 +186,7 @@ export function DeploymentTargetDialog({
 
       <FieldRow>
         <SelectField label="Organización dueña" placeholder="Ninguna (infraestructura EBIM)"
-          hint="Obligatoria para targets dedicados; prohibida para compartidos."
+          hint="Obligatoria para destinos dedicados; prohibida para compartidos."
           options={(orgs.data ?? []).map((o) => ({ value: o.id, label: o.display_name }))}
           error={form.formState.errors.owner_organization_id}
           {...form.register('owner_organization_id')} />
@@ -278,7 +278,7 @@ export function AttachTenantDialog({
     <FormDialog
       open={open}
       title={`Adjuntar tenant a ${targetCode}`}
-      description="La base valida coherencia: modo, producto y dueño. Un tenant del partner B no puede aterrizar en el target dedicado del partner A."
+      description="La base valida coherencia: modo, producto y dueño. Un tenant del partner B no puede aterrizar en el destino dedicado del partner A."
       submitLabel="Adjuntar"
       busy={attach.isPending}
       error={attach.error}
@@ -312,7 +312,7 @@ type EnqueueValues = z.infer<typeof enqueueSchema>;
 const ACTIONS = [
   { value: 'CREATE_TENANT_SPACE', label: 'Crear espacio de tenant' },
   { value: 'CREATE_DEDICATED_TARGET', label: 'Crear infraestructura dedicada' },
-  { value: 'ATTACH_TENANT_TO_TARGET', label: 'Adjuntar tenant a target' },
+  { value: 'ATTACH_TENANT_TO_TARGET', label: 'Adjuntar tenant a un destino' },
   { value: 'SUSPEND_TENANT', label: 'Suspender tenant' },
   { value: 'RESUME_TENANT', label: 'Reanudar tenant' },
   { value: 'DECOMMISSION_TENANT', label: 'Dar de baja tenant' },
@@ -392,7 +392,7 @@ export function EnqueueProvisioningDialog({
             label: t.name as string,
           }))}
           error={form.formState.errors.tenant_id} {...form.register('tenant_id')} />
-        <SelectField label="Deployment target" placeholder="Sin target"
+        <SelectField label="Destino de despliegue" placeholder="Sin destino"
           options={(targets.data ?? []).map((t) => ({ value: t.id, label: t.code }))}
           error={form.formState.errors.deployment_target_id}
           {...form.register('deployment_target_id')} />

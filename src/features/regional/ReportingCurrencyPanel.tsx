@@ -91,7 +91,7 @@ export function ReportingCurrencyPanel() {
       <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
         <p className="text-compact text-muted">
           {canEdit
-            ? 'El cambio queda en auditoría (REPORTING_SETTINGS_CHANGED).'
+            ? 'El cambio queda registrado en la auditoría.'
             : 'Solo EBIM_FINANCE o el super admin pueden cambiarla.'}
         </p>
         {canEdit ? (

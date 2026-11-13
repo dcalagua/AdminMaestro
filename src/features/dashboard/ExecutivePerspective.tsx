@@ -5,7 +5,7 @@ import { LoadingState } from '@/components/ui/primitives';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { fromQuery } from '@/features/executive/dataState';
 import { formatDate } from '@/lib/format';
-import { monthBounds } from './executiveModel';
+import { bridgeSteps, monthBounds } from './executiveModel';
 import { AgingPanel, AttentionPanel, MixPanel, PanelBoundary, TopCustomersPanel, TopPartnersPanel } from './executivePanels';
 import { usePresentationView } from './presentation/presentationContext';
 import { useExecutiveDashboard, type ExecutiveDashboardData } from './executiveDashboardData';
@@ -42,6 +42,10 @@ export function ExecutivePerspective({ today = new Date(), canPresent = false }:
   const mobile = useIsMobile();
   const [showCharts, setShowCharts] = useState(false);
   const chartsHidden = mobile && !showCharts;
+  // V6 · 3.1: sin tasa para consolidar el puente, la tarjeta (350 px vacíos) se
+  // pliega en un aviso de una línea dentro de la de MRR, que ocupa la fila.
+  const bridgeFolded =
+    !d.movements.isLoading && !d.movements.error && d.bridge != null && bridgeSteps(d.bridge) == null;
 
   return (
     <div className="space-y-6">
@@ -77,12 +81,18 @@ export function ExecutivePerspective({ today = new Date(), canPresent = false }:
       {/* Cada fila es una sección: al imprimir, una por página (A4 apaisado). */}
       <div id="resumen-graficos" className="space-y-4" hidden={chartsHidden}>
         <div className="grid gap-4 xl:grid-cols-12 print:break-before-page print:grid-cols-12" data-print-section="evolucion">
-          <div className="min-w-0 xl:col-span-8 print:col-span-8">
-            <ExecutivePanel d={d} panel="evolucion-mrr" />
+          <div className={`min-w-0 ${bridgeFolded ? 'xl:col-span-12 print:col-span-12' : 'xl:col-span-8 print:col-span-8'}`}>
+            <ExecutivePanel
+              d={d}
+              panel="evolucion-mrr"
+              notice={bridgeFolded ? 'Puente del mes no disponible: falta un tipo de cambio para consolidarlo' : undefined}
+            />
           </div>
-          <div className="min-w-0 xl:col-span-4 print:col-span-4">
-            <ExecutivePanel d={d} panel="puente" />
-          </div>
+          {bridgeFolded ? null : (
+            <div className="min-w-0 xl:col-span-4 print:col-span-4">
+              <ExecutivePanel d={d} panel="puente" />
+            </div>
+          )}
         </div>
         <div className="grid gap-4 xl:grid-cols-12 print:break-before-page print:grid-cols-12" data-print-section="cobranza">
           <div className="min-w-0 xl:col-span-7 print:col-span-7">
@@ -100,7 +110,8 @@ export function ExecutivePerspective({ today = new Date(), canPresent = false }:
             <ExecutivePanel d={d} panel="mix-mercado" />
           </div>
         </div>
-        <div className="grid gap-4 xl:grid-cols-12 print:break-before-page print:grid-cols-12" data-print-section="tops">
+        {/* Alturas por contenido: una lista de 1 fila no se estira a la altura de la de 5. */}
+        <div className="grid items-start gap-4 xl:grid-cols-12 print:break-before-page print:grid-cols-12" data-print-section="tops">
           <div className="min-w-0 xl:col-span-4 print:col-span-4">
             <ExecutivePanel d={d} panel="top-clientes" />
           </div>
@@ -140,7 +151,16 @@ const PANEL_TITLE: Record<ExecutivePanelId, string> = {
 };
 
 /** Un panel del tablero, aislado: si falla al dibujarse, solo él muestra su aviso. */
-export function ExecutivePanel({ d, panel }: { d: ExecutiveDashboardData; panel: ExecutivePanelId }) {
+export function ExecutivePanel({
+  d,
+  panel,
+  notice,
+}: {
+  d: ExecutiveDashboardData;
+  panel: ExecutivePanelId;
+  /** Aviso de una línea dentro del panel (p. ej. el puente plegado en el de MRR). */
+  notice?: string;
+}) {
   const navigate = useNavigate();
   const view = usePresentationView();
   const { month, horizon, rc } = d;
@@ -149,7 +169,16 @@ export function ExecutivePanel({ d, panel }: { d: ExecutiveDashboardData; panel:
   function renderPanel() {
     switch (panel) {
       case 'evolucion-mrr':
-        return <MrrEvolutionPanel query={d.series} currency={rc} horizon={horizon} month={month} onSelect={(m) => d.filters.setMonth(m)} />;
+        return (
+          <MrrEvolutionPanel
+            query={d.series}
+            currency={rc}
+            horizon={horizon}
+            month={month}
+            notice={notice}
+            onSelect={(m) => d.filters.setMonth(m)}
+          />
+        );
       case 'puente':
         return <BridgePanel key={month} query={d.movements} bridge={d.bridge} customers={d.customers} currency={rc} month={month} />;
       case 'facturado-cobrado':

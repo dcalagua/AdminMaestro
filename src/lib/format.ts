@@ -189,6 +189,41 @@ export function formatCurrencyMap(map: Record<string, number | string> | null | 
     .join(' · ');
 }
 
+/**
+ * V6 · Montos por moneda en UNA línea y compactos, para franjas y celdas de
+ * listado: `PEN 3.2 K · USD 22.7 K`. Orden alfabético estable, sin ceros y
+ * nunca un total mezclado. El monto completo va en el `title` con
+ * `formatAmountsFull`. Sin importes devuelve `''` (la UI decide qué decir).
+ */
+export function formatAmountsCompact(map: Record<string, number | string> | null | undefined): string {
+  return amountEntries(map)
+    .map(([currency, amount]) => `${currency} ${formatCompactAmount(amount)}`)
+    .join(' · ');
+}
+
+/** Mismo mapa con el importe completo (`PEN 3,210.50 · USD 22,700.00`), para tooltips. */
+export function formatAmountsFull(map: Record<string, number | string> | null | undefined): string {
+  return amountEntries(map)
+    .map(([currency, amount]) => formatMoney(amount, currency))
+    .join(' · ');
+}
+
+function amountEntries(map: Record<string, number | string> | null | undefined): Array<[string, number]> {
+  return Object.entries(map ?? {})
+    .map(([currency, amount]) => [currency, Number(amount)] as [string, number])
+    .filter(([, amount]) => Number.isFinite(amount) && amount !== 0)
+    .sort(([a], [b]) => a.localeCompare(b));
+}
+
+/**
+ * V6 · Plural real en lugar de «factura(s)»: `formatCountNoun(1, 'factura')` →
+ * «1 factura»; `formatCountNoun(3, 'factura')` → «3 facturas». Para plurales
+ * irregulares se pasa el tercero (`'cliente', 'clientes'` es regular; `'mes', 'meses'`).
+ */
+export function formatCountNoun(count: number, singular: string, plural = `${singular}s`): string {
+  return `${formatNumber(count)} ${count === 1 ? singular : plural}`;
+}
+
 const REGION_NAMES = typeof Intl.DisplayNames === 'function' ? new Intl.DisplayNames(['es'], { type: 'region' }) : null;
 
 /** «PE» → «Perú». Si el código no es una región conocida, se devuelve tal cual. */

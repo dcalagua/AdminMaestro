@@ -10,7 +10,15 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { StatusTabs } from '@/components/ui/SectionTabs';
 import {
-  Badge, Card, DataTable, EmptyState, ErrorState, KpiTile, LoadingState, PageContainer, SearchBar,
+  Badge,
+  Card,
+  DataTable,
+  EmptyState,
+  ErrorState,
+  KpiTile,
+  LoadingState,
+  PageContainer,
+  SearchBar,
 } from '@/components/ui/primitives';
 import { ActionMenu } from '@/components/ui/ActionMenu';
 import { KpiStrip, NativeAmountTile } from '@/features/billing/financeUi';
@@ -21,7 +29,15 @@ import { MonthSelect, SelectField, TextAreaField } from '@/components/ui/fields'
 import { formatMonth } from '@/lib/period';
 import { useToast } from '@/components/ui/toast-context';
 import { businessErrorMessage } from '@/lib/pgError';
-import { formatDate, formatMoney, formatNumber, sumByCurrency } from '@/lib/format';
+import {
+  formatCountNoun,
+  formatDate,
+  formatMoney,
+  formatNumber,
+  sumByCurrency,
+} from '@/lib/format';
+import { MoneyCell } from '@/components/ui/cells';
+import { Link } from 'react-router-dom';
 import { formatPeriod, labelOf, periodFromMonth } from '@/features/usage/usageLabels';
 import { analyzedMonthOptions } from '@/features/dashboard/executiveModel';
 import { analyzedMonth } from '@/features/billing/financeModel';
@@ -66,11 +82,17 @@ export function PartnerFeesPage() {
       const org = a.organizations as { display_name: string } | null;
       if (a.status === 'ACTIVE') map.set(a.organization_id, org?.display_name ?? a.organization_id);
     }
-    return Array.from(map, ([value, label]) => ({ value, label })).sort((x, y) => x.label.localeCompare(y.label));
+    return Array.from(map, ([value, label]) => ({ value, label })).sort((x, y) =>
+      x.label.localeCompare(y.label),
+    );
   }, [agreements.data]);
 
   const { term, setTerm, filtered } = useSearchFilter(statements.data, (s) => [
-    s.partner_name, s.partner_slug, s.currency, s.invoice_number, s.status,
+    s.partner_name,
+    s.partner_slug,
+    s.currency,
+    s.invoice_number,
+    s.status,
   ]);
   const count = (t: Tab) => filtered.filter((s) => t === 'ALL' || s.status === t).length;
   const visible = filtered.filter((s) => tab === 'ALL' || s.status === tab);
@@ -82,12 +104,20 @@ export function PartnerFeesPage() {
   const drafts = all.filter((x) => x.status === 'DRAFT').length;
   const owed = all.filter((x) => x.status === 'ISSUED' && Number(x.invoice_balance ?? 0) > 0);
   const listState = fromQuery(statements, { isEmpty: () => false });
+  const noAgreements = Boolean(agreements.data) && partnerOptions.length === 0;
+  // V6: con el período vacío, UN estado vacío en vez de cuatro cifras «Sin datos».
+  const emptyPeriod = Boolean(statements.data) && !hasAny;
 
   async function runComputeAll() {
     if (!period) return;
     try {
-      const result = (await computeAll.mutateAsync({ p_period_start: period })) as { partners?: number } | null;
-      toast.success('Tarifas calculadas', `${result?.partners ?? 0} partner(s) con tarifa en ${formatPeriod(period)}`);
+      const result = (await computeAll.mutateAsync({ p_period_start: period })) as {
+        partners?: number;
+      } | null;
+      toast.success(
+        'Tarifas calculadas',
+        `${formatCountNoun(result?.partners ?? 0, 'partner')} con tarifa en ${formatPeriod(period)}`,
+      );
     } catch (error) {
       toast.error('No se pudo calcular', businessErrorMessage(error));
     } finally {
@@ -98,7 +128,9 @@ export function PartnerFeesPage() {
   async function runIssue() {
     if (!issuing?.id) return;
     try {
-      const r = (await issue.mutateAsync({ p_statement_id: issuing.id })) as { number?: string } | null;
+      const r = (await issue.mutateAsync({ p_statement_id: issuing.id })) as {
+        number?: string;
+      } | null;
       toast.success('Factura emitida al partner', `${issuing.partner_name} · ${r?.number ?? ''}`);
     } catch (error) {
       toast.error('No se pudo emitir', businessErrorMessage(error));
@@ -116,7 +148,8 @@ export function PartnerFeesPage() {
           <MonthSelect
             label="Período"
             labelDisplay="inline"
-            selectClassName="w-auto min-w-[200px]"
+            size="sm"
+            selectClassName="w-auto min-w-[160px]"
             value={month}
             onChange={setMonth}
             options={
@@ -125,12 +158,23 @@ export function PartnerFeesPage() {
                 : [{ value: month, label: formatMonth(month) }, ...monthOptions]
             }
           />
-          {perms.canReadFinance ? (
+          {/* Sin ningún acuerdo con tarifa no hay nada que calcular: el estado vacío explica dónde se configura. */}
+          {perms.canReadFinance && !noAgreements ? (
             <>
-              <button type="button" className="ebim-btn-secondary" disabled={!period} onClick={() => setComputing(true)}>
+              <button
+                type="button"
+                className="ebim-btn-ghost ebim-btn-sm"
+                disabled={!period}
+                onClick={() => setComputing(true)}
+              >
                 Calcular
               </button>
-              <button type="button" className="ebim-btn-primary" disabled={!period} onClick={() => setConfirmAll(true)}>
+              <button
+                type="button"
+                className="ebim-btn-primary"
+                disabled={!period}
+                onClick={() => setConfirmAll(true)}
+              >
                 Calcular todos
               </button>
             </>
@@ -138,50 +182,65 @@ export function PartnerFeesPage() {
         </>
       }
     >
-      <KpiStrip label="Indicadores de tarifas de partners">
-        <NativeAmountTile
-          label="Tarifa del período"
-          info="Lo que los partners deben a EBIM por la plataforma en el período, sin las anuladas. Por moneda."
-          amounts={sumByCurrency(live, (x) => x.fee_total, (x) => x.currency)}
-          state={listState}
-          onRetry={() => void statements.refetch()}
-          emptyLabel="Sin tarifas calculadas"
-          footer={`${formatNumber(live.length)} estado(s) de cuenta`}
-        />
-        <NativeAmountTile
-          label="Base facturada por partners"
-          info="Base mensual de los tenants que gestiona y factura cada partner, sobre la que se calcula la tarifa."
-          amounts={sumByCurrency(live, (x) => x.base_total, (x) => x.currency)}
-          state={listState}
-          onRetry={() => void statements.refetch()}
-          emptyLabel="Sin base en el período"
-          footer={`${formatNumber(live.reduce((t, x) => t + Number(x.tenant_count ?? 0), 0))} tenants`}
-        />
-        <KpiTile
-          label="Por emitir"
-          info="Borradores del período: aún no son factura al partner."
-          value={statements.data ? formatNumber(drafts) : null}
-          tone={drafts > 0 ? 'warn' : 'neutral'}
-          footer={drafts > 0 ? 'Borradores sin factura' : 'Nada por emitir'}
-          loading={statements.isLoading}
-          error={statements.error}
-          onRetry={() => void statements.refetch()}
-        />
-        <NativeAmountTile
-          label="Saldo por cobrar"
-          info="Facturas de tarifa emitidas y no pagadas del período. Se cobran por el portal de pago."
-          amounts={sumByCurrency(owed, (x) => x.invoice_balance, (x) => x.currency)}
-          state={listState}
-          onRetry={() => void statements.refetch()}
-          emptyLabel="Sin saldo pendiente"
-          footer={`${formatNumber(owed.length)} factura(s) con saldo`}
-        />
-      </KpiStrip>
+      {emptyPeriod ? null : (
+        <KpiStrip label="Indicadores de tarifas de partners">
+          <NativeAmountTile
+            label="Tarifa del período"
+            info="Lo que los partners deben a EBIM por la plataforma en el período, sin las anuladas. Por moneda."
+            amounts={sumByCurrency(
+              live,
+              (x) => x.fee_total,
+              (x) => x.currency,
+            )}
+            state={listState}
+            onRetry={() => void statements.refetch()}
+            emptyLabel="Sin tarifas calculadas"
+            footer={formatCountNoun(live.length, 'estado de cuenta', 'estados de cuenta')}
+          />
+          <NativeAmountTile
+            label="Base facturada por partners"
+            info="Base mensual de los tenants que gestiona y factura cada partner, sobre la que se calcula la tarifa."
+            amounts={sumByCurrency(
+              live,
+              (x) => x.base_total,
+              (x) => x.currency,
+            )}
+            state={listState}
+            onRetry={() => void statements.refetch()}
+            emptyLabel="Sin base en el período"
+            footer={formatCountNoun(live.reduce((t, x) => t + Number(x.tenant_count ?? 0), 0), 'tenant')}
+          />
+          <KpiTile
+            label="Por emitir"
+            info="Borradores del período: aún no son factura al partner."
+            value={statements.data ? formatNumber(drafts) : null}
+            tone={drafts > 0 ? 'warn' : 'neutral'}
+            footer={drafts > 0 ? 'Borradores sin factura' : 'Nada por emitir'}
+            loading={statements.isLoading}
+            error={statements.error}
+            onRetry={() => void statements.refetch()}
+          />
+          <NativeAmountTile
+            label="Saldo por cobrar"
+            info="Facturas de tarifa emitidas y no pagadas del período. Se cobran por el portal de pago."
+            amounts={sumByCurrency(
+              owed,
+              (x) => x.invoice_balance,
+              (x) => x.currency,
+            )}
+            state={listState}
+            onRetry={() => void statements.refetch()}
+            emptyLabel="Sin saldo pendiente"
+            footer={`${formatCountNoun(owed.length, 'factura', 'facturas')} con saldo`}
+          />
+        </KpiStrip>
+      )}
 
       <Card>
         <SearchBar
           value={term}
           onChange={setTerm}
+          total={statements.data?.length}
           placeholder="Buscar por partner, moneda o factura…"
           right={
             <StatusTabs
@@ -202,13 +261,33 @@ export function PartnerFeesPage() {
           <ErrorState error={statements.error} onRetry={() => void statements.refetch()} />
         ) : visible.length === 0 ? (
           <EmptyState
-            title={hasAny ? 'Ningún estado de cuenta coincide' : `Sin estados de cuenta en ${formatPeriod(period)}`}
+            variant={hasAny ? 'no-results' : 'empty'}
+            onClear={
+              hasAny
+                ? () => {
+                    setTerm('');
+                    setTab('ALL');
+                  }
+                : undefined
+            }
+            title={
+              hasAny
+                ? 'Ningún estado de cuenta coincide'
+                : `Sin estados de cuenta en ${formatPeriod(period)}`
+            }
             description={
               hasAny
                 ? 'Prueba con otra búsqueda o cambia de pestaña.'
                 : partnerOptions.length === 0
                   ? 'Ningún acuerdo tiene tarifa de plataforma. Se configura en la ficha del partner → Productos autorizados.'
                   : 'Usa «Calcular todos» para generar los borradores del mes.'
+            }
+            action={
+              !hasAny && noAgreements ? (
+                <Link className="ebim-btn-secondary" to="/partners">
+                  Configurar tarifa en la ficha del partner
+                </Link>
+              ) : undefined
             }
           />
         ) : (
@@ -233,36 +312,68 @@ export function PartnerFeesPage() {
                 <tr key={s.id}>
                   <td className="ebim-td">
                     {/* Acción primaria de la fila: abrir el detalle del estado de cuenta. */}
-                    <button type="button" className="ebim-link text-left" onClick={() => setDetail(s)}>
+                    <button
+                      type="button"
+                      className="text-left font-semibold text-fg hover:text-accent-deep hover:underline"
+                      onClick={() => setDetail(s)}
+                    >
                       {s.partner_name}
                     </button>
                     <div className="text-caption text-muted">{s.currency}</div>
                   </td>
                   <td className="ebim-td ebim-num">{s.tenant_count}</td>
-                  <td className="ebim-td ebim-num whitespace-nowrap">{formatMoney(Number(s.base_total), s.currency)}</td>
-                  <td className="ebim-td ebim-num whitespace-nowrap font-semibold">{formatMoney(Number(s.fee_total), s.currency)}</td>
-                  <td className="ebim-td"><Badge tone={st.tone}>{st.label}</Badge></td>
+                  <td className="ebim-td ebim-num">
+                    <MoneyCell amount={Number(s.base_total)} currency={s.currency} tone="muted" />
+                  </td>
+                  <td className="ebim-td ebim-num">
+                    <MoneyCell amount={Number(s.fee_total)} currency={s.currency} />
+                  </td>
+                  <td className="ebim-td">
+                    <Badge tone={st.tone}>{st.label}</Badge>
+                  </td>
                   <td className="ebim-td">
                     {s.invoice_number ? (
                       <>
-                        <div className="whitespace-nowrap font-mono text-compact">{s.invoice_number}</div>
-                        {s.invoice_due_date ? <div className="text-caption text-muted">Vence {formatDate(s.invoice_due_date)}</div> : null}
+                        <div className="whitespace-nowrap font-mono text-compact">
+                          {s.invoice_number}
+                        </div>
+                        {s.invoice_due_date ? (
+                          <div className="text-caption text-muted">
+                            Vence {formatDate(s.invoice_due_date)}
+                          </div>
+                        ) : null}
                       </>
                     ) : (
                       <span className="text-compact text-muted">Sin emitir</span>
                     )}
                   </td>
-                  <td className="ebim-td ebim-num whitespace-nowrap">{balance !== null ? formatMoney(balance, s.currency) : '—'}</td>
+                  <td className="ebim-td ebim-num">
+                    <MoneyCell
+                      amount={balance}
+                      currency={s.currency}
+                      empty={s.status === 'ISSUED' ? 'Pagada' : '—'}
+                    />
+                  </td>
                   <td className="ebim-td w-12 text-right">
                     <ActionMenu
                       label={`Acciones de ${s.partner_name} · ${s.currency}`}
                       items={[
                         { label: 'Ver detalle', onSelect: () => setDetail(s) },
-                        canFinance && s.status === 'DRAFT' ? { label: 'Emitir factura…', onSelect: () => setIssuing(s) } : null,
-                        canFinance && s.status === 'ISSUED' && (balance ?? 0) > 0 && s.partner_organization_id
-                          ? { label: 'Compartir enlace de pago', to: `/organizations/${s.partner_organization_id}?tab=contratos#payment-portal` }
+                        canFinance && s.status === 'DRAFT'
+                          ? { label: 'Emitir factura…', onSelect: () => setIssuing(s) }
                           : null,
-                        canFinance && s.status !== 'VOID' ? { label: 'Anular…', tone: 'danger', onSelect: () => setVoiding(s) } : null,
+                        canFinance &&
+                        s.status === 'ISSUED' &&
+                        (balance ?? 0) > 0 &&
+                        s.partner_organization_id
+                          ? {
+                              label: 'Compartir enlace de pago',
+                              to: `/organizations/${s.partner_organization_id}?tab=contratos#payment-portal`,
+                            }
+                          : null,
+                        canFinance && s.status !== 'VOID'
+                          ? { label: 'Anular…', tone: 'danger', onSelect: () => setVoiding(s) }
+                          : null,
                       ]}
                     />
                   </td>
@@ -274,7 +385,12 @@ export function PartnerFeesPage() {
       </Card>
 
       <StatementDetailDrawer statement={detail} onClose={() => setDetail(null)} />
-      <ComputeDialog open={computing} period={period} partnerOptions={partnerOptions} onClose={() => setComputing(false)} />
+      <ComputeDialog
+        open={computing}
+        period={period}
+        partnerOptions={partnerOptions}
+        onClose={() => setComputing(false)}
+      />
       <VoidStatementDialog statement={voiding} onClose={() => setVoiding(null)} />
       <ConfirmDialog
         open={confirmAll}
@@ -339,7 +455,12 @@ function ComputeDialog({
         statements?: Array<{ changed?: boolean }>;
       } | null;
       const n = r?.statements?.length ?? 0;
-      toast.success('Tarifa calculada', n === 0 ? 'Sin tenants con tarifa en el período.' : `${n} estado(s) de cuenta`);
+      toast.success(
+        'Tarifa calculada',
+        n === 0
+          ? 'Sin tenants con tarifa en el período.'
+          : formatCountNoun(n, 'estado de cuenta', 'estados de cuenta'),
+      );
       onClose();
     } catch (e) {
       setError(e);
@@ -357,13 +478,25 @@ function ComputeDialog({
       onSubmit={() => void submit()}
       onCancel={onClose}
     >
-      <SelectField label="Partner" required placeholder={partnerOptions.length ? 'Elige el partner…' : 'Ningún partner con tarifa'}
-        options={partnerOptions} value={partner} onChange={(e) => setPartner(e.target.value)} />
+      <SelectField
+        label="Partner"
+        required
+        placeholder={partnerOptions.length ? 'Elige el partner…' : 'Ningún partner con tarifa'}
+        options={partnerOptions}
+        value={partner}
+        onChange={(e) => setPartner(e.target.value)}
+      />
     </FormDialog>
   );
 }
 
-function VoidStatementDialog({ statement, onClose }: { statement: Statement | null; onClose: () => void }) {
+function VoidStatementDialog({
+  statement,
+  onClose,
+}: {
+  statement: Statement | null;
+  onClose: () => void;
+}) {
   const toast = useToast();
   const voidStatement = useVoidPartnerFeeStatement();
   const [reason, setReason] = useState('');
@@ -383,7 +516,10 @@ function VoidStatementDialog({ statement, onClose }: { statement: Statement | nu
     }
     try {
       await voidStatement.mutateAsync({ p_statement_id: statement.id, p_reason: reason.trim() });
-      toast.success('Estado de cuenta anulado', `${statement.partner_name} · ${statement.currency}`);
+      toast.success(
+        'Estado de cuenta anulado',
+        `${statement.partner_name} · ${statement.currency}`,
+      );
       onClose();
     } catch (e) {
       setError(e);
@@ -405,8 +541,13 @@ function VoidStatementDialog({ statement, onClose }: { statement: Statement | nu
       onSubmit={() => void submit()}
       onCancel={onClose}
     >
-      <TextAreaField label="Motivo" required hint="Queda en la auditoría." value={reason}
-        onChange={(e) => setReason(e.target.value)} />
+      <TextAreaField
+        label="Motivo"
+        required
+        hint="Queda en la auditoría."
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+      />
     </FormDialog>
   );
 }

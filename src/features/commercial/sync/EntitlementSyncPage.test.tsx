@@ -92,7 +92,7 @@ describe('EntitlementSyncPage', () => {
     const alpha = screen.getByRole('row', { name: /Alpha Retail/ });
     expect(within(alpha).getByText('En sincronía')).toBeInTheDocument();
     expect(within(alpha).getAllByText('v3')).toHaveLength(2);
-    expect(within(alpha).getByText('Migración: Comparación')).toBeInTheDocument();
+    expect(within(alpha).getByText('Migración: En comparación')).toBeInTheDocument();
     const beta = screen.getByRole('row', { name: /Beta Foods/ });
     expect(within(beta).getByText('Esperando verificación')).toBeInTheDocument();
     expect(within(beta).getByText('v4')).toBeInTheDocument();
@@ -112,7 +112,7 @@ describe('EntitlementSyncPage', () => {
     });
     renderPage();
     const alpha = screen.getByRole('row', { name: /Alpha Retail/ });
-    expect(within(alpha).getByText('Checksum distinto')).toBeInTheDocument();
+    expect(within(alpha).getByText('Contenido distinto')).toBeInTheDocument();
     expect(within(alpha).getByText('VERSION_CONFLICT')).toBeInTheDocument();
     const gamma = screen.getByRole('row', { name: /Gamma/ });
     expect(within(gamma).getByText('esupplier.ghost')).toBeInTheDocument();

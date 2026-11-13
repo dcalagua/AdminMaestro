@@ -23,6 +23,8 @@ import {
   billingAxisTargets,
   labelOf,
 } from '@/features/usage/usageLabels';
+import { CutoverStepper } from '@/features/platform/CutoverStepper';
+import { cutoverStepLabel } from '@/features/platform/cutover';
 
 /**
  * Eje de facturación (BILLING) de cada integración de producto (spec §15.2).
@@ -50,7 +52,7 @@ export function ShadowAxisTab() {
     <div className="space-y-4">
       <Card
         title="Migración de cobro por integración"
-        description="Biller local: factura la app. Comparación: el Admin Maestro calcula lo que facturaría y se compara; nadie cobra desde aquí. Cada paso queda en el historial de la migración con su motivo."
+        description="«Cobra la app»: la app factura por su cuenta. «En comparación»: el Admin Maestro calcula lo que facturaría y se compara; nadie cobra desde aquí. Cada paso queda en el historial con su motivo."
       >
         {integrations.isLoading ? (
           <LoadingState label="Cargando integraciones…" />
@@ -62,7 +64,7 @@ export function ShadowAxisTab() {
             description="El eje vive en la integración del producto. Si no ves ninguna, tu rol no lee finanzas, lo comercial ni la integración."
           />
         ) : (
-          <DataTable columns={['Producto', 'Integración', 'Eje BILLING', 'Recorrido', '']}>
+          <DataTable columns={['Producto', 'Integración', 'Etapa de cobro', 'Recorrido', { label: 'Acciones', srOnly: true }]}>
             {rows.map((i) => {
               const axis = labelOf(BILLING_AXIS, i.cutover_state_billing);
               const current = BILLING_AXIS_ORDER.indexOf(
@@ -76,33 +78,13 @@ export function ShadowAxisTab() {
                   </td>
                   <td className="ebim-td font-mono text-compact">{i.integration_code}</td>
                   <td className="ebim-td">
-                    <Badge tone={axis.tone}>{axis.label}</Badge>
-                    <div className="mt-0.5 font-mono text-caption text-muted">
-                      {i.cutover_state_billing}
-                    </div>
+                    <span title={i.cutover_state_billing ?? undefined}>
+                      <Badge tone={axis.tone}>{axis.label}</Badge>
+                    </span>
                   </td>
-                  <td className="ebim-td">
-                    <ol
-                      className="flex flex-wrap items-center gap-1 text-caption"
-                      aria-label={`Recorrido de ${i.integration_code}`}
-                    >
-                      {BILLING_AXIS_ORDER.map((s, idx) => (
-                        <li
-                          key={s}
-                          aria-current={idx === current ? 'step' : undefined}
-                          className={
-                            idx === current
-                              ? 'font-bold text-accent-deep'
-                              : idx < current
-                                ? 'text-fg'
-                                : 'text-muted'
-                          }
-                        >
-                          {idx > 0 ? '→ ' : ''}
-                          {s.replace('BILLING_', '')}
-                        </li>
-                      ))}
-                    </ol>
+                  <td className="ebim-td min-w-[180px]">
+                    {/* V6 · T6: barra compacta con el nombre de negocio; el recorrido completo, en el tooltip. */}
+                    <CutoverStepper axis="billing" state={i.cutover_state_billing} heading={false} />
                   </td>
                   <td className="ebim-td">
                     {perms.canManageCommercial ? (
@@ -118,7 +100,7 @@ export function ShadowAxisTab() {
                               className="ebim-link text-compact"
                               onClick={() => setTransition({ integration: i, to })}
                             >
-                              {forward ? 'Avanzar' : 'Retroceder'} a {to.replace('BILLING_', '')}
+                              {forward ? 'Avanzar' : 'Retroceder'} a «{cutoverStepLabel(to)}»
                             </button>
                           );
                         })}
@@ -144,8 +126,8 @@ function CutoverHistoryCard() {
   const rows = history.data ?? [];
   return (
     <Card
-      title="Historial del eje"
-      description="Cada cambio del eje BILLING con su motivo y quién lo hizo. No se edita ni se borra."
+      title="Historial de la migración de cobro"
+      description="Cada cambio de etapa con su motivo y quién lo hizo. No se edita ni se borra."
     >
       {history.isLoading ? (
         <LoadingState label="Cargando historial…" />
@@ -153,8 +135,8 @@ function CutoverHistoryCard() {
         <ErrorState error={history.error} onRetry={() => void history.refetch()} />
       ) : rows.length === 0 ? (
         <EmptyState
-          title="Sin cambios del eje"
-          description="Ninguna integración ha cambiado aún su eje de facturación."
+          title="Sin cambios de etapa"
+          description="Ninguna integración ha cambiado aún su etapa de cobro."
         />
       ) : (
         <DataTable columns={['Fecha', 'Producto', 'Integración', 'Cambio', 'Motivo', 'Quién']}>
@@ -215,8 +197,8 @@ function TransitionDialog({
         p_reason: v.reason,
       });
       toast.success(
-        'Eje de facturación actualizado',
-        `${transition.integration.integration_code} → ${transition.to}`,
+        'Etapa de cobro actualizada',
+        `${transition.integration.integration_code} → ${cutoverStepLabel(transition.to)}`,
       );
       onClose();
     } catch {
@@ -226,17 +208,17 @@ function TransitionDialog({
 
   const description =
     to === 'BILLING_PRIMARY'
-      ? 'MasterAdmin pasaría a ser quien factura este producto. D-14: en DEV/LOCAL eExpense y GMAO solo llegan a BILLING_SHADOW; QAS/PRD exigen aprobación humana explícita. Requiere comparaciones verdes del período.'
+      ? 'El Admin Maestro pasaría a ser quien factura este producto. En desarrollo, eExpense y GMAO solo llegan a «En comparación»; Calidad y Producción exigen aprobación humana explícita. Requiere comparaciones verdes del período.'
       : to === 'BILLING_SHADOW'
-        ? 'MasterAdmin calcula lo que facturaría y se registran comparaciones contra el biller local. Nadie cobra desde MasterAdmin.'
+        ? 'El Admin Maestro calcula lo que facturaría y se registran comparaciones contra el cobro propio de la app. Nadie cobra desde el Admin Maestro.'
         : 'Vuelve al paso anterior. El historial de la migración conserva el motivo.';
 
   return (
     <FormDialog
       open={Boolean(transition)}
-      title={`${transition?.integration.cutover_state_billing ?? ''} → ${to}`}
+      title={`${cutoverStepLabel(transition?.integration.cutover_state_billing)} → ${cutoverStepLabel(to)}`}
       description={description}
-      submitLabel="Cambiar eje"
+      submitLabel="Cambiar etapa"
       busy={setState.isPending}
       error={setState.error}
       onSubmit={() => void submit()}

@@ -5,7 +5,7 @@
 - URL: https://adminmaestro.pages.dev (ambiente QAS)
 - Usuario: super admin EBIM (las credenciales se entregan aparte)
 - Duración sugerida: 15–18 minutos
-- Versión: V5 completa (F0–F7) más el ciclo de vida del tenant. Ensayada de punta a punta en la web publicada el 12-nov por la noche.
+- Versión: V5 completa (F0–F7) más el ciclo de vida del tenant, con la mejora visual V6 (franjas compactas, tablas densas, franja de salud compacta). Ensayada de punta a punta en la web publicada el 12-nov por la noche; los pasos se revisaron sobre la UI V6 el 13-nov.
 
 ## Mapa de la consola (para orientarse)
 | Grupo | Entradas |
@@ -22,7 +22,7 @@ Atajo: **⌘K** (o el buscador de arriba) encuentra cualquier cliente, tenant o 
 ---
 
 ## 1. Resumen y bandeja (2 min)
-1. Entra en **Inicio › Resumen**. Muestra los KPIs, el MRR por moneda y el panel «Requiere atención».
+1. Entra en **Inicio › Resumen**. Muestra los KPIs, el MRR por moneda y el panel «Requiere atención». Arriba, una sola barra de filtros (moneda, mes analizado, horizonte) y el botón «Presentar».
 2. Abre **Inicio › Bandeja**. Son los pendientes reales del día (unos 35), cada uno con su acción directa: cobros vencidos, contratos por renovar, altas por confirmar. La campana de arriba muestra el mismo contador.
 3. Opcional, si proyectas: modo presentación (`/?presentacion=1`) e interruptor «Ocultar nombres».
 
@@ -30,16 +30,16 @@ Atajo: **⌘K** (o el buscador de arriba) encuentra cualquier cliente, tenant o 
 
 ## 2. Centro de la suite: las 8 apps de un vistazo (3 min)
 1. Entra en **Suite › Centro de la suite**.
-2. Recorre la **franja de salud**: eSupplier, EWM, TMS, GMAO, eChange, eExpense, eCommerce y Comerza. Cada tarjeta muestra su estado, cuándo se comprobó y sus canales con la app.
-3. Pulsa **«Verificar ahora»** en una app (por ejemplo TMS). Es una llamada real y firmada a la app en vivo, y la hora se actualiza.
+2. Recorre la **franja de salud**, una fila compacta con las 8 apps: eSupplier, EWM, TMS, GMAO, eChange, eExpense, eCommerce y Comerza. Cada app muestra su punto de salud y hace cuánto se comprobó; encima, una sola línea dice los canales activos («Alta en 8 de 8 · Módulos · Uso · Suspensión»).
+3. Pulsa una app de la franja (por ejemplo **TMS**): se abre su **globo** con la salud, la última comprobación, los cuatro canales y dos botones, **«Ver ficha»** y **«Verificar ahora»**. Pulsa **«Verificar ahora»**: es una llamada real y firmada a la app en vivo, y la hora se actualiza. (El «Verificar ahora» de la cabecera verifica las 8 de una vez; Escape o un clic fuera cierra el globo.)
 4. Baja a la **matriz cuenta × app**: una fila por cliente y una columna por app.
 5. Abre una celda: se abre el detalle con el tenant, su contrato, sus módulos y las acciones posibles.
 
 > «Antes había que entrar a cada app por separado. Ahora vemos aquí qué cliente está en qué app y en qué estado.»
 
 ## 3. Ficha de una app (1 min)
-1. En una tarjeta, entra en **«Ver ficha»** (eChange o TMS).
-2. Recorre las pestañas: Resumen, Tenants, Conexión (cómo se conecta de forma segura, sin mostrar secretos) e Historial de altas.
+1. En el globo de una app de la franja, entra en **«Ver ficha»** (eChange o TMS).
+2. Recorre las pestañas: Resumen, Tenants, Conexión (cómo se conecta de forma segura, sin mostrar secretos) e Historial (el historial de altas). Arriba queda fija la cabecera de la app con su salud.
 
 ## 4. Dar de alta un tenant en vivo (4 min) — el momento fuerte
 **Datos a usar** (aún no existen; ninguno se ha usado en ensayos):
@@ -82,7 +82,7 @@ Pasos:
 ## 6. Ciclo de vida: cobranza y cortes (2 min)
 1. Desde **Centro de la suite**, pulsa **«Ciclo de vida y cortes»** (arriba a la derecha).
 2. Muestra los KPIs: tenants activos, en gracia, **por suspender** y suspendidos.
-3. Recorre las pestañas: Matriz de la suite, Cobranza y cortes, Historial de suspensiones, y Política y jobs.
+3. Recorre las pestañas: Matriz de la suite, Cobranza y cortes, Historial de suspensiones, y Política y tareas programadas.
 4. Pulsa **«Simular ciclo»**: muestra qué pasaría sin cambiar nada.
 
 > «La regla de corte por impago vive en la base. Hoy el corte automático está apagado: decide una persona, y todo queda auditado.»
@@ -110,7 +110,7 @@ Pasos:
 
 ## Antes de entrar a la reunión (checklist)
 - [ ] Abrir la URL e iniciar sesión 10 minutos antes.
-- [ ] ⌘K › **«Verificar salud de las apps»**, o «Verificar ahora» en cada tarjeta. Render puede tardar unos 30 s en despertar TMS y EWM.
+- [ ] ⌘K › escribe «verificar» › **«Verificar salud de las apps»** (abre el Centro de la suite y verifica las 8; cada una aparece en la cola de Tareas). También sirve el «Verificar ahora» de la cabecera del Centro de la suite, o el del globo de cada app. Render puede tardar unos 30 s en despertar TMS y EWM.
 - [ ] Confirmar que el cliente del alta en vivo **no tiene ya** un tenant en esa app: en la matriz, la celda debe estar vacía («—»).
 - [ ] Tener a mano los datos de la tabla del paso 4.
 - [ ] Si se proyecta: 1440 px de ancho o más, modo claro y zoom del navegador al 100 %.

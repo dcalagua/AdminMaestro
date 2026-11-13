@@ -423,7 +423,7 @@ export function RegisterManualDialog({
         label="ID del tenant en el producto"
         required
         placeholder="Identificador que devolvió el producto"
-        hint="Es un identificador DEL PRODUCTO. MasterAdmin lo guarda y lo muestra; no lo interpreta como un ID universal EBIM."
+        hint="Es un identificador DEL PRODUCTO. El Admin Maestro lo guarda y lo muestra; no lo interpreta como un ID universal EBIM."
         error={form.formState.errors.external_tenant_id}
         {...form.register('external_tenant_id')}
       />

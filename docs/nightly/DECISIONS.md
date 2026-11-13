@@ -89,3 +89,36 @@ comisión. Idempotencia por `unique (payment_id, sales_attribution_id, commissio
 `ProvisioningProvider` con dos implementaciones: `DryRunProvider` (activa) y
 `SupabaseManagementProvider` (esqueleto, exige `SUPABASE_MANAGEMENT_TOKEN` desde secrets del
 servidor). La UI **nunca** recibe ese token. Ninguna llamada remota real se ejecuta esta noche.
+
+## D-013 — V6: pestañas centradas (no se aplica T3) y cabecera única de los hubs
+
+Decisión del dueño (2026-11-13, plan `docs/design/PLAN_MEJORA_UI_UX_V6.md` §2 T3): las pestañas de
+sección **siguen centradas** por la regla de suite `gmao-025`; `TabStrip` no cambia de alineación.
+El hueco de Cuentas y del resto de hubs se resuelve con T1: el `PageContainer` incrustado lleva sus
+acciones a la cabecera del hub (portal, junto al título) y su descripción a un «¿Qué es esto?»
+(`InfoHint`) junto al `h1`; la descripción de la entrada en `navigation.ts` es de una línea (≤ 90
+caracteres, vigilado por test). F5 no debe reabrir la alineación sin una nueva decisión del dueño.
+
+## D-014 — V6: franjas compactas por defecto y jerga técnica solo en «Avanzado»
+
+`KpiStrip` pasa a `src/components/ui/StatStrip.tsx` como alias de `StatStrip`, compacta (`band`,
+~72 px) por defecto: un `KpiTile` dentro de una banda se pinta como `StatCell`. Las tarjetas grandes
+con sparkline quedan solo donde la tendencia aporta (`variant="tiles"`: Facturación, Costos,
+Comisiones; Resumen ejecutivo usa sus propias tarjetas). El glosario V6 (`docs/design/GLOSARIO_V6.md`)
+amplía la lista negra; la guardia excluye `src/features/billing/shadow/` (Configuración › Avanzado).
+
+## D-015 — V6 · F5: móvil con `select`, componentes promovidos y guarda de solapes
+
+- **Pestañas en móvil:** por debajo de 640 px, una fila de `TabStrip` (hub o ficha) o de `StatusTabs` que no cabe en el ancho
+  se pinta como `select` nativo con el mismo nombre accesible. Se descartó el scroll horizontal (recorta etiquetas: «uración y
+  cobros») y las dos filas (A08/A09). La estimación es sin medir (~7.5 px por carácter) para no parpadear; en escritorio no
+  cambia nada y las pestañas siguen centradas (D-013).
+- **Un solo segundo nivel:** `SubSections` (Configuración) y `SegmentedSections` (Finanzas) eran el mismo patrón; quedan en
+  `src/components/ui/SubSections.tsx`. El `#hash` se reescribe con `history.replaceState` (sin salto ni entrada de historial).
+- **Promovidos a `ui`:** `DetailFacts`, `ChartFrame`, `Combobox` (antes `ContractCombobox`) y `EmptyChartLine`.
+- **«No decidido»** ya no muestra el código interno (D-xx): queda en `data-decision` y en el código; el `title` explica que
+  finanzas aún no fijó el valor.
+- **Guarda visual** `e2e/visual/solapes.spec.ts` + `playwright.visual.config.ts`: corre contra cualquier URL servida (no
+  necesita Docker), con credenciales por variables de entorno (nunca en el repo). Criterio: 0 hallazgos a 1440 y 390.
+- **Sin backend nuevo:** todo usa vistas y RPC existentes; `supabase/` sin cambios.
+

@@ -60,7 +60,7 @@ vi.mock('@/services/financeRead', () => ({
   PAGE_SIZES: [10, 25, 50],
 }));
 
-import { Org360Apps, Org360Contracts, Org360Documents, Org360KpiStrip, Org360Summary } from './Organization360';
+import { Org360Apps, Org360Contracts, Org360Documents, Org360Summary } from './Organization360';
 
 beforeEach(() => {
   auth.persona = 'EBIM';
@@ -74,22 +74,10 @@ const wrap = (node: React.ReactNode) => render(<MemoryRouter>{node}</MemoryRoute
 describe('Organización 360', () => {
   it('todas las lecturas del resumen van acotadas a la organización', () => {
     wrap(
-      <>
-        <Org360KpiStrip organizationId={ORG} />
-        <Org360Summary organizationId={ORG} organizationName="Alpha" capabilities={['CUSTOMER']} />
-      </>,
+      <Org360Summary organizationId={ORG} organizationName="Alpha" capabilities={['CUSTOMER']} />,
     );
-    expect(calls.scoped.map(([k]) => k)).toEqual(expect.arrayContaining(['series', 'invoices', 'renewals', 'subs', 'tenants']));
+    expect(calls.scoped.map(([k]) => k)).toEqual(expect.arrayContaining(['series', 'renewals', 'subs', 'tenants']));
     for (const [, id] of calls.scoped) expect(id).toBe(ORG);
-  });
-
-  it('cabecera 360: sin contratos ni saldo muestra estados explicados, nunca un 0 que parezca dato', () => {
-    wrap(<Org360KpiStrip organizationId={ORG} />);
-    const strip = screen.getByRole('region', { name: 'Indicadores de la cuenta' });
-    expect(within(strip).getByText('Sin contratos recurrentes vigentes')).toBeInTheDocument();
-    expect(within(strip).getByText('Sin saldo pendiente')).toBeInTheDocument();
-    expect(within(strip).getByText('Sin contratos')).toBeInTheDocument();
-    expect(within(strip).queryByText(/^0$/)).toBeNull();
   });
 
   it('resumen: los datos de la cuenta van en español (capacidades, métodos)', () => {

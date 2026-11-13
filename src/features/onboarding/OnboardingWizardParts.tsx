@@ -46,10 +46,10 @@ export function WizardStepper({
   const cols = phases.length === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-3 lg:grid-cols-6';
   return (
     <nav aria-label="Pasos del alta" className="mb-6">
-      <p className="mb-3 text-compact text-fg-2">
-        <span className="font-semibold text-fg">
-          Paso {phaseIndex + 1} de {phases.length} · {phase?.label}
-        </span>
+      {/* V6: el hilo de abajo ya dice en qué paso se está; el contador queda para lector
+          de pantalla y la pantalla dentro de la fase se nombra bajo el paso activo. */}
+      <p className="sr-only">
+        Paso {phaseIndex + 1} de {phases.length} · {phase?.label}
         {screen ? <> · {screen}</> : null}
       </p>
       <div
@@ -100,6 +100,11 @@ export function WizardStepper({
                   {p.label}
                 </span>
               </button>
+              {active && screen ? (
+                <span className="-mt-1 block pl-[46px] text-caption leading-snug text-muted" aria-hidden>
+                  {screen}
+                </span>
+              ) : null}
             </li>
           );
         })}

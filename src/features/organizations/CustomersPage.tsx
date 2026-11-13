@@ -9,7 +9,7 @@ export function CustomersPage() {
     <OrganizationsPage
       capabilityFilter="CUSTOMER"
       title="Clientes"
-      description="Empresas cliente. Un cliente puede tener tenants en varios SaaS y llegar por venta directa o por un partner. Abre su ficha 360 para ver contratos, cobros y tenants."
+      description="Empresas cliente: en qué apps están, cuánto facturan, si tienen deuda vencida y quién las atiende. Un cliente puede llegar por venta directa o por un partner. Abre su ficha 360 para ver contratos, cobros y tenants."
     />
   );
 }

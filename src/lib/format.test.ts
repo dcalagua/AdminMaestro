@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   formatMoney, formatMoneyCompact, formatCompactAmount, formatAmount, formatNumber, formatPercent,
   formatDate, formatDateTime, formatCurrencyMap, sumByCurrency, subtractByCurrency, formatDelta,
+  formatAmountsCompact, formatAmountsFull, formatCountNoun,
 } from './format';
 
 describe('formateo de dinero', () => {
@@ -142,5 +143,27 @@ describe('formatCompactAmount (§6.5: cifra sin moneda para KPI y ejes)', () => 
     expect(formatCompactAmount(-560)).toBe('−560');
     expect(formatCompactAmount(null)).toBe('—');
     expect(formatCompactAmount(Number.NaN)).toBe('—');
+  });
+});
+
+/** Intl separa con espacios duros: se normalizan para comparar. */
+const norm = (s: string) => s.replace(/\s/g, ' ');
+
+describe('V6 · montos por moneda en una línea y plurales', () => {
+  it('compacta por moneda, en orden alfabético y sin ceros', () => {
+    expect(norm(formatAmountsCompact({ USD: 22_700, PEN: 3_210.5, BOB: 0 }))).toBe('PEN 3.2 K · USD 22.7 K');
+    expect(norm(formatAmountsCompact({ PEN: '980' }))).toBe('PEN 980');
+    expect(formatAmountsCompact({})).toBe('');
+    expect(formatAmountsCompact(null)).toBe('');
+  });
+
+  it('el detalle completo sirve de tooltip', () => {
+    expect(norm(formatAmountsFull({ USD: 22_700, PEN: 3_210.5 }))).toBe('PEN 3,210.50 · USD 22,700.00');
+  });
+
+  it('plurales reales', () => {
+    expect(formatCountNoun(1, 'factura')).toBe('1 factura');
+    expect(formatCountNoun(3, 'factura')).toBe('3 facturas');
+    expect(formatCountNoun(2, 'mes', 'meses')).toBe('2 meses');
   });
 });

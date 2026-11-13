@@ -13,11 +13,17 @@ export type AuditKind = 'create' | 'update' | 'remove' | 'money' | 'access' | 'p
 
 const EXACT: Record<string, string> = {
   CUSTOMER_ONBOARDED: 'Alta de cliente (Nueva venta)',
+  TENANT_SYNC_FINDING_RESOLVED: 'Diferencia con una app marcada como resuelta',
+  TENANT_SYNC_FINDING_DISMISSED: 'Diferencia con una app descartada',
+  TENANT_SYNC_FINDING_REGISTERED: 'Cliente de una app registrado en el Admin Maestro',
+  TENANT_SYNC_SETTINGS_CHANGED: 'Cambio en la sincronización con las apps',
+  // La migración de sincronización elige la acción con un CASE ('RESOLVE' / 'DISMISS').
+  RESOLVE: 'Diferencia con una app marcada como resuelta',
   COMMISSIONS_SETTLED: 'Liquidación de comisiones',
   COMMISSION_SETTLEMENT_CANCELLED: 'Anulación de liquidación de comisiones',
   AI_CREDIT_ENTRY: 'Movimiento de créditos IA',
   AI_CREDIT_REVERSAL: 'Reverso de créditos IA',
-  USAGE_INGEST_SWITCH: 'Cambio del ingest de uso',
+  USAGE_INGEST_SWITCH: 'Cambio de la conexión de uso',
   PUSH_KILL_SWITCH: 'Corte del envío de módulos habilitados',
   USER_INVITED: 'Invitación de usuario',
   USER_INVITATION_ACCEPTED: 'Invitación aceptada',
@@ -26,6 +32,17 @@ const EXACT: Record<string, string> = {
   CREDENTIAL_SECRET_REF_REVEALED: 'Consulta de referencia de secreto',
   CANCEL_SCHEDULED: 'Cancelación programada',
   PARTIALLY_PAID: 'Pago parcial',
+  // V6 · F4: acciones que no encajan en «<verbo> de <sujeto>».
+  SAAS_PROVISIONING_MANUAL: 'Alta en la app registrada a mano',
+  SAAS_PROVISIONING_RETRY: 'Reintento de alta en la app',
+  PROVIDER_ACCOUNT_KEY_REPLACED: 'Llave secreta reemplazada',
+  BILLING_CONTACT_COMPLETED_FROM_PORTAL: 'Contacto de facturación completado desde el portal de pago',
+  BILLING_SUSPENSIONS_APPLIED: 'Suspensiones por deuda aplicadas',
+  CARD_CHARGE_REQUESTED: 'Solicitud de cargo a la tarjeta',
+  TENANT_ATTACHED_TO_TARGET: 'Tenant asignado a un destino',
+  TENANT_AUTO_RESUME_FAILED: 'Fallo de la reactivación automática del tenant',
+  TENANT_LIFECYCLE_APPLIED: 'Corte o reactivación aplicado en la app',
+  TENANT_LIFECYCLE_CYCLE: 'Revisión de cortes por deuda',
 };
 
 /** Sufijos de acción (de más largo a más corto al buscar). */
@@ -84,6 +101,14 @@ const VERB: Record<string, string> = {
   UNLINKED: 'Desvinculación',
   REVEALED: 'Consulta',
   EXPIRED: 'Vencimiento',
+  REQUESTED: 'Solicitud',
+  VERSIONED: 'Nueva versión',
+  REPLACED: 'Reemplazo',
+  ENROLLED: 'Registro',
+  RECEIVED: 'Recepción',
+  ACTIVATED: 'Activación',
+  REVERSED: 'Reverso',
+  APPLIED: 'Aplicación',
 };
 
 const SUBJECT: Record<string, string> = {
@@ -113,8 +138,8 @@ const SUBJECT: Record<string, string> = {
   USAGE_AGGREGATE: 'agregado de uso',
   USAGE_METER: 'medidor de uso',
   USAGE_ALERT: 'alerta de uso',
-  USAGE_INGEST: 'ingest de uso',
-  USAGE_INGEST_CREDENTIAL: 'credencial de ingest',
+  USAGE_INGEST: 'conexión de uso',
+  USAGE_INGEST_CREDENTIAL: 'credencial de la conexión de uso',
   REPORTING_SETTINGS: 'configuración de reportes',
   FX_RATE: 'tipo de cambio',
   CURRENCY: 'moneda',
@@ -135,7 +160,7 @@ const SUBJECT: Record<string, string> = {
   PRODUCT_CONFIGURATION: 'configuración de producto',
   PLAN: 'plan',
   PROVISIONING: 'alta en la app',
-  SAAS_PROVISIONING: 'alta SaaS',
+  SAAS_PROVISIONING: 'alta en la app',
   REQUEST: 'solicitud',
   INTEGRATION: 'integración',
   ENTITLEMENTS_INTEGRATION: 'integración de módulos habilitados',
@@ -168,6 +193,10 @@ const SUBJECT: Record<string, string> = {
   USER: 'usuario',
   USER_INVITATION: 'invitación',
   USER_PROFILE: 'perfil de usuario',
+  PLAN_PRICE: 'precio de plan',
+  ADDON_PRICE: 'precio de add-on',
+  LIFECYCLE_INTEGRATION: 'canal de ciclo de vida',
+  TENANT_LIFECYCLE_SETTINGS: 'configuración de cortes por deuda',
 };
 
 const VERBS_BY_LENGTH = Object.keys(VERB).sort((a, b) => b.length - a.length);
@@ -201,6 +230,7 @@ export function auditActionKind(action: string | null | undefined): AuditKind {
 }
 
 const ENTITY: Record<string, string> = {
+  tenant_sync_finding: 'Diferencia con una app',
   invoice: 'Factura',
   payment: 'Cobro',
   payment_link: 'Enlace de pago',
@@ -229,6 +259,37 @@ const ENTITY: Record<string, string> = {
   profile: 'Usuario',
   payment_provider_account: 'Cuenta de pago',
   sales_agent: 'Comercial',
+  capability_alias: 'Alias de capacidad',
+  card_on_file_authorization: 'Tarjeta guardada',
+  catalog_item: 'Ítem de catálogo',
+  catalog_item_price: 'Precio de ítem de catálogo',
+  commission_plan: 'Plan de comisión',
+  commission_rule: 'Regla de comisión',
+  company: 'Sociedad',
+  currency: 'Moneda',
+  entitlement_grant: 'Módulo habilitado',
+  invoice_line: 'Línea de factura',
+  market: 'Mercado',
+  organization_membership: 'Acceso a organización',
+  plan: 'Plan',
+  plan_price: 'Precio de plan',
+  product_owner: 'Propietario técnico',
+  provider_plan: 'Plan del proveedor',
+  provider_subscription: 'Suscripción del proveedor',
+  provisioning_role_member: 'Rol de altas',
+  saas_provisioning_request: 'Alta en la app',
+  sales_attribution: 'Atribución comercial',
+  subscription_collection_profile: 'Perfil de cobranza',
+  subscription_commercial_document: 'Documento comercial',
+  tenant_addon: 'Add-on de tenant',
+  tenant_deployment: 'Despliegue del tenant',
+  tenant_entitlement_override: 'Excepción de módulo',
+  tenant_feature: 'Capacidad de tenant',
+  tenant_lifecycle: 'Ciclo de vida del tenant',
+  tenant_lifecycle_settings: 'Configuración de cortes',
+  tenant_membership: 'Acceso a tenant',
+  usage_alert: 'Alerta de uso',
+  usage_ingest_credential: 'Credencial de uso',
 };
 
 export function entityTypeLabel(type: string | null | undefined): string {

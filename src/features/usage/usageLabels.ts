@@ -3,8 +3,9 @@
  *
  * Los códigos técnicos se traducen aquí; un valor desconocido se muestra tal
  * cual en vez de inventarle un significado. Las decisiones de negocio abiertas
- * (spec CCP §20: D-01…D-15) se rotulan «No decidido (D-xx)», nunca 0 ni
- * «gratis».
+ * (spec CCP §20: D-01…D-15) se rotulan «No decidido», nunca 0 ni «gratis».
+ * El código de la decisión no se muestra (V6 · F5: jerga interna); queda en
+ * el código fuente y en `data-decision` para trazarlo.
  */
 
 export type Tone = 'neutral' | 'ok' | 'warn' | 'danger' | 'info' | 'accent';
@@ -19,10 +20,13 @@ export function labelOf(map: Record<string, LabelTone>, value: string | null | u
   return map[value] ?? { label: value, tone: 'neutral' };
 }
 
-/** Texto canónico para una decisión de negocio abierta. */
-export function undecidedText(code: string): string {
-  return `No decidido (${code})`;
+/** Texto canónico para una decisión de negocio abierta (el código D-xx no se muestra). */
+export function undecidedText(_code?: string): string {
+  return 'No decidido';
 }
+
+/** Explicación de negocio para el `title` de «No decidido». */
+export const UNDECIDED_HELP = 'Finanzas aún no fijó este valor: no se cobra ni se asume 0.';
 
 /* ---- Medidores ---------------------------------------------------------- */
 
@@ -66,7 +70,7 @@ export const REJECTION_CODE: Record<string, string> = {
   UNIT_MISMATCH: 'Unidad distinta a la del medidor',
   OCCURRED_AT_IN_FUTURE: 'Fecha del evento en el futuro',
   INTERNAL_METADATA_INVALID: 'Metadatos internos (COGS) inválidos',
-  TENANT_NOT_MAPPED_FOR_PRODUCT: 'Tenant sin alta ACTIVE en el producto (D-12)',
+  TENANT_NOT_MAPPED_FOR_PRODUCT: 'Tenant sin alta ACTIVE en el producto',
   ENVIRONMENT_MISMATCH: 'Ambiente distinto al del alta del tenant',
   CONFLICT: 'Mismo eventId con contenido distinto (integridad)',
 };
@@ -77,10 +81,10 @@ export type AlertCategory = 'USAGE' | 'CREDITS' | 'BILLING';
 
 export const ALERT_CODE: Record<string, LabelTone & { category: AlertCategory }> = {
   OVERAGE_UNDER_BLOCK_POLICY: { label: 'Exceso bajo política BLOCK', tone: 'warn', category: 'USAGE' },
-  ASIGNACION_NO_DEFINIDA: { label: 'Asignación no decidida (D-05)', tone: 'warn', category: 'BILLING' },
-  TARIFA_ADDON_NO_DEFINIDA: { label: 'Tarifa no decidida (D-01/D-02)', tone: 'warn', category: 'BILLING' },
-  POLITICA_CREDITOS_NO_DEFINIDA: { label: 'Política de créditos no decidida (D-03)', tone: 'warn', category: 'CREDITS' },
-  PESO_CREDITO_NO_DEFINIDO: { label: 'Peso de crédito no decidido (D-03)', tone: 'warn', category: 'CREDITS' },
+  ASIGNACION_NO_DEFINIDA: { label: 'Asignación no decidida', tone: 'warn', category: 'BILLING' },
+  TARIFA_ADDON_NO_DEFINIDA: { label: 'Tarifa no decidida', tone: 'warn', category: 'BILLING' },
+  POLITICA_CREDITOS_NO_DEFINIDA: { label: 'Política de créditos no decidida', tone: 'warn', category: 'CREDITS' },
+  PESO_CREDITO_NO_DEFINIDO: { label: 'Peso de crédito no decidido', tone: 'warn', category: 'CREDITS' },
   CREDIT_OVERAGE: { label: 'Saldo de créditos negativo', tone: 'danger', category: 'CREDITS' },
   POOL_SCOPE_CONFLICT: { label: 'Políticas con pools distintos', tone: 'danger', category: 'CREDITS' },
   CREDIT_METER_NOT_SUM: { label: 'Medidor de IA sin agregación SUM', tone: 'danger', category: 'CREDITS' },
@@ -117,8 +121,8 @@ export const LEDGER_GROUPS: Record<string, string[]> = {
 
 export function poolLabel(pool: string | null | undefined): string {
   if (!pool) return '—';
-  if (pool === 'TENANT') return 'Pool del tenant';
-  if (pool.startsWith('PRODUCT:')) return `Pool del producto ${pool.slice('PRODUCT:'.length)}`;
+  if (pool === 'TENANT') return 'Bolsa del tenant';
+  if (pool.startsWith('PRODUCT:')) return `Bolsa del producto ${pool.slice('PRODUCT:'.length)}`;
   return pool;
 }
 
@@ -142,10 +146,10 @@ export const POLICY_SOURCE_LABEL: Record<string, string> = {
 export const BILLING_AXIS_ORDER = ['BILLING_LEGACY', 'BILLING_SHADOW', 'BILLING_PRIMARY', 'BILLING_RETIRED'] as const;
 
 export const BILLING_AXIS: Record<string, LabelTone> = {
-  BILLING_LEGACY: { label: 'Biller local (legacy)', tone: 'neutral' },
+  BILLING_LEGACY: { label: 'Cobra la app', tone: 'neutral' },
   BILLING_SHADOW: { label: 'En comparación', tone: 'info' },
-  BILLING_PRIMARY: { label: 'MasterAdmin factura', tone: 'accent' },
-  BILLING_RETIRED: { label: 'Biller local retirado', tone: 'neutral' },
+  BILLING_PRIMARY: { label: 'Cobra el Admin Maestro', tone: 'accent' },
+  BILLING_RETIRED: { label: 'Migración completa', tone: 'neutral' },
 };
 
 /**
@@ -161,8 +165,8 @@ export function billingAxisTargets(from: string | null | undefined): string[] {
 }
 
 export const DIFF_TYPE: Record<string, LabelTone> = {
-  ONLY_LOCAL: { label: 'Solo en el biller local', tone: 'danger' },
-  ONLY_MASTERADMIN: { label: 'Solo en MasterAdmin', tone: 'danger' },
+  ONLY_LOCAL: { label: 'Solo en la app', tone: 'danger' },
+  ONLY_MASTERADMIN: { label: 'Solo en el Admin Maestro', tone: 'danger' },
   QUANTITY_MISMATCH: { label: 'Cantidad distinta', tone: 'warn' },
   AMOUNT_MISMATCH: { label: 'Importe distinto', tone: 'warn' },
   CURRENCY_MISMATCH: { label: 'Moneda distinta', tone: 'danger' },

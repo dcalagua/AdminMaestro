@@ -155,7 +155,7 @@ export function ProductFormDialog({
           label="Nombre corto"
           required
           placeholder="eSupplier"
-          hint="Genera el lockup «… by EBIM»."
+          hint="Genera el nombre con marca «… by EBIM»."
           error={form.formState.errors.short_name}
           {...form.register('short_name')}
         />

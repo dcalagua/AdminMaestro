@@ -3,6 +3,7 @@ import { CaretDownIcon, CaretUpDownIcon, CaretUpIcon } from '@phosphor-icons/rea
 import { EmptyState, ErrorState, LoadingState } from './primitives';
 import { TablePager } from './TablePager';
 import { MobileCardList } from './MobileCards';
+import { splitActions } from './tableCards';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import type { SortDir } from '@/services/financeRead';
 
@@ -100,7 +101,9 @@ export function PagedTable<Row>({
             className: rowClassName?.(row),
             title: first ? first.cell(row) : null,
             fields: rest.filter((c) => !c.srOnly && c.header.trim() !== '').map((c) => ({ label: c.header, content: c.cell(row) })),
-            actions: rest.filter((c) => c.srOnly || c.header.trim() === '').map((c) => <span key={c.id}>{c.cell(row)}</span>),
+            ...splitActions(
+              rest.filter((c) => c.srOnly || c.header.trim() === '').map((c) => <span key={c.id}>{c.cell(row)}</span>),
+            ),
           }))}
         />
         {pager}

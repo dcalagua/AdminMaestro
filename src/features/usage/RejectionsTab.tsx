@@ -35,10 +35,15 @@ export function RejectionsTab() {
 
   return (
     <Card
-      title="Rechazos del ingest"
+      title="Rechazos de la conexión de uso"
       description={`Agrupados por código sobre los últimos ${USAGE_LIST_LIMIT} rechazos. Un evento rechazado no aborta su lote.`}
     >
-      <SearchBar value={term} onChange={setTerm} placeholder="Buscar por código, producto, medidor o eventId…" />
+      <SearchBar
+        value={term}
+        onChange={setTerm}
+        total={rejections.isLoading ? undefined : (rejections.data ?? []).length}
+        placeholder="Buscar por código, producto, medidor o identificador del evento…"
+      />
       {rejections.isLoading ? (
         <LoadingState label="Cargando rechazos…" />
       ) : rejections.error ? (
@@ -46,7 +51,7 @@ export function RejectionsTab() {
       ) : groups.length === 0 ? (
         <EmptyState
           title={hasAny ? 'Ningún rechazo coincide' : 'Sin rechazos'}
-          description={hasAny ? 'Prueba con otra búsqueda.' : 'El ingest no ha rechazado eventos (o sigue apagado hasta D-12).'}
+          description={hasAny ? 'Prueba con otra búsqueda.' : 'La conexión de uso no ha rechazado eventos (o sigue apagada).'}
         />
       ) : (
         <DataTable columns={['Código', 'Rechazos', 'Productos', 'Último', '']}>
@@ -58,7 +63,7 @@ export function RejectionsTab() {
                     <span className="font-mono text-caption font-semibold">{g.code}</span>
                     {g.code === 'CONFLICT' ? <Badge tone="danger">Integridad</Badge> : null}
                   </div>
-                  <div className="text-caption text-muted">{REJECTION_CODE[g.code] ?? 'Código del ingest'}</div>
+                  <div className="text-caption text-muted">{REJECTION_CODE[g.code] ?? 'Código de rechazo'}</div>
                 </td>
                 <td className="ebim-td text-body font-semibold tabular-nums">{g.rows.length}</td>
                 <td className="ebim-td text-caption">{Array.from(g.products).join(', ')}</td>

@@ -95,12 +95,13 @@ describe('CostsPage', () => {
     renderAt();
 
     const platform = total('Costo de plataforma');
-    expect(platform).toHaveTextContent(/USD\s300\.00/);
+    expect(platform).toHaveTextContent(/USD\s300\b/);
     expect(within(platform).getByTitle(/No se reparte/)).toBeInTheDocument();
-    expect(total('Asignado')).toHaveTextContent(/USD\s600\.00/);
-    expect(total('Sin asignar')).toHaveTextContent(/USD\s100\.00/);
+    expect(total('Asignado')).toHaveTextContent(/USD\s600\b/);
+    expect(total('Sin asignar')).toHaveTextContent(/USD\s100\b/);
     // Registrado por moneda, sin mezclar PEN y USD.
-    expect(total('Costo registrado')).toHaveTextContent(/PEN\s200\.00 · USD\s1,000\.00/);
+    expect(total('Costo registrado')).toHaveTextContent(/PEN\s200 · USD\s1\.0 K/);
+    expect(within(total('Costo registrado')).getByTitle('PEN 200.00 · USD 1,000.00')).toBeInTheDocument();
     expect(total('Costo registrado')).not.toHaveTextContent('1,200');
 
     expect(screen.getByText(/margen gerencial = cobrado − costo asignado − comisión/i)).toBeInTheDocument();

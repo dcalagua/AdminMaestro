@@ -109,32 +109,54 @@ beforeEach(() => {
 });
 
 describe('franja de salud', () => {
-  it('una tarjeta por app con salud, ambiente, último chequeo y canales honestos', () => {
+  it('una insignia por app con salud y antigüedad; el detalle (ambiente, contrato, canales) al abrirla', async () => {
     renderPage();
     const strip = document.querySelector('[data-health-strip]') as HTMLElement;
-    const ewm = within(strip).getByRole('article', { name: 'EWM' });
+    // EWM se comprobó hace semanas: la insignia lo avisa sin abrirla.
+    const ewmChip = within(strip).getByRole('button', { name: /^EWM: Saludable\./ });
+    expect(ewmChip.querySelector('[data-stale="true"]')).not.toBeNull();
+    expect(within(strip).getByRole('button', { name: /^TMS: Saludable\./ }).querySelector('[data-stale="false"]')).not.toBeNull();
+    // Nada de tarjetas repetidas: el detalle aparece solo al abrir la app.
+    expect(screen.queryByRole('article', { name: 'EWM' })).toBeNull();
+    await userEvent.click(ewmChip);
+    const ewm = within(screen.getByRole('dialog', { name: 'Salud de EWM' })).getByRole('article', { name: 'EWM' });
     expect(within(ewm).getByText('Saludable')).toBeInTheDocument();
     expect(within(ewm).getByText(/Calidad/)).toBeInTheDocument();
     expect(within(ewm).getByText(/contrato de alta v1/)).toBeInTheDocument();
     expect(within(ewm).getByText(/semanas/)).toBeInTheDocument();
     expect(ewm.querySelector('[data-stale="true"]')).not.toBeNull();
-    // TMS se comprobó ahora mismo: sin aviso.
-    const tms = within(strip).getByRole('article', { name: 'TMS' });
-    expect(tms.querySelector('[data-stale="false"]')).not.toBeNull();
     // Canales: alta activa; módulos y uso «No activo»; suspensión «No disponible».
     expect(ewm.querySelector('[data-channel="alta"]')?.getAttribute('data-active')).toBe('true');
     expect(within(ewm.querySelector('[data-channel="modulos"]') as HTMLElement).getByText('No activo')).toBeInTheDocument();
     expect(within(ewm.querySelector('[data-channel="uso"]') as HTMLElement).getByText('No activo')).toBeInTheDocument();
     expect(within(ewm.querySelector('[data-channel="suspension"]') as HTMLElement).getByText('No disponible')).toBeInTheDocument();
     expect(within(ewm).getByRole('link', { name: 'Ver ficha' })).toHaveAttribute('href', '/apps/ewm');
+    // Escape cierra el detalle.
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog', { name: 'Salud de EWM' })).toBeNull();
   });
 
-  it('abrir la pantalla no verifica nada; «Verificar ahora» invoca CHECK_HEALTH del destino', async () => {
+  it('los canales iguales para todas las apps se dicen una sola vez', () => {
+    renderPage();
+    const summary = document.querySelector('[data-channel-summary]') as HTMLElement;
+    expect(summary).toHaveTextContent('Canales activos: Alta en 2 de 2 · Módulos 0 · Uso 0 · Suspensión 0');
+  });
+
+  it('abrir la pantalla no verifica nada; «Verificar ahora» de una app invoca CHECK_HEALTH de su destino', async () => {
     renderPage();
     expect(checkHealth).not.toHaveBeenCalled();
     expect(invoke).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: /^EWM: Saludable/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Verificar ahora EWM' }));
     expect(checkHealth).toHaveBeenCalledWith('t-ewm');
+    expect(checkHealth).toHaveBeenCalledTimes(1);
+  });
+
+  it('una sola «Verificar ahora» en la cabecera verifica todas las apps que el perfil puede', async () => {
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Verificar ahora todas las apps' }));
+    expect(checkHealth).toHaveBeenCalledWith('t-ewm');
+    expect(checkHealth).toHaveBeenCalledWith('t-tms');
   });
 
   it('⌘K «Verificar salud de las apps» llega con ?accion=: verifica cada app que el perfil puede, una sola vez', () => {
@@ -150,9 +172,11 @@ describe('franja de salud', () => {
     expect(checkHealth).toHaveBeenCalledTimes(1);
   });
 
-  it('sin permiso de lectura de entornos no se ofrece «Verificar ahora»', () => {
+  it('sin permiso de lectura de entornos no se ofrece «Verificar ahora»', async () => {
     state.canForProduct = (code) => code !== 'platform.deployment.read';
     renderPage();
+    expect(screen.queryByRole('button', { name: /Verificar ahora/ })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /^EWM: Saludable/ }));
     expect(screen.queryByRole('button', { name: /Verificar ahora/ })).not.toBeInTheDocument();
   });
 });
@@ -161,7 +185,7 @@ describe('matriz cuenta × app', () => {
   it('tenant PENDING con alta ACTIVE: «pendiente de confirmar», con aviso; el ACTIVE se ve activo', () => {
     renderPage();
     expect(document.querySelector('[data-pending-confirm-notice]')).not.toBeNull();
-    const acme = screen.getByRole('button', { name: /^Acme en EWM: Activo en la app · pendiente de confirmar en MasterAdmin/ });
+    const acme = screen.getByRole('button', { name: /^Acme en EWM: Activo en la app · pendiente de confirmar en el Admin Maestro/ });
     expect(acme).toHaveAttribute('data-cell-kind', 'PENDING_CONFIRM');
     expect(within(acme).getByText('Por confirmar')).toBeInTheDocument();
     expect(within(acme).getByText(/Contrato: Activa/)).toBeInTheDocument();

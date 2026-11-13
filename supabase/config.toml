@@ -489,6 +489,14 @@ verify_jwt = true
 # acción SYNC_ENTITLEMENTS del orquestador. Runbook: docs/runbooks/entitlement-sync.md.
 verify_jwt = true
 
+[functions.tenant-sync]
+# Sincronización de tenants con las 8 apps (20261021000100). Exige JWT, y eso NO
+# basta: el canal humano («Sincronizar ahora») pide `can_manage_tenant_sync()`
+# (super admin o EBIM_PRODUCT_ADMIN) ANTES de usar service_role; el canal
+# servidor (pg_cron) presenta la clave de servicio en `x-provisioning-secret`.
+# Solo hace GET en las apps. Runbook: docs/runbooks/tenant-sync.md.
+verify_jwt = true
+
 [functions.usage-ingest]
 # Ingest de uso firmado por cada SaaS (fase 17, spec §11.3). PÚBLICO a nivel de
 # gateway porque el SaaS NO tiene un JWT de Supabase: presenta SU JWT ES256

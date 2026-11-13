@@ -23,6 +23,29 @@ import type { Enums } from '@/types/domain';
 
 const SLUG = /^[a-z0-9]([a-z0-9-]{1,46}[a-z0-9])?$/;
 
+/**
+ * Muestras para el color de la marca del cliente (V6 · F2). Son DATOS de la
+ * organización (se guardan en `accent_color`), no colores de la consola: por
+ * eso no son tokens. El código hex queda en el tooltip.
+ */
+const ACCENT_PRESETS: Array<{ hex: string; name: string }> = [
+  { hex: '#056769', name: 'Verde azulado' },
+  { hex: '#1F6FB2', name: 'Azul' },
+  { hex: '#5B3FA8', name: 'Violeta' },
+  { hex: '#B23A6B', name: 'Magenta' },
+  { hex: '#C2410C', name: 'Naranja' },
+  { hex: '#A16207', name: 'Ocre' },
+  { hex: '#2F7D32', name: 'Verde' },
+  { hex: '#374151', name: 'Grafito' },
+];
+
+/** Título y botón según desde dónde se crea: «Nuevo cliente / Crear cliente», «Nuevo partner / Crear partner». */
+function createLabels(capability: Enums<'org_capability'> | undefined): { title: string; submit: string } {
+  if (capability === 'CUSTOMER') return { title: 'Nuevo cliente', submit: 'Crear cliente' };
+  if (capability === 'PARTNER') return { title: 'Nuevo partner', submit: 'Crear partner' };
+  return { title: 'Nueva organización', submit: 'Crear organización' };
+}
+
 const CAPABILITIES: Array<{ value: Enums<'org_capability'>; label: string; hint: string }> = [
   { value: 'CUSTOMER', label: 'Cliente', hint: 'Contrata SaaS para sí misma.' },
   { value: 'PARTNER', label: 'Partner', hint: 'Administra tenants de sus clientes.' },
@@ -160,9 +183,9 @@ export function OrganizationFormDialog({
   return (
     <FormDialog
       open={open}
-      title={isEdit ? `Editar ${organization?.display_name}` : 'Nueva organización'}
+      title={isEdit ? `Editar ${organization?.display_name}` : createLabels(defaultCapability).title}
       description="Las capacidades son acumulables: una misma empresa puede ser partner y cliente a la vez."
-      submitLabel={isEdit ? 'Guardar cambios' : 'Crear organización'}
+      submitLabel={isEdit ? 'Guardar cambios' : createLabels(defaultCapability).submit}
       busy={upsert.isPending}
       error={upsert.error}
       onSubmit={() => void submit()}
@@ -229,12 +252,10 @@ export function OrganizationFormDialog({
           error={form.formState.errors.status}
           {...form.register('status')}
         />
-        <TextField
-          label="Color de acento"
-          placeholder="#056769"
-          hint="Se usa en el branding del tenant si tiene white-label."
-          error={form.formState.errors.accent_color}
-          {...form.register('accent_color')}
+        <AccentSwatches
+          value={form.watch('accent_color') ?? ''}
+          onChange={(hex) => form.setValue('accent_color', hex, { shouldDirty: true, shouldValidate: true })}
+          error={form.formState.errors.accent_color?.message}
         />
       </FieldRow>
 
@@ -260,5 +281,67 @@ export function OrganizationFormDialog({
         </div>
       </fieldset>
     </FormDialog>
+  );
+}
+
+/**
+ * Color de la marca como paleta de muestras (radio): «Sin color» o una muestra;
+ * un color guardado que no está en la paleta aparece como «Actual». El hex
+ * solo en el tooltip (antes, un campo de texto con «#056769»).
+ */
+function AccentSwatches({
+  value,
+  onChange,
+  error,
+}: {
+  value: string;
+  onChange: (hex: string) => void;
+  error?: string;
+}) {
+  const current = value.trim();
+  const custom =
+    current && !ACCENT_PRESETS.some((p) => p.hex.toLowerCase() === current.toLowerCase())
+      ? [{ hex: current, name: 'Actual' }]
+      : [];
+  const options = [...ACCENT_PRESETS, ...custom];
+  return (
+    <fieldset className="min-w-0">
+      <legend className="mb-1.5 text-compact font-semibold text-fg">Color de la marca</legend>
+      <div role="radiogroup" aria-label="Color de la marca" className="flex flex-wrap items-center gap-1.5">
+        <button
+          type="button"
+          role="radio"
+          aria-checked={!current}
+          onClick={() => onChange('')}
+          className={`inline-flex h-8 items-center rounded-full border px-2.5 text-caption font-semibold ${
+            !current ? 'border-accent-deep bg-accent-soft text-accent-deep' : 'border-border text-fg-2 hover:bg-hover'
+          }`}
+        >
+          Sin color
+        </button>
+        {options.map((p) => {
+          const selected = current.toLowerCase() === p.hex.toLowerCase();
+          return (
+            <button
+              key={p.hex}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              aria-label={`${p.name} (${p.hex.toUpperCase()})`}
+              title={`${p.name} · ${p.hex.toUpperCase()}`}
+              onClick={() => onChange(p.hex)}
+              className={`h-8 w-8 rounded-full border-2 transition-shadow duration-fast ${
+                selected ? 'border-fg shadow-[0_0_0_2px_var(--card),0_0_0_4px_var(--accent-deep)]' : 'border-card hover:border-border-strong'
+              }`}
+              // El color es un dato de la organización (su marca), no un color de la consola.
+              style={{ backgroundColor: p.hex }}
+            />
+          );
+        })}
+      </div>
+      <p className={`mt-1 text-caption ${error ? 'text-danger' : 'text-muted'}`}>
+        {error ?? 'Se usa en la ficha y en las apps que muestran la marca del cliente.'}
+      </p>
+    </fieldset>
   );
 }

@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useAttributions } from '@/services/queries';
 import { useEndAttribution } from '@/services/mutations';
 import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { usePermissions } from '@/hooks/usePermissions';
 import { StatusTabs } from '@/components/ui/SectionTabs';
 import {
-  PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge,
+  PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState,
 } from '@/components/ui/primitives';
+import { CellTitle, StatusCell } from '@/components/ui/cells';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/toast-context';
 import { businessErrorMessage } from '@/lib/pgError';
@@ -83,9 +83,11 @@ export function AttributionsPage() {
         <SearchBar
           value={term}
           onChange={setTerm}
-          placeholder="Buscar por comercial, producto, cliente o tenant…"
+          total={attributions.isLoading ? undefined : (attributions.data ?? []).length}
+          placeholder="Buscar por comercial, app, cliente o tenant…"
           right={
             <StatusTabs
+              label="Vigencia"
               value={tab}
               onChange={setTab}
               options={entityStatusTabs(filtered, { all: 'Todas', active: 'Vigentes', inactive: 'Cerradas' })}
@@ -96,23 +98,27 @@ export function AttributionsPage() {
           <LoadingState label="Cargando atribuciones…" />
         ) : attributions.error ? (
           <ErrorState error={attributions.error} onRetry={() => void attributions.refetch()} />
+        ) : !hasAny ? (
+          <EmptyState title="Sin atribuciones" description="No hay atribuciones visibles para tu perfil." />
         ) : visible.length === 0 ? (
           <EmptyState
-            title={hasAny ? 'Ninguna atribución en esta vista' : 'Sin atribuciones'}
-            description={
-              hasAny
-                ? 'Prueba con otra búsqueda o cambia de pestaña.'
-                : 'No hay atribuciones visibles para tu perfil.'
-            }
+            variant="no-results"
+            title="Ninguna atribución en esta vista"
+            description="Prueba con otra búsqueda o cambia de pestaña."
+            onClear={() => {
+              setTerm('');
+              setTab('ALL');
+            }}
           />
         ) : (
           <DataTable
+            label="Atribuciones comerciales"
+            minWidth={960}
             columns={[
-              'Comercial',
+              { label: 'Comercial', sticky: true },
               'Cliente',
               { label: 'Participación', align: 'right' },
-              'Canal',
-              'Plan de comisión',
+              { label: 'Canal y plan de comisión', mobile: false },
               'Vigencia',
               { label: 'Acciones', srOnly: true },
             ]}
@@ -124,45 +130,39 @@ export function AttributionsPage() {
               const plan = (a.commission_plans as { name: string } | null)?.name;
               return (
                 <tr key={a.id}>
-                  <td className="ebim-td">
-                    <div className="flex items-center gap-3">
-                      <Avatar name={agent} mode="person" />
-                      <div className="min-w-0">
-                        <div className="font-semibold">{agent}</div>
-                        <div className="text-compact text-fg-2">crédito de {product}</div>
-                      </div>
+                  <td className="ebim-td py-2">
+                    <div className="max-w-[260px]">
+                      <CellTitle
+                        title={agent}
+                        leading={<Avatar name={agent} mode="person" />}
+                        secondary={[`Crédito de ${product}`]}
+                      />
                     </div>
                   </td>
-                  <td className="ebim-td">
-                    {customer ? (
-                      <Link className="ebim-link" to={`/organizations/${a.customer_organization_id}`}>
-                        {customer}
-                      </Link>
-                    ) : (
-                      <span className="text-muted">—</span>
-                    )}
-                    <div className="text-compact text-fg-2">
-                      {a.tenant_id ? (
-                        <Link className="hover:underline" to={`/tenants/${a.tenant_id}`}>
-                          {(a.tenants as { name: string } | null)?.name ?? 'Ver tenant'}
-                        </Link>
-                      ) : (
-                        'Todo el cliente'
-                      )}
+                  <td className="ebim-td py-2">
+                    <div className="max-w-[260px]">
+                      <CellTitle
+                        title={customer ?? '—'}
+                        to={customer ? `/organizations/${a.customer_organization_id}` : undefined}
+                        secondary={[a.tenant_id ? (a.tenants as { name: string } | null)?.name ?? 'Un tenant' : 'Todo el cliente']}
+                      />
                     </div>
                   </td>
                   <td className="ebim-td ebim-num font-semibold">{pct(a.attribution_pct)}</td>
-                  <td className="ebim-td">
-                    <Badge tone="neutral">{SOURCE_LABEL[a.source] ?? a.source}</Badge>
+                  <td className="ebim-td py-2 text-compact">
+                    <span className="block max-w-[240px] leading-tight">
+                      <span className="block truncate text-fg">{SOURCE_LABEL[a.source] ?? a.source}</span>
+                      <span className={`block truncate text-caption ${plan ? 'text-muted' : 'text-warn'}`} title={plan ?? undefined}>
+                        {plan ?? 'Sin plan de comisión'}
+                      </span>
+                    </span>
                   </td>
-                  <td className="ebim-td text-fg-2">{plan ?? 'Sin plan de comisión'}</td>
-                  <td className="ebim-td whitespace-nowrap">
-                    <Badge tone={a.status === 'ACTIVE' ? 'ok' : 'neutral'} dot>
-                      {a.status === 'ACTIVE' ? 'Vigente' : 'Cerrada'}
-                    </Badge>
-                    <div className="mt-1 text-compact text-fg-2">
-                      {formatDate(a.valid_from)} → {a.valid_to ? formatDate(a.valid_to) : 'sin fin'}
-                    </div>
+                  <td className="ebim-td py-2">
+                    <StatusCell
+                      label={a.status === 'ACTIVE' ? 'Vigente' : 'Cerrada'}
+                      tone={a.status === 'ACTIVE' ? 'ok' : 'neutral'}
+                      detail={`${formatDate(a.valid_from)} → ${a.valid_to ? formatDate(a.valid_to) : 'sin fin'}`}
+                    />
                   </td>
                   <td className="ebim-td w-12 text-right">
                     <ActionMenu

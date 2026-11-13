@@ -2,6 +2,7 @@ import {
   type ExecutiveBillingPoint,
   type ExecutiveMrrBridge,
   type ExecutiveMrrPoint,
+  type NativeAmounts,
 } from '@/services/queries';
 import { KpiTile } from '@/components/ui/primitives';
 import { longMonthName } from '@/features/billing/financeModel';
@@ -16,6 +17,45 @@ import {
 } from '../executiveModel';
 import { usePresentationView } from '../presentation/presentationContext';
 import { type ExecutiveDashboardData } from '../executiveDashboardData';
+
+const OVERDUE_BUCKETS = new Set(['D1_30', 'D31_60', 'D61_90', 'D90_MAS']);
+
+/** Montos por moneda nativa en una línea («BOB 5.9 K · USD 4.0 K»), sin ceros. */
+function nativeLine(native: NativeAmounts | null | undefined, factor = 1): string {
+  return Object.entries(native ?? {})
+    .filter(([, v]) => Number(v) !== 0)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([c, v]) => `${c} ${formatCompactAmount(v * factor)}`)
+    .join(' · ');
+}
+
+/**
+ * V6 · 3.1 · Sin tasa para consolidar, el KPI muestra la suma en cada moneda
+ * nativa con la marca «sin consolidar»: nunca «Sin datos» si hay datos, nunca un
+ * total en la moneda de reporte que deje fuera monedas (el «USD 0» de antes).
+ */
+function Unconsolidated({ text }: { text: string }) {
+  return (
+    <span className="block text-h3 leading-snug" data-unconsolidated title={text}>
+      {text}
+      <span className="mt-0.5 block text-caption font-normal text-muted">sin consolidar</span>
+    </span>
+  );
+}
+
+/**
+ * Valor de un KPI en moneda de reporte o, si la conversión está incompleta y
+ * hay montos nativos, esos montos. `null` = sin datos de verdad.
+ */
+function reportOrNative(
+  value: number | null | undefined,
+  complete: boolean | undefined,
+  native: string,
+): { kind: 'report'; value: number } | { kind: 'native'; text: string } | null {
+  if (complete === false && native) return { kind: 'native', text: native };
+  if (value != null) return { kind: 'report', value };
+  return native ? { kind: 'native', text: native } : null;
+}
 
 /** Franja hero del resumen ejecutivo: seis KPI con tendencia de 12 meses. */
 export function HeroKpis({ d }: { d: ExecutiveDashboardData }) {
@@ -43,7 +83,19 @@ export function HeroKpis({ d }: { d: ExecutiveDashboardData }) {
     const valid = values.filter((v): v is number => v != null);
     return valid.length >= 2 ? `Tendencia ${valid.length} meses: de ${fmt(valid[0]!)} a ${fmt(valid[valid.length - 1]!)}` : undefined;
   };
-  const native = s ? Object.entries(s.native).map(([c, v]) => `${c} ${formatCompactAmount(v)}`).join(' · ') : '';
+  const native = nativeLine(s?.native);
+  const overdueNative: NativeAmounts = {};
+  for (const bucket of d.aging.data?.buckets ?? []) {
+    if (!OVERDUE_BUCKETS.has(bucket.bucket)) continue;
+    for (const [c, v] of Object.entries(bucket.native)) overdueNative[c] = (overdueNative[c] ?? 0) + v;
+  }
+  const mrrV = reportOrNative(s?.mrr, s?.complete, native);
+  const arrV = reportOrNative(s?.arr, s?.complete, nativeLine(s?.native, 12));
+  const collectedV = reportOrNative(b?.collected, b?.complete, nativeLine(b?.collectedNative));
+  const overdueV = reportOrNative(b?.overdue, b?.complete, nativeLine(overdueNative));
+  const shown = (v: ReturnType<typeof reportOrNative>) =>
+    v == null ? null : v.kind === 'native' ? <Unconsolidated text={v.text} /> : formatCompactAmount(v.value);
+  const unit = (v: ReturnType<typeof reportOrNative>) => (v?.kind === 'report' ? currency : undefined);
   const missingNote = (p?: { complete: boolean; missingCurrencies: string[] }) =>
     p && !p.complete ? `Sin tasa para ${p.missingCurrencies.join(', ')}: no se consolida` : null;
   const partialNote = isCurrent ? 'Mes en curso, a hoy' : null;
@@ -58,13 +110,13 @@ export function HeroKpis({ d }: { d: ExecutiveDashboardData }) {
         size="display"
         label="MRR"
         info="Ingreso recurrente mensual contratado al cierre del mes, en moneda de reporte (S01)."
-        currency={s?.mrr != null ? currency : undefined}
-        value={s?.mrr == null ? null : formatCompactAmount(s.mrr)}
-        delta={{ value: pctChange(s?.mrr, sp?.mrr), comparison: vs, goodWhen: 'up' }}
+        currency={unit(mrrV)}
+        value={shown(mrrV)}
+        delta={mrrV?.kind === 'native' ? undefined : { value: pctChange(s?.mrr, sp?.mrr), comparison: vs, goodWhen: 'up' }}
         trend={sTrend.map((p) => p.mrr)}
         trendPartial={isCurrent}
         trendDescription={describe(sTrend.map((p) => p.mrr), money)}
-        footer={missingNote(s) ?? partialNote ?? native}
+        footer={missingNote(s) ?? partialNote ?? (mrrV?.kind === 'report' ? native : null)}
         loading={series.isLoading}
         error={series.error}
         onRetry={() => void series.refetch()}
@@ -74,9 +126,9 @@ export function HeroKpis({ d }: { d: ExecutiveDashboardData }) {
         size="display"
         label="ARR"
         info="MRR × 12: proyección anual del recurrente vigente, no contratos anuales firmados."
-        currency={s?.arr != null ? currency : undefined}
-        value={s?.arr == null ? null : formatCompactAmount(s.arr)}
-        delta={{ value: pctChange(s?.arr, sp?.arr), comparison: vs, goodWhen: 'up' }}
+        currency={unit(arrV)}
+        value={shown(arrV)}
+        delta={arrV?.kind === 'native' ? undefined : { value: pctChange(s?.arr, sp?.arr), comparison: vs, goodWhen: 'up' }}
         trend={sTrend.map((p) => p.arr)}
         trendPartial={isCurrent}
         trendDescription={describe(sTrend.map((p) => p.arr), money)}
@@ -90,10 +142,10 @@ export function HeroKpis({ d }: { d: ExecutiveDashboardData }) {
         size="display"
         label={isCurrent ? 'Cobrado en el mes' : 'Cobrado del mes'}
         info="Pagos confirmados en el mes (fórmula de K02), convertidos a la moneda de reporte (S06)."
-        currency={b?.collected != null ? currency : undefined}
-        value={b?.collected == null ? null : formatCompactAmount(b.collected)}
+        currency={unit(collectedV)}
+        value={shown(collectedV)}
         // Un mes parcial contra uno completo no es comparación: sin variación.
-        delta={isCurrent ? undefined : { value: pctChange(b?.collected, bp?.collected), comparison: vs, goodWhen: 'up' }}
+        delta={isCurrent || collectedV?.kind === 'native' ? undefined : { value: pctChange(b?.collected, bp?.collected), comparison: vs, goodWhen: 'up' }}
         trend={bTrend.map((p) => p.collected)}
         trendPartial={isCurrent}
         trendDescription={describe(bTrend.map((p) => p.collected), money)}
@@ -112,9 +164,9 @@ export function HeroKpis({ d }: { d: ExecutiveDashboardData }) {
         size="display"
         label="Cartera vencida"
         info="Saldo con 1 día o más de atraso al cierre del mes (bandas 1–30 a más de 90 días, S05/S06)."
-        currency={b?.overdue != null ? currency : undefined}
-        value={b?.overdue == null ? null : formatCompactAmount(b.overdue)}
-        delta={{ value: pctChange(b?.overdue, bp?.overdue), comparison: vs, goodWhen: 'down' }}
+        currency={unit(overdueV)}
+        value={shown(overdueV)}
+        delta={overdueV?.kind === 'native' ? undefined : { value: pctChange(b?.overdue, bp?.overdue), comparison: vs, goodWhen: 'down' }}
         trend={bTrend.map((p) => p.overdue)}
         trendPartial={isCurrent}
         trendDescription={describe(bTrend.map((p) => p.overdue), money)}

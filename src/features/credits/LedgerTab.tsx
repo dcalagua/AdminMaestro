@@ -58,7 +58,7 @@ export function LedgerTab() {
       <SearchBar
         value={term}
         onChange={setTerm}
-        placeholder="Buscar por tenant, tipo, pool, motivo o clave…"
+        placeholder="Buscar por tenant, tipo, bolsa, motivo o clave…"
         right={
           <StatusTabs
             value={tab}
@@ -79,7 +79,7 @@ export function LedgerTab() {
       ) : visible.length === 0 ? (
         <EmptyState
           title={hasAny ? 'Ningún movimiento coincide' : 'Sin movimientos de créditos'}
-          description={hasAny ? 'Prueba con otra búsqueda o cambia de filtro.' : 'El ledger está vacío: nada se siembra (D-02/D-03/D-04).'}
+          description={hasAny ? 'Prueba con otra búsqueda o cambia de filtro.' : 'Aún no hay movimientos: nada se carga de antemano.'}
         />
       ) : (
         <DataTable columns={['Fecha', 'Tenant', 'Tipo', 'Pool', 'Período', 'Créditos', '']}>
@@ -198,7 +198,7 @@ function ReverseDialog({ entry, onClose, onDone }: { entry: Entry | null; onClos
       title="Revertir movimiento"
       description={
         entry
-          ? `Crea una REVERSAL de ${formatQuantity(-entry.credits)} créditos. El original no cambia (ledger append-only) y solo se revierte una vez.`
+          ? `Crea una REVERSAL de ${formatQuantity(-entry.credits)} créditos. El original no cambia (los movimientos no se editan) y solo se revierte una vez.`
           : undefined
       }
       submitLabel="Revertir"
@@ -207,7 +207,7 @@ function ReverseDialog({ entry, onClose, onDone }: { entry: Entry | null; onClos
       onSubmit={() => void submit()}
       onCancel={onClose}
     >
-      <TextAreaField label="Motivo" required hint="Queda en el ledger y en la auditoría."
+      <TextAreaField label="Motivo" required hint="Queda en los movimientos y en la auditoría."
         error={form.formState.errors.reason} {...form.register('reason')} />
     </FormDialog>
   );
