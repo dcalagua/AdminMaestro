@@ -17,6 +17,9 @@ import { Sparkline } from './Sparkline';
 import { TablePager } from './TablePager';
 import { PAGE_SIZES } from '@/lib/paging';
 import { useClientPagination } from '@/hooks/useClientPagination';
+import { useIsMobile } from '@/hooks/useMediaQuery';
+import { MobileCardList } from './MobileCards';
+import { rowsToCards } from './tableCards';
 import { useEmbeddedPage, usePageTrail } from './pageTrail';
 import { formatDelta } from '@/lib/format';
 import { businessErrorMessage } from '@/lib/pgError';
@@ -695,6 +698,10 @@ export type DataColumn = string | { label: string; align?: 'left' | 'right'; srO
  * fila hija (`<tr>`) cuenta como una; si cambia el número de filas (buscador,
  * pestaña) vuelve a la primera página. Las vistas «Tabla» de los gráficos y
  * las matrices con `rowSpan` lo desactivan con `paginate={false}`.
+ *
+ * Móvil (V5 · F7): con `mobileCards`, por debajo de `sm` cada fila se pinta como
+ * tarjeta (primera columna = título, el resto «etiqueta: valor», acciones al
+ * pie). Si las filas no son `<tr>` directos, se queda la tabla.
  */
 export function DataTable({
   columns,
@@ -706,6 +713,7 @@ export function DataTable({
   scrollRegion = false,
   paginate = true,
   pageSize: initialPageSize = PAGE_SIZES[0],
+  mobileCards = false,
 }: {
   columns: DataColumn[];
   children: ReactNode;
@@ -722,14 +730,20 @@ export function DataTable({
   paginate?: boolean;
   /** Filas por página iniciales. */
   pageSize?: number;
+  /** Por debajo de `sm`, filas como tarjetas (V5 · F7). */
+  mobileCards?: boolean;
 }) {
+  const mobile = useIsMobile();
   const rows = paginate ? Children.toArray(children) : null;
   const pager = useClientPagination(rows?.length ?? 0, initialPageSize);
   const paged = rows !== null && pager.active;
   const body = paged ? pager.slice(rows) : children;
+  const cards = mobileCards && mobile ? rowsToCards(Children.toArray(body), columns) : null;
   const style: CSSProperties | undefined = maxHeight ? { maxHeight, overflowY: 'auto' } : undefined;
   const region = scrollRegion ? { role: 'region', 'aria-label': label ?? caption, tabIndex: 0 } : {};
-  const table = (
+  const table = cards ? (
+    <MobileCardList label={label ?? caption} items={cards} />
+  ) : (
     // `relative`: el scroll horizontal también recorta a los descendientes
     // posicionados (p. ej. etiquetas sr-only); sin él ensanchan la página.
     <div className="relative overflow-x-auto" style={style} {...region}>

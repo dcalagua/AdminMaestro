@@ -199,6 +199,8 @@ export function OrganizationsPage({
           />
         ) : (
           <DataTable
+            mobileCards
+            label="Cuentas"
             columns={[
               'Organización',
               'País',

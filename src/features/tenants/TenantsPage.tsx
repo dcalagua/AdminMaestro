@@ -132,6 +132,8 @@ export function TenantsPage() {
           />
         ) : (
           <DataTable
+            mobileCards
+            label="Tenants"
             columns={[
               'Tenant',
               'Cliente',

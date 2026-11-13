@@ -293,7 +293,7 @@ function InboxRow({
   const sameScreen = item.action.type === 'link' && item.action.to === item.screen.to;
   return (
     <li className="flex flex-wrap items-start gap-x-4 gap-y-2 px-5 py-3" data-inbox-item={item.key} data-priority={item.priority}>
-      <div className="w-[96px] shrink-0 pt-0.5">
+      <div className="shrink-0 pt-0.5 sm:w-[96px]">
         <Badge tone={PRIORITY_TONE[item.priority]} dot>
           {PRIORITY_LABEL[item.priority]}
         </Badge>
@@ -313,7 +313,8 @@ function InboxRow({
         </p>
         {item.detail ? <p className="mt-0.5 text-caption text-fg-2">{item.detail}</p> : null}
       </div>
-      <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+      {/* Móvil (V5 · F7): las acciones bajan a su propia línea, alineadas a la izquierda. */}
+      <div className="flex w-full shrink-0 flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end">
         {done ? null : <ActionButton item={item} actions={actions} />}
         {sameScreen && !done ? null : (
           <Link className="ebim-btn-ghost ebim-btn-sm" to={item.screen.to}>

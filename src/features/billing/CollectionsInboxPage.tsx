@@ -166,6 +166,7 @@ export function CollectionsInboxPage() {
     {
       id: 'actions',
       header: 'Acciones',
+      srOnly: true,
       align: 'right',
       cell: (r) => {
         const card = r.customer_organization_id ? cards.data?.get(r.customer_organization_id) : undefined;
@@ -250,6 +251,7 @@ export function CollectionsInboxPage() {
         ]}
       />
       <PagedTable
+        mobileCards
         label="Facturas por cobrar"
         columns={columns}
         rows={rows}

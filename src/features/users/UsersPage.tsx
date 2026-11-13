@@ -120,6 +120,7 @@ export function UsersPage() {
         ) : (
           <DataTable
             label="Usuarios"
+            mobileCards
             columns={['Usuario', 'Roles y cuentas', 'Apps', 'Último ingreso', 'Estado', { label: 'Acciones', srOnly: true }]}
           >
             {visible.map((u) => {

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { AdminUser } from './userModel';
+import { mockViewport } from '@/test/matchMedia';
 
 /*
  * M5 · «Usuarios y accesos»: buscador único + pestañas (U-06), estados, e
@@ -139,6 +140,22 @@ describe('UsersPage', () => {
     // El buscador también encuentra por app.
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'EWM' } });
     expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(2);
+  });
+
+  it('V5 · F7: en móvil cada usuario es una tarjeta con sus apps y sus acciones', () => {
+    const restore = mockViewport('mobile');
+    try {
+      renderPage();
+      expect(screen.queryByRole('table')).not.toBeInTheDocument();
+      const cards = within(screen.getByRole('list', { name: 'Usuarios' })).getAllByRole('listitem', { name: '' });
+      const olga = cards.find((c) => c.hasAttribute('data-mobile-card') && c.textContent?.includes('Olga Operaciones'))!;
+      expect(within(olga).getByRole('link', { name: 'Olga Operaciones' })).toHaveAttribute('href', '/users/u6');
+      expect(within(olga).getAllByRole('term').map((t) => t.textContent)).toEqual(['Roles y cuentas', 'Apps', 'Último ingreso', 'Estado']);
+      expect(within(olga).getByRole('list', { name: 'Apps a las que entra' })).toHaveTextContent('eSupplier · Admin');
+      expect(within(olga).getByRole('button', { name: 'Acciones de Olga Operaciones' })).toBeInTheDocument();
+    } finally {
+      restore();
+    }
   });
 
   it('el super admin invita con rol de consola, sin ofrecer EBIM_SUPER_ADMIN, y ve el enlace si no hay correo', async () => {
