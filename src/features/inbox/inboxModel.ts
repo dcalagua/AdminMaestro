@@ -482,3 +482,8 @@ export function matchesInbox(item: InboxItem, term: string): boolean {
   if (!t) return true;
   return [item.title, item.detail, item.account?.name, item.app].some((f) => f && norm(f).includes(t));
 }
+
+/** Adónde lleva un aviso al tocarlo: su acción si es un enlace, si no, su pantalla. */
+export function inboxTarget(item: Pick<InboxItem, 'action' | 'screen'>): string {
+  return item.action.type === 'link' ? item.action.to : item.screen.to;
+}

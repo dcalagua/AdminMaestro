@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BellIcon } from '@phosphor-icons/react';
 import { formatNumber } from '@/lib/format';
-import { PRIORITY_LABEL, type InboxItem } from './inboxModel';
+import { PRIORITY_LABEL, inboxTarget, type InboxItem } from './inboxModel';
 import { useInbox } from './useInbox';
 
 /**
@@ -21,10 +21,6 @@ const DOT: Record<InboxItem['priority'], string> = {
   2: 'bg-warn',
   3: 'bg-border-strong',
 };
-
-function target(item: InboxItem): string {
-  return item.action.type === 'link' ? item.action.to : item.screen.to;
-}
 
 export function InboxBell() {
   const inbox = useInbox();
@@ -128,7 +124,7 @@ export function InboxBell() {
               {top.map((item) => (
                 <li key={item.key}>
                   <Link
-                    to={target(item)}
+                    to={inboxTarget(item)}
                     className="flex items-start gap-3 px-4 py-2.5 transition-colors duration-fast ease-out hover:bg-hover focus-visible:bg-hover"
                     onClick={() => setOpen(false)}
                   >
