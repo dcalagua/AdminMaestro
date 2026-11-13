@@ -1,5 +1,5 @@
 import {
-  type Icon, ArrowsClockwiseIcon, BuildingOfficeIcon, BuildingsIcon, ChartLineUpIcon, GearSixIcon,
+  type Icon, ArrowsClockwiseIcon, BuildingOfficeIcon, BuildingsIcon, ChartLineUpIcon, EnvelopeSimpleIcon, GearSixIcon,
   HandCoinsIcon, HandshakeIcon, HouseIcon, PlugsConnectedIcon, ReceiptIcon, RocketLaunchIcon, ShieldCheckIcon,
   SquaresFourIcon, StackIcon, StorefrontIcon, TrayIcon, UserGearIcon, UsersThreeIcon,
 } from '@phosphor-icons/react';
@@ -208,6 +208,11 @@ export const NAV_ITEMS: NavItem[] = [
     details: [{ prefix: '/users', label: 'Ficha de usuario' }],
   },
   { to: '/audit', label: 'Auditoría', icon: ShieldCheckIcon, group: 'Gobierno', personas: ['EBIM', 'PARTNER'] },
+  // Correo por EBIM MailHub (20261022000100): super admin, producto y finanzas (RLS `can_view_mail`).
+  {
+    to: '/correos', label: 'Correos enviados', icon: EnvelopeSimpleIcon, group: 'Gobierno', personas: ['EBIM'],
+    description: 'Lo que el Admin Maestro envía por EBIM MailHub, con su estado de entrega real.',
+  },
   {
     to: '/settings', label: 'Configuración', icon: GearSixIcon, group: 'Gobierno',
     description: 'Tu sesión y apariencia; para EBIM, también monedas, créditos IA y opciones avanzadas.',

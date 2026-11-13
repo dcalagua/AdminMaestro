@@ -514,3 +514,24 @@ verify_jwt = false
 # para la API de administración de Auth. Sin SMTP devuelve el enlace de
 # invitación para copiar (nunca se guarda). Runbook: docs/runbooks/user-admin.md.
 verify_jwt = true
+
+[functions.mail-dispatch]
+# Correo por EBIM MailHub (20261022000100): envía la bandeja `mail_outbox`.
+# Exige JWT, y eso NO basta: el canal humano («Procesar ahora») pide
+# `can_view_mail()` ANTES de usar service_role; el canal servidor (pg_cron y el
+# disparo al encolar) presenta la clave de servicio en `x-provisioning-secret`.
+# Salvaguarda de QAS: MAIL_DELIVERY_MODE (allowlist por defecto). Runbook: docs/runbooks/mail.md.
+verify_jwt = true
+
+[functions.mailhub-callback]
+# PÚBLICO por necesidad: EBIM MailHub no tiene JWT de este proyecto. Se
+# autentica con la firma HMAC `X-MailHub-Signature` (MAILHUB_WEBHOOK_SECRET),
+# ventana de 300 s, sobre el cuerpo crudo y ANTES de parsear; la base deduplica
+# por `eventId`. Solo actualiza el estado de entrega del outbox.
+verify_jwt = false
+
+[functions.auth-email-hook]
+# PÚBLICO por necesidad: Supabase Auth llama al «Send Email Hook» sin JWT. Se
+# autentica con la firma Standard Webhooks (SEND_EMAIL_HOOK_SECRET), ventana de
+# 300 s, sobre el cuerpo crudo y ANTES de parsear. Envía `masteradmin-acceso-*`.
+verify_jwt = false

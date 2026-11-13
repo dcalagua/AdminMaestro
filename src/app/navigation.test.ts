@@ -65,9 +65,9 @@ function oldScreens(persona: PersonaKind, options: Options = {}): string[] {
 }
 
 /** Entradas nuevas de la V5 sin pantalla anterior. */
-const NEW_ENTRIES = ['/bandeja', '/suite'];
+const NEW_ENTRIES = ['/bandeja', '/suite', '/correos'];
 
-describe('menú V5: seis grupos, 18 entradas (plan §4)', () => {
+describe('menú V5: seis grupos, 19 entradas (plan §4 + Correos enviados)', () => {
   it('grupos por tarea, en orden', () => {
     expect(navGroupsFor('EBIM').map((g) => g.group)).toEqual([
       'Inicio', 'Clientes', 'Suite', 'Comercial', 'Finanzas', 'Gobierno',
@@ -84,9 +84,9 @@ describe('menú V5: seis grupos, 18 entradas (plan §4)', () => {
       Suite: ['Centro de la suite', 'Tenants', 'Apps'],
       Comercial: ['Nueva venta', 'Contratos', 'Catálogo'],
       Finanzas: ['Cobranza', 'Comisiones', 'Costos y margen', 'Tarifas de partners'],
-      Gobierno: ['Usuarios', 'Auditoría', 'Configuración'],
+      Gobierno: ['Usuarios', 'Auditoría', 'Correos enviados', 'Configuración'],
     });
-    expect(NAV_ITEMS).toHaveLength(18);
+    expect(NAV_ITEMS).toHaveLength(19);
   });
 
   it('las fusiones llevan sus pestañas', () => {

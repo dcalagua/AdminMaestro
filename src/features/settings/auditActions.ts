@@ -17,6 +17,10 @@ const EXACT: Record<string, string> = {
   TENANT_SYNC_FINDING_DISMISSED: 'Diferencia con una app descartada',
   TENANT_SYNC_FINDING_REGISTERED: 'Cliente de una app registrado en el Admin Maestro',
   TENANT_SYNC_SETTINGS_CHANGED: 'Cambio en la sincronización con las apps',
+  MAIL_RESENT: 'Correo reenviado por MailHub',
+  MAIL_CANCELLED: 'Correo cancelado antes de salir',
+  MAIL_TEST_QUEUED: 'Prueba de plantilla de correo',
+  MAIL_SETTINGS_UPDATED: 'Cambio en la configuración del correo',
   // La migración de sincronización elige la acción con un CASE ('RESOLVE' / 'DISMISS').
   RESOLVE: 'Diferencia con una app marcada como resuelta',
   COMMISSIONS_SETTLED: 'Liquidación de comisiones',
@@ -231,6 +235,8 @@ export function auditActionKind(action: string | null | undefined): AuditKind {
 
 const ENTITY: Record<string, string> = {
   tenant_sync_finding: 'Diferencia con una app',
+  mail_outbox: 'Correo',
+  mail_settings: 'Configuración del correo',
   invoice: 'Factura',
   payment: 'Cobro',
   payment_link: 'Enlace de pago',
