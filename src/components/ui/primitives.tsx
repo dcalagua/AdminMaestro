@@ -237,7 +237,10 @@ function DeltaLine({ delta }: { delta: KpiDelta }) {
 
 export interface KpiTileProps {
   label: string;
-  /** Valor YA formateado (cifra compacta). `null`/`undefined` = sin dato: se pinta «—», nunca un 0. */
+  /**
+   * Valor YA formateado (cifra compacta). `null`/`undefined`/`''`/`'—'` = sin dato:
+   * se pinta «— Sin datos» atenuado (V5 · F7), nunca un 0 ni con el peso de una cifra.
+   */
   value: ReactNode;
   /** Código ISO como prefijo pequeño junto a la cifra: `USD` **50.1 K**. */
   currency?: string;
@@ -290,7 +293,9 @@ export function KpiTile({
   className = '',
 }: KpiTileProps) {
   const minH = size === 'display' ? 'min-h-[148px]' : 'min-h-[120px]';
-  const shell = `ebim-card flex flex-col p-5 ${minH} ${className}`;
+  const empty = !loading && !error && (value === null || value === undefined || value === '' || value === '—');
+  // Sin datos (V5 · F7): borde punteado y texto atenuado; no compite con las cifras reales.
+  const shell = `ebim-card flex flex-col p-5 ${minH} ${empty ? 'border-dashed' : ''} ${className}`;
 
   if (loading) {
     return (
@@ -304,7 +309,6 @@ export function KpiTile({
   }
 
   const status = tone !== 'neutral' ? STATUS_ICON[tone] : null;
-  const empty = value === null || value === undefined || value === '';
 
   const body = (
     <>
@@ -345,10 +349,17 @@ export function KpiTile({
         </div>
       ) : (
         <>
-          <p className={`mt-2 flex min-w-0 items-baseline gap-1.5 break-words ${empty ? 'text-muted' : 'text-fg'}`}>
-            {currency && !empty ? <span className="text-h3 font-semibold text-muted">{currency}</span> : null}
-            <span className={`${valueSize(size, value)} min-w-0`}>{empty ? '—' : value}</span>
-          </p>
+          {empty ? (
+            <p className="mt-2 flex items-baseline gap-1.5 text-body text-muted" data-kpi-empty>
+              <span aria-hidden>—</span>
+              <span>Sin datos</span>
+            </p>
+          ) : (
+            <p className="mt-2 flex min-w-0 items-baseline gap-1.5 break-words text-fg">
+              {currency ? <span className="text-h3 font-semibold text-muted">{currency}</span> : null}
+              <span className={`${valueSize(size, value)} min-w-0`}>{value}</span>
+            </p>
+          )}
           {delta ? <DeltaLine delta={delta} /> : null}
           {trend ? (
             <div className="mt-auto pt-3">
