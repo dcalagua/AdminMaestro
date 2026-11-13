@@ -127,10 +127,10 @@ export function AppDetailPage() {
           <button
             type="button"
             className="ebim-btn-secondary"
-            disabled={check.isPending}
-            onClick={() => void check.run(health.primary!.deployment_target_id!, app.name)}
+            disabled={check.isRunning(health.primary.deployment_target_id)}
+            onClick={() => void check.run(health.primary!.deployment_target_id!, app.name, app.code)}
           >
-            {check.isPending ? 'Verificando…' : 'Verificar ahora'}
+            {check.isRunning(health.primary.deployment_target_id) ? 'Verificando…' : 'Verificar ahora'}
           </button>
         ) : null
       }
@@ -327,8 +327,8 @@ export function AppDetailPage() {
                             <button
                               type="button"
                               className="ebim-btn-secondary ebim-btn-sm"
-                              disabled={check.isPending}
-                              onClick={() => void check.run(t.deployment_target_id!, `${app.name} ${environmentLabel(t.provisioning_environment)}`)}
+                              disabled={check.isRunning(t.deployment_target_id)}
+                              onClick={() => void check.run(t.deployment_target_id!, `${app.name} ${environmentLabel(t.provisioning_environment)}`, app.code)}
                             >
                               Verificar este entorno
                             </button>

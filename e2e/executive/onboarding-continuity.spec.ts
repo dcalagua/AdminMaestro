@@ -46,7 +46,9 @@ test('nueva venta: sin doble operación, datos conservados y continuidad sin alt
 
   // Doble clic: una sola operación.
   await page.getByRole('button', { name: 'Crear cliente' }).dblclick();
-  await expect(page.getByText('Alta completada')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText('Cliente creado')).toBeVisible({ timeout: 20_000 });
+  // V5 · F4: el flujo sigue (factura, enlace, alta en las apps); se salta a la ficha del tenant.
+  await page.getByRole('link', { name: 'Ir a la ficha del tenant' }).click();
   await expect(page.getByRole('heading', { level: 1, name: `Exec E2E ${RUN}` })).toBeVisible({ timeout: 15_000 });
   expect(rpcCalls.filter((c) => c === 'onboard_customer_subscription')).toHaveLength(1);
 

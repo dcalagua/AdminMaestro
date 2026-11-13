@@ -343,8 +343,8 @@ export function TenantsPanel({ user, scope }: { user: AdminUser; scope: Scope })
 
   return (
     <Card
-      title="Tenants"
-      description="Acceso operativo a un tenant. Vender un tenant no crea esta membresía (comercial ≠ acceso operativo)."
+      title="Membresías de tenant"
+      description="Acceso operativo a un tenant (y con él, a su app). Vender un tenant no crea esta membresía (comercial ≠ acceso operativo)."
       actions={
         user.isActive && tenantOptions.length > 0 && user.id !== scope.userId ? (
           <button type="button" className="ebim-btn-ghost" onClick={() => { setTenantId(''); setRole('TENANT_USER'); upsert.reset(); setAdding(true); }}>

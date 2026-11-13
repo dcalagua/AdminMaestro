@@ -22,9 +22,12 @@ import { MonthField } from '@/components/ui/fields';
 export function PeriodInvoiceAction({
   subscriptionId,
   currency,
+  onIssued,
 }: {
   subscriptionId: string;
   currency: string;
+  /** Tras emitir (o reutilizar) la factura del período: flujos guiados y diálogo de Cobranza. */
+  onIssued?: (result: IssueInvoiceResult | null) => void;
 }) {
   const toast = useToast();
   const [month, setMonth] = useState(() => monthInputValue());
@@ -47,6 +50,7 @@ export function PeriodInvoiceAction({
         issueResultTitle(r),
         `${r?.number ?? ''} · ${formatMoney(Number(r?.total ?? 0), r?.currency ?? currency)}`,
       );
+      onIssued?.(r);
     } catch (error) {
       toast.error('No se pudo emitir la factura', issueErrorMessage(error));
     }

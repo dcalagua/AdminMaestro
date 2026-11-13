@@ -12,10 +12,13 @@ import { KpiStrip } from '@/features/billing/financeUi';
 import { formatDateTime, formatNumber } from '@/lib/format';
 import { isAuthorizationError } from '@/lib/pgError';
 import { PLATFORM_ROLE_LABEL } from '@/types/domain';
-import { accessSummary, accountStatus, isPendingInvitation, matchesUserTab, userTabs, type UserTab } from './userModel';
+import { consoleAccessSummary, accountStatus, isPendingInvitation, matchesUserTab, userTabs, type UserTab } from './userModel';
 import { UserStatus } from './UserStatus';
 import { useUserAdminScope } from './useUserAdminScope';
 import { InviteUserDialog } from './InviteUserDialog';
+import { useUserAppContext } from './useUserAppContext';
+import { AppAccessChips } from './AppAccessChips';
+import { userAppAccess } from './userAppAccess';
 
 /**
  * Gobierno → «Usuarios y accesos» (spec §6.4).
@@ -27,10 +30,11 @@ import { InviteUserDialog } from './InviteUserDialog';
 export function UsersPage() {
   const scope = useUserAdminScope();
   const users = useAdminUsers();
+  const appContext = useUserAppContext(scope.managePlatform);
   const [tab, setTab] = useState<UserTab>('ALL');
   const [inviting, setInviting] = useState(false);
   const { term, setTerm, filtered } = useSearchFilter(users.data, (u) => [
-    u.fullName, u.email, ...u.organizations.map((m) => m.organization_name),
+    u.fullName, u.email, ...u.organizations.map((m) => m.organization_name), ...u.tenants.map((t) => t.product_name),
   ]);
   const visible = filtered.filter((u) => matchesUserTab(u, tab));
   const hasAny = (users.data ?? []).length > 0;
@@ -90,7 +94,7 @@ export function UsersPage() {
         <SearchBar
           value={term}
           onChange={setTerm}
-          placeholder="Buscar por nombre, correo u organización…"
+          placeholder="Buscar por nombre, correo, organización o app…"
           right={<StatusTabs value={tab} onChange={setTab} options={userTabs(filtered)} />}
         />
         {users.isLoading ? (
@@ -116,11 +120,13 @@ export function UsersPage() {
         ) : (
           <DataTable
             label="Usuarios"
-            columns={['Usuario', 'Roles y accesos', 'Último ingreso', 'Estado', { label: 'Acciones', srOnly: true }]}
+            mobileCards
+            columns={['Usuario', 'Roles y cuentas', 'Apps', 'Último ingreso', 'Estado', { label: 'Acciones', srOnly: true }]}
           >
             {visible.map((u) => {
               const status = accountStatus(u);
-              const access = accessSummary(u);
+              const access = consoleAccessSummary(u);
+              const apps = userAppAccess(u, appContext);
               const name = u.fullName ?? 'Sin nombre';
               return (
                 <tr key={u.id} className={u.isActive ? undefined : 'opacity-80'}>
@@ -151,6 +157,9 @@ export function UsersPage() {
                       ))}
                       {access.length === 0 ? <span className="text-caption text-muted">Sin accesos activos</span> : null}
                     </div>
+                  </td>
+                  <td className="ebim-td">
+                    <AppAccessChips apps={apps} />
                   </td>
                   <td className="ebim-td whitespace-nowrap text-compact text-muted">
                     {u.lastSignInAt ? formatDateTime(u.lastSignInAt) : 'Nunca'}

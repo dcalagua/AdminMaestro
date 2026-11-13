@@ -74,10 +74,12 @@ export type AccountHealth = 'NO_CONTRACTS' | 'OK' | 'PAST_DUE' | 'SUSPENSION';
  */
 export function accountHealth(
   contracts: ReadonlyArray<{ is_past_due?: boolean | null; suspension_pending?: boolean | null }>,
+  /** Hay facturas emitidas vencidas con saldo: una cuenta así nunca está «Al día». */
+  hasOverdueInvoices = false,
 ): AccountHealth {
-  if (contracts.length === 0) return 'NO_CONTRACTS';
   if (contracts.some((c) => c.suspension_pending)) return 'SUSPENSION';
-  if (contracts.some((c) => c.is_past_due)) return 'PAST_DUE';
+  if (hasOverdueInvoices || contracts.some((c) => c.is_past_due)) return 'PAST_DUE';
+  if (contracts.length === 0) return 'NO_CONTRACTS';
   return 'OK';
 }
 

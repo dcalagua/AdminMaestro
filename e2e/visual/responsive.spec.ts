@@ -104,7 +104,7 @@ test.describe('responsive (fase 15)', () => {
     if (process.env.CCP_PORTAL_E2E === '1') {
       const { ctx: ops, page: finance } = await context(browser, WIDTHS[3]);
       await login(finance, USERS.finance).catch(() => login(finance, USERS.finance));
-      await finance.goto(`/organizations/${QHAPAQ_ORG_ID}#payment-portal`);
+      await finance.goto(`/organizations/${QHAPAQ_ORG_ID}?tab=contratos#payment-portal`);
       await finance.getByRole('button', { name: 'Generar enlace' }).click();
       await finance
         .getByRole('dialog')

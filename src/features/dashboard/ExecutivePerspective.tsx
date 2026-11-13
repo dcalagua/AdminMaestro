@@ -1,4 +1,8 @@
+import { lazy, Suspense, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CaretDownIcon } from '@phosphor-icons/react';
+import { LoadingState } from '@/components/ui/primitives';
+import { useIsMobile } from '@/hooks/useMediaQuery';
 import { fromQuery } from '@/features/executive/dataState';
 import { formatDate } from '@/lib/format';
 import { monthBounds } from './executiveModel';
@@ -9,6 +13,11 @@ import { BilledCollectedPanel } from './executive-perspective/BilledCollectedPan
 import { BridgePanel, MrrEvolutionPanel } from './executive-perspective/MrrPanels';
 import { HeroKpis } from './executive-perspective/ExecutiveHeroKpis';
 import { FilterRow } from './executive-perspective/ExecutiveFilterRow';
+
+/** La Bandeja resumida solo se descarga en móvil. */
+const InboxSummaryCard = lazy(() =>
+  import('@/features/inbox/InboxSummaryCard').then((m) => ({ default: m.InboxSummaryCard })),
+);
 
 /**
  * Perspectiva EJECUTIVA — Resumen Ejecutivo V4 (fase 09, D-V05).
@@ -24,9 +33,15 @@ import { FilterRow } from './executive-perspective/ExecutiveFilterRow';
  * analizado por defecto es el último CERRADO: el mes en curso es parcial.
  * Cada panel lee su propia fuente y falla solo. El modo presentación (fase 14)
  * proyecta estos mismos paneles, uno o dos por diapositiva.
+ *
+ * Móvil «de consulta» (V5 · F7): por debajo de `sm` el Resumen muestra los KPI y
+ * la Bandeja; los gráficos quedan detrás de «Ver gráficos y detalle».
  */
 export function ExecutivePerspective({ today = new Date(), canPresent = false }: { today?: Date; canPresent?: boolean }) {
   const d = useExecutiveDashboard(today);
+  const mobile = useIsMobile();
+  const [showCharts, setShowCharts] = useState(false);
+  const chartsHidden = mobile && !showCharts;
 
   return (
     <div className="space-y-6">
@@ -41,8 +56,26 @@ export function ExecutivePerspective({ today = new Date(), canPresent = false }:
 
       <HeroKpis d={d} />
 
+      {mobile ? (
+        <>
+          <Suspense fallback={<LoadingState variant="card" label="Cargando la bandeja…" />}>
+            <InboxSummaryCard />
+          </Suspense>
+          <button
+            type="button"
+            className="ebim-btn-secondary w-full justify-center"
+            aria-expanded={showCharts}
+            aria-controls="resumen-graficos"
+            onClick={() => setShowCharts((v) => !v)}
+          >
+            {showCharts ? 'Ocultar gráficos' : 'Ver gráficos y detalle'}
+            <CaretDownIcon size={16} aria-hidden className={showCharts ? 'rotate-180' : ''} />
+          </button>
+        </>
+      ) : null}
+
       {/* Cada fila es una sección: al imprimir, una por página (A4 apaisado). */}
-      <div className="space-y-4">
+      <div id="resumen-graficos" className="space-y-4" hidden={chartsHidden}>
         <div className="grid gap-4 xl:grid-cols-12 print:break-before-page print:grid-cols-12" data-print-section="evolucion">
           <div className="min-w-0 xl:col-span-8 print:col-span-8">
             <ExecutivePanel d={d} panel="evolucion-mrr" />

@@ -40,7 +40,7 @@ test('finanzas genera un enlace y el cliente paga en /pagar (MOCK)', async ({ pa
   test.skip(process.env.CCP_PORTAL_E2E !== '1', 'requiere supabase functions serve en MOCK');
 
   await login(page, USERS.finance);
-  await page.goto(`/organizations/${ALPHA_ORG_ID}#payment-portal`);
+  await page.goto(`/organizations/${ALPHA_ORG_ID}?tab=contratos#payment-portal`);
   await page.getByRole('button', { name: 'Generar enlace' }).click();
   await page.getByRole('dialog').getByRole('button', { name: /Generar/ }).click();
   const url = await page.getByLabel('Enlace para el cliente').inputValue();

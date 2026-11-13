@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   useEntitlementSyncStatus,
   useProductIntegrations,
@@ -10,7 +10,7 @@ import {
 } from '@/services/queries';
 import { useCheckDeploymentHealth } from '@/services/mutations';
 import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/components/ui/toast-context';
+import { useTaskQueue, type TaskResult } from '@/components/ui/task-queue-context';
 import { hasFinanceView } from '@/app/navigation';
 import { businessErrorMessage } from '@/lib/pgError';
 import { DEPLOYMENT_HEALTH_LABEL, type DeploymentHealth } from '@/lib/provisioning';
@@ -104,33 +104,53 @@ export function useSuiteData() {
 /**
  * «Verificar ahora»: la acción CHECK_HEALTH del orquestador, la MISMA que usa
  * Entornos y despliegues. Abrir la pantalla nunca verifica nada por sí sola.
+ *
+ * V5 · F5: cada verificación es una tarea visible en la cola del shell
+ * mientras corre y queda con su resultado y el enlace a la ficha de la app.
+ * Varias pueden correr a la vez (p. ej. «Verificar salud de las apps» desde ⌘K).
  */
 export function useHealthCheck() {
-  const toast = useToast();
+  const queue = useTaskQueue();
   const check = useCheckDeploymentHealth();
+  const [running, setRunning] = useState<string[]>([]);
 
-  async function run(targetId: string, label: string) {
+  async function run(targetId: string, label: string, appCode?: string | null) {
+    setRunning((current) => [...current, targetId]);
+    const link = appCode ? { to: `/apps/${appCode}`, label: 'Ver la ficha de la app' } : undefined;
     try {
-      const result = await check.mutateAsync(targetId);
-      if (result.health === 'HEALTHY') {
-        toast.success('Conexión verificada', `${label}: ${result.detail ?? 'respuesta correcta'}`);
-      } else if (result.health === 'UNKNOWN') {
-        // No se inventa un «sano»: si la app no expone salud, queda sin verificar.
-        toast.push('info', 'Sin verificar', result.detail ?? 'La app no expone ruta de salud');
-      } else {
-        toast.error(
-          `${label}: ${DEPLOYMENT_HEALTH_LABEL[result.health as DeploymentHealth] ?? 'sin respuesta'}`,
-          result.detail ?? '',
-        );
-      }
-    } catch (error) {
-      toast.error('No se pudo verificar la conexión', businessErrorMessage(error));
+      await queue.track(
+        { title: `Verificar ${label}`, link },
+        () => check.mutateAsync(targetId),
+        (result): TaskResult => {
+          if (result.health === 'HEALTHY') {
+            return { status: 'success', title: `${label}: conexión verificada`, detail: result.detail ?? 'Respuesta correcta' };
+          }
+          if (result.health === 'UNKNOWN') {
+            // No se inventa un «sano»: si la app no expone salud, queda sin verificar.
+            return { status: 'info', title: `${label}: sin verificar`, detail: result.detail ?? 'La app no expone ruta de salud' };
+          }
+          return {
+            status: 'error',
+            title: `${label}: ${DEPLOYMENT_HEALTH_LABEL[result.health as DeploymentHealth] ?? 'sin respuesta'}`,
+            detail: result.detail ?? undefined,
+          };
+        },
+        (error) => ({ status: 'error', title: `No se pudo verificar ${label}`, detail: businessErrorMessage(error) }),
+      );
+    } catch {
+      /* El fallo ya quedó en la cola (o en el aviso) con su motivo. */
+    } finally {
+      setRunning((current) => {
+        const at = current.indexOf(targetId);
+        return at === -1 ? current : [...current.slice(0, at), ...current.slice(at + 1)];
+      });
     }
   }
 
   return {
     run,
-    isPending: check.isPending,
-    pendingTargetId: check.isPending ? (check.variables ?? null) : null,
+    isPending: running.length > 0,
+    pendingTargetId: running[0] ?? null,
+    isRunning: (targetId: string | null | undefined) => Boolean(targetId && running.includes(targetId)),
   };
 }

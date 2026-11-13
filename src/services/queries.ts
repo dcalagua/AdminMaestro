@@ -36,9 +36,10 @@ export function useDashboardSummary() {
   });
 }
 
-export function useProducts() {
+export function useProducts({ enabled = true }: LazyQueryOptions = {}) {
   return useQuery({
     queryKey: ['saas-products'],
+    enabled,
     queryFn: async () =>
       unwrap(await supabase.from('saas_products').select('*').order('sort_order')),
   });
@@ -942,6 +943,28 @@ export function useProviderAccountRoutes() {
   });
 }
 
+/**
+ * Bandeja (V5 · F5): sólo los documentos RECIBIDOS, que esperan aprobación,
+ * con la cuenta facturada. Cuelga de `commercial-documents`: aprobar o
+ * rechazar un documento ya invalida esa clave y el ítem se resuelve solo.
+ */
+export function useReceivedCommercialDocuments({ enabled = true }: LazyQueryOptions = {}) {
+  return useQuery({
+    queryKey: ['commercial-documents', 'received'],
+    enabled,
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('subscription_commercial_documents')
+          .select(
+            'id, document_type, document_number, status, received_at, requested_at, amount, currency, subscription_id, subscriptions(code, billed_organization_id, saas_products(short_name), organizations!subscriptions_billed_organization_id_fkey(display_name))',
+          )
+          .eq('status', 'RECEIVED')
+          .order('received_at', { ascending: true }),
+      ),
+  });
+}
+
 /** Órdenes de Servicio / Compra. Un documento aprobado NO es un cobro. */
 export function useCommercialDocuments(subscriptionId?: string) {
   return useQuery({
@@ -1105,9 +1128,13 @@ export function useSubscriptionInvoices(subscriptionId: string | undefined) {
    ========================================================================== */
 
 /** Trabajo de cobranza pendiente. Se materializa con `refresh_billing_alerts`. */
-export function useBillingAlerts(status: Enums<'billing_alert_status'> = 'OPEN') {
+export function useBillingAlerts(
+  status: Enums<'billing_alert_status'> = 'OPEN',
+  { enabled = true }: LazyQueryOptions = {},
+) {
   return useQuery({
     queryKey: ['billing-alerts', status],
+    enabled,
     queryFn: async () =>
       unwrap(
         await supabase
@@ -1116,27 +1143,6 @@ export function useBillingAlerts(status: Enums<'billing_alert_status'> = 'OPEN')
           .eq('status', status)
           .order('due_at'),
       ),
-  });
-}
-
-/**
- * Cuántas alertas de cobranza ABIERTAS son críticas (badge del menú lateral).
- * Solo cuenta (`head: true`): no trae filas. La clave cuelga de `billing-alerts`
- * para que las mutaciones que ya invalidan alertas también la refresquen.
- */
-export function useCriticalBillingAlertCount({ enabled = true }: LazyQueryOptions = {}) {
-  return useQuery({
-    queryKey: ['billing-alerts', 'OPEN', 'critical-count'],
-    enabled,
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from('billing_alerts')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'OPEN')
-        .eq('severity', 'CRITICAL');
-      if (error) throw new Error(error.message);
-      return count ?? 0;
-    },
   });
 }
 
@@ -1286,9 +1292,10 @@ export function useCommissionEvents() {
  * comercial, solo las suyas), con el número de eventos que contienen. Una
  * anulada ya no tiene eventos: los liberó para la próxima.
  */
-export function useSettlements() {
+export function useSettlements({ enabled = true }: LazyQueryOptions = {}) {
   return useQuery({
     queryKey: ['settlements'],
+    enabled,
     queryFn: async () =>
       unwrap(
         await supabase
@@ -1434,9 +1441,10 @@ export function useProvisioningPermissions() {
   });
 }
 
-export function useProductIntegrations() {
+export function useProductIntegrations({ enabled = true }: LazyQueryOptions = {}) {
   return useQuery({
     queryKey: ['product-integrations'],
+    enabled,
     queryFn: async () =>
       unwrap(
         await supabase
@@ -1508,9 +1516,10 @@ export function useCredentialProfiles() {
   });
 }
 
-export function useProvisioningTargets() {
+export function useProvisioningTargets({ enabled = true }: LazyQueryOptions = {}) {
   return useQuery({
     queryKey: ['provisioning-targets'],
+    enabled,
     queryFn: async () =>
       unwrap(await supabase.from('v_provisioning_targets').select('*').order('code')),
   });
@@ -1530,9 +1539,10 @@ export function useProductOwners() {
   });
 }
 
-export function useSaasProvisioningRequests() {
+export function useSaasProvisioningRequests({ enabled = true }: LazyQueryOptions = {}) {
   return useQuery({
     queryKey: ['saas-provisioning'],
+    enabled,
     queryFn: async () =>
       unwrap(
         await supabase
@@ -1870,6 +1880,31 @@ export function useCardOnFileAuthorizations(organizationId: string | undefined) 
   });
 }
 
+/**
+ * V5 · F4 · ¿Qué cuentas de una lista tienen una tarjeta guardada VIGENTE?
+ * Una sola lectura para toda una página de la bandeja de cobranza (no una por
+ * fila). Sólo marca y últimos 4 dígitos: nunca PAN ni token.
+ */
+export function useActiveCardsByOrganization(organizationIds: string[]) {
+  const ids = [...new Set(organizationIds.filter(Boolean))].sort();
+  return useQuery({
+    queryKey: ['card-on-file', 'active-by-org', ids],
+    enabled: ids.length > 0,
+    queryFn: async () => {
+      const rows = unwrap(
+        await supabase
+          .from('v_card_on_file_authorizations')
+          .select('organization_id, brand, last4')
+          .in('organization_id', ids)
+          .eq('is_active', true),
+      ) as Array<{ organization_id: string | null; brand: string | null; last4: string | null }>;
+      const map = new Map<string, { brand: string | null; last4: string | null }>();
+      for (const r of rows) if (r.organization_id && !map.has(r.organization_id)) map.set(r.organization_id, r);
+      return map;
+    },
+  });
+}
+
 /** Historial de intentos de cobro con tarjeta guardada de una suscripción. */
 export function useChargeAttempts(subscriptionId: string | undefined) {
   return useQuery({
@@ -2184,9 +2219,10 @@ export function usePartnerFeeStatementLines(statementId: string | null) {
    ========================================================================== */
 
 /** Lista de «Usuarios y accesos». `scopeOrgId` acota a una organización. */
-export function useAdminUsers(scopeOrgId?: string | null) {
+export function useAdminUsers(scopeOrgId?: string | null, { enabled = true }: LazyQueryOptions = {}) {
   return useQuery({
     queryKey: ['admin-users', scopeOrgId ?? null],
+    enabled,
     retry: false,
     queryFn: async (): Promise<AdminUser[]> => {
       const { data, error } = await supabase.rpc(

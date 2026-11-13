@@ -37,6 +37,28 @@ describe('KpiTile', () => {
     expect(screen.getByText('Sin cobros en el período')).toBeInTheDocument();
   });
 
+  it('V5 · F7: un KPI sin datos se lee «Sin datos», atenuado y sin el peso de una cifra', () => {
+    const { container } = render(
+      <>
+        <KpiTile label="MRR" value="—" currency="USD" />
+        <KpiTile label="ARR" value="" />
+        <KpiTile label="Clientes" value="12" />
+      </>,
+    );
+    const empties = container.querySelectorAll('[data-kpi-empty]');
+    expect(empties).toHaveLength(2);
+    for (const e of empties) {
+      expect(e).toHaveTextContent('Sin datos');
+      expect(e).toHaveClass('text-body', 'text-muted');
+      expect(e.closest('.ebim-card')).toHaveClass('border-dashed');
+      expect(e.querySelector('.text-kpi, .text-display')).toBeNull();
+    }
+    expect(screen.queryByText('USD')).toBeNull();
+    const real = screen.getByText('12');
+    expect(real).toHaveClass('text-kpi');
+    expect(real.closest('.ebim-card')).not.toHaveClass('border-dashed');
+  });
+
   it('la variación lleva flecha, signo y tono según si subir es bueno', () => {
     const { rerender } = render(
       <KpiTile label="MRR" value="50 K" delta={{ value: 0.041, comparison: 'vs ago' }} />,

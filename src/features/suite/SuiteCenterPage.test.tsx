@@ -72,6 +72,11 @@ vi.mock('@/services/queries', () => ({
     ]),
   useEntitlementSyncStatus: () => q([]),
   useSubscriptionStatuses: () => q([{ id: 's-1', code: 'SUB-1', status: 'ACTIVE' }]),
+  useAdminUsers: () =>
+    q([
+      { id: 'u-1', fullName: 'Lucía Beta', email: 'lucia@beta.pe', tenants: [{ tenant_id: 'tn-beta', is_active: true }] },
+      { id: 'u-2', fullName: 'Otro', email: 'otro@beta.pe', tenants: [{ tenant_id: 'tn-otro', is_active: true }] },
+    ]),
 }));
 vi.mock('@/hooks/useProvisioningAccess', () => ({
   useProvisioningAccess: () => ({ canForProduct: (code: string, id?: string | null) => state.canForProduct(code, id) }),
@@ -88,9 +93,9 @@ vi.mock('@/components/ui/toast-context', () => ({
 
 import { SuiteCenterPage } from './SuiteCenterPage';
 
-function renderPage() {
+function renderPage(path = '/suite') {
   return render(
-    <MemoryRouter initialEntries={['/suite']}>
+    <MemoryRouter initialEntries={[path]}>
       <SuiteCenterPage />
     </MemoryRouter>,
   );
@@ -130,6 +135,19 @@ describe('franja de salud', () => {
     expect(invoke).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole('button', { name: 'Verificar ahora EWM' }));
     expect(checkHealth).toHaveBeenCalledWith('t-ewm');
+  });
+
+  it('⌘K «Verificar salud de las apps» llega con ?accion=: verifica cada app que el perfil puede, una sola vez', () => {
+    state.canForProduct = (code, id) => code === 'platform.deployment.read' && id === 'p-ewm';
+    const { rerender } = renderPage('/suite?accion=verificar-salud');
+    expect(checkHealth).toHaveBeenCalledTimes(1);
+    expect(checkHealth).toHaveBeenCalledWith('t-ewm');
+    rerender(
+      <MemoryRouter initialEntries={['/suite?accion=verificar-salud']}>
+        <SuiteCenterPage />
+      </MemoryRouter>,
+    );
+    expect(checkHealth).toHaveBeenCalledTimes(1);
   });
 
   it('sin permiso de lectura de entornos no se ofrece «Verificar ahora»', () => {
@@ -178,6 +196,14 @@ describe('matriz cuenta × app', () => {
     await userEvent.click(screen.getByRole('button', { name: /^Beta en TMS/ }));
     await userEvent.click(within(screen.getByRole('dialog', { name: 'Beta · TMS' })).getByRole('button', { name: 'Suspender' }));
     const dialog = screen.getByRole('dialog', { name: 'Suspender Beta TMS' });
+    // Vista previa del impacto: la app, el tenant, los usuarios y el aviso honesto del canal.
+    expect(within(dialog).getByText('La app aún no aplica la suspensión: canal pendiente.')).toBeInTheDocument();
+    const impact = dialog.querySelector('[data-lifecycle-impact]') as HTMLElement;
+    expect(within(impact).getByText('TMS')).toBeInTheDocument();
+    expect(within(impact).getByText('Beta TMS')).toBeInTheDocument();
+    const users = dialog.querySelector('[data-lifecycle-users]') as HTMLElement;
+    expect(within(users).getByText('Lucía Beta')).toBeInTheDocument();
+    expect(within(users).queryByText('Otro')).toBeNull();
     await userEvent.type(within(dialog).getByLabelText(/Motivo/), 'Impago de octubre');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Suspender' }));
     expect(suspend).toHaveBeenCalledWith({ p_tenant_id: 'tn-beta', p_reason: 'Impago de octubre' });

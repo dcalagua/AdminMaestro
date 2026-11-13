@@ -165,8 +165,13 @@ export const NAV_ITEMS: NavItem[] = [
   // ---- Finanzas -----------------------------------------------------------
   {
     to: '/cobranza', label: 'Cobranza', icon: ReceiptIcon, group: 'Finanzas',
-    description: 'Facturas, cobros, conciliación con la pasarela y renovaciones por vencer.',
+    description: 'Qué hay que cobrar hoy, facturas, cobros, conciliación con la pasarela y renovaciones por vencer.',
     tabs: [
+      // V5 · F4: la bandeja de lo que hay que cobrar va primero (tarea antes que tabla).
+      {
+        id: 'por-cobrar', label: 'Por cobrar', personas: ['EBIM', 'PARTNER'], finance: true,
+        aliases: ['Bandeja de cobranza', 'Facturas vencidas', 'Mora'],
+      },
       {
         id: 'facturacion', label: 'Facturación y cobros', personas: ['EBIM', 'PARTNER'], finance: true,
         legacy: ['/billing'],

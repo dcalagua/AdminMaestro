@@ -10,7 +10,8 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   const { session, loading } = useAuth();
   const location = useLocation();
 
-  if (loading) return <LoadingState variant="inline" label="Verificando sesión…" />;
+  // V5 · F7: esqueleto con la forma de la pantalla, no un spinner.
+  if (loading) return <LoadingState variant="page" label="Verificando sesión…" />;
   if (!session) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }

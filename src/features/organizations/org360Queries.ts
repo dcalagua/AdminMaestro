@@ -171,3 +171,23 @@ export function useOrgSalesAgents(orgId: string) {
       unwrap(await supabase.from('sales_agents').select('*').eq('organization_id', orgId).order('full_name')),
   });
 }
+
+/**
+ * Atribuciones comerciales de la cuenta (quién la vendió y con qué
+ * participación). Dan el «responsable comercial» de la cabecera; estar aquí NO
+ * da acceso operativo a la cuenta ni a sus tenants.
+ */
+export function useOrgAttributions(orgId: string) {
+  return useQuery({
+    queryKey: ['org360', orgId, 'attributions'],
+    enabled: isUuid(orgId),
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from('sales_attributions')
+          .select('id, attribution_pct, status, source, valid_from, valid_to, tenant_id, sales_agents(full_name, agent_type), saas_products(short_name), tenants(name), commission_plans(name)')
+          .eq('customer_organization_id', orgId)
+          .order('valid_from', { ascending: false }),
+      ),
+  });
+}

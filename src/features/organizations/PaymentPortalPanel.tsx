@@ -4,21 +4,15 @@ import {
   usePaymentLinkEvents,
   usePaymentLinks,
 } from '@/services/queries';
-import {
-  useCreatePaymentLink,
-  useRevokeCardOnFile,
-  useRevokePaymentLink,
-} from '@/services/mutations';
+import { useRevokeCardOnFile, useRevokePaymentLink } from '@/services/mutations';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { StatusTabs } from '@/components/ui/SectionTabs';
 import {
   Badge, Card, DataTable, EmptyState, ErrorState, LoadingState, SearchBar,
 } from '@/components/ui/primitives';
-import { FormDialog } from '@/components/ui/FormDialog';
-import { CheckboxField, NumberField, TextAreaField } from '@/components/ui/fields';
 import { RevokeWithReasonDialog } from '@/components/ui/RevokeWithReasonDialog';
-import { portalMailto, portalUrl } from './paymentPortalLinks';
+import { GeneratePaymentLinkDialog } from './PaymentLinkDialog';
 import { useModalFocus } from '@/components/ui/useModalFocus';
 import { useToast } from '@/components/ui/toast-context';
 import { formatDate, formatDateTime, formatMoney } from '@/lib/format';
@@ -59,81 +53,6 @@ const REVOKE_SOURCE_LABEL: Record<string, string> = {
 };
 
 type LinkFilter = 'ALL' | 'ACTIVE' | 'EXPIRED' | 'REVOKED';
-
-/** Diálogo que muestra el URL UNA sola vez. */
-function LinkCreatedDialog({
-  created,
-  organizationName,
-  billingEmail,
-  onClose,
-}: {
-  created: { url: string; hint: string; expiresAt: string | null } | null;
-  organizationName: string;
-  billingEmail: string | null | undefined;
-  onClose: () => void;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const toast = useToast();
-  useModalFocus(ref, Boolean(created), { onEscape: onClose, canEscape: () => true });
-  if (!created) return null;
-
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(created!.url);
-      toast.success('Enlace copiado', 'Pégalo en el mensaje para el cliente.');
-    } catch {
-      toast.error('No se pudo copiar', 'Selecciona el enlace y cópialo manualmente.');
-    }
-  }
-
-  return (
-    <div className="ebim-scrim fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div
-        ref={ref}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="link-created-title"
-        className="ebim-dialog w-full max-w-[560px] p-6"
-      >
-        <h2 id="link-created-title" className="text-h2 text-fg">
-          Enlace de pago generado
-        </h2>
-        <p className="mt-3 rounded-field bg-warn-soft px-3 py-2.5 text-compact text-warn" role="note">
-          Este enlace se muestra <strong>una sola vez</strong>. EBIM solo guarda una huella del token: si lo pierdes,
-          revócalo y genera uno nuevo.
-        </p>
-        <label className="ebim-label mt-4" htmlFor="payment-link-url">
-          Enlace para el cliente
-        </label>
-        <input
-          id="payment-link-url"
-          className="ebim-input font-mono text-caption"
-          readOnly
-          value={created.url}
-          onFocus={(e) => e.currentTarget.select()}
-        />
-        <p className="ebim-help">
-          Termina en <span className="font-mono">…{created.hint}</span>
-          {created.expiresAt ? ` · vence el ${formatDate(created.expiresAt)}` : ''}
-        </p>
-        <div className="mt-5 flex flex-wrap justify-end gap-2">
-          <a
-            className="ebim-btn-ghost"
-            href={portalMailto(billingEmail, organizationName, created.url, created.expiresAt)}
-          >
-            Enviar por correo
-          </a>
-          <button type="button" className="ebim-btn-secondary" onClick={() => void copy()}>
-            Copiar
-          </button>
-          <button type="button" className="ebim-btn-primary" onClick={onClose}>
-            Listo
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function LinkEventsDialog({ linkId, hint, onClose }: { linkId: string | null; hint: string; onClose: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -208,16 +127,10 @@ export function PaymentPortalPanel({
   const toast = useToast();
   const links = usePaymentLinks(organizationId);
   const authorizations = useCardOnFileAuthorizations(organizationId);
-  const createLink = useCreatePaymentLink();
   const revokeLink = useRevokePaymentLink();
   const revokeCard = useRevokeCardOnFile();
 
   const [generateOpen, setGenerateOpen] = useState(false);
-  const [days, setDays] = useState('30');
-  const [allowCard, setAllowCard] = useState(true);
-  const [reason, setReason] = useState('');
-  const [generateError, setGenerateError] = useState<unknown>(null);
-  const [created, setCreated] = useState<{ url: string; hint: string; expiresAt: string | null } | null>(null);
   const [filter, setFilter] = useState<LinkFilter>('ALL');
   const [eventsOf, setEventsOf] = useState<{ id: string; hint: string } | null>(null);
   const [revokingLink, setRevokingLink] = useState<{ id: string; hint: string } | null>(null);
@@ -227,35 +140,6 @@ export function PaymentPortalPanel({
   const { term, setTerm, filtered } = useSearchFilter(allLinks, (l) => [l.token_hint, l.revoke_reason]);
   const visible = filtered.filter((l) => filter === 'ALL' || l.status === filter);
   const count = (s: LinkFilter) => allLinks.filter((l) => s === 'ALL' || l.status === s).length;
-
-  function openGenerate() {
-    setDays('30');
-    setAllowCard(true);
-    setReason('');
-    setGenerateError(null);
-    setGenerateOpen(true);
-  }
-
-  async function generate() {
-    const n = Number(days);
-    if (!Number.isInteger(n) || n < 1 || n > 90) {
-      setGenerateError(new Error('VIGENCIA_INVALIDA: la vigencia debe estar entre 1 y 90 días.'));
-      return;
-    }
-    try {
-      const result = (await createLink.mutateAsync({
-        p_organization_id: organizationId,
-        p_expires_in_days: n,
-        p_allow_card_enrollment: allowCard,
-        p_reason: reason.trim() || undefined,
-      })) as { token?: string; hint?: string; expires_at?: string } | null;
-      if (!result?.token) throw new Error('No se recibió el enlace generado.');
-      setGenerateOpen(false);
-      setCreated({ url: portalUrl(result.token), hint: result.hint ?? '', expiresAt: result.expires_at ?? null });
-    } catch (error) {
-      setGenerateError(error);
-    }
-  }
 
   async function doRevokeLink(why: string) {
     if (!revokingLink) return;
@@ -280,7 +164,7 @@ export function PaymentPortalPanel({
         description="El cliente abre su estado de cuenta, paga sus facturas con tarjeta y puede activar el pago automático. Un enlace vence y se puede revocar."
         actions={
           perms.canReadFinance ? (
-            <button type="button" className="ebim-btn-primary h-8 px-3 text-caption" onClick={openGenerate}>
+            <button type="button" className="ebim-btn-primary h-8 px-3 text-caption" onClick={() => setGenerateOpen(true)}>
               Generar enlace
             </button>
           ) : null
@@ -433,44 +317,12 @@ export function PaymentPortalPanel({
         )}
       </Card>
 
-      <FormDialog
+      <GeneratePaymentLinkDialog
         open={generateOpen}
-        title="Generar enlace de pago"
-        description={`Estado de cuenta de ${organizationName}. El enlace se mostrará una sola vez.`}
-        submitLabel="Generar"
-        busy={createLink.isPending}
-        error={generateError}
-        onCancel={() => setGenerateOpen(false)}
-        onSubmit={() => void generate()}
-      >
-        <NumberField
-          label="Vigencia (días)"
-          min={1}
-          max={90}
-          required
-          value={days}
-          onChange={(e) => setDays(e.target.value)}
-          hint="Entre 1 y 90 días. Por defecto 30."
-        />
-        <CheckboxField
-          label="Permitir guardar tarjeta (pago automático)"
-          hint="El cliente podrá autorizar el cobro automático de sus próximas facturas."
-          checked={allowCard}
-          onChange={(e) => setAllowCard(e.target.checked)}
-        />
-        <TextAreaField
-          label="Motivo (opcional)"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          hint="Queda en la auditoría junto con la pista del enlace."
-        />
-      </FormDialog>
-
-      <LinkCreatedDialog
-        created={created}
+        organizationId={organizationId}
         organizationName={organizationName}
         billingEmail={billingEmail}
-        onClose={() => setCreated(null)}
+        onClose={() => setGenerateOpen(false)}
       />
 
       <LinkEventsDialog

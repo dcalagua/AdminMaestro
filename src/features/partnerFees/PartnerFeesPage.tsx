@@ -260,7 +260,7 @@ export function PartnerFeesPage() {
                         { label: 'Ver detalle', onSelect: () => setDetail(s) },
                         canFinance && s.status === 'DRAFT' ? { label: 'Emitir factura…', onSelect: () => setIssuing(s) } : null,
                         canFinance && s.status === 'ISSUED' && (balance ?? 0) > 0 && s.partner_organization_id
-                          ? { label: 'Compartir enlace de pago', to: `/organizations/${s.partner_organization_id}#payment-portal` }
+                          ? { label: 'Compartir enlace de pago', to: `/organizations/${s.partner_organization_id}?tab=contratos#payment-portal` }
                           : null,
                         canFinance && s.status !== 'VOID' ? { label: 'Anular…', tone: 'danger', onSelect: () => setVoiding(s) } : null,
                       ]}

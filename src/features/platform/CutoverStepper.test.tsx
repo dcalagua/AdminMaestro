@@ -20,4 +20,19 @@ describe('CutoverStepper', () => {
     expect(steps).toHaveLength(4);
     expect(steps.some((s) => s.getAttribute('aria-current') === 'step')).toBe(false);
   });
+
+  it('V5 · F7: cada paso tiene su nombre visible (no solo un círculo) y la posición en texto', () => {
+    const { container } = render(<CutoverStepper axis="billing" state="BILLING_SHADOW" />);
+    const list = screen.getByRole('list', { name: 'Migración de facturación: Comparación' });
+    const steps = within(list).getAllByRole('listitem');
+    // Texto visible (fuera de sr-only) en cada paso.
+    expect(steps.map((s) => [...s.querySelectorAll('span')].find((e) => e.className.includes('text-center'))?.firstChild?.textContent)).toEqual([
+      'Legacy', 'Comparación', 'Primario', 'Retirado',
+    ]);
+    expect(steps[1]).toHaveAttribute('aria-current', 'step');
+    expect(steps[1]).toHaveTextContent('Comparación (actual)');
+    expect(container).toHaveTextContent('Paso 2 de 4');
+    // Los círculos son decoración: no duplican el texto para el lector.
+    for (const s of steps) expect(s.querySelector('[aria-hidden]')).not.toBeNull();
+  });
 });

@@ -1,6 +1,8 @@
 import { useId } from 'react';
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { formatCompactAmount, formatMoney, formatNumber } from '@/lib/format';
+import { useIsMobile } from '@/hooks/useMediaQuery';
+import { axisInterval, summarizeSeries } from '@/features/executive/components/chartSummary';
 
 /**
  * Barras por período de las pantallas de Finanzas (fase 10; VISUAL_SYSTEM_V2 §6,
@@ -12,7 +14,9 @@ import { formatCompactAmount, formatMoney, formatNumber } from '@/lib/format';
  *  - apiladas con 2 px de superficie entre segmentos y extremo redondeado solo
  *    arriba; agrupadas con 2 px entre barras;
  *  - período en curso más tenue (parcial) y rotulado en el tooltip;
- *  - tooltip por barra con el valor completo. La tabla alternativa la da `ChartPanel`.
+ *  - tooltip por barra con el valor completo. La tabla alternativa la da `ChartPanel`;
+ *  - V5 · F7: descripción en texto (`aria-describedby`) y, en móvil, como mucho
+ *    seis etiquetas en el eje X (a 390 px el eje de cobranza se superponía).
  */
 
 export interface PeriodSeries {
@@ -39,6 +43,19 @@ type Unit = { currency: string } | { quantity: string };
 function formatValue(value: number | null | undefined, unit: Unit): string {
   if (value == null) return 'Sin tasa';
   return 'currency' in unit ? formatMoney(value, unit.currency) : `${formatNumber(Math.round(value))} ${unit.quantity}`;
+}
+
+/** Resumen en texto de cada serie (lector de pantalla, con la tabla oculta). */
+function describePeriods(data: PeriodDatum[], series: PeriodSeries[], unit: Unit): string {
+  return series
+    .map((s) =>
+      summarizeSeries(
+        s.label,
+        data.map((d) => ({ label: `${d.title}${d.partial ? ' (en curso)' : ''}`, value: d.values[s.key] })),
+        (v) => formatValue(v, unit),
+      ),
+    )
+    .join(' ');
 }
 
 function PeriodTooltip({
@@ -96,8 +113,11 @@ export function PeriodBars({
   ariaLabel: string;
 }) {
   const rows = data.map((d) => ({ label: d.label, __datum: d, ...d.values }));
+  const mobile = useIsMobile();
+  const descId = useId();
   return (
-    <div role="img" aria-label={ariaLabel} style={{ height }}>
+    <>
+    <div role="img" aria-label={ariaLabel} aria-describedby={descId} style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={rows}
@@ -112,7 +132,7 @@ export function PeriodBars({
             tick={AXIS}
             tickLine={false}
             axisLine={{ stroke: 'var(--chart-baseline)' }}
-            interval="preserveStartEnd"
+            interval={mobile ? axisInterval(data.length, true) : 'preserveStartEnd'}
             minTickGap={4}
           />
           <YAxis tick={AXIS} tickFormatter={(v: number) => formatCompactAmount(v)} width={52} tickLine={false} axisLine={false} />
@@ -145,6 +165,10 @@ export function PeriodBars({
         </BarChart>
       </ResponsiveContainer>
     </div>
+    <p id={descId} className="sr-only" data-chart-summary>
+      {describePeriods(data, series, unit)}
+    </p>
+    </>
   );
 }
 
@@ -170,8 +194,11 @@ export function PeriodArea({
   const gradientId = `period-area-${useId().replace(/:/g, '')}`;
   const rows = data.map((d) => ({ label: d.label, __datum: d, ...d.values }));
   const last = data[data.length - 1];
+  const mobile = useIsMobile();
+  const descId = useId();
   return (
-    <div role="img" aria-label={ariaLabel} style={{ height }}>
+    <>
+    <div role="img" aria-label={ariaLabel} aria-describedby={descId} style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={rows} margin={{ top: 12, right: 12, bottom: 4, left: 0 }} accessibilityLayer>
           <defs>
@@ -186,7 +213,7 @@ export function PeriodArea({
             tick={AXIS}
             tickLine={false}
             axisLine={{ stroke: 'var(--chart-baseline)' }}
-            interval="preserveStartEnd"
+            interval={mobile ? axisInterval(data.length, true) : 'preserveStartEnd'}
             minTickGap={4}
           />
           <YAxis
@@ -224,5 +251,9 @@ export function PeriodArea({
         </AreaChart>
       </ResponsiveContainer>
     </div>
+    <p id={descId} className="sr-only" data-chart-summary>
+      {describePeriods(data, [series], unit)}
+    </p>
+    </>
   );
 }
