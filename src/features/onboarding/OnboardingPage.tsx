@@ -118,7 +118,7 @@ function OnboardingFlow() {
         </div>
       ) : null}
 
-      <div className="grid items-start gap-6 lg:grid-cols-12">
+      <div className="grid items-start gap-4 lg:grid-cols-12">
       <div className={`min-w-0 ${isApp ? 'lg:col-span-12' : 'lg:col-span-8'}`}>
       <Card>
         <div className="p-5">

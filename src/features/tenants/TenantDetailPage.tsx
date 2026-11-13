@@ -157,7 +157,7 @@ export function TenantDetailPage() {
       meta={t.market_code ? `Mercado ${t.market_code as string}` : undefined}
       actions={
         perms.canManagePlatform && t.status === 'ACTIVE' ? (
-          <button type="button" className="ebim-btn-ghost" onClick={() => setPendingAction('SUSPEND')}>
+          <button type="button" className="ebim-btn-ghost text-danger" onClick={() => setPendingAction('SUSPEND')}>
             Suspender
           </button>
         ) : perms.canManagePlatform && t.status === 'SUSPENDED' ? (
@@ -169,7 +169,7 @@ export function TenantDetailPage() {
     >
       <TenantHeader tenant={t} appState={appState} />
       {appState?.kind === 'PENDING_CONFIRM' ? (
-        <div className="ebim-card mb-5 overflow-hidden" data-tenant-pending-confirm>
+        <div className="ebim-card mb-4 overflow-hidden" data-tenant-pending-confirm>
           <PendingConfirmNotice count={1}>
             <ConfirmActiveButton confirm={confirmActive} target={{ tenantId: appState.tenantId, tenantName: appState.tenantName }} />
           </PendingConfirmNotice>
@@ -178,8 +178,8 @@ export function TenantDetailPage() {
       ) : null}
 
       {onboarded ? (
-        <section className="ebim-card mb-4 border-l-4 border-l-[color:var(--accent-action)] p-4" aria-labelledby="next-steps-title">
-          <h2 id="next-steps-title" className="text-body font-bold text-fg">Venta registrada: siguientes pasos</h2>
+        <section className="ebim-card mb-4 border-l-4 border-l-[color:var(--accent-action)] px-5 py-4" aria-labelledby="next-steps-title">
+          <h2 id="next-steps-title" className="text-h3 text-fg">Venta registrada: siguientes pasos</h2>
           <p className="mt-1 text-body text-muted">
             Se crearon el tenant, el contrato y la atribución{onboarded.activated ? ' (contrato activo)' : ' (contrato en borrador para revisión)'}. El alta
             dentro del producto es una decisión aparte: nada de lo de abajo la ejecuta.

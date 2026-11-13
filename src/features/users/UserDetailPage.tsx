@@ -118,7 +118,7 @@ export function UserDetailPage() {
           ) : null}
           {scope.isSuperAdmin && !isSelf && !isTheSuperAdmin ? (
             u.isActive ? (
-              <button type="button" className="ebim-btn-secondary text-danger" onClick={() => { setReason(''); setReasonError(null); action.reset(); setStatusDialog('ban'); }}>
+              <button type="button" className="ebim-btn-ghost text-danger" onClick={() => { setReason(''); setReasonError(null); action.reset(); setStatusDialog('ban'); }}>
                 Desactivar
               </button>
             ) : (

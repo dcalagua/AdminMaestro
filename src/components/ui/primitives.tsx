@@ -117,7 +117,7 @@ export function PageContainer({
   }
   const crumbs = breadcrumbs ?? (trail.length > 0 ? [...trail, { label: title }] : null);
   return (
-    <div className="mx-auto w-full max-w-[1440px] px-6 py-6 2xl:px-8">
+    <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6 2xl:px-8">
       {crumbs ? (
         <div className="mb-2">
           {Array.isArray(crumbs) ? <Breadcrumbs items={crumbs as Crumb[]} /> : crumbs}
@@ -552,7 +552,7 @@ export function LoadingState({
         </div>
       ) : null}
       {variant === 'page' ? (
-        <div className="mx-auto w-full max-w-[1440px] space-y-6 px-6 py-6" aria-hidden>
+        <div className="mx-auto w-full max-w-[1440px] space-y-6 px-4 py-6 sm:px-6" aria-hidden>
           <div>
             <Skeleton className="h-7 w-64" />
             <Skeleton className="mt-2 h-4 w-96 max-w-full" />

@@ -497,7 +497,7 @@ export function Org360Apps({ organizationId, organizationName }: { organizationI
       description="Por cada app: el tenant, el estado del alta en la app y el estado aquí. Comercial, alta técnica y acceso del administrador van por separado."
       actions={
         ebim ? (
-          <Link className="ebim-btn-secondary ebim-btn-sm" to={`/suite?mq=${encodeURIComponent(organizationName)}`}>
+          <Link className="ebim-btn-ghost ebim-btn-sm" to={`/suite?mq=${encodeURIComponent(organizationName)}`}>
             Ver en el Centro de la suite
           </Link>
         ) : null
