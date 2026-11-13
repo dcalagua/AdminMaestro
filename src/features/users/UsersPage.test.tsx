@@ -32,6 +32,12 @@ const USERS: AdminUser[] = [
     { id: 'm3', organization_id: ALPHA, organization_name: 'Empresa Alpha', organization_kind: 'COMPANY', is_partner: false, role: 'ORG_VIEWER', company_id: null, is_active: true },
   ] }),
   user({ id: 'u5', email: 'baja@ebim.test', fullName: 'Bruno Baja', isActive: false }),
+  user({ id: 'u6', email: 'ops@alpha.ebim.test', fullName: 'Olga Operaciones', tenants: [
+    { id: 'tm1', tenant_id: '50000000-0000-4000-a000-000000000001', tenant_name: 'Alpha · eSupplier', tenant_slug: 'alpha',
+      product_name: 'eSupplier', customer_organization_id: ALPHA, role: 'TENANT_ADMIN', is_active: true },
+    { id: 'tm2', tenant_id: '50000000-0000-4000-a000-000000000002', tenant_name: 'Alpha · EWM', tenant_slug: 'alpha-ewm',
+      product_name: 'EWM', customer_organization_id: ALPHA, role: 'TENANT_USER', is_active: true },
+  ] }),
 ];
 
 const m = vi.hoisted(() => ({
@@ -50,10 +56,15 @@ vi.mock('@/services/queries', () => ({
     isLoading: false,
   }),
   useTenantOverview: () => ({
-    data: [{ tenant_id: '50000000-0000-4000-a000-000000000001', name: 'Alpha · eSupplier', slug: 'alpha', product_short_name: 'eSupplier',
-             customer_organization_id: ALPHA, managing_organization_id: null }],
+    data: [
+      { tenant_id: '50000000-0000-4000-a000-000000000001', name: 'Alpha · eSupplier', slug: 'alpha', product_short_name: 'eSupplier',
+        saas_product_id: 'p-sup', product_code: 'esupplier', status: 'ACTIVE', customer_organization_id: ALPHA, managing_organization_id: null },
+      { tenant_id: '50000000-0000-4000-a000-000000000002', name: 'Alpha · EWM', slug: 'alpha-ewm', product_short_name: 'EWM',
+        saas_product_id: 'p-ewm', product_code: 'ewm', status: 'SUSPENDED', customer_organization_id: ALPHA, managing_organization_id: null },
+    ],
     isLoading: false,
   }),
+  useSaasProvisioningRequests: () => ({ data: undefined, isLoading: false, error: null }),
 }));
 vi.mock('@/services/mutations', () => ({
   useUserAdminAction: () => ({ mutateAsync: m.invite, isPending: false, error: null, reset: vi.fn() }),
@@ -102,14 +113,32 @@ describe('UsersPage', () => {
 
     const tabs = screen.getByRole('tablist', { name: 'Filtro de estado' });
     expect(within(tabs).getAllByRole('tab').map((t) => t.textContent)).toEqual([
-      'Todos 5', 'EBIM 1', 'Partners 1', 'Clientes 2', 'Inactivos 1',
+      'Todos 6', 'EBIM 1', 'Partners 1', 'Clientes 3', 'Inactivos 1',
     ]);
     fireEvent.click(within(tabs).getByRole('tab', { name: /Clientes/ }));
-    expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(3);
+    expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(4);
 
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'alpha' } });
     expect(within(screen.getByRole('table')).getByText('Alicia Alpha')).toBeInTheDocument();
     expect(within(screen.getByRole('table')).queryByText('Ana Andina')).not.toBeInTheDocument();
+  });
+
+  it('V5 · F6: chips de apps con rol y estado del tenant, en vez de «1 tenant»', () => {
+    renderPage();
+    const table = screen.getByRole('table');
+    expect(within(table).getByRole('columnheader', { name: 'Apps' })).toBeInTheDocument();
+    const olga = within(table).getByRole('row', { name: /Olga Operaciones/ });
+    const chips = within(olga).getByRole('list', { name: 'Apps a las que entra' });
+    expect(within(chips).getAllByRole('listitem').map((li) => li.textContent)).toEqual([
+      'eSupplier · Admin',
+      'EWM · Usuario · Suspendido',
+    ]);
+    expect(within(table).queryByText(/\d+ tenants?$/)).not.toBeInTheDocument();
+    // Sin membresías de tenant: «Sin apps», aunque sea admin de la cuenta (comercial ≠ acceso operativo).
+    expect(within(within(table).getByRole('row', { name: /Alicia Alpha/ })).getByText('Sin apps')).toBeInTheDocument();
+    // El buscador también encuentra por app.
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'EWM' } });
+    expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(2);
   });
 
   it('el super admin invita con rol de consola, sin ofrecer EBIM_SUPER_ADMIN, y ve el enlace si no hay correo', async () => {

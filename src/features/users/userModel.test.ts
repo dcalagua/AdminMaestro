@@ -74,6 +74,17 @@ describe('userModel', () => {
     expect(accessSummary(u)).toEqual(['Consola', 'Andina', 'Altas en las apps']);
   });
 
+  it('V5 · F6: las apps con su rol reemplazan a «1 tenant»', () => {
+    const u = toAdminUser(row({
+      organizations: [org('ORG_VIEWER')],
+      tenants: [
+        { id: 't', tenant_id: 't1', tenant_name: 'Alpha', tenant_slug: 'a', product_name: 'EWM', customer_organization_id: 'o', role: 'TENANT_ADMIN', is_active: true },
+      ],
+      provisioning_roles: [{ id: 'p', role: 'TECH_LEAD', is_active: true, granted_at: '' }],
+    }));
+    expect(accessSummary(u)).toEqual(['Andina', 'EWM · Admin', 'Altas en las apps']);
+  });
+
   it('S-01: el rol Super Admin nunca es asignable desde la consola', () => {
     expect(ASSIGNABLE_PLATFORM_ROLES).not.toContain('EBIM_SUPER_ADMIN');
   });
