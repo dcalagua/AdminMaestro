@@ -7,7 +7,6 @@ import type { PersonaKind } from '@/features/auth/session';
 const auth = vi.hoisted(() => ({
   persona: 'EBIM' as PersonaKind,
   roles: null as SessionRoles | null,
-  criticalAlerts: 0,
   signOut: vi.fn(),
   setDensity: vi.fn(),
 }));
@@ -18,17 +17,36 @@ vi.mock('@/hooks/useAuth', () => ({
 vi.mock('@/hooks/useAppearance', () => ({
   useAppearance: () => ({ mode: 'light', density: 'equilibrada', toggleMode: vi.fn(), setDensity: auth.setDensity }),
 }));
-// Solo el conteo del badge; la paleta tiene su propio test con datos.
+// La paleta tiene su propio test con datos.
 vi.mock('@/services/queries', () => {
   const idle = { data: undefined, isFetching: false, isError: false };
   return {
-    useCriticalBillingAlertCount: ({ enabled }: { enabled: boolean }) => ({
-      data: enabled ? auth.criticalAlerts : undefined,
-    }),
     useOrganizations: () => idle,
     useTenantOverview: () => idle,
     useSubscriptions: () => idle,
   };
+});
+// La campana lee la Bandeja; su cálculo y permisos tienen su propio test.
+const inbox = vi.hoisted(() => ({ items: [] as unknown[], visible: true, loading: false }));
+vi.mock('@/features/inbox/useInbox', () => ({
+  useInbox: () => ({
+    items: inbox.items,
+    loading: inbox.loading,
+    audience: { invoice: inbox.visible, alta: false, health: false, confirm: false, document: false, 'billing-alert': false, settlement: false },
+  }),
+}));
+
+const inboxItem = (n: number, priority: 1 | 2 | 3) => ({
+  key: `k-${n}`,
+  kind: 'invoice',
+  priority,
+  title: `Aviso ${n}`,
+  account: { name: `Cuenta ${n}` },
+  app: 'EWM',
+  ageText: 'hace 2 días',
+  since: null,
+  screen: { label: 'Abrir', to: `/pantalla/${n}` },
+  action: { type: 'link', label: 'Hacer', to: `/accion/${n}` },
 });
 
 import { AppShell } from './AppShell';
@@ -57,7 +75,9 @@ function renderAt(path: string) {
 beforeEach(() => {
   auth.persona = 'EBIM';
   auth.roles = { ...base, platformRole: 'EBIM_SUPER_ADMIN' };
-  auth.criticalAlerts = 0;
+  inbox.items = [];
+  inbox.visible = true;
+  inbox.loading = false;
   localStorage.clear();
 });
 
@@ -209,19 +229,54 @@ describe('AppShell', () => {
     setSpy.mockRestore();
   });
 
-  it('badge de alertas críticas de renovación en Cobranza, con texto accesible', () => {
-    auth.criticalAlerts = 7;
+  it('campana: contador de la Bandeja con nombre accesible; reemplaza el badge de Cobranza', async () => {
+    inbox.items = [inboxItem(1, 1), inboxItem(2, 2), inboxItem(3, 3)];
     renderAt('/');
+    const bell = await screen.findByRole('button', { name: 'Bandeja: 3 pendientes, 1 urgente' });
+    expect(bell).toHaveTextContent('3');
+    expect(bell).toHaveAttribute('aria-expanded', 'false');
     const nav = screen.getByRole('navigation', { name: 'Navegación principal' });
-    const link = within(nav).getByRole('link', { name: 'Cobranza (7 alertas críticas de renovación abiertas)' });
-    expect(link).toHaveTextContent('7');
+    expect(within(nav).getByRole('link', { name: 'Cobranza' })).not.toHaveTextContent(/\d/);
   });
 
-  it('sin vista financiera no hay badge de cobranza (ni consulta)', () => {
-    auth.criticalAlerts = 7;
-    auth.roles = { ...base, ownedProductIds: ['p1'] };
+  it('campana: el panel muestra los 5 más urgentes y «Ver todo»; Escape lo cierra y devuelve el foco', async () => {
+    inbox.items = Array.from({ length: 7 }, (_, i) => inboxItem(i + 1, 2));
     renderAt('/');
-    expect(screen.queryByText(/alertas críticas/)).not.toBeInTheDocument();
+    const bell = await screen.findByRole('button', { name: /^Bandeja: 7 pendientes/ });
+    fireEvent.click(bell);
+    expect(bell).toHaveAttribute('aria-expanded', 'true');
+    const panel = screen.getByRole('dialog', { name: 'Lo más urgente' });
+    expect(bell).toHaveAttribute('aria-controls', panel.id);
+    const links = within(panel).getAllByRole('link');
+    expect(links).toHaveLength(6);
+    expect(links[0]).toHaveTextContent('Aviso 1');
+    expect(links[0]).toHaveAttribute('href', '/accion/1');
+    expect(document.activeElement).toBe(links[0]);
+    expect(panel).toHaveTextContent('y 2 más');
+    expect(within(panel).getByRole('link', { name: 'Ver todo' })).toHaveAttribute('href', '/bandeja');
+
+    fireEvent.keyDown(links[0]!, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'Lo más urgente' })).toBeNull();
+    expect(document.activeElement).toBe(bell);
+  });
+
+  it('campana: un clic fuera cierra el panel; sin pendientes lo dice', async () => {
+    renderAt('/');
+    const bell = await screen.findByRole('button', { name: 'Bandeja: nada pendiente' });
+    fireEvent.click(bell);
+    expect(screen.getByRole('dialog', { name: 'Lo más urgente' })).toHaveTextContent('Nada pendiente');
+    fireEvent.mouseDown(document.body);
+    expect(screen.queryByRole('dialog', { name: 'Lo más urgente' })).toBeNull();
+  });
+
+  it('campana: un rol sin avisos posibles no la ve', async () => {
+    inbox.visible = false;
+    renderAt('/');
+    // La campana llega en diferido: se espera a que su módulo cargue.
+    await act(async () => {
+      await import('@/features/inbox/InboxBell');
+    });
+    expect(screen.queryByRole('button', { name: /^Bandeja:/ })).toBeNull();
   });
 
   it('iniciales del avatar sin paréntesis ni símbolos', () => {

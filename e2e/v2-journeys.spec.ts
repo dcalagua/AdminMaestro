@@ -47,8 +47,9 @@ const SECTIONS: Record<string, { menu: string; tab?: string; path: string }> = {
 
 async function goToSection(page: Page, label: string) {
   const section = SECTIONS[label] ?? { menu: label, path: '' };
-  // El enlace puede llevar un contador en su nombre accesible
-  // («Cobranza (28 alertas críticas de renovación abiertas)», fase 06).
+  // El enlace pudo llevar un contador en su nombre accesible («Cobranza (28
+  // alertas críticas…)», fase 06); desde la V5 · F5 el contador vive en la
+  // campana de la Bandeja, pero se tolera por compatibilidad.
   const escaped = section.menu.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const nav = page.getByRole('navigation', { name: 'Navegación principal' });
   await nav.getByRole('link', { name: new RegExp(`^${escaped}( \\(.*\\))?$`) }).first().click();

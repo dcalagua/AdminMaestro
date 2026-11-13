@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Suspense, useEffect, useMemo, useRef, useState, type SyntheticEvent } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type SyntheticEvent } from 'react';
 import {
+  BellIcon,
   CaretDoubleLeftIcon,
   CaretDoubleRightIcon,
   CaretDownIcon,
@@ -13,13 +14,12 @@ import {
 } from '@phosphor-icons/react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAppearance } from '@/hooks/useAppearance';
-import { navDestinations, navGroupsFor, routeMeta, visibleTabs, type NavGroup, type NavItem } from './navigation';
+import { navDestinations, navGroupsFor, routeMeta, type NavGroup, type NavItem } from './navigation';
 import { useNavAccess } from './useNavAccess';
 import { EbimMark } from '@/components/ui/EbimMark';
 import { useModalFocus } from '@/components/ui/useModalFocus';
 import { PageTrailContext } from '@/components/ui/pageTrail';
 import { LoadingState, type Crumb } from '@/components/ui/primitives';
-import { useCriticalBillingAlertCount } from '@/services/queries';
 import { PLATFORM_ROLE_LABEL, ORG_ROLE_LABEL } from '@/types/domain';
 import { env } from '@/lib/env';
 import { TaskQueuePanel, TaskQueueProvider } from '@/components/ui/TaskQueue';
@@ -41,6 +41,21 @@ import { CommandPalette, type PaletteAccess } from './CommandPalette';
  * El menú se adapta al rol, pero es UX: cada ruta tiene su guard y cada consulta
  * su RLS.
  */
+
+/**
+ * Campana de la Bandeja (V5 · F5): en diferido, para que su cálculo (cobranza,
+ * altas, salud, aprobaciones) no pese en la carga inicial del shell. Mientras
+ * llega, un icono quieto del mismo tamaño (sin salto de diseño).
+ */
+const InboxBell = lazy(() => import('@/features/inbox/InboxBell').then((m) => ({ default: m.InboxBell })));
+
+function BellPlaceholder() {
+  return (
+    <span className="ebim-icon-btn h-10 w-10" aria-hidden>
+      <BellIcon size={20} />
+    </span>
+  );
+}
 
 const RAIL_KEY = 'ebim-cp-sidebar-rail';
 const COLLAPSED_KEY = 'ebim-cp-nav-collapsed';
@@ -79,12 +94,6 @@ const ENV_STYLE: Record<string, string> = {
 
 const IS_MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 
-interface NavBadge {
-  count: number;
-  /** Texto para lectores de pantalla y tooltip. */
-  label: string;
-}
-
 export function AppShell() {
   const { roles, persona, signOut } = useAuth();
   const { mode, density, toggleMode, setDensity } = useAppearance();
@@ -106,20 +115,8 @@ export function AppShell() {
   const items = useMemo(() => groups.flatMap((g) => g.items), [groups]);
   const meta = routeMeta(location.pathname);
   const destinations = useMemo(() => navDestinations(items, access), [items, access]);
-  // Las renovaciones viven ahora como pestaña de Cobranza (V5 · F1).
-  const cobranza = items.find((i) => i.to === '/cobranza');
-  const seesRenewals = Boolean(cobranza && visibleTabs(cobranza, access).some((t) => t.id === 'renovaciones'));
-
-  // Badges solo con un conteo barato (head: true) y solo si la pantalla se ve.
-  const criticalAlerts = useCriticalBillingAlertCount({ enabled: seesRenewals });
-  const badges: Record<string, NavBadge> = {};
-  if (criticalAlerts.data) {
-    const n = criticalAlerts.data;
-    badges['/cobranza'] = {
-      count: n,
-      label: `${n} alerta${n === 1 ? '' : 's'} crítica${n === 1 ? '' : 's'} de renovación abierta${n === 1 ? '' : 's'}`,
-    };
-  }
+  // V5 · F5: el antiguo badge de alertas críticas de Cobranza quedó redundante:
+  // esas alertas cuentan ahora en la campana de la Bandeja (topbar).
 
   const paletteAccess = useMemo<PaletteAccess>(() => {
     const visible = new Set(items.map((i) => i.to));
@@ -246,8 +243,7 @@ export function AppShell() {
       : {};
 
   const renderItem = (item: NavItem, compact: boolean) => {
-    const badge = badges[item.to];
-    const name = badge ? `${item.label} (${badge.label})` : item.label;
+    const name = item.label;
     // Una ficha de detalle (`/products/:id`) marca la entrada dueña (Catálogo).
     const owns = meta.section?.to === item.to;
     return (
@@ -255,7 +251,7 @@ export function AppShell() {
         <NavLink
           to={item.to}
           end={item.to === '/'}
-          aria-label={compact || badge ? name : undefined}
+          aria-label={compact ? name : undefined}
           {...tipHandlers(compact, name)}
           className={({ isActive: linkActive }) => {
             const isActive = linkActive || owns;
@@ -282,23 +278,8 @@ export function AppShell() {
               ) : null}
               <span className="relative shrink-0">
                 <item.icon size={compact ? 20 : 18} weight={isActive ? 'fill' : 'regular'} aria-hidden />
-                {compact && badge ? (
-                  <span
-                    aria-hidden
-                    className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-[color:var(--danger-fill)] ring-2 ring-[color:var(--sidebar-base)]"
-                  />
-                ) : null}
               </span>
               {compact ? null : <span className="min-w-0 flex-1 truncate">{item.label}</span>}
-              {!compact && badge ? (
-                <span
-                  aria-hidden
-                  title={badge.label}
-                  className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[color:var(--danger-fill)] px-1.5 text-caption font-bold tabular-nums text-[color:var(--danger-fill-fg)]"
-                >
-                  {badge.count > 99 ? '99+' : badge.count}
-                </span>
-              ) : null}
             </>
             );
           }}
@@ -477,6 +458,10 @@ export function AppShell() {
               <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-current" />
               {ENV_LABEL[env.appEnv] ?? env.appEnv}
             </span>
+
+            <Suspense fallback={<BellPlaceholder />}>
+              <InboxBell />
+            </Suspense>
 
             <button
               type="button"

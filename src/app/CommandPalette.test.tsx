@@ -38,7 +38,6 @@ vi.mock('@/services/queries', () => {
   const result = (enabled: boolean, rows: unknown[]) =>
     enabled ? { data: rows, isFetching: false, isError: false } : { data: undefined, isFetching: false, isError: false };
   return {
-    useCriticalBillingAlertCount: () => ({ data: undefined }),
     useOrganizations: ({ enabled }: { enabled: boolean }) => {
       state.enabled.organizations ||= enabled;
       return result(enabled, ORGS);
@@ -53,6 +52,10 @@ vi.mock('@/services/queries', () => {
     },
   };
 });
+
+vi.mock('@/features/inbox/useInbox', () => ({
+  useInbox: () => ({ items: [], loading: false, audience: {} }),
+}));
 
 import { AppShell } from './AppShell';
 

@@ -1146,27 +1146,6 @@ export function useBillingAlerts(
   });
 }
 
-/**
- * Cuántas alertas de cobranza ABIERTAS son críticas (badge del menú lateral).
- * Solo cuenta (`head: true`): no trae filas. La clave cuelga de `billing-alerts`
- * para que las mutaciones que ya invalidan alertas también la refresquen.
- */
-export function useCriticalBillingAlertCount({ enabled = true }: LazyQueryOptions = {}) {
-  return useQuery({
-    queryKey: ['billing-alerts', 'OPEN', 'critical-count'],
-    enabled,
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from('billing_alerts')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'OPEN')
-        .eq('severity', 'CRITICAL');
-      if (error) throw new Error(error.message);
-      return count ?? 0;
-    },
-  });
-}
-
 /** Cartera por ventana de renovación (7/15/30/45/60 días). */
 export function useRenewalDashboard() {
   return useQuery({
