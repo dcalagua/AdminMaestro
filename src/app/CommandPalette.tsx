@@ -6,12 +6,21 @@ import {
   ArrowsClockwiseIcon,
   BuildingOfficeIcon,
   BuildingsIcon,
+  HandshakeIcon,
   MagnifyingGlassIcon,
+  MoneyIcon,
+  PlugsConnectedIcon,
+  ReceiptIcon,
+  UserCircleIcon,
 } from '@phosphor-icons/react';
 import { useModalFocus } from '@/components/ui/useModalFocus';
-import { useOrganizations, useSubscriptions, useTenantOverview } from '@/services/queries';
+import { useAdminUsers, useOrganizations, useProducts, useSubscriptions, useTenantOverview } from '@/services/queries';
+import { useInvoiceSearch, usePaymentSearch } from '@/services/financeRead';
 import { SUBSCRIPTION_STATUS_LABEL } from '@/features/billing/subscriptionLabels';
+import { formatDate, formatMoney } from '@/lib/format';
+import { INVOICE_STATUS_LABEL, PLATFORM_ROLE_LABEL, type InvoiceStatus } from '@/types/domain';
 import { PALETTE_GROUP_LIMIT, PALETTE_MIN_TERM, topMatches } from './commandSearch';
+import { paletteActions, type PaletteActionAccess } from './paletteActions';
 import type { NavDestination } from './navigation';
 
 /**
@@ -23,12 +32,27 @@ import type { NavDestination } from './navigation';
  * de sus listados (misma caché, mismo RLS): solo se leen cuando hay un término
  * de 2+ caracteres y la persona tiene la pantalla de destino. Ocultar un grupo
  * es UX; lo que cada usuario puede leer lo decide RLS.
+ *
+ * V5 · F5: también partners, usuarios y apps (de sus listados), facturas y
+ * cobros (búsqueda en el servidor, 8 filas) y ACCIONES («Emitir factura…»,
+ * «Nueva venta», «Nuevo tenant», «Verificar salud de las apps», «Ir a
+ * Bandeja»), cada una sólo para quien tiene su permiso.
  */
 
 export interface PaletteAccess {
   organizations: boolean;
   tenants: boolean;
   subscriptions: boolean;
+  /** Facturas (Cobranza › Facturación y cobros). */
+  invoices: boolean;
+  /** Cobros confirmados (misma pestaña). */
+  payments: boolean;
+  /** Usuarios: rol de consola o admin de su organización. */
+  users: boolean;
+  partners: boolean;
+  /** Apps: a su ficha de la suite (EBIM) o a la del catálogo. `null` = no se buscan. */
+  apps: 'suite' | 'catalog' | null;
+  actions: PaletteActionAccess;
 }
 
 interface PaletteOption {
@@ -93,14 +117,21 @@ export function CommandPalette({
     onEscape: onClose,
   });
 
-  const orgs = useOrganizations({ enabled: searching && access.organizations });
+  const orgs = useOrganizations({ enabled: searching && (access.organizations || access.partners) });
   const tenants = useTenantOverview({ enabled: searching && access.tenants });
   const subs = useSubscriptions({ enabled: searching && access.subscriptions });
+  const invoices = useInvoiceSearch(term, { enabled: searching && access.invoices });
+  const payments = usePaymentSearch(term, { enabled: searching && access.payments });
+  const users = useAdminUsers(null, { enabled: searching && access.users });
+  const products = useProducts({ enabled: searching && access.apps !== null });
+  const actions = useMemo(() => paletteActions(access.actions), [access.actions]);
 
   const sections = useMemo<PaletteSection[]>(() => {
     const out: PaletteSection[] = [];
+    // Una acción que lleva al mismo sitio que una entrada la sustituye (sin duplicados).
+    const actionTargets = new Set(actions.map((a) => a.to));
     // Sin término, sólo las entradas del menú; al escribir, también sus pestañas.
-    const destinations = query.trim() ? items : items.filter((i) => !i.isTab);
+    const destinations = (query.trim() ? items : items.filter((i) => !i.isTab)).filter((i) => !actionTargets.has(i.to));
     const navMatches = topMatches(destinations, query.trim(), (i) => [i.label, ...i.keywords]);
     if (navMatches.length > 0) {
       out.push({
@@ -109,10 +140,23 @@ export function CommandPalette({
         options: navMatches.map((i) => ({ id: `nav:${i.to}`, label: i.label, hint: i.hint, to: i.to, icon: i.icon })),
       });
     }
+    const actionMatches = topMatches(actions, query.trim(), (a) => [a.label, a.hint, ...a.keywords]);
+    if (actionMatches.length > 0) {
+      out.push({
+        key: 'action',
+        label: 'Acciones',
+        options: actionMatches.map((a) => ({ id: `action:${a.id}`, label: a.label, hint: a.hint, to: a.to, icon: a.icon })),
+      });
+    }
     if (!searching) return out;
 
+    const isPartner = (o: { organization_capabilities?: Array<{ capability: string }> | null }) =>
+      (o.organization_capabilities ?? []).some((c) => c.capability === 'PARTNER' || c.capability === 'RESELLER');
+
     if (access.organizations) {
-      const rows = topMatches(orgs.data ?? [], term, (o) => [o.display_name, o.legal_name, o.slug, o.tax_id]);
+      // Con el grupo «Partners» activo, los partners van allí y no se repiten aquí.
+      const pool = access.partners ? (orgs.data ?? []).filter((o) => !isPartner(o)) : (orgs.data ?? []);
+      const rows = topMatches(pool, term, (o) => [o.display_name, o.legal_name, o.slug, o.tax_id]);
       out.push({
         key: 'org',
         label: 'Organizaciones',
@@ -127,6 +171,23 @@ export function CommandPalette({
             icon: BuildingsIcon,
           };
         }),
+      });
+    }
+    if (access.partners) {
+      const rows = topMatches((orgs.data ?? []).filter(isPartner), term, (o) => [o.display_name, o.legal_name, o.slug, o.tax_id]);
+      out.push({
+        key: 'partner',
+        label: 'Partners',
+        status: groupStatus(orgs, 'partners'),
+        options: rows.map((o) => ({
+          id: `partner:${o.id}`,
+          label: o.display_name,
+          hint: [(o.organization_capabilities ?? []).map((c) => CAPABILITY_LABEL[c.capability] ?? c.capability).join(', '), o.country_code]
+            .filter(Boolean)
+            .join(' · '),
+          to: `/organizations/${o.id}`,
+          icon: HandshakeIcon,
+        })),
       });
     }
     if (access.tenants) {
@@ -170,8 +231,84 @@ export function CommandPalette({
         })),
       });
     }
+    if (access.invoices) {
+      // El servidor ya filtró por número o cuenta; aquí sólo se ordena y recorta.
+      const rows = topMatches(invoices.data?.rows ?? [], term, (i) => [i.number, i.organization_name]);
+      out.push({
+        key: 'invoice',
+        label: 'Facturas',
+        status: groupStatus(invoices, 'facturas'),
+        options: rows.map((i) => ({
+          id: `invoice:${i.invoice_id}`,
+          label: i.number ?? 'Factura sin número',
+          hint: [
+            i.organization_name,
+            formatMoney(i.total, i.currency),
+            i.status ? (INVOICE_STATUS_LABEL[i.status as InvoiceStatus] ?? i.status) : null,
+          ]
+            .filter(Boolean)
+            .join(' · '),
+          to: `/cobranza?tab=facturacion${i.number ? `&q=${encodeURIComponent(i.number)}` : ''}`,
+          icon: ReceiptIcon,
+        })),
+      });
+    }
+    if (access.payments) {
+      const rows = topMatches(payments.data?.rows ?? [], term, (p) => [p.invoice_number, p.reference, p.organization_name]);
+      out.push({
+        key: 'payment',
+        label: 'Cobros',
+        status: groupStatus(payments, 'cobros'),
+        options: rows.map((p) => {
+          const lookup = p.reference ?? p.invoice_number ?? '';
+          return {
+            id: `payment:${p.payment_id}`,
+            label: `${formatMoney(p.collected_amount, p.currency)}${p.invoice_number ? ` · ${p.invoice_number}` : ''}`,
+            hint: [p.organization_name, p.collected_on ? formatDate(p.collected_on) : null, p.reference].filter(Boolean).join(' · '),
+            to: `/cobranza?tab=facturacion${lookup ? `&cq=${encodeURIComponent(lookup)}` : ''}#cobros`,
+            icon: MoneyIcon,
+          };
+        }),
+      });
+    }
+    if (access.users) {
+      const rows = topMatches(users.data ?? [], term, (u) => [u.fullName, u.email, ...u.organizations.map((o) => o.organization_name)]);
+      out.push({
+        key: 'user',
+        label: 'Usuarios',
+        status: groupStatus(users, 'usuarios'),
+        options: rows.map((u) => ({
+          id: `user:${u.id}`,
+          label: u.fullName || u.email,
+          hint: [
+            u.fullName ? u.email : null,
+            u.platformRole ? PLATFORM_ROLE_LABEL[u.platformRole] : u.organizations[0]?.organization_name,
+          ]
+            .filter(Boolean)
+            .join(' · '),
+          to: `/users/${u.id}`,
+          icon: UserCircleIcon,
+        })),
+      });
+    }
+    if (access.apps) {
+      const live = (products.data ?? []).filter((p) => p.status !== 'ARCHIVED');
+      const rows = topMatches(live, term, (p) => [p.short_name, p.code, p.lockup_name]);
+      out.push({
+        key: 'app',
+        label: 'Apps',
+        status: groupStatus(products, 'apps'),
+        options: rows.map((p) => ({
+          id: `app:${p.id}`,
+          label: p.short_name,
+          hint: p.lockup_name && p.lockup_name !== p.short_name ? p.lockup_name : 'App de la suite',
+          to: access.apps === 'suite' ? `/apps/${p.code}` : `/products/${p.id}`,
+          icon: PlugsConnectedIcon,
+        })),
+      });
+    }
     return out.filter((s) => s.options.length > 0 || s.status);
-  }, [items, query, term, searching, access, orgs, tenants, subs]);
+  }, [items, actions, query, term, searching, access, orgs, tenants, subs, invoices, payments, users, products]);
 
   const flat = useMemo(() => sections.flatMap((s) => s.options), [sections]);
   const current = Math.min(active, Math.max(flat.length - 1, 0));
@@ -237,8 +374,8 @@ export function CommandPalette({
             aria-controls={listId}
             aria-autocomplete="list"
             aria-activedescendant={activeOption ? optionId(activeOption) : undefined}
-            aria-label="Buscar páginas, organizaciones, tenants o contratos"
-            placeholder="Buscar páginas, organizaciones, tenants o contratos…"
+            aria-label="Buscar páginas, acciones, clientes, facturas, cobros, usuarios o apps"
+            placeholder="Buscar páginas, acciones, clientes, facturas, usuarios…"
             autoComplete="off"
             spellCheck={false}
             className="h-14 min-w-0 flex-1 bg-transparent text-body text-fg placeholder:text-muted focus:outline-none"
@@ -316,7 +453,7 @@ export function CommandPalette({
             <kbd className="ebim-kbd">Esc</kbd>
             cerrar
           </span>
-          {!searching ? <span className="ml-auto hidden sm:inline">Escribe 2 letras para buscar clientes, tenants y contratos</span> : null}
+          {!searching ? <span className="ml-auto hidden sm:inline">Escribe 2 letras para buscar clientes, facturas, usuarios y más</span> : null}
         </div>
         <div role="status" className="sr-only">
           {announcement}

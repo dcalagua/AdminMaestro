@@ -1,4 +1,7 @@
+import { useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { PageContainer } from '@/components/ui/primitives';
+import { CHECK_HEALTH_PARAM } from '@/app/paletteActions';
 import { findNavItem } from '@/app/navigation';
 import { useProvisioningAccess } from '@/hooks/useProvisioningAccess';
 import { SuiteHealthStrip } from './SuiteHealthStrip';
@@ -19,6 +22,29 @@ export function SuiteCenterPage() {
   const data = useSuiteData();
   const access = useProvisioningAccess();
   const health = useHealthCheck();
+  const [params, setParams] = useSearchParams();
+  const launched = useRef(false);
+
+  // ⌘K «Verificar salud de las apps» (V5 · F5) llega con `?accion=verificar-salud`:
+  // una verificación por app que este perfil puede verificar, cada una visible en
+  // la cola de tareas. Es la misma acción explícita que «Verificar ahora».
+  const requested = params.get('accion') === CHECK_HEALTH_PARAM;
+  useEffect(() => {
+    if (!requested || launched.current || data.loading.health || access.loading) return;
+    launched.current = true;
+    for (const h of data.health) {
+      const targetId = h.primary?.deployment_target_id;
+      if (targetId && access.canForProduct('platform.deployment.read', h.app.id)) void health.run(targetId, h.app.name, h.app.code);
+    }
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.delete('accion');
+        return next;
+      },
+      { replace: true, preventScrollReset: true },
+    );
+  }, [requested, data.loading.health, data.health, access, health, setParams]);
 
   return (
     <PageContainer title={item?.label ?? 'Centro de la suite'} description={item?.description}>

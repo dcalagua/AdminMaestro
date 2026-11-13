@@ -12,7 +12,7 @@ import { PlanStep } from './steps/PlanStep';
 import { CommercialStep } from './steps/CommercialStep';
 import { ConfirmStep } from './steps/ConfirmStep';
 import { AppsStep, FirstInvoiceStep, PaymentLinkStep } from './steps/AfterSaleSteps';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 /**
  * Flujo guiado «Nueva venta / alta de cliente» (Fase 05 → V5 · F4).
@@ -38,6 +38,12 @@ import { Link } from 'react-router-dom';
  */
 
 export function OnboardingPage() {
+  // «Nueva venta» y «Nuevo tenant» (⌘K) comparten ruta: cambiar de modo reinicia el flujo.
+  const [params] = useSearchParams();
+  return <OnboardingFlow key={params.get('modo') === 'app' ? 'app' : 'venta'} />;
+}
+
+function OnboardingFlow() {
   const wizard = useOnboardingWizard();
   const {
     navigate, perms, creation, mode, flow, created, step, setStep, stepIssue, setStepIssue, values, product, customer,

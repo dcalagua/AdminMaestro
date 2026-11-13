@@ -222,6 +222,29 @@ export function useCollectedPaymentPage(p: PaymentListParams) {
   });
 }
 
+/**
+ * ⌘K (V5 · F5): búsqueda de facturas y de cobros por número, cuenta o
+ * referencia, en el servidor (mismas vistas y RLS que sus listados) y con
+ * pocas filas. Sólo se pide con un término de 2+ letras.
+ */
+export function useInvoiceSearch(term: string, { enabled = true, limit = 8 }: { enabled?: boolean; limit?: number } = {}) {
+  return useQuery({
+    queryKey: ['invoices', 'search', cleanSearch(term), limit],
+    enabled: enabled && cleanSearch(term).length >= 2,
+    queryFn: () =>
+      fetchInvoicePage({ search: term, filter: 'ALL', page: 0, pageSize: limit, sortBy: 'issue_date', sortDir: 'desc' }),
+  });
+}
+
+export function usePaymentSearch(term: string, { enabled = true, limit = 8 }: { enabled?: boolean; limit?: number } = {}) {
+  return useQuery({
+    queryKey: ['collections', 'search', cleanSearch(term), limit],
+    enabled: enabled && cleanSearch(term).length >= 2,
+    queryFn: () =>
+      fetchCollectedPaymentPage({ search: term, filter: 'ALL', page: 0, pageSize: limit, sortBy: 'collected_on', sortDir: 'desc' }),
+  });
+}
+
 /* ==========================================================================
    Costos (P03)
    ========================================================================== */

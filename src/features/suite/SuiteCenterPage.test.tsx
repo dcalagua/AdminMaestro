@@ -93,9 +93,9 @@ vi.mock('@/components/ui/toast-context', () => ({
 
 import { SuiteCenterPage } from './SuiteCenterPage';
 
-function renderPage() {
+function renderPage(path = '/suite') {
   return render(
-    <MemoryRouter initialEntries={['/suite']}>
+    <MemoryRouter initialEntries={[path]}>
       <SuiteCenterPage />
     </MemoryRouter>,
   );
@@ -135,6 +135,19 @@ describe('franja de salud', () => {
     expect(invoke).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole('button', { name: 'Verificar ahora EWM' }));
     expect(checkHealth).toHaveBeenCalledWith('t-ewm');
+  });
+
+  it('⌘K «Verificar salud de las apps» llega con ?accion=: verifica cada app que el perfil puede, una sola vez', () => {
+    state.canForProduct = (code, id) => code === 'platform.deployment.read' && id === 'p-ewm';
+    const { rerender } = renderPage('/suite?accion=verificar-salud');
+    expect(checkHealth).toHaveBeenCalledTimes(1);
+    expect(checkHealth).toHaveBeenCalledWith('t-ewm');
+    rerender(
+      <MemoryRouter initialEntries={['/suite?accion=verificar-salud']}>
+        <SuiteCenterPage />
+      </MemoryRouter>,
+    );
+    expect(checkHealth).toHaveBeenCalledTimes(1);
   });
 
   it('sin permiso de lectura de entornos no se ofrece «Verificar ahora»', () => {

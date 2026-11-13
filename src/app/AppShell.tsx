@@ -14,7 +14,8 @@ import {
 } from '@phosphor-icons/react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAppearance } from '@/hooks/useAppearance';
-import { navDestinations, navGroupsFor, routeMeta, type NavGroup, type NavItem } from './navigation';
+import { usePermissions } from '@/hooks/usePermissions';
+import { navDestinations, navGroupsFor, routeMeta, visibleTabs, type NavGroup, type NavItem } from './navigation';
 import { useNavAccess } from './useNavAccess';
 import { EbimMark } from '@/components/ui/EbimMark';
 import { useModalFocus } from '@/components/ui/useModalFocus';
@@ -118,14 +119,34 @@ export function AppShell() {
   // V5 · F5: el antiguo badge de alertas críticas de Cobranza quedó redundante:
   // esas alertas cuentan ahora en la campana de la Bandeja (topbar).
 
+  const perms = usePermissions();
   const paletteAccess = useMemo<PaletteAccess>(() => {
     const visible = new Set(items.map((i) => i.to));
+    const cobranza = items.find((i) => i.to === '/cobranza');
+    const billingTab = Boolean(cobranza && visibleTabs(cobranza, access).some((t) => t.id === 'facturacion'));
+    // «Usuarios» devuelve filas a un rol de consola o a un admin de su organización (`admin_list_users`).
+    const usersScope =
+      Boolean(roles?.platformRole) || (roles?.organizations ?? []).some((o) => o.role === 'PARTNER_ADMIN' || o.role === 'ORG_ADMIN');
+    const onboarding = visible.has('/onboarding');
     return {
       organizations: visible.has('/cuentas'),
       tenants: visible.has('/tenants'),
       subscriptions: visible.has('/subscriptions'),
+      invoices: billingTab,
+      payments: billingTab,
+      users: visible.has('/users') && usersScope,
+      partners: visible.has('/partners'),
+      apps: visible.has('/suite') ? 'suite' : visible.has('/catalogo') ? 'catalog' : null,
+      actions: {
+        issueInvoice: Boolean(cobranza) && perms.canReadFinance,
+        newSale: onboarding && (perms.canManagePlatform || perms.canManageCommercial),
+        newTenant: onboarding && perms.canManagePlatform,
+        // Qué app se puede verificar lo decide el permiso por app en el Centro de la suite.
+        checkHealth: visible.has('/suite'),
+        inbox: visible.has('/bandeja'),
+      },
     };
-  }, [items]);
+  }, [items, access, roles, perms]);
 
   // Migas de contexto para `PageContainer`: grupo y, en fichas, el listado.
   const trail = useMemo<Crumb[]>(() => {

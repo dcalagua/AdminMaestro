@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { XIcon } from '@phosphor-icons/react';
 import { useSubscriptions } from '@/services/queries';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -7,6 +7,7 @@ import { SearchField, SelectInput } from '@/components/ui/fields';
 import { ErrorState, LoadingState } from '@/components/ui/primitives';
 import { useModalFocus } from '@/components/ui/useModalFocus';
 import { PeriodInvoiceAction } from './PeriodInvoiceAction';
+import { ISSUE_INVOICE_PARAM } from '@/app/paletteActions';
 
 /**
  * «Emitir factura» como acción primaria de Cobranza (V5 · F4). Antes sólo
@@ -19,14 +20,30 @@ import { PeriodInvoiceAction } from './PeriodInvoiceAction';
  */
 export function IssueInvoiceAction() {
   const perms = usePermissions();
+  const [params, setParams] = useSearchParams();
+  // ⌘K «Emitir factura…» (V5 · F5) llega con `?accion=emitir-factura`: el diálogo se abre solo.
+  const requested = params.get('accion') === ISSUE_INVOICE_PARAM;
   const [open, setOpen] = useState(false);
   if (!perms.canReadFinance) return null;
+  const close = () => {
+    setOpen(false);
+    if (requested) {
+      setParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          next.delete('accion');
+          return next;
+        },
+        { replace: true, preventScrollReset: true },
+      );
+    }
+  };
   return (
     <>
       <button type="button" className="ebim-btn-primary" onClick={() => setOpen(true)}>
         Emitir factura
       </button>
-      {open ? <IssueInvoiceDialog onClose={() => setOpen(false)} /> : null}
+      {open || requested ? <IssueInvoiceDialog onClose={close} /> : null}
     </>
   );
 }

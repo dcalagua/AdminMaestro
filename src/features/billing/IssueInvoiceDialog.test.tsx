@@ -31,9 +31,9 @@ vi.mock('./PeriodInvoiceAction', () => ({
 
 import { IssueInvoiceAction } from './IssueInvoiceDialog';
 
-function renderAction() {
+function renderAction(path = '/cobranza') {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[path]}>
       <IssueInvoiceAction />
     </MemoryRouter>,
   );
@@ -63,5 +63,18 @@ describe('Emitir factura', () => {
     m.finance = false;
     renderAction();
     expect(screen.queryByRole('button', { name: 'Emitir factura' })).toBeNull();
+  });
+
+  it('⌘K «Emitir factura…» llega con ?accion=emitir-factura y abre el diálogo; cerrarlo limpia el parámetro', async () => {
+    renderAction('/cobranza?accion=emitir-factura');
+    const dialog = screen.getByRole('dialog', { name: 'Emitir factura' });
+    await userEvent.keyboard('{Escape}');
+    expect(dialog).not.toBeInTheDocument();
+  });
+
+  it('sin finanzas, ni el parámetro de ⌘K abre el diálogo', () => {
+    m.finance = false;
+    renderAction('/cobranza?accion=emitir-factura');
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 });
