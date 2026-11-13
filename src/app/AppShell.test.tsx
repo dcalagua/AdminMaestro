@@ -50,6 +50,7 @@ const inboxItem = (n: number, priority: 1 | 2 | 3) => ({
 });
 
 import { AppShell } from './AppShell';
+import { mockViewport } from '@/test/matchMedia';
 import { PageContainer } from '@/components/ui/primitives';
 
 const base: SessionRoles = {
@@ -213,6 +214,26 @@ describe('AppShell', () => {
     expect(expand).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(expand);
     expect(localStorage.getItem('ebim-cp-sidebar-rail')).toBe('false');
+  });
+
+  it('tableta (md–lg): menú lateral en modo iconos que se despliega encima y no se guarda', () => {
+    const restore = mockViewport('tablet');
+    try {
+      renderAt('/');
+      const aside = document.querySelector('aside[data-sidebar]')!;
+      expect(aside).toHaveAttribute('data-sidebar', 'rail');
+      const nav = screen.getByRole('navigation', { name: 'Navegación principal' });
+      expect(within(nav).getByRole('link', { name: 'Cuentas' })).not.toHaveTextContent('Cuentas');
+      fireEvent.click(screen.getByRole('button', { name: 'Expandir menú lateral' }));
+      expect(aside).toHaveAttribute('data-sidebar', 'full');
+      expect(within(nav).getByRole('link', { name: 'Cuentas' })).toHaveTextContent('Cuentas');
+      expect(localStorage.getItem('ebim-cp-sidebar-rail')).toBeNull();
+      // Escape lo vuelve a iconos.
+      fireEvent.keyDown(within(nav).getByRole('link', { name: 'Cuentas' }), { key: 'Escape' });
+      expect(aside).toHaveAttribute('data-sidebar', 'rail');
+    } finally {
+      restore();
+    }
   });
 
   it('localStorage inaccesible no rompe el shell', () => {

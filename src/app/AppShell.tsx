@@ -15,6 +15,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useAppearance } from '@/hooks/useAppearance';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useIsTablet } from '@/hooks/useMediaQuery';
 import { navDestinations, navGroupsFor, routeMeta, visibleTabs, type NavGroup, type NavItem } from './navigation';
 import { useNavAccess } from './useNavAccess';
 import { EbimMark } from '@/components/ui/EbimMark';
@@ -102,6 +103,11 @@ export function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [rail, setRail] = useState<boolean>(() => readJson(RAIL_KEY, false));
+  // V5 · F7: en tableta (md–lg) el menú lateral se ve en modo iconos y se
+  // despliega encima del contenido; no se guarda (la preferencia es de escritorio).
+  const tablet = useIsTablet();
+  const [tabletOpen, setTabletOpen] = useState(false);
+  const compact = tablet ? !tabletOpen : rail;
   const [collapsed, setCollapsed] = useState<Partial<Record<NavGroup, boolean>>>(() =>
     readJson(COLLAPSED_KEY, {}),
   );
@@ -165,6 +171,7 @@ export function AppShell() {
   if (lastPath !== location.pathname) {
     setLastPath(location.pathname);
     setMobileOpen(false);
+    setTabletOpen(false);
     setTip(null);
   }
 
@@ -242,6 +249,10 @@ export function AppShell() {
 
   const toggleRail = () => {
     setTip(null);
+    if (tablet) {
+      setTabletOpen((open) => !open);
+      return;
+    }
     setRail((current) => {
       writeJson(RAIL_KEY, !current);
       return !current;
@@ -352,7 +363,7 @@ export function AppShell() {
     </div>
   );
 
-  const railLabel = rail ? 'Expandir menú lateral' : 'Reducir menú lateral a iconos';
+  const railLabel = compact ? 'Expandir menú lateral' : 'Reducir menú lateral a iconos';
 
   return (
     <TaskQueueProvider>
@@ -368,28 +379,39 @@ export function AppShell() {
            el gradiente para que la columna no se corte en páginas largas. ---- */}
       <aside
         data-print-hide
-        className={`ebim-on-brand hidden shrink-0 text-white transition-[width] duration-overlay ease-out lg:block ${
-          rail ? 'w-[76px]' : 'w-[248px]'
+        data-sidebar={compact ? 'rail' : 'full'}
+        className={`ebim-on-brand hidden shrink-0 text-white transition-[width] duration-overlay ease-out md:block ${
+          tablet || compact ? 'w-[76px]' : 'w-[248px]'
         }`}
         style={{ background: 'var(--sidebar-base)' }}
+        onKeyDown={(e) => {
+          if (tablet && tabletOpen && e.key === 'Escape') {
+            e.stopPropagation();
+            setTabletOpen(false);
+          }
+        }}
       >
-        <div className="sticky top-0 flex h-screen flex-col" style={{ background: 'var(--sidebar)' }}>
-          {brand(rail)}
+        {/* En tableta, desplegado, el panel se superpone al contenido (sin empujarlo). */}
+        <div
+          className={`sticky top-0 flex h-screen flex-col ${tablet && !compact ? 'relative z-40 w-[248px] shadow-modal' : ''}`}
+          style={{ background: 'var(--sidebar)' }}
+        >
+          {brand(compact)}
           <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pt-2" onScroll={() => setTip(null)}>
-            {renderNav(rail)}
+            {renderNav(compact)}
           </div>
-          <div className={`shrink-0 border-t border-white/10 py-3 ${rail ? 'px-2' : 'px-3'}`}>
+          <div className={`shrink-0 border-t border-white/10 py-3 ${compact ? 'px-2' : 'px-3'}`}>
             <button
               type="button"
               className={`flex h-9 items-center rounded-field text-compact font-medium text-white/[.86] transition-colors duration-fast ease-out hover:bg-white/10 hover:text-white ${
-                rail ? 'mx-auto w-11 justify-center' : 'w-full gap-3 px-3'
+                compact ? 'mx-auto w-11 justify-center' : 'w-full gap-3 px-3'
               }`}
               aria-label={railLabel}
-              aria-pressed={rail}
+              aria-pressed={compact}
               onClick={toggleRail}
-              {...tipHandlers(rail, railLabel)}
+              {...tipHandlers(compact, railLabel)}
             >
-              {rail ? (
+              {compact ? (
                 <CaretDoubleRightIcon size={18} aria-hidden />
               ) : (
                 <>
@@ -402,7 +424,7 @@ export function AppShell() {
         </div>
       </aside>
 
-      {tip && rail ? (
+      {tip && compact ? (
         <div aria-hidden className="ebim-tooltip -translate-y-1/2" style={{ top: tip.top, left: tip.left }}>
           {tip.label}
         </div>
@@ -410,7 +432,7 @@ export function AppShell() {
 
       {/* ---- Menú móvil: panel modal; cerrado no existe en el DOM ---- */}
       {mobileOpen ? (
-        <div className="fixed inset-0 z-40 lg:hidden">
+        <div className="fixed inset-0 z-40 md:hidden">
           <button
             type="button"
             tabIndex={-1}
@@ -448,7 +470,7 @@ export function AppShell() {
           <button
             ref={openerRef}
             type="button"
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-field border border-border text-fg lg:hidden"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-field border border-border text-fg md:hidden"
             aria-label="Abrir menú"
             aria-expanded={mobileOpen}
             onClick={() => setMobileOpen(true)}
@@ -523,7 +545,7 @@ export function AppShell() {
       ) : null}
 
       {/* Cola de tareas largas (V5 · F5): abajo a la izquierda del contenido; los avisos van a la derecha. */}
-      <TaskQueuePanel className={`left-3 ${rail ? 'lg:left-[92px]' : 'lg:left-[264px]'}`} />
+      <TaskQueuePanel className={`left-3 ${tablet || compact ? 'md:left-[92px]' : 'md:left-[264px]'}`} />
     </div>
     </TaskQueueProvider>
   );
