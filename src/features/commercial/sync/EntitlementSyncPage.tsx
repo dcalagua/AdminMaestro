@@ -1,21 +1,23 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useEntitlementSyncStatus } from '@/services/queries';
 import { useSyncEntitlements, useVerifyEntitlements, type EntitlementSyncSummary } from '@/services/mutations';
 import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { StatusTabs } from '@/components/ui/SectionTabs';
 import {
-  PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge, KpiTile,
+  PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge,
 } from '@/components/ui/primitives';
 import { Avatar } from '@/components/ui/Avatar';
-import { KpiStrip } from '@/features/billing/financeUi';
+import { StatCell, StatStrip } from '@/components/ui/StatStrip';
+import { CellTitle } from '@/components/ui/cells';
 import { cutoverStepLabel } from '@/features/platform/cutover';
-import { formatNumber } from '@/lib/format';
+import { formatCountNoun, formatNumber } from '@/lib/format';
 
 /**
- * Sincronización de entitlements (CCP fase 08).
+ * Módulos habilitados (CCP fase 08, V6 · F2).
  *
- * Deseado (lo que MasterAdmin emitió) frente a aplicado (lo que el SaaS dice,
- * por GET, que tiene). «Sincronizar ahora» y «Verificar» invocan el
+ * Deseado (lo que el Admin Maestro emitió) frente a aplicado (lo que la app
+ * confirma que tiene). «Sincronizar ahora» y «Verificar» invocan el
  * orquestador con el tenant y nada más: la autorización es un booleano de la
  * base (platform.provisioning.execute / .read del producto) y el estado lo
  * decide la base. Esta pantalla solo lo muestra.
@@ -25,15 +27,15 @@ type Tone = 'ok' | 'warn' | 'danger' | 'info' | 'neutral';
 
 const STATE: Record<string, { label: string; tone: Tone }> = {
   NOT_PROVISIONED: { label: 'Sin aprovisionar', tone: 'neutral' },
-  NOT_ENROLLED: { label: 'No enrolado', tone: 'neutral' },
+  NOT_ENROLLED: { label: 'No inscrito', tone: 'neutral' },
   PENDING_PUSH: { label: 'Pendiente de envío', tone: 'info' },
   PUSHING: { label: 'Enviando', tone: 'info' },
   AWAITING_VERIFY: { label: 'Esperando verificación', tone: 'info' },
   IN_SYNC: { label: 'En sincronía', tone: 'ok' },
   IN_SYNC_WITH_WARNINGS: { label: 'En sincronía con avisos', tone: 'warn' },
   DRIFT_BEHIND: { label: 'Atrasado', tone: 'warn' },
-  DRIFT_CHECKSUM: { label: 'Checksum distinto', tone: 'danger' },
-  DRIFT_AHEAD: { label: 'SaaS por delante', tone: 'danger' },
+  DRIFT_CHECKSUM: { label: 'Contenido distinto', tone: 'danger' },
+  DRIFT_AHEAD: { label: 'App por delante', tone: 'danger' },
   REJECTED: { label: 'Rechazado', tone: 'danger' },
   UNREACHABLE: { label: 'Inalcanzable', tone: 'warn' },
   REGISTRY_DRIFT: { label: 'Registro desalineado', tone: 'warn' },
@@ -80,25 +82,47 @@ export function EntitlementSyncPage() {
   ];
   const visible = filtered.filter((r) => tab === 'ALL' || GROUPS[tab].includes(r.state ?? ''));
   const lastResult = (sync.data ?? verify.data) as EntitlementSyncSummary | undefined;
+  const toggle = (group: string) => setTab((current) => (current === group ? 'ALL' : group));
   const lastError = sync.error ?? verify.error;
 
   return (
     <PageContainer
       title="Sincronización de módulos habilitados"
-      description="Lo que MasterAdmin emitió frente a lo que cada SaaS confirma por GET. Solo el GET cuenta como sincronizado; los incidentes (checksum distinto, SaaS por delante) no se corrigen solos."
+      description="Lo que el Admin Maestro envió a cada app frente a lo que la app confirma. Solo lo confirmado por la app cuenta como sincronizado; los incidentes (contenido distinto, app por delante) no se corrigen solos."
     >
       {all.length > 0 ? (
-        <KpiStrip label="Estado de la sincronización">
-          <KpiTile label="En sincronía" value={formatNumber(totalOf('IN_SYNC'))} footer="Confirmado por GET del SaaS." tone="ok" />
-          <KpiTile label="En curso" value={formatNumber(totalOf('PENDING'))} footer="Envío o verificación pendiente." />
-          <KpiTile
+        <StatStrip label="Estado de la sincronización">
+          <StatCell
+            label="En sincronía"
+            value={formatNumber(totalOf('IN_SYNC'))}
+            context="Confirmado por la app"
+            tone={totalOf('IN_SYNC') > 0 ? 'ok' : 'neutral'}
+            onSelect={() => toggle('IN_SYNC')}
+            selected={tab === 'IN_SYNC'}
+          />
+          <StatCell
+            label="En curso"
+            value={formatNumber(totalOf('PENDING'))}
+            context="Envío o confirmación pendiente"
+            onSelect={() => toggle('PENDING')}
+            selected={tab === 'PENDING'}
+          />
+          <StatCell
             label="Incidentes"
             value={formatNumber(totalOf('INCIDENTS'))}
-            footer="Requieren a una persona: no se corrigen solos."
+            context="Requieren a una persona"
             tone={totalOf('INCIDENTS') > 0 ? 'danger' : 'neutral'}
+            onSelect={() => toggle('INCIDENTS')}
+            selected={tab === 'INCIDENTS'}
           />
-          <KpiTile label="Fuera del programa" value={formatNumber(totalOf('OUT'))} footer="Sin aprovisionar o sin enrolar." />
-        </KpiStrip>
+          <StatCell
+            label="Fuera del programa"
+            value={formatNumber(totalOf('OUT'))}
+            context="Sin alta o sin inscribir"
+            onSelect={() => toggle('OUT')}
+            selected={tab === 'OUT'}
+          />
+        </StatStrip>
       ) : null}
       {lastResult ? (
         <div role="status" className="mb-4 rounded-card border border-border bg-card px-4 py-3 text-compact text-fg">
@@ -115,26 +139,47 @@ export function EntitlementSyncPage() {
         <SearchBar
           value={term}
           onChange={setTerm}
-          placeholder="Buscar por tenant, producto, estado o integración…"
+          total={status.isLoading ? undefined : all.length}
+          placeholder="Buscar por tenant, app, estado o integración…"
           right={<StatusTabs value={tab} onChange={setTab} options={tabs} />}
         />
         {status.isLoading ? (
           <LoadingState label="Cargando el estado de sincronización…" />
         ) : status.error ? (
           <ErrorState error={status.error} onRetry={() => void status.refetch?.()} />
+        ) : all.length === 0 ? (
+          <EmptyState
+            title="Ningún tenant en sincronización"
+            description="Un tenant aparece aquí cuando la conexión de su app empieza a recibir los módulos habilitados (desde la etapa «En comparación»). Hoy ninguna app tiene ese canal activo."
+            action={
+              <Link to="/suite" className="ebim-btn-secondary ebim-btn-sm">
+                Ver los canales de cada app
+              </Link>
+            }
+          />
         ) : visible.length === 0 ? (
           <EmptyState
-            title={(status.data ?? []).length > 0 ? 'Ningún tenant coincide' : 'Ningún tenant en sincronización'}
-            description={
-              (status.data ?? []).length > 0
-                ? 'Prueba con otra búsqueda o cambia de filtro.'
-                : 'Un tenant aparece aquí cuando su integración se configura para módulos habilitados y se enrola (etapa de comparación o superior).'
-            }
+            variant="no-results"
+            title="Ningún tenant coincide"
+            description="Prueba con otra búsqueda o cambia de filtro."
+            onClear={() => {
+              setTerm('');
+              setTab('ALL');
+            }}
           />
         ) : (
           <DataTable
             label="Sincronización por tenant y producto"
-            columns={['Tenant', 'Estado', 'Deseado', 'Aplicado', 'Último envío / verificación', 'Integración', { label: 'Acciones', srOnly: true }]}
+            minWidth={1040}
+            columns={[
+              { label: 'Tenant', sticky: true },
+              'Estado',
+              'Enviado',
+              'Confirmado',
+              { label: 'Último envío', mobile: false },
+              { label: 'Integración', mobile: false },
+              { label: 'Acciones', srOnly: true },
+            ]}
           >
             {visible.map((r) => {
               const st = STATE[r.state ?? ''] ?? { label: r.state ?? '—', tone: 'neutral' as Tone };
@@ -142,22 +187,26 @@ export function EntitlementSyncPage() {
                 (sync.isPending && sync.variables === r.tenant_id) || (verify.isPending && verify.variables === r.tenant_id);
               return (
                 <tr key={`${r.tenant_id}:${r.saas_product_id}`}>
-                  <td className="ebim-td">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <Avatar name={r.tenant_name ?? '—'} />
-                      <div className="min-w-0">
-                        <div className="truncate font-semibold text-fg">{r.tenant_name}</div>
-                        <div className="truncate text-caption text-muted">{r.product_name}</div>
-                      </div>
+                  <td className="ebim-td py-2">
+                    <div className="max-w-[260px]">
+                      <CellTitle
+                        title={r.tenant_name ?? '—'}
+                        to={r.tenant_id ? `/tenants/${r.tenant_id}` : undefined}
+                        tooltip={r.tenant_slug ? `${r.tenant_name}\nCódigo: ${r.tenant_slug}` : undefined}
+                        leading={<Avatar name={r.tenant_name ?? '—'} />}
+                        secondary={[r.product_name]}
+                      />
                     </div>
                   </td>
                   <td className="ebim-td">
                     <Badge tone={st.tone} dot>{st.label}</Badge>
                     {r.state_reason && r.state_reason !== r.state ? (
-                      <div className="mt-1 font-mono text-caption text-muted">{r.state_reason}</div>
+                      <div className="mt-0.5 font-mono text-caption text-muted">{r.state_reason}</div>
                     ) : null}
                     {(r.consecutive_failures ?? 0) > 0 ? (
-                      <div className="mt-1 text-caption font-semibold text-warn">{r.consecutive_failures} fallo(s) seguidos</div>
+                      <div className="mt-0.5 text-caption font-semibold text-warn">
+                        {formatCountNoun(r.consecutive_failures ?? 0, 'fallo')} seguidos
+                      </div>
                     ) : null}
                   </td>
                   <td className="ebim-td text-compact">
@@ -171,7 +220,7 @@ export function EntitlementSyncPage() {
                   <td className="ebim-td text-compact">
                     <span className="font-mono">{version(r.applied_version)}</span>
                     {(r.unknown_capabilities ?? []).length > 0 ? (
-                      <ul className="mt-1 flex flex-wrap gap-1" aria-label="Capacidades desconocidas para el SaaS">
+                      <ul className="mt-1 flex flex-wrap gap-1" aria-label="Capacidades desconocidas para la app">
                         {(r.unknown_capabilities ?? []).map((c) => (
                           <li key={c} className="font-mono">
                             <Badge tone="warn">{c}</Badge>
@@ -182,7 +231,7 @@ export function EntitlementSyncPage() {
                   </td>
                   <td className="ebim-td text-compact">
                     <div className="whitespace-nowrap">Envío: {when(r.last_push_at)}{r.last_push_result ? ` · ${r.last_push_result}` : ''}</div>
-                    <div className="whitespace-nowrap text-caption text-muted">GET: {when(r.last_verified_at)}</div>
+                    <div className="whitespace-nowrap text-caption text-muted">Confirmado: {when(r.last_verified_at)}</div>
                   </td>
                   <td className="ebim-td text-compact">
                     <div className="font-mono text-caption">{r.integration_code ?? '—'}</div>

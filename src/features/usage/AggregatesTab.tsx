@@ -95,11 +95,12 @@ export function AggregatesTab() {
       ) : null}
       <Card
         title="Agregados por período"
-        description="Mes calendario UTC (D-10). La cantidad es definitiva solo al finalizar; un evento tardío va al período siguiente y nunca reabre uno finalizado."
+        description="Mes calendario UTC. La cantidad es definitiva solo al finalizar; un evento tardío va al período siguiente y nunca reabre uno finalizado."
       >
         <SearchBar
           value={term}
           onChange={setTerm}
+          total={aggregates.isLoading ? undefined : (aggregates.data ?? []).length}
           placeholder="Buscar por producto, tenant o medidor…"
           right={
             <StatusTabs

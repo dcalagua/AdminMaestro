@@ -113,4 +113,25 @@ describe('PagedTable · tarjetas en móvil', () => {
     const header = screen.getByRole('columnheader', { name: 'Acciones' });
     expect(header.querySelector('.sr-only')).toHaveTextContent('Acciones');
   });
+
+  it('V6: las celdas agrupadas en un fragmento siguen alineadas y una columna «mobile: false» se omite', () => {
+    restore = mockViewport('mobile');
+    render(
+      <DataTable label="Frag" columns={['Cuenta', 'MRR', 'Vencido', 'Canal']}>
+        <tr>
+          <td>Andina</td>
+          <>
+            <td>USD 1 K</td>
+            <td>USD 2 K</td>
+          </>
+          <td>Directo</td>
+          <td>Beto</td>
+        </tr>
+      </DataTable>,
+    );
+    const card = screen.getAllByRole('listitem')[0]!;
+    // …y una columna `mobile: false` no entra en la tarjeta.
+    expect(within(card).getAllByRole('term').map((t) => t.textContent)).toEqual(['MRR', 'Vencido', 'Canal']);
+    expect(within(card).getAllByRole('definition').map((d) => d.textContent)).toEqual(['USD 1 K', 'USD 2 K', 'Directo']);
+  });
 });

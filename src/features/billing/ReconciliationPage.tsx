@@ -1,16 +1,36 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  useFinanceReconciliation, useProductFinance, usePartnerFinance, useWebhookEvents,
+  useFinanceReconciliation,
+  useProductFinance,
+  usePartnerFinance,
+  useWebhookEvents,
 } from '@/services/queries';
 import { useSearchFilter } from '@/hooks/useSearchFilter';
-import { SectionTabs, StatusTabs } from '@/components/ui/SectionTabs';
+import { StatusTabs } from '@/components/ui/SectionTabs';
 import {
-  PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge, KpiTile, type DataColumn,
+  PageContainer,
+  Card,
+  DataTable,
+  SearchBar,
+  LoadingState,
+  ErrorState,
+  EmptyState,
+  Badge,
+  type DataColumn,
 } from '@/components/ui/primitives';
-import { formatMoney, formatPercent, formatNumber, formatDateTime } from '@/lib/format';
-import { InfoNote } from './listing';
-import { KpiStrip } from './financeUi';
+import { StatCell, StatStrip } from '@/components/ui/StatStrip';
+import { CellTitle, MoneyCell } from '@/components/ui/cells';
+import {
+  formatCountNoun,
+  formatMoney,
+  formatPercent,
+  formatNumber,
+  formatDateTime,
+} from '@/lib/format';
+
+import { SubSections } from '@/components/ui/SubSections';
+import { readableDates } from './collectionsModel';
 
 const R = (label: string): DataColumn => ({ label, align: 'right' });
 
@@ -36,7 +56,7 @@ const FINDING_LABEL: Record<string, string> = {
   OPEN_INVOICE: 'Factura abierta vencida',
   EXPIRED_DOCUMENT: 'OS/OC vencida',
   REVERSED_PAYMENT: 'Cobro revertido',
-  REJECTED_WEBHOOK: 'Webhook rechazado',
+  REJECTED_WEBHOOK: 'Aviso rechazado',
   MISSING_COLLECTION_PROFILE: 'Sin perfil de cobro',
 };
 
@@ -61,7 +81,7 @@ const FINDING_SOURCE: Record<string, string> = {
   OPEN_INVOICE: 'Facturas',
   EXPIRED_DOCUMENT: 'Documentos del cliente',
   REVERSED_PAYMENT: 'Cobros',
-  REJECTED_WEBHOOK: 'Ledger de webhooks',
+  REJECTED_WEBHOOK: 'Registro de avisos del proveedor',
   MISSING_COLLECTION_PROFILE: 'Perfil de cobro',
 };
 
@@ -82,12 +102,17 @@ export function ReconciliationPage() {
   const [filter, setFilter] = useState<Filter>('ALL');
 
   const { term, setTerm, filtered } = useSearchFilter(findings.data, (f) => [
-    f.subject, f.organization_name, f.detail, f.finding_type,
+    f.subject,
+    f.organization_name,
+    f.detail,
+    f.finding_type,
   ]);
 
   const rows = filtered
     .filter((f) => (filter === 'ALL' ? true : f.severity === filter))
-    .sort((a, b) => (SEVERITY_RANK[a.severity ?? ''] ?? 9) - (SEVERITY_RANK[b.severity ?? ''] ?? 9));
+    .sort(
+      (a, b) => (SEVERITY_RANK[a.severity ?? ''] ?? 9) - (SEVERITY_RANK[b.severity ?? ''] ?? 9),
+    );
   const all = findings.data ?? [];
   const rejectedEvents = (events.data ?? []).filter((e) => e.status === 'REJECTED').length;
 
@@ -97,7 +122,7 @@ export function ReconciliationPage() {
   return (
     <PageContainer
       title="Reconciliación"
-      description="Diferencias entre lo que dice el proveedor, lo que dice la factura y lo que dice el cobro. La pantalla diagnostica; las correcciones las decide una persona."
+      description="Diferencias entre lo que dice el proveedor, lo que dice la factura y lo que dice el cobro. Solo diagnóstico: abrir esta pantalla no corrige, reintenta ni registra nada. Cada hallazgo indica su causa y su fuente; la corrección la decide una persona desde el contrato o la factura."
       actions={
         findings.data ? (
           <Badge tone={errors > 0 ? 'danger' : reviews > 0 ? 'warn' : 'ok'}>
@@ -106,55 +131,53 @@ export function ReconciliationPage() {
         ) : null
       }
     >
-      <KpiStrip label="Indicadores de reconciliación">
-        <KpiTile
-          label="Hallazgos con error"
+      <StatStrip label="Indicadores de reconciliación">
+        <StatCell
+          label="Con error"
           info="Diferencias que no deberían existir: hay que corregirlas desde el contrato o la factura."
-          value={findings.data ? formatNumber(errors) : null}
+          value={findings.data ? formatNumber(errors) : undefined}
           tone={errors > 0 ? 'danger' : 'neutral'}
-          footer="Foto actual"
+          context={
+            findings.data
+              ? `de ${formatCountNoun(all.length, 'hallazgo')} · foto actual`
+              : undefined
+          }
           loading={findings.isLoading}
           error={findings.error}
           onRetry={() => void findings.refetch()}
+          onSelect={() => setFilter((f) => (f === 'ERROR' ? 'ALL' : 'ERROR'))}
+          selected={filter === 'ERROR'}
         />
-        <KpiTile
+        <StatCell
           label="Para revisar"
           info="Situaciones que pueden ser correctas pero piden una mirada (OS/OC vencida, factura abierta vencida…)."
-          value={findings.data ? formatNumber(reviews) : null}
+          value={findings.data ? formatNumber(reviews) : undefined}
           tone={reviews > 0 ? 'warn' : 'neutral'}
-          footer="Foto actual"
+          context="Pueden ser correctas"
           loading={findings.isLoading}
           error={findings.error}
           onRetry={() => void findings.refetch()}
+          onSelect={() => setFilter((f) => (f === 'REVIEW' ? 'ALL' : 'REVIEW'))}
+          selected={filter === 'REVIEW'}
         />
-        <KpiTile
-          label="Total de hallazgos"
-          value={findings.data ? formatNumber(all.length) : null}
-          footer={all.length === 0 ? 'Todo cuadra' : 'Proveedor, facturas y cobros'}
-          loading={findings.isLoading}
-          error={findings.error}
-          onRetry={() => void findings.refetch()}
-        />
-        <KpiTile
-          label="Webhooks rechazados"
-          info="Eventos del proveedor que el ledger rechazó. Un evento IGNORADO (repetido) no es un fallo."
-          value={events.data ? formatNumber(rejectedEvents) : null}
+        <StatCell
+          label="Avisos del proveedor rechazados"
+          info="Avisos del proveedor que el registro rechazó. Un evento ignorado (repetido) no es un fallo."
+          value={events.data ? formatNumber(rejectedEvents) : undefined}
           tone={rejectedEvents > 0 ? 'warn' : 'neutral'}
-          footer={events.data ? `de los últimos ${formatNumber(events.data.length)} eventos` : undefined}
+          context={
+            events.data
+              ? `de los últimos ${formatCountNoun(events.data.length, 'evento')}`
+              : undefined
+          }
           loading={events.isLoading}
           error={events.error}
           onRetry={() => void events.refetch()}
         />
-      </KpiStrip>
+      </StatStrip>
 
-      <div className="mb-4">
-        <InfoNote>
-          <strong>Sólo diagnóstico.</strong> Abrir esta pantalla no corrige, reintenta ni registra nada. Cada hallazgo indica
-          su causa y su fuente; la corrección la decide una persona desde el contrato o la factura.
-        </InfoNote>
-      </div>
-
-      <SectionTabs
+      <SubSections
+        label="Vista de conciliación"
         tabs={[
           {
             id: 'findings',
@@ -181,16 +204,32 @@ export function ReconciliationPage() {
                   <LoadingState />
                 ) : findings.error ? (
                   <ErrorState error={findings.error} onRetry={() => void findings.refetch()} />
-                ) : rows.length === 0 ? (
+                ) : all.length === 0 ? (
                   <EmptyState
                     title="Todo cuadra"
                     description="No hay diferencias entre el proveedor, las facturas y los cobros registrados."
+                  />
+                ) : rows.length === 0 ? (
+                  <EmptyState
+                    variant="no-results"
+                    title="Ningún hallazgo coincide"
+                    description="Prueba con otra búsqueda o cambia el filtro."
+                    onClear={() => {
+                      setTerm('');
+                      setFilter('ALL');
+                    }}
                   />
                 ) : (
                   <DataTable
                     maxHeight={640}
                     label="Hallazgos"
-                    columns={['Prioridad', 'Hallazgo', 'Sujeto · organización', 'Detalle', R('Importe')]}
+                    columns={[
+                      'Prioridad',
+                      'Hallazgo',
+                      'Sujeto · organización',
+                      'Detalle',
+                      R('Importe'),
+                    ]}
                   >
                     {rows.map((f, idx) => (
                       <tr key={`${f.finding_type}-${f.subject}-${idx}`}>
@@ -200,40 +239,46 @@ export function ReconciliationPage() {
                           </Badge>
                         </td>
                         <td className="ebim-td">
-                          <span className="block whitespace-nowrap font-semibold">{FINDING_LABEL[f.finding_type as string] ?? f.finding_type}</span>
-                          <span className="block max-w-[220px] truncate text-compact text-fg-2" title={`Fuente: ${FINDING_SOURCE[f.finding_type as string] ?? 'Sin clasificar'}`}>
+                          <span className="block whitespace-nowrap font-semibold">
+                            {FINDING_LABEL[f.finding_type as string] ?? f.finding_type}
+                          </span>
+                          <span
+                            className="block max-w-[220px] truncate text-compact text-fg-2"
+                            title={`Fuente: ${FINDING_SOURCE[f.finding_type as string] ?? 'Sin clasificar'}`}
+                          >
                             {FINDING_SOURCE[f.finding_type as string] ?? 'Sin clasificar'}
                           </span>
                         </td>
                         <td className="ebim-td">
-                          {/* El sujeto lleva al contrato: la corrección se decide ahí (acción primaria de la fila). */}
-                          {f.subscription_id ? (
-                            <Link
-                              className="ebim-link block max-w-[180px] truncate whitespace-nowrap font-mono text-compact"
-                              title={`${f.subject ?? ''} · abrir el contrato`}
-                              to={`/subscriptions/${f.subscription_id}`}
-                            >
-                              {f.subject}
-                            </Link>
-                          ) : (
-                            <span className="block max-w-[180px] truncate whitespace-nowrap font-mono text-compact font-semibold" title={f.subject ?? undefined}>
-                              {f.subject}
-                            </span>
-                          )}
-                          {/* La organización va bajo el sujeto (en columna propia la tabla no cabía a 1280). */}
-                          <span className="block max-w-[180px] truncate text-compact text-fg-2" title={f.organization_name ?? undefined}>
-                            {f.organization_name}
-                          </span>
+                          {/* El sujeto lleva al contrato: la corrección se decide ahí (acción primaria de la fila).
+                              La organización va debajo (en columna propia la tabla no cabía a 1280). */}
+                          <div className="max-w-[260px]">
+                            <CellTitle
+                              title={f.subject ?? '—'}
+                              to={
+                                f.subscription_id
+                                  ? `/subscriptions/${f.subscription_id}`
+                                  : undefined
+                              }
+                              tooltip={
+                                f.subscription_id
+                                  ? `${f.subject ?? ''} · abrir el contrato`
+                                  : undefined
+                              }
+                              secondary={[f.organization_name]}
+                            />
+                          </div>
                         </td>
                         <td className="ebim-td">
-                          <span className="line-clamp-2 block min-w-[220px] max-w-[340px] text-compact text-fg-2" title={f.detail ?? undefined}>
-                            {f.detail}
+                          <span
+                            className="line-clamp-2 block min-w-[220px] max-w-[360px] text-compact text-fg-2"
+                            title={readableDates(f.detail) ?? undefined}
+                          >
+                            {readableDates(f.detail)}
                           </span>
                         </td>
-                        <td className="ebim-td ebim-num whitespace-nowrap">
-                          {f.amount !== null
-                            ? formatMoney(Number(f.amount), f.currency as string | null)
-                            : '—'}
+                        <td className="ebim-td ebim-num">
+                          <MoneyCell amount={f.amount} currency={f.currency} />
                         </td>
                       </tr>
                     ))}
@@ -260,8 +305,13 @@ export function ReconciliationPage() {
                   <DataTable
                     label="Panel gerencial por producto"
                     columns={[
-                      'Producto', R('MRR'), R('Licencia cobrada'), R('Implementación · infraestructura'),
-                      R('Costo'), R('Comisiones'), R('Margen gerencial'),
+                      'Producto',
+                      R('MRR'),
+                      R('Licencia cobrada'),
+                      R('Implementación · infraestructura'),
+                      R('Costo'),
+                      R('Comisiones'),
+                      R('Margen gerencial'),
                     ]}
                   >
                     {(products.data ?? [])
@@ -297,7 +347,9 @@ export function ReconciliationPage() {
                           >
                             {formatMoney(Number(p.gross_margin), p.currency)}
                             <span className="block text-caption font-normal text-fg-2">
-                              {p.margin_rate !== null ? `${formatPercent(Number(p.margin_rate))} sobre cobrado` : '—'}
+                              {p.margin_rate !== null
+                                ? `${formatPercent(Number(p.margin_rate))} sobre cobrado`
+                                : '—'}
                             </span>
                           </td>
                         </tr>
@@ -325,8 +377,13 @@ export function ReconciliationPage() {
                   <DataTable
                     label="Panel por partner"
                     columns={[
-                      'Organización', R('MRR'), R('Cobrado'), R('Costo directo'),
-                      R('Margen gerencial'), R('Margen de canal'), R('Comisión a comerciales'),
+                      'Organización',
+                      R('MRR'),
+                      R('Cobrado'),
+                      R('Costo directo'),
+                      R('Margen gerencial'),
+                      R('Margen de canal'),
+                      R('Comisión a comerciales'),
                     ]}
                   >
                     {(partners.data ?? []).map((p) => (
@@ -375,8 +432,8 @@ export function ReconciliationPage() {
             label: 'Eventos del proveedor',
             content: (
               <Card
-                title="Últimos eventos de webhook"
-                description="Ledger de idempotencia. Un evento IGNORADO no es un fallo: es la defensa funcionando ante una entrega repetida."
+                title="Últimos avisos del proveedor"
+                description="Registro sin duplicados. Un evento IGNORADO no es un fallo: es la defensa funcionando ante una entrega repetida."
               >
                 {events.isLoading ? (
                   <LoadingState />
@@ -385,13 +442,18 @@ export function ReconciliationPage() {
                 ) : (events.data ?? []).length === 0 ? (
                   <EmptyState
                     title="Sin eventos registrados"
-                    description="No se ha recibido ningún webhook del proveedor todavía."
+                    description="No se ha recibido ningún aviso del proveedor todavía."
                   />
                 ) : (
-                  <DataTable label="Últimos eventos de webhook" columns={['Recibido', 'Cuenta', 'Tipo', 'Estado', 'Resultado']}>
+                  <DataTable
+                    label="Últimos avisos del proveedor"
+                    columns={['Recibido', 'Cuenta', 'Tipo', 'Estado', 'Resultado']}
+                  >
                     {(events.data ?? []).map((e) => (
                       <tr key={e.id}>
-                        <td className="ebim-td whitespace-nowrap text-compact text-fg-2">{formatDateTime(e.received_at)}</td>
+                        <td className="ebim-td whitespace-nowrap text-compact text-fg-2">
+                          {formatDateTime(e.received_at)}
+                        </td>
                         <td className="ebim-td whitespace-nowrap font-mono text-compact">
                           {(e.payment_provider_accounts as { code: string } | null)?.code}
                         </td>

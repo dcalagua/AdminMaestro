@@ -62,7 +62,7 @@ function CellSummary({
   const modules = moduleState(flags.modules, tenant.moduleSync);
   const appLine =
     tenant.kind === 'PENDING_CONFIRM'
-      ? 'Activo en la app · pendiente de confirmar en MasterAdmin'
+      ? 'Activo en la app · pendiente de confirmar en el Admin Maestro'
       : `En la app: ${tenant.requestStatusLabel ?? 'sin alta'} · Aquí: ${tenant.tenantStatusLabel}`;
   const contractLine = finance
     ? `Contrato: ${tenant.subscriptionStatus ? SUBSCRIPTION_STATUS_LABEL[tenant.subscriptionStatus] ?? tenant.subscriptionStatus : 'sin contrato'}`
@@ -144,7 +144,7 @@ export function SuiteMatrix({
   return (
     <Card
       title="Cuentas en cada app"
-      description="Una fila por cuenta cliente con al menos un tenant; una columna por app. Abre una celda para ver el detalle y sus acciones."
+      description="Una fila por cuenta con tenants y una columna por app. Abre una celda para ver su detalle y sus acciones."
     >
       <PendingConfirmNotice count={pendingConfirm} />
       <SearchBar
@@ -186,11 +186,14 @@ export function SuiteMatrix({
       ) : visible.length === 0 ? (
         <EmptyState title="Sin resultados" description="Ninguna cuenta coincide con la búsqueda o el filtro." illustration="search" />
       ) : (
+        // T12: las apps se leen con su nombre en su caja real («eChange», no «ECHANGE»).
+        <div className="[&_thead_th:not(:first-child)]:text-center [&_thead_th:not(:first-child)]:text-compact [&_thead_th:not(:first-child)]:font-semibold [&_thead_th:not(:first-child)]:normal-case [&_thead_th:not(:first-child)]:tracking-normal [&_thead_th:not(:first-child)]:text-fg-2">
         <DataTable
           label="Cuentas por app"
           scrollRegion
+          mobileCards={false}
           minWidth={180 + apps.length * 100}
-          columns={['Cuenta', ...apps.map((a) => a.name)]}
+          columns={[{ label: 'Cuenta', sticky: true }, ...apps.map((a) => a.name)]}
         >
           {visible.map((row) => (
             <tr key={row.organizationId} data-account={row.organizationName}>
@@ -232,13 +235,13 @@ export function SuiteMatrix({
             </tr>
           ))}
         </DataTable>
+        </div>
       )}
 
       <DetailDrawer
         open={Boolean(selected && selectedCell)}
-        size="lg"
+        size="md"
         title={selected ? `${selected.row.organizationName} · ${selected.app.name}` : ''}
-        subtitle="Estado de la cuenta en la app y acciones disponibles"
         onClose={() => setSelected(null)}
         actions={
           selected ? (
@@ -257,7 +260,11 @@ export function SuiteMatrix({
               return (
                 <section key={t.tenantId} aria-labelledby={`t-${t.tenantId}`} data-drawer-tenant={t.tenantId}>
                   <div className="mb-3 flex flex-wrap items-center gap-2">
-                    <h3 id={`t-${t.tenantId}`} className="text-body font-semibold text-fg">
+                    {/* Con un solo tenant, su nombre («Cliente · App») repetiría el título del panel. */}
+                    <h3
+                      id={`t-${t.tenantId}`}
+                      className={selectedCell.tenants.length > 1 ? 'text-body font-semibold text-fg' : 'sr-only'}
+                    >
                       {t.tenantName}
                     </h3>
                     <Badge tone={CELL[t.kind].tone} dot>
@@ -272,7 +279,7 @@ export function SuiteMatrix({
                   ) : null}
                   <DetailList
                     items={[
-                      ['Estado en MasterAdmin', t.tenantStatusLabel],
+                      ['Estado en el Admin Maestro', t.tenantStatusLabel],
                       [
                         'Alta en la app',
                         t.request ? (

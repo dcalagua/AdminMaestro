@@ -23,6 +23,8 @@ const TEXT_PROPS = new Set([
   'detailLabel', 'emptyTitle', 'emptyDescription', 'cancelLabel', 'submitLabel', 'caption', 'subtitle',
   'helper', 'legend', 'text', 'question', 'summary', 'heading', 'badge', 'note', 'footnote',
   'action', 'actionLabel', 'reason', 'tooltip',
+  // V6 · T7: la definición y el pie de los KPI también se leen (un tooltip de Costos decía `v_collected_revenue`).
+  'info', 'footer', 'context', 'emptyLabel',
 ]);
 
 const MESSAGE_CALLS = new Set(['success', 'error', 'info', 'warning', 'warn', 'push', 'regex', 'min', 'max', 'refine', 'length']);
@@ -141,5 +143,5 @@ export function visibleTexts(fileName: string, source: string): VisibleText[] {
  * persona debe escribir tal cual, no vocabulario.
  */
 export function withoutIdentifiers(text: string): string {
-  return text.replace(/[\w.]+(?:[_:\-./][\w.]+)+/g, (token) => (token === 'DRY_RUN' ? token : ' '));
+  return text.replace(/[\w.]+(?:[_:\-./][\w.]+)+/g, (token) => (token === 'DRY_RUN' || /^(?:one-time|D-\d{2})$/i.test(token) ? token : ' '));
 }

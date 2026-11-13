@@ -20,15 +20,18 @@ const TONE: Record<DimTone, string> = {
 function Cell({ title, question, dim, extra }: { title: string; question: string; dim: Dimension; extra?: string }) {
   const Icon = ICON[dim.tone];
   return (
-    <div className="p-4">
+    // V6 · F4: compacta (una banda de ~72 px); la pregunta y el detalle van al `title`.
+    <div className="min-w-0 px-4 py-3" title={`${question}\n${dim.detail}`}>
       <p className="text-micro text-muted">{title}</p>
-      <p className="text-caption text-muted">{question}</p>
-      <p className="mt-2 flex items-start gap-1.5 text-compact font-semibold text-fg">
-        <Icon size={18} aria-hidden className={`mt-px shrink-0 ${TONE[dim.tone]}`} />
-        <span>{dim.label}</span>
+      <p className="mt-1 flex items-start gap-1.5 text-compact font-semibold text-fg">
+        <Icon size={16} aria-hidden className={`mt-0.5 shrink-0 ${TONE[dim.tone]}`} />
+        <span className="min-w-0">
+          {dim.label}
+          {extra ? <span className="font-normal text-fg-2"> · {extra}</span> : null}
+        </span>
       </p>
-      {extra ? <p className="mt-1 text-compact font-semibold text-fg">{extra}</p> : null}
-      <p className="mt-1 text-caption text-fg-2">{dim.detail}</p>
+      <p className="mt-0.5 line-clamp-2 text-caption text-muted">{dim.detail}</p>
+      <span className="sr-only">{question}</span>
     </div>
   );
 }

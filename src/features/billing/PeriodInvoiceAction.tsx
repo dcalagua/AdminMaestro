@@ -1,13 +1,9 @@
-import { useState } from 'react';
-import { useSubscriptionBillingStatus } from '@/services/queries';
-import { useIssueSubscriptionInvoice } from '@/services/mutations';
-import { useToast } from '@/components/ui/toast-context';
 import { formatMoney } from '@/lib/format';
 import {
-  NO_DUE_ITEMS_MESSAGE, formatDateDMY, formatPeriod, issueErrorMessage, issueResultTitle,
-  monthInputValue, periodStartFromMonth, type IssueInvoiceResult,
+  NO_DUE_ITEMS_MESSAGE, formatDateDMY, formatPeriod, issueErrorMessage, type IssueInvoiceResult,
 } from '@/lib/billing';
 import { MonthField } from '@/components/ui/fields';
+import { usePeriodInvoice, type PeriodInvoiceState } from './periodInvoice';
 
 /**
  * V3.1 · Emisión de la factura del PERIODO de una suscripción.
@@ -29,80 +25,63 @@ export function PeriodInvoiceAction({
   /** Tras emitir (o reutilizar) la factura del período: flujos guiados y diálogo de Cobranza. */
   onIssued?: (result: IssueInvoiceResult | null) => void;
 }) {
-  const toast = useToast();
-  const [month, setMonth] = useState(() => monthInputValue());
-  const periodStart = periodStartFromMonth(month);
-  const status = useSubscriptionBillingStatus(subscriptionId, periodStart);
-  const issueInvoice = useIssueSubscriptionInvoice();
-
-  const st = status.data;
-  const blockedByStatus = Boolean(st) && !st!.can_issue;
-  const disabled = !periodStart || issueInvoice.isPending || status.isLoading || blockedByStatus;
-
-  async function issue() {
-    if (!periodStart) return;
-    try {
-      const r = (await issueInvoice.mutateAsync({
-        p_subscription_id: subscriptionId,
-        p_period_start: periodStart,
-      })) as IssueInvoiceResult | null;
-      toast.success(
-        issueResultTitle(r),
-        `${r?.number ?? ''} · ${formatMoney(Number(r?.total ?? 0), r?.currency ?? currency)}`,
-      );
-      onIssued?.(r);
-    } catch (error) {
-      toast.error('No se pudo emitir la factura', issueErrorMessage(error));
-    }
-  }
-
+  const state = usePeriodInvoice({ subscriptionId, currency, onIssued });
   return (
     <div className="flex flex-col gap-3 border-b border-border px-4 py-3 sm:flex-row sm:items-end sm:justify-between">
-      <div className="space-y-1">
-        <MonthField
-          id="billing-period"
-          className="w-56"
-          label="Período de facturación"
-          ahead={12}
-          value={month}
-          onChange={(e) => setMonth(e.target.value)}
-        />
-        <div className="text-compact text-muted" data-testid="billing-status" aria-live="polite">
-          {status.isLoading ? (
-            <p role="status">Calculando cargos del período…</p>
-          ) : status.error ? (
-            <p className="text-danger">
-              No se pudo consultar el estado de facturación: {issueErrorMessage(status.error)}
-            </p>
-          ) : st ? (
-            <>
-              {st.existing_invoice ? (
-                <p>
-                  Factura del período {formatPeriod(st.period_start)} ya emitida:{' '}
-                  <span className="font-mono font-semibold text-fg">{st.existing_invoice.number}</span> ·{' '}
-                  {formatMoney(Number(st.existing_invoice.total), st.existing_invoice.currency)}
-                </p>
-              ) : st.has_due_items ? (
-                <p>
-                  {st.due_item_count === 1 ? '1 cargo facturable' : `${st.due_item_count} cargos facturables`} en{' '}
-                  {formatPeriod(st.period_start)} · Total estimado{' '}
-                  <span className="font-semibold text-fg">{formatMoney(Number(st.estimated_total), st.currency)}</span>
-                </p>
-              ) : (
-                <p>{NO_DUE_ITEMS_MESSAGE}</p>
-              )}
-              <p>
-                {st.next_billing_period
-                  ? `Próxima facturación: ${formatDateDMY(st.next_billing_period)}`
-                  : 'Sin cargos pendientes de facturar en los próximos 12 meses.'}
-              </p>
-            </>
-          ) : null}
-        </div>
-      </div>
-      <button type="button" className="ebim-btn-ghost" disabled={disabled} onClick={() => void issue()}>
-        {issueInvoice.isPending ? 'Emitiendo…' : `Emitir factura del período (${currency})`}
+      <PeriodInvoiceFields state={state} />
+      <button type="button" className="ebim-btn-ghost" disabled={state.disabled} onClick={() => void state.issue()}>
+        {state.pending ? 'Emitiendo…' : `Emitir factura del período (${currency})`}
       </button>
+    </div>
+  );
+}
+
+/** Período y lo que dice la base de ese período (cargos, factura vigente, próxima facturación). */
+export function PeriodInvoiceFields({ state }: { state: PeriodInvoiceState }) {
+  const { month, setMonth, status } = state;
+  const st = status.data;
+  return (
+    <div className="space-y-1">
+      <MonthField
+        id="billing-period"
+        className="w-72 max-w-full"
+        label="Período de facturación"
+        ahead={12}
+        value={month}
+        onChange={(e) => setMonth(e.target.value)}
+      />
+      <div className="text-compact text-muted" data-testid="billing-status" aria-live="polite">
+        {status.isLoading ? (
+          <p role="status">Calculando cargos del período…</p>
+        ) : status.error ? (
+          <p className="text-danger">
+            No se pudo consultar el estado de facturación: {issueErrorMessage(status.error)}
+          </p>
+        ) : st ? (
+          <>
+            {st.existing_invoice ? (
+              <p>
+                Factura del período {formatPeriod(st.period_start)} ya emitida:{' '}
+                <span className="font-mono font-semibold text-fg">{st.existing_invoice.number}</span> ·{' '}
+                {formatMoney(Number(st.existing_invoice.total), st.existing_invoice.currency)}
+              </p>
+            ) : st.has_due_items ? (
+              <p>
+                {st.due_item_count === 1 ? '1 cargo facturable' : `${st.due_item_count} cargos facturables`} en{' '}
+                {formatPeriod(st.period_start)} · Total estimado{' '}
+                <span className="font-semibold text-fg">{formatMoney(Number(st.estimated_total), st.currency)}</span>
+              </p>
+            ) : (
+              <p>{NO_DUE_ITEMS_MESSAGE}</p>
+            )}
+            <p>
+              {st.next_billing_period
+                ? `Próxima facturación: ${formatDateDMY(st.next_billing_period)}`
+                : 'Sin cargos pendientes de facturar en los próximos 12 meses.'}
+            </p>
+          </>
+        ) : null}
+      </div>
     </div>
   );
 }

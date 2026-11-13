@@ -14,14 +14,33 @@ import {
   type InvoiceSort,
   type PaymentSort,
 } from '@/services/financeRead';
-import { useExecutiveBillingSeries, useWeeklyCollections, type WeeklyCollectionPoint } from '@/services/queries';
+import {
+  useExecutiveBillingSeries,
+  useWeeklyCollections,
+  type WeeklyCollectionPoint,
+} from '@/services/queries';
 import { useListState } from '@/hooks/useListState';
-import { SectionTabs, StatusTabs } from '@/components/ui/SectionTabs';
-import { PageContainer, Card, SearchBar, Badge, KpiTile, DataTable } from '@/components/ui/primitives';
+import { StatusTabs } from '@/components/ui/SectionTabs';
+import {
+  PageContainer,
+  Card,
+  SearchBar,
+  Badge,
+  KpiTile,
+  DataTable,
+} from '@/components/ui/primitives';
 import { PagedTable, type TableColumn } from '@/components/ui/PagedTable';
+import { MoneyCell } from '@/components/ui/cells';
 import { ExportMenu } from '@/components/ui/ExportMenu';
 import type { ExportColumn } from '@/lib/export';
-import { formatCompactAmount, formatDate, formatMoney, formatNumber, formatPercent, sumByCurrency } from '@/lib/format';
+import {
+  formatCompactAmount,
+  formatDate,
+  formatMoney,
+  formatNumber,
+  formatPercent,
+  sumByCurrency,
+} from '@/lib/format';
 import { INVOICE_STATUS_LABEL } from '@/types/domain';
 import { fromQuery } from '@/features/executive/dataState';
 import { AGING_BUCKETS } from '@/features/executive/kpis';
@@ -29,9 +48,17 @@ import { currentMonth, lastMonths, toCurrencyAmounts } from '@/features/executiv
 import { ChartPanel } from '@/features/executive/components/ChartPanel';
 import { monthLongLabel } from '@/features/dashboard/executiveModel';
 import { ConsistencyNote, InfoNote, ScopeChip, ScopeChips } from './listing';
+import { SubSections } from '@/components/ui/SubSections';
 import { parseIsoDate, useDebouncedSearch } from './listingState';
 import { FilterTotals, KpiStrip, NativeAmountTile } from './financeUi';
-import { analyzedMonth, closedWindow, longMonthName, relChange, shortMonthName } from './financeModel';
+import { EmptyChartLine } from '@/components/ui/EmptyChartLine';
+import {
+  analyzedMonth,
+  closedWindow,
+  longMonthName,
+  relChange,
+  shortMonthName,
+} from './financeModel';
 import { PeriodBars } from './lazyFinanceCharts';
 
 /**
@@ -46,9 +73,20 @@ import { PeriodBars } from './lazyFinanceCharts';
  * facturado ni como saldo: eso lo decide la base.
  */
 
-const INVOICE_FILTERS = ['ALL', 'OPEN', 'PAID', 'EXCLUDED', 'UNCOLLECTIBLE'] as const satisfies readonly InvoiceFilter[];
+const INVOICE_FILTERS = [
+  'ALL',
+  'OPEN',
+  'PAID',
+  'EXCLUDED',
+  'UNCOLLECTIBLE',
+] as const satisfies readonly InvoiceFilter[];
 const INVOICE_SORTS = [
-  'issue_date', 'due_date', 'number', 'total', 'balance', 'organization_name',
+  'issue_date',
+  'due_date',
+  'number',
+  'total',
+  'balance',
+  'organization_name',
 ] as const satisfies readonly InvoiceSort[];
 const INVOICE_LIST = {
   filter: 'ALL' as InvoiceFilter,
@@ -58,7 +96,12 @@ const INVOICE_LIST = {
   sortDir: 'desc' as const,
 };
 
-const PAYMENT_SORTS = ['collected_on', 'collected_amount', 'organization_name', 'invoice_number'] as const satisfies readonly PaymentSort[];
+const PAYMENT_SORTS = [
+  'collected_on',
+  'collected_amount',
+  'organization_name',
+  'invoice_number',
+] as const satisfies readonly PaymentSort[];
 const PAYMENT_LIST = {
   filter: 'ALL' as const,
   filters: ['ALL'] as const,
@@ -67,7 +110,16 @@ const PAYMENT_LIST = {
   sortDir: 'desc' as const,
 };
 
-const AGING_VALUES: AgingFilter[] = ['VENCIDA', 'VIGENTE', 'D1_30', 'D31_60', 'D61_90', 'D90_MAS', 'SIN_FECHA', 'A_FAVOR'];
+const AGING_VALUES: AgingFilter[] = [
+  'VENCIDA',
+  'VIGENTE',
+  'D1_30',
+  'D31_60',
+  'D61_90',
+  'D90_MAS',
+  'SIN_FECHA',
+  'A_FAVOR',
+];
 
 function agingLabel(value: string): string {
   if (value === 'VENCIDA') return 'Vencida (todas las bandas)';
@@ -106,7 +158,11 @@ export function BillingPage() {
   // se abre directamente la pestaña de cobros, salvo que el #hash diga otra cosa.
   useState(() => {
     if ((params.get('desde') || params.get('hasta')) && !window.location.hash) {
-      window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}#${PAYMENTS_TAB}`);
+      window.history.replaceState(
+        window.history.state,
+        '',
+        `${window.location.pathname}${window.location.search}#${PAYMENTS_TAB}`,
+      );
     }
     return null;
   });
@@ -117,10 +173,9 @@ export function BillingPage() {
       description="Cómo vamos facturando y cobrando, y qué falta cobrar. La franja y el gráfico van en moneda de reporte; las tablas, en la moneda de cada factura (nunca se suman monedas)."
     >
       <BillingKpis />
-      <div className="mb-6">
-        <WeeklyCollectionsPanel />
-      </div>
-      <SectionTabs
+      <WeeklyCollectionsPanel />
+      <SubSections
+        label="Vista de facturación"
         tabs={[
           { id: 'facturas', label: 'Facturas', content: <InvoicesSection /> },
           { id: PAYMENTS_TAB, label: 'Cobros confirmados', content: <CollectedPaymentsSection /> },
@@ -134,8 +189,12 @@ export function BillingPage() {
    Franja de KPIs (S06, moneda de reporte) y cobros por semana (S10)
    ========================================================================== */
 
-function missingFx(point: { complete: boolean; missingCurrencies: string[] } | undefined): string | null {
-  return point && !point.complete ? `Falta tasa ${point.missingCurrencies.join(', ')}: no se consolida` : null;
+function missingFx(
+  point: { complete: boolean; missingCurrencies: string[] } | undefined,
+): string | null {
+  return point && !point.complete
+    ? `Falta tasa ${point.missingCurrencies.join(', ')}: no se consolida`
+    : null;
 }
 
 function BillingKpis() {
@@ -148,35 +207,72 @@ function BillingKpis() {
   const rc = rows[0]?.reportingCurrency;
   const name = shortMonthName(month);
   const vs = previous ? `vs ${longMonthName(previous.month.slice(0, 7))}` : undefined;
-  const common = { loading: series.isLoading, error: series.error, onRetry: () => void series.refetch() };
+  const common = {
+    loading: series.isLoading,
+    error: series.error,
+    onRetry: () => void series.refetch(),
+  };
   const rate = current?.collectionRate ?? null;
   const prevRate = previous?.collectionRate ?? null;
   const overdueTrend = rows.filter((r) => r.month.slice(0, 7) <= now).slice(-12);
 
+  // V6: sin tasa para alguna moneda, el mes se muestra en montos NATIVOS (como
+  // el Resumen), nunca «USD 0»: la suma por moneda sí existe aunque no se consolide.
+  const nativeState = fromQuery(series, { isEmpty: () => false });
+  const unconsolidated = Boolean(current && !current.complete);
+  const nativeFooter = (count: string) => `${missingFx(current) ?? ''} · ${count}`;
+
   return (
-    <KpiStrip label="Indicadores de facturación y cobro">
-      <KpiTile
-        label={`Facturado · ${name}`}
-        info="Facturas emitidas en el mes (excluye borradores y anuladas), en moneda de reporte con la tasa del cierre del mes (S06)."
-        currency={current?.invoiced != null ? rc : undefined}
-        value={current?.invoiced == null ? null : formatCompactAmount(current.invoiced)}
-        delta={{ value: relChange(current?.invoiced, previous?.invoiced), comparison: vs }}
-        trend={trend.map((p) => p.invoiced)}
-        trendDescription={`Facturado de los últimos ${trend.length} meses cerrados`}
-        footer={missingFx(current) ?? `${formatNumber(current?.invoiceCount ?? 0)} facturas · ${monthLongLabel(month)}`}
-        {...common}
-      />
-      <KpiTile
-        label={`Cobrado · ${name}`}
-        info="Pagos confirmados en el mes (K02), en moneda de reporte con la tasa del cierre del mes."
-        currency={current?.collected != null ? rc : undefined}
-        value={current?.collected == null ? null : formatCompactAmount(current.collected)}
-        delta={{ value: relChange(current?.collected, previous?.collected), comparison: vs }}
-        trend={trend.map((p) => p.collected)}
-        trendDescription={`Cobrado de los últimos ${trend.length} meses cerrados`}
-        footer={missingFx(current) ?? `${formatNumber(current?.paymentCount ?? 0)} pagos confirmados`}
-        {...common}
-      />
+    <KpiStrip variant="tiles" label="Indicadores de facturación y cobro">
+      {unconsolidated && Object.keys(current!.invoicedNative).length > 0 ? (
+        <NativeAmountTile
+          label={`Facturado · ${name}`}
+          info="Facturas emitidas en el mes (excluye borradores y anuladas). Sin tasa para alguna moneda: se muestra por moneda, sin consolidar."
+          amounts={current!.invoicedNative}
+          state={nativeState}
+          onRetry={() => void series.refetch()}
+          footer={nativeFooter(`${formatNumber(current!.invoiceCount)} facturas`)}
+        />
+      ) : (
+        <KpiTile
+          label={`Facturado · ${name}`}
+          info="Facturas emitidas en el mes (excluye borradores y anuladas), en moneda de reporte con la tasa del cierre del mes (S06)."
+          currency={current?.invoiced != null ? rc : undefined}
+          value={current?.invoiced == null ? null : formatCompactAmount(current.invoiced)}
+          delta={{ value: relChange(current?.invoiced, previous?.invoiced), comparison: vs }}
+          trend={trend.map((p) => p.invoiced)}
+          trendDescription={`Facturado de los últimos ${trend.length} meses cerrados`}
+          footer={
+            missingFx(current) ??
+            `${formatNumber(current?.invoiceCount ?? 0)} facturas · ${monthLongLabel(month)}`
+          }
+          {...common}
+        />
+      )}
+      {unconsolidated && Object.keys(current!.collectedNative).length > 0 ? (
+        <NativeAmountTile
+          label={`Cobrado · ${name}`}
+          info="Pagos confirmados en el mes. Sin tasa para alguna moneda: se muestra por moneda, sin consolidar."
+          amounts={current!.collectedNative}
+          state={nativeState}
+          onRetry={() => void series.refetch()}
+          footer={nativeFooter(`${formatNumber(current!.paymentCount)} pagos confirmados`)}
+        />
+      ) : (
+        <KpiTile
+          label={`Cobrado · ${name}`}
+          info="Pagos confirmados en el mes, en moneda de reporte con la tasa del cierre del mes."
+          currency={current?.collected != null ? rc : undefined}
+          value={current?.collected == null ? null : formatCompactAmount(current.collected)}
+          delta={{ value: relChange(current?.collected, previous?.collected), comparison: vs }}
+          trend={trend.map((p) => p.collected)}
+          trendDescription={`Cobrado de los últimos ${trend.length} meses cerrados`}
+          footer={
+            missingFx(current) ?? `${formatNumber(current?.paymentCount ?? 0)} pagos confirmados`
+          }
+          {...common}
+        />
+      )}
       <KpiTile
         label={`Cobro del mes · ${name}`}
         info="Cobrado ÷ facturado del MISMO mes (razón de caja): puede superar 100 % si se cobró atraso."
@@ -204,7 +300,9 @@ function BillingKpis() {
         trend={overdueTrend.map((p) => p.overdue)}
         trendPartial={Boolean(today?.isPartial)}
         trendDescription="Cartera vencida al cierre de cada mes; el último punto es hoy"
-        footer={missingFx(today) ?? `${formatNumber(today?.overdueInvoiceCount ?? 0)} facturas vencidas`}
+        footer={
+          missingFx(today) ?? `${formatNumber(today?.overdueInvoiceCount ?? 0)} facturas vencidas`
+        }
         {...common}
       />
     </KpiStrip>
@@ -221,7 +319,9 @@ function WeeklyCollectionsPanel() {
   const points = query.data ?? [];
   const rc = points[0]?.reportingCurrency ?? '';
   const closed = points.filter((p) => !p.isPartial);
-  const total = closed.every((p) => p.collected != null) ? closed.reduce((t, p) => t + (p.collected ?? 0), 0) : null;
+  const total = closed.every((p) => p.collected != null)
+    ? closed.reduce((t, p) => t + (p.collected ?? 0), 0)
+    : null;
   const best = [...closed].sort((a, b) => (b.collected ?? 0) - (a.collected ?? 0))[0];
   const state = fromQuery(query, { isEmpty: (rows) => rows.every((r) => r.paymentCount === 0) });
   const data = points.map((p) => ({
@@ -231,50 +331,64 @@ function WeeklyCollectionsPanel() {
     partial: p.isPartial,
     values: { collected: p.collected },
   }));
+  // V6: sin cobros en las 12 semanas, una línea en lugar de una tarjeta vacía de 200 px.
+  if (state.status === 'empty') {
+    return (
+      <EmptyChartLine title="Caja semanal">
+        sin cobros confirmados en las últimas {points.length || 12} semanas.
+      </EmptyChartLine>
+    );
+  }
   return (
-    <ChartPanel
-      id="cobros-semana"
-      title="¿Cómo entra la caja semana a semana?"
-      unit={`Cobrado por semana en ${rc || 'moneda de reporte'}`}
-      period={`Últimas ${points.length || 12} semanas${total != null ? ` · ${formatMoney(total, rc)} en semanas cerradas` : ''}`}
-      source="collections_by_week"
-      coverage="Pagos confirmados por fecha de cobro; la semana en curso va más tenue"
-      state={state}
-      onRetry={() => void query.refetch()}
-      emptyText="Sin cobros confirmados en las últimas semanas"
-      refreshing={query.isPlaceholderData}
-      chart={() => (
-        <PeriodBars
-          data={data}
-          series={[{ key: 'collected', label: 'Cobrado', color: 'var(--chart-1)' }]}
-          unit={{ currency: rc }}
-          height={220}
-          ariaLabel={`Cobrado por semana en ${rc}${best ? `; la semana más alta fue la del ${formatDate(best.weekStart)} con ${formatMoney(best.collected, rc)}` : ''}. Use la vista Tabla para leer cada semana.`}
-        />
-      )}
-      table={() => (
-        <DataTable
-          paginate={false}
-          caption="Cobrado por semana"
-          columns={[
-            'Semana',
-            { label: `Cobrado (${rc})`, align: 'right' },
-            { label: 'Pagos', align: 'right' },
-          ]}
-        >
-          {[...points].reverse().map((p) => (
-            <tr key={p.weekStart}>
-              <th scope="row" className="ebim-td text-left font-medium">
-                {formatDate(p.weekStart)} – {formatDate(p.weekEnd)}
-                {p.isPartial ? <span className="ml-1 text-caption text-muted">(en curso)</span> : null}
-              </th>
-              <td className="ebim-td ebim-num">{p.collected == null ? 'Sin tasa' : formatMoney(p.collected, rc)}</td>
-              <td className="ebim-td ebim-num">{formatNumber(p.paymentCount)}</td>
-            </tr>
-          ))}
-        </DataTable>
-      )}
-    />
+    <div className="mb-6">
+      <ChartPanel
+        id="cobros-semana"
+        title="¿Cómo entra la caja semana a semana?"
+        unit={`Cobrado por semana en ${rc || 'moneda de reporte'}`}
+        period={`Últimas ${points.length || 12} semanas${total != null ? ` · ${formatMoney(total, rc)} en semanas cerradas` : ''}`}
+        source="collections_by_week"
+        coverage="Pagos confirmados por fecha de cobro; la semana en curso va más tenue"
+        state={state}
+        onRetry={() => void query.refetch()}
+        emptyText="Sin cobros confirmados en las últimas semanas"
+        refreshing={query.isPlaceholderData}
+        chart={() => (
+          <PeriodBars
+            data={data}
+            series={[{ key: 'collected', label: 'Cobrado', color: 'var(--chart-1)' }]}
+            unit={{ currency: rc }}
+            height={220}
+            ariaLabel={`Cobrado por semana en ${rc}${best ? `; la semana más alta fue la del ${formatDate(best.weekStart)} con ${formatMoney(best.collected, rc)}` : ''}. Use la vista Tabla para leer cada semana.`}
+          />
+        )}
+        table={() => (
+          <DataTable
+            paginate={false}
+            caption="Cobrado por semana"
+            columns={[
+              'Semana',
+              { label: `Cobrado (${rc})`, align: 'right' },
+              { label: 'Pagos', align: 'right' },
+            ]}
+          >
+            {[...points].reverse().map((p) => (
+              <tr key={p.weekStart}>
+                <th scope="row" className="ebim-td text-left font-medium">
+                  {formatDate(p.weekStart)} – {formatDate(p.weekEnd)}
+                  {p.isPartial ? (
+                    <span className="ml-1 text-caption text-muted">(en curso)</span>
+                  ) : null}
+                </th>
+                <td className="ebim-td ebim-num">
+                  {p.collected == null ? 'Sin tasa' : formatMoney(p.collected, rc)}
+                </td>
+                <td className="ebim-td ebim-num">{formatNumber(p.paymentCount)}</td>
+              </tr>
+            ))}
+          </DataTable>
+        )}
+      />
+    </div>
   );
 }
 
@@ -316,7 +430,10 @@ function InvoicesSection() {
       header: 'Número',
       sortKey: 'number',
       cell: (r) => (
-        <span className="block max-w-[160px] truncate whitespace-nowrap font-mono text-compact font-semibold min-[1400px]:max-w-[240px]" title={r.number ?? undefined}>
+        <span
+          className="block max-w-[160px] truncate whitespace-nowrap font-mono text-compact font-semibold min-[1400px]:max-w-[240px]"
+          title={r.number ?? undefined}
+        >
           {r.number ?? '—'}
         </span>
       ),
@@ -335,11 +452,27 @@ function InvoicesSection() {
             {r.organization_name ?? 'Sin nombre'}
           </Link>
         ) : (
-          <span className="block max-w-[160px] truncate text-muted min-[1400px]:max-w-[220px]">{r.organization_name ?? '—'}</span>
+          <span className="block max-w-[160px] truncate text-muted min-[1400px]:max-w-[220px]">
+            {r.organization_name ?? '—'}
+          </span>
         ),
     },
-    { id: 'issue', header: 'Emisión', sortKey: 'issue_date', cell: (r) => <span className="whitespace-nowrap text-compact text-fg-2">{formatDate(r.issue_date)}</span> },
-    { id: 'due', header: 'Vence', sortKey: 'due_date', cell: (r) => <span className="whitespace-nowrap text-compact text-fg-2">{formatDate(r.due_date)}</span> },
+    {
+      id: 'issue',
+      header: 'Emisión',
+      sortKey: 'issue_date',
+      cell: (r) => (
+        <span className="whitespace-nowrap text-compact text-fg-2">{formatDate(r.issue_date)}</span>
+      ),
+    },
+    {
+      id: 'due',
+      header: 'Vence',
+      sortKey: 'due_date',
+      cell: (r) => (
+        <span className="whitespace-nowrap text-compact text-fg-2">{formatDate(r.due_date)}</span>
+      ),
+    },
     // Lo cobrado va bajo el total (saldo = total − cobrado): como columna propia
     // la tabla no cabía a 1280.
     {
@@ -348,10 +481,19 @@ function InvoicesSection() {
       sortKey: 'total',
       align: 'right',
       cell: (r) => (
-        <span className="whitespace-nowrap">
-          <span className="block font-semibold">{formatMoney(num(r.total), r.currency)}</span>
-          <span className="block text-caption text-muted">cobrado {formatMoney(num(r.confirmed_paid), r.currency)}</span>
-        </span>
+        <MoneyCell
+          amount={num(r.total)}
+          currency={r.currency}
+          context={
+            num(r.confirmed_paid) ? (
+              <span title={formatMoney(num(r.confirmed_paid), r.currency)}>
+                cobrado {r.currency} {formatCompactAmount(num(r.confirmed_paid))}
+              </span>
+            ) : (
+              'sin cobros'
+            )
+          }
+        />
       ),
     },
     {
@@ -370,7 +512,7 @@ function InvoicesSection() {
             </span>
           );
         }
-        return <span className={`whitespace-nowrap ${balance ? 'font-semibold' : 'text-muted'}`}>{formatMoney(balance, r.currency)}</span>;
+        return <MoneyCell amount={balance} currency={r.currency} empty="Saldada" />;
       },
     },
     {
@@ -379,12 +521,19 @@ function InvoicesSection() {
       id: 'status',
       header: 'Estado · antigüedad',
       cell: (r) => {
-        const bucket = r.is_receivable && r.aging_bucket ? AGING_BUCKETS.find((b) => b.id === r.aging_bucket) : null;
+        const bucket =
+          r.is_receivable && r.aging_bucket
+            ? AGING_BUCKETS.find((b) => b.id === r.aging_bucket)
+            : null;
         return (
           <span className="flex flex-col items-start gap-0.5">
-            <Badge tone={INVOICE_TONE[r.status ?? ''] ?? 'neutral'}>{invoiceStatusLabel(r.status)}</Badge>
+            <Badge tone={INVOICE_TONE[r.status ?? ''] ?? 'neutral'}>
+              {invoiceStatusLabel(r.status)}
+            </Badge>
             {bucket && r.aging_bucket ? (
-              <span className={`whitespace-nowrap text-caption ${bucket.overdue ? 'font-semibold text-warn' : 'text-muted'}`}>
+              <span
+                className={`whitespace-nowrap text-caption ${bucket.overdue ? 'font-semibold text-warn' : 'text-muted'}`}
+              >
                 {agingLabel(r.aging_bucket)}
                 {r.days_overdue && r.days_overdue > 0 ? ` · ${formatNumber(r.days_overdue)} d` : ''}
               </span>
@@ -433,17 +582,22 @@ function InvoicesSection() {
             onChange={list.setFilter}
             options={tabs.map((t) => ({
               ...t,
-              count: t.id === list.filter && summary.data ? Number(summary.data.row_count) : undefined,
+              count:
+                t.id === list.filter && summary.data ? Number(summary.data.row_count) : undefined,
             }))}
           />
         </div>
         {aging ? (
           <ScopeChips>
             <span className="text-caption text-muted">Contexto:</span>
-            <ScopeChip label={`Antigüedad: ${agingLabel(aging)}`} onRemove={() => list.setExtra('antiguedad', null)} />
+            <ScopeChip
+              label={`Antigüedad: ${agingLabel(aging)}`}
+              onRemove={() => list.setExtra('antiguedad', null)}
+            />
           </ScopeChips>
         ) : null}
         <FilterTotals
+          compact
           state={summaryState}
           onRetry={retrySummary}
           items={[
@@ -473,14 +627,18 @@ function InvoicesSection() {
           note={
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
               <ConsistencyNote
-                summaryCount={summary.data && !summary.isFetching ? summary.data.row_count : undefined}
+                summaryCount={
+                  summary.data && !summary.isFetching ? summary.data.row_count : undefined
+                }
                 tableTotal={page.data && !page.isFetching ? page.data.total : undefined}
                 noun="facturas"
               />
               {Object.keys(counts).length > 0 ? (
                 <p className="text-caption text-muted">
                   {Object.entries(counts)
-                    .map(([status, n]) => `${invoiceStatusLabel(status)} ${formatNumber(Number(n))}`)
+                    .map(
+                      ([status, n]) => `${invoiceStatusLabel(status)} ${formatNumber(Number(n))}`,
+                    )
                     .join(' · ')}
                 </p>
               ) : null}
@@ -546,16 +704,29 @@ function CollectedPaymentsSection() {
       { replace: true, preventScrollReset: true },
     );
 
-  const periodLabel = from || to ? `Período: ${from ? formatDate(from) : 'inicio'} – ${to ? formatDate(to) : 'hoy'}` : '';
+  const periodLabel =
+    from || to
+      ? `Período: ${from ? formatDate(from) : 'inicio'} – ${to ? formatDate(to) : 'hoy'}`
+      : '';
 
   const columns: TableColumn<CollectedPaymentRow>[] = [
-    { id: 'date', header: 'Fecha de cobro', sortKey: 'collected_on', cell: (r) => <span className="whitespace-nowrap text-compact">{formatDate(r.collected_on)}</span> },
+    {
+      id: 'date',
+      header: 'Fecha de cobro',
+      sortKey: 'collected_on',
+      cell: (r) => (
+        <span className="whitespace-nowrap text-compact">{formatDate(r.collected_on)}</span>
+      ),
+    },
     {
       id: 'invoice',
       header: 'Factura',
       sortKey: 'invoice_number',
       cell: (r) => (
-        <span className="block max-w-[160px] truncate whitespace-nowrap font-mono text-compact font-semibold min-[1400px]:max-w-[240px]" title={r.invoice_number ?? undefined}>
+        <span
+          className="block max-w-[160px] truncate whitespace-nowrap font-mono text-compact font-semibold min-[1400px]:max-w-[240px]"
+          title={r.invoice_number ?? undefined}
+        >
           {r.invoice_number ?? '—'}
         </span>
       ),
@@ -574,15 +745,24 @@ function CollectedPaymentsSection() {
             {r.organization_name ?? 'Sin nombre'}
           </Link>
         ) : (
-          <span className="block max-w-[160px] truncate text-muted min-[1400px]:max-w-[220px]">{r.organization_name ?? '—'}</span>
+          <span className="block max-w-[160px] truncate text-muted min-[1400px]:max-w-[220px]">
+            {r.organization_name ?? '—'}
+          </span>
         ),
     },
-    { id: 'method', header: 'Método', cell: (r) => <span className="text-compact text-fg-2">{r.method ?? 'Sin método'}</span> },
+    {
+      id: 'method',
+      header: 'Método',
+      cell: (r) => <span className="text-compact text-fg-2">{r.method ?? 'Sin método'}</span>,
+    },
     {
       id: 'reference',
       header: 'Referencia',
       cell: (r) => (
-        <span className="block max-w-[180px] truncate font-mono text-compact text-muted" title={r.reference ?? undefined}>
+        <span
+          className="block max-w-[180px] truncate font-mono text-compact text-muted"
+          title={r.reference ?? undefined}
+        >
           {r.reference ?? '—'}
         </span>
       ),
@@ -593,14 +773,17 @@ function CollectedPaymentsSection() {
       sortKey: 'collected_amount',
       align: 'right',
       cell: (r) => (
-        <span className="whitespace-nowrap font-semibold">
-          {formatMoney(num(r.collected_amount), r.currency)}
-          {num(r.payment_amount) !== null && num(r.payment_amount) !== num(r.collected_amount) ? (
-            <span className="block text-caption font-normal text-muted">
-              Pago de {formatMoney(num(r.payment_amount), r.currency)}
-            </span>
-          ) : null}
-        </span>
+        <MoneyCell
+          amount={num(r.collected_amount)}
+          currency={r.currency}
+          context={
+            num(r.payment_amount) !== null && num(r.payment_amount) !== num(r.collected_amount) ? (
+              <span title={formatMoney(num(r.payment_amount), r.currency)}>
+                pago de {r.currency} {formatCompactAmount(num(r.payment_amount))}
+              </span>
+            ) : undefined
+          }
+        />
       ),
     },
   ];
@@ -619,8 +802,8 @@ function CollectedPaymentsSection() {
   return (
     <div className="space-y-4">
       <InfoNote>
-        Sólo pagos <strong>confirmados</strong> sobre facturas emitidas, parcialmente pagadas o pagadas. Pagos pendientes o
-        revertidos no son cobro.
+        Sólo pagos <strong>confirmados</strong> sobre facturas emitidas, parcialmente pagadas o
+        pagadas. Pagos pendientes o revertidos no son cobro.
       </InfoNote>
 
       {from || to ? (
@@ -655,7 +838,9 @@ function CollectedPaymentsSection() {
               pageRows={page.data?.rows ?? []}
               total={page.data?.total ?? 0}
               rowKey={(r) => `${r.payment_id ?? ''}:${r.invoice_id ?? ''}`}
-              fetchPage={(p, size) => fetchCollectedPaymentPage({ ...tableParams, page: p, pageSize: size })}
+              fetchPage={(p, size) =>
+                fetchCollectedPaymentPage({ ...tableParams, page: p, pageSize: size })
+              }
             />
           }
         />
@@ -697,7 +882,15 @@ function PeriodTotal({ from, to }: { from: string; to: string }) {
     <NativeAmountTile
       label="Cobrado en el período"
       info="Pagos confirmados con fecha de cobro dentro del período, por moneda nativa."
-      amounts={state.status === 'ready' ? sumByCurrency(state.data, (r) => r.amount, (r) => r.currency) : {}}
+      amounts={
+        state.status === 'ready'
+          ? sumByCurrency(
+              state.data,
+              (r) => r.amount,
+              (r) => r.currency,
+            )
+          : {}
+      }
       state={state}
       onRetry={() => void totals.refetch()}
       emptyLabel="Sin cobros en el período"

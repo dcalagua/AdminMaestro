@@ -1,5 +1,5 @@
 import { allows, findNavItem, visibleTabs, type NavAccess } from '@/app/navigation';
-import { formatMoney, formatNumber } from '@/lib/format';
+import { formatDate, formatNumber } from '@/lib/format';
 import {
   DEPLOYMENT_HEALTH_LABEL,
   canRetry,
@@ -73,6 +73,11 @@ export interface InboxItem {
   priority: InboxPriority;
   title: string;
   detail?: string;
+  /**
+   * V6 · Importe del aviso (saldo vencido, total de la liquidación) en su
+   * moneda nativa: la Bandeja lo pinta en su propia columna, compacto.
+   */
+  amount?: { value: number; currency: string } | null;
   account?: { name: string; to?: string } | null;
   app?: string | null;
   /** Desde cuándo pide atención (ISO). `null` = nunca ocurrió (p. ej. nunca comprobada). */
@@ -216,7 +221,8 @@ export function invoiceItems(rows: readonly InboxInvoice[]): InboxItem[] {
         kind: 'invoice' as const,
         priority: (days > 30 ? 1 : 2) as InboxPriority,
         title: `Factura ${r.number ?? 'sin número'} vencida`,
-        detail: `Saldo ${formatMoney(Number(r.balance), r.currency)}`,
+        detail: r.due_date ? `Venció el ${formatDate(r.due_date)}` : undefined,
+        amount: r.currency ? { value: Number(r.balance), currency: r.currency } : null,
         account: orgLink(r.customer_organization_id, r.organization_name),
         since: r.due_date,
         ageText: `vencida hace ${formatNumber(days)} ${days === 1 ? 'día' : 'días'}`,
@@ -428,7 +434,8 @@ export function settlementItems(rows: readonly InboxSettlement[], now: Date): In
         kind: 'settlement' as const,
         priority: (approved ? 2 : 3) as InboxPriority,
         title: `Liquidación ${s.code} ${approved ? 'por pagar' : 'por aprobar'}`,
-        detail: [agent, formatMoney(Number(s.total_amount ?? 0), s.currency)].filter(Boolean).join(' · '),
+        detail: agent ?? undefined,
+        amount: { value: Number(s.total_amount ?? 0), currency: s.currency },
         account: null,
         app: null,
         since,
@@ -486,4 +493,36 @@ export function matchesInbox(item: InboxItem, term: string): boolean {
 /** Adónde lleva un aviso al tocarlo: su acción si es un enlace, si no, su pantalla. */
 export function inboxTarget(item: Pick<InboxItem, 'action' | 'screen'>): string {
   return item.action.type === 'link' ? item.action.to : item.screen.to;
+}
+
+/** Cifras de la franja de la Bandeja (V6): nunca suma monedas distintas. */
+export interface InboxSummary {
+  urgent: number;
+  invoices: number;
+  /** Saldo vencido por moneda de las facturas de la bandeja. */
+  overdue: Record<string, number>;
+  altas: number;
+  failedAltas: number;
+  alerts: number;
+  approvals: number;
+}
+
+export function inboxSummary(items: readonly InboxItem[]): InboxSummary {
+  const out: InboxSummary = { urgent: 0, invoices: 0, overdue: {}, altas: 0, failedAltas: 0, alerts: 0, approvals: 0 };
+  for (const i of items) {
+    if (i.priority === 1) out.urgent += 1;
+    if (i.kind === 'invoice') {
+      out.invoices += 1;
+      if (i.amount && Number.isFinite(i.amount.value)) {
+        out.overdue[i.amount.currency] = (out.overdue[i.amount.currency] ?? 0) + i.amount.value;
+      }
+    }
+    if (i.kind === 'alta') {
+      out.altas += 1;
+      if (i.key.includes(':FAILED:')) out.failedAltas += 1;
+    }
+    if (i.kind === 'billing-alert') out.alerts += 1;
+    if (i.kind === 'document' || i.kind === 'settlement') out.approvals += 1;
+  }
+  return out;
 }

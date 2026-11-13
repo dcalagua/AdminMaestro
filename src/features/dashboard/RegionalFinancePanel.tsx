@@ -135,7 +135,7 @@ export function RegionalFinancePanel() {
               <strong>Consolidado incompleto.</strong> Faltan tipos de cambio para{' '}
               {data!.completeness.missing_currencies.join(', ')} ({data!.completeness.missing_fx_count}). Las cifras
               afectadas se muestran como «Incompleto» y el margen consolidado no se calcula. Publica la tasa en
-              «Monedas y FX» o revisa los importes en modo Nativo.
+              «Monedas y tipo de cambio» o revisa los importes en modo Nativo.
             </p>
           ) : null}
 

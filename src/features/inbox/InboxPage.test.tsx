@@ -162,12 +162,45 @@ describe('Bandeja', () => {
     expect(screen.getByText(/2 urgentes/)).toBeInTheDocument();
   });
 
+  it('V6: una sola acción primaria por zona; las de fila son secundarias y la franja resume y filtra', async () => {
+    const { container } = renderInbox();
+    expect(container.querySelectorAll('.ebim-btn-primary')).toHaveLength(0);
+    const strip = screen.getByRole('region', { name: 'Resumen de la bandeja' });
+    expect(within(strip).getByRole('button', { name: /^Facturas vencidas/ })).toHaveTextContent('PEN');
+    expect(within(strip).getByRole('button', { name: /^Facturas vencidas/ })).toHaveTextContent('1 factura');
+    await userEvent.click(within(strip).getByRole('button', { name: /^Facturas vencidas/ }));
+    expect(screen.getByText('Factura F001-12 vencida')).toBeInTheDocument();
+    expect(screen.queryByText('Liquidación LQ-1 por pagar')).toBeNull();
+    await userEvent.click(within(strip).getByRole('button', { name: /^Facturas vencidas/ }));
+    expect(screen.getByText('Liquidación LQ-1 por pagar')).toBeInTheDocument();
+  });
+
+  it('V6: a ≥1280 px los tipos van en una columna lateral', async () => {
+    const original = window.matchMedia;
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes('min-width: 1280px'),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })) as unknown as typeof window.matchMedia;
+    try {
+      renderInbox();
+      const nav = screen.getByRole('navigation', { name: 'Tipo de aviso' });
+      expect(screen.queryByLabelText('Tipo')).toBeNull();
+      await userEvent.click(within(nav).getByRole('button', { name: /Liquidaciones de comisión/ }));
+      expect(within(nav).getByRole('button', { name: /Liquidaciones de comisión/ })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.queryByText('Factura F001-12 vencida')).toBeNull();
+    } finally {
+      window.matchMedia = original;
+    }
+  });
+
   it('filtra por tipo, por prioridad y por texto', async () => {
     renderInbox();
-    await userEvent.click(screen.getByRole('tab', { name: /Liquidaciones de comisión/ }));
+    await userEvent.selectOptions(screen.getByLabelText('Tipo'), 'settlement');
     expect(screen.queryByText('Factura F001-12 vencida')).toBeNull();
     expect(screen.getByText('Liquidación LQ-1 por pagar')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('tab', { name: /^Todo/ }));
+    await userEvent.selectOptions(screen.getByLabelText('Tipo'), 'ALL');
     await userEvent.click(screen.getByRole('tab', { name: 'Urgentes' }));
     expect(screen.getByText('Factura F001-12 vencida')).toBeInTheDocument();
     expect(screen.queryByText('Liquidación LQ-1 por pagar')).toBeNull();

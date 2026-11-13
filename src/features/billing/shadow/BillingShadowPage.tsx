@@ -1,4 +1,4 @@
-import { SectionTabs } from '@/components/ui/SectionTabs';
+import { SubSections } from '@/components/ui/SubSections';
 import { KpiTile, PageContainer } from '@/components/ui/primitives';
 import { useBillingShadowComparisons, useCommercialCutoverAxes } from '@/services/queries';
 import { formatDateTime, formatNumber } from '@/lib/format';
@@ -19,7 +19,8 @@ export function BillingShadowPage() {
       description="Etapa de la migración de cobro por producto, vista previa de lo que el Admin Maestro facturaría y el historial de comparaciones con el cobro propio de cada app."
     >
       <ShadowKpis />
-      <SectionTabs
+      <SubSections
+        label="Secciones de la comparación de cobro"
         tabs={[
           { id: 'products', label: 'Productos', content: <ShadowAxisTab /> },
           { id: 'preview', label: 'Vista previa', content: <ShadowPreviewTab /> },
@@ -61,7 +62,7 @@ function ShadowKpis() {
       />
       <KpiTile
         label="En verde"
-        info="Biller local y MasterAdmin coinciden línea a línea (cantidad, importe al centavo y moneda)."
+        info="El cobro propio de la app y el Admin Maestro coinciden línea a línea (cantidad, importe al centavo y moneda)."
         value={comparisons.data ? formatNumber(green) : null}
         tone={rows.length > 0 && red === 0 ? 'ok' : 'neutral'}
         footer="0 diferencias"
@@ -69,7 +70,7 @@ function ShadowKpis() {
       />
       <KpiTile
         label="Con diferencias"
-        info="Comparaciones con al menos una línea distinta: hay que explicarlas antes de avanzar el eje."
+        info="Comparaciones con al menos una línea distinta: hay que explicarlas antes de avanzar de etapa."
         value={comparisons.data ? formatNumber(red) : null}
         tone={red > 0 ? 'danger' : 'neutral'}
         footer={red > 0 ? 'Revisar en «Historial»' : 'Ninguna comparación en rojo'}

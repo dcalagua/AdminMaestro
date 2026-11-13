@@ -1,3 +1,5 @@
+import { readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { auditActionKind, auditActionLabel, auditDayLabel, entityTypeLabel, groupByDay } from './auditActions';
 
@@ -54,5 +56,48 @@ describe('auditActions', () => {
     expect(auditDayLabel(groups[0]!.first, now)).toMatch(/^Hoy · lunes, 5 de octubre de 2026$/);
     expect(auditDayLabel(groups[1]!.first, now)).toMatch(/^Ayer · /);
     expect(auditDayLabel(groups[2]!.first, now)).toMatch(/^Miércoles, 30 de sep?tiembre de 2026$/);
+  });
+});
+
+/*
+ * V6 · F4 · Auditoría sin códigos crudos: toda acción que la base escribe con
+ * `platform.log_audit('<CÓDIGO>', '<entidad>', …)` tiene frase en español, y su
+ * entidad, nombre. Se lee de las migraciones para que una acción nueva sin
+ * etiqueta falle aquí y no aparezca como `SAAS_PROVISIONING_REQUESTED`.
+ */
+function auditCallsInMigrations(): { actions: Set<string>; entities: Set<string> } {
+  const dir = join(process.cwd(), 'supabase/migrations');
+  const actions = new Set<string>();
+  const entities = new Set<string>();
+  for (const file of readdirSync(dir).filter((f) => f.endsWith('.sql'))) {
+    const sql = readFileSync(join(dir, file), 'utf8');
+    for (const m of sql.matchAll(/log_audit\s*\(\s*([^,]+),\s*([^,]+),/g)) {
+      for (const a of m[1]!.matchAll(/'([A-Z][A-Z0-9_]+)'/g)) actions.add(a[1]!);
+      for (const e of m[2]!.matchAll(/'([a-z_]+)'/g)) entities.add(e[1]!);
+    }
+  }
+  return { actions, entities };
+}
+
+describe('auditActions · cobertura de la base', () => {
+  const { actions, entities } = auditCallsInMigrations();
+
+  it('lee las llamadas de las migraciones', () => {
+    expect(actions.size).toBeGreaterThan(50);
+    expect(entities.size).toBeGreaterThan(20);
+  });
+
+  it('toda acción registrada por la base tiene frase en español', () => {
+    expect([...actions].filter((a) => !auditActionLabel(a))).toEqual([]);
+  });
+
+  it('toda entidad registrada por la base tiene nombre', () => {
+    expect([...entities].filter((e) => entityTypeLabel(e) === e.replace(/_/g, ' '))).toEqual([]);
+  });
+
+  it('ejemplos del Admin Maestro en QAS', () => {
+    expect(auditActionLabel('SAAS_PROVISIONING_REQUESTED')).toBe('Solicitud de alta en la app');
+    expect(auditActionLabel('SAAS_PROVISIONING_MANUAL')).toBe('Alta en la app registrada a mano');
+    expect(entityTypeLabel('saas_provisioning_request')).toBe('Alta en la app');
   });
 });

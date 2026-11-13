@@ -181,7 +181,7 @@ const DIMENSION_COPY = {
     unit: 'MRR por producto',
     empty: 'Ningún producto tenía MRR al cierre del mes',
     href: (key: string) => `/products/${key}`,
-    detail: { href: '/catalogo?tab=productos', label: 'Ver suite SaaS' },
+    detail: { href: '/catalogo?tab=productos', label: 'Ver catálogo' },
     column: 'Producto',
   },
   MARKET: {
@@ -646,7 +646,7 @@ export function AttentionPanel() {
       id: 'provisioning',
       icon: StackIcon,
       title: 'Altas e infraestructura fallidas',
-      detail: `${formatNumber(saasFailed)} altas SaaS · ${formatNumber(infraFailed)} solicitudes de infraestructura`,
+      detail: `${formatNumber(saasFailed)} altas en las apps · ${formatNumber(infraFailed)} solicitudes de infraestructura`,
       href: saasFailed > 0 || infraFailed === 0 ? '/apps?tab=altas' : '/apps?tab=infraestructura',
       action: 'Ver solicitudes',
       count: saas.error && summary.error ? null : saasFailed + infraFailed,

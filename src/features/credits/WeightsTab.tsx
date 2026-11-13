@@ -139,7 +139,7 @@ export function WeightsTab() {
         {loading ? (
           <LoadingState label="Cargando historial…" />
         ) : error ? null : history.length === 0 ? (
-          <EmptyState title="Sin versiones registradas" description="Ningún peso se ha decidido todavía (D-03)." />
+          <EmptyState title="Sin versiones registradas" description="Ningún peso se ha decidido todavía." />
         ) : (
           <DataTable columns={['Capacidad', 'Peso', 'Vigencia', 'Motivo']}>
             {history.map((w) => (
@@ -220,7 +220,7 @@ function WeightDialog({
     <FormDialog
       open={open}
       title="Nueva versión de peso"
-      description="Decisión comercial de finanzas (D-03). Cierra la versión vigente en la fecha indicada; no puede empezar antes que una existente. Los tenants enrolados del producto reciben un snapshot nuevo."
+      description="Decisión comercial de finanzas. Cierra la versión vigente en la fecha indicada; no puede empezar antes que una existente. Los tenants enrolados del producto reciben un snapshot nuevo."
       submitLabel="Registrar peso"
       busy={setWeight.isPending}
       error={setWeight.error}

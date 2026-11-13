@@ -86,11 +86,11 @@ describe('CommissionsPage', () => {
     renderAt();
 
     const pending = total('Comisión pendiente');
-    expect(pending).toHaveTextContent(/PEN\s100\.00/);
+    expect(pending).toHaveTextContent(/PEN\s100\b/);
     expect(pending).not.toHaveTextContent('999');
 
-    expect(total('En espera')).toHaveTextContent(/PEN\s999\.00/);
-    expect(total('Comisión pagada')).toHaveTextContent(/PEN\s50\.00 · USD\s10\.00/);
+    expect(total('En espera')).toHaveTextContent(/PEN\s999\b/);
+    expect(total('Comisión pagada')).toHaveTextContent(/PEN\s50 · USD\s10\b/);
   });
 
   it('la pestaña de estado llega igual al resumen y a la tabla', () => {

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import userEvent from '@testing-library/user-event';
 
 /*
  * P09 · Un plan sin tarifa abierta NO es un plan gratis: se lee «Sin precio
@@ -84,14 +85,23 @@ describe('PlansPage', () => {
     expect(screen.getByText('Sin precio definido')).toBeInTheDocument();
   });
 
-  it('separa el cargo único del precio recurrente y muestra moneda y periodicidad', () => {
+  it('V6: fila compacta con «desde», mercados y n.º de cargos únicos; el detalle completo en el panel', async () => {
     plansHook.mockReturnValue({
       data: [
         plan({
+          included_companies: 3,
           plan_prices: [
             {
               id: 'pr-1', amount: 120, currency: 'USD', charge_kind: 'LICENSE',
               billing_interval: 'MONTHLY', valid_from: '2026-01-01', valid_to: null, markets: { code: 'PE' },
+            },
+            {
+              id: 'pr-3', amount: 100, currency: 'USD', charge_kind: 'LICENSE',
+              billing_interval: 'MONTHLY', valid_from: '2026-01-01', valid_to: null, markets: { code: 'EC' },
+            },
+            {
+              id: 'pr-4', amount: 3300, currency: 'BOB', charge_kind: 'LICENSE',
+              billing_interval: 'MONTHLY', valid_from: '2026-01-01', valid_to: null, markets: { code: 'BO' },
             },
             {
               id: 'pr-2', amount: 500, currency: 'USD', charge_kind: 'IMPLEMENTATION_FEE',
@@ -105,15 +115,24 @@ describe('PlansPage', () => {
     });
     renderPage();
 
-    const cells = within(screen.getByRole('row', { name: /Básico/ })).getAllByRole('cell');
-    const recurring = cells[4]!;
-    const oneTime = cells[5]!;
-    expect(recurring.textContent).toMatch(/USD\s*120\.00/);
-    expect(recurring.textContent).toContain('/ mes');
-    expect(recurring.textContent).not.toMatch(/500/);
-    expect(oneTime.textContent).toMatch(/USD\s*500\.00/);
-    expect(oneTime.textContent).toContain('pago único');
+    const row = screen.getByRole('row', { name: /Básico/ });
+    const cells = within(row).getAllByRole('cell');
+    // «Desde»: el precio mensual más bajo en la moneda principal, sin sumar monedas.
+    expect(cells[3]!.textContent).toMatch(/USD\s*100/);
+    expect(cells[3]!.textContent).toContain('/mes');
+    expect(cells[3]!.textContent).toContain('también en BOB');
+    expect(cells[3]!.textContent).not.toMatch(/500/);
+    expect(within(cells[4]!).getByRole('list', { name: 'Mercados de Básico' })).toHaveTextContent('BOECPE');
+    expect(cells[5]!.textContent).toBe('1 cargo');
+    expect(row).toHaveTextContent('3 sociedades');
     expect(screen.queryByText('Sin precio definido')).toBeNull();
+
+    await userEvent.click(within(row).getByRole('button', { name: 'Ver las tarifas de Básico' }));
+    const drawer = screen.getByRole('dialog', { name: 'Tarifas · Básico' });
+    expect(drawer.textContent).toMatch(/USD\s*120\.00/);
+    expect(drawer.textContent).toContain('/ mes');
+    expect(drawer.textContent).toMatch(/USD\s*500\.00/);
+    expect(drawer.textContent).toContain('pago único');
   });
 
   it('un error de lectura se muestra como error, no como lista vacía', () => {

@@ -1,10 +1,22 @@
 import { useMemo, useState } from 'react';
-import { useCatalogItemPrices, useCatalogItemsWithLifecycle, useProducts } from '@/services/queries';
+import {
+  useCatalogItemPrices,
+  useCatalogItemsWithLifecycle,
+  useProducts,
+} from '@/services/queries';
 import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { usePermissions } from '@/hooks/usePermissions';
 import { StatusTabs } from '@/components/ui/SectionTabs';
 import {
-  PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge, Skeleton,
+  PageContainer,
+  Card,
+  DataTable,
+  SearchBar,
+  LoadingState,
+  ErrorState,
+  EmptyState,
+  Badge,
+  Skeleton,
 } from '@/components/ui/primitives';
 import { AddonPriceList } from './AddonPriceList';
 import { ActionMenu } from '@/components/ui/ActionMenu';
@@ -53,12 +65,16 @@ export function AddonsPage() {
   }, [prices.data]);
 
   const { term, setTerm, filtered } = useSearchFilter(items.data, (i) => [
-    i.code, i.name, i.description, i.saas_product_id ? productName.get(i.saas_product_id) : 'Transversal',
+    i.code,
+    i.name,
+    i.description,
+    i.saas_product_id ? productName.get(i.saas_product_id) : 'Transversal',
   ]);
   const visible = filtered.filter((i) => tab === 'ALL' || i.lifecycle_status === tab);
   const hasAny = (items.data ?? []).length > 0;
 
-  const count = (status: LifecycleTab) => filtered.filter((i) => i.lifecycle_status === status).length;
+  const count = (status: LifecycleTab) =>
+    filtered.filter((i) => i.lifecycle_status === status).length;
   const tabs: Array<{ id: LifecycleTab; label: string; count: number }> = [
     { id: 'ALL', label: 'Todos', count: filtered.length },
     { id: 'AVAILABLE', label: 'Disponibles', count: count('AVAILABLE') },
@@ -78,6 +94,7 @@ export function AddonsPage() {
         <SearchBar
           value={term}
           onChange={setTerm}
+          total={items.data?.length}
           placeholder="Buscar add-on por nombre, código o producto…"
           right={<StatusTabs value={tab} onChange={setTab} options={tabs} />}
         />
@@ -87,6 +104,15 @@ export function AddonsPage() {
           <ErrorState error={items.error} onRetry={() => void items.refetch()} />
         ) : visible.length === 0 ? (
           <EmptyState
+            variant={hasAny ? 'no-results' : 'empty'}
+            onClear={
+              hasAny
+                ? () => {
+                    setTerm('');
+                    setTab('ALL');
+                  }
+                : undefined
+            }
             title={hasAny ? 'Ningún add-on coincide' : 'Sin add-ons'}
             description={
               hasAny
@@ -97,23 +123,41 @@ export function AddonsPage() {
         ) : (
           <>
             {prices.error ? (
-              <p className="border-b border-border px-5 py-2 text-compact font-semibold text-warn" role="status">
+              <p
+                className="border-b border-border px-5 py-2 text-compact font-semibold text-warn"
+                role="status"
+              >
                 No se pudieron leer las tarifas: la columna de tarifas puede estar incompleta.
               </p>
             ) : null}
             <DataTable
-              columns={['Add-on', 'Producto', 'Modelo de cobro', 'Ciclo de vida', 'Tarifas por mercado', { label: 'Acciones', srOnly: true }]}
+              columns={[
+                'Add-on',
+                'Producto',
+                'Modelo de cobro',
+                'Ciclo de vida',
+                'Tarifas por mercado',
+                { label: 'Acciones', srOnly: true },
+              ]}
             >
               {visible.map((i) => {
-                const ref: AddonRef = { code: i.code, name: i.name, lifecycle_status: i.lifecycle_status };
+                const ref: AddonRef = {
+                  code: i.code,
+                  name: i.name,
+                  lifecycle_status: i.lifecycle_status,
+                };
                 return (
                   <tr key={i.id}>
                     <td className="ebim-td">
                       <div className="font-semibold">{i.name}</div>
-                      <div className="whitespace-nowrap font-mono text-caption text-muted">{i.code}</div>
+                      <div className="whitespace-nowrap font-mono text-caption text-muted">
+                        {i.code}
+                      </div>
                     </td>
                     <td className="ebim-td">
-                      {i.saas_product_id ? (productName.get(i.saas_product_id) ?? '—') : (
+                      {i.saas_product_id ? (
+                        (productName.get(i.saas_product_id) ?? '—')
+                      ) : (
                         <span className="text-muted">Transversal</span>
                       )}
                     </td>
@@ -140,9 +184,14 @@ export function AddonsPage() {
                         <ActionMenu
                           label={`Acciones de ${i.name}`}
                           items={[
-                            perms.canReadFinance ? { label: 'Nueva tarifa', onSelect: () => setPriceFor(ref) } : null,
+                            perms.canReadFinance
+                              ? { label: 'Nueva tarifa', onSelect: () => setPriceFor(ref) }
+                              : null,
                             perms.canManagePlatform
-                              ? { label: 'Cambiar ciclo de vida', onSelect: () => setLifecycleFor(ref) }
+                              ? {
+                                  label: 'Cambiar ciclo de vida',
+                                  onSelect: () => setLifecycleFor(ref),
+                                }
                               : null,
                           ]}
                         />
@@ -156,8 +205,16 @@ export function AddonsPage() {
         )}
       </Card>
 
-      <AddonPriceDialog open={Boolean(priceFor)} addon={priceFor} onClose={() => setPriceFor(null)} />
-      <AddonLifecycleDialog open={Boolean(lifecycleFor)} addon={lifecycleFor} onClose={() => setLifecycleFor(null)} />
+      <AddonPriceDialog
+        open={Boolean(priceFor)}
+        addon={priceFor}
+        onClose={() => setPriceFor(null)}
+      />
+      <AddonLifecycleDialog
+        open={Boolean(lifecycleFor)}
+        addon={lifecycleFor}
+        onClose={() => setLifecycleFor(null)}
+      />
     </PageContainer>
   );
 }

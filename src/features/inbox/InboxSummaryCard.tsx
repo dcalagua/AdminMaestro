@@ -42,7 +42,10 @@ export function InboxSummaryCard({ top = 5 }: { top?: number }) {
                 </Badge>
                 <span className="min-w-0 flex-1">
                   <span className="block text-compact font-semibold text-fg">{item.title}</span>
-                  <span className="block truncate text-caption text-muted">
+                  <span
+                    className="block truncate text-caption text-muted"
+                    title={[item.account?.name, item.app, item.ageText].filter(Boolean).join(' · ')}
+                  >
                     {[item.account?.name, item.app, item.ageText].filter(Boolean).join(' · ')}
                   </span>
                 </span>

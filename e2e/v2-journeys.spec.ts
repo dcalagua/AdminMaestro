@@ -69,7 +69,7 @@ test.describe('J1 · Canal: alta de partner y acuerdo por SaaS', () => {
     await alta.getByLabel('Razón social').fill(`Partner E2E ${RUN} SAC`);
     await alta.getByLabel(/^Código( \*)?$/).fill(`partner-e2e-${RUN}`);
     await alta.getByLabel('País').fill('PE');
-    await alta.getByRole('button', { name: 'Crear organización' }).click();
+    await alta.getByRole('button', { name: 'Crear partner' }).click();
 
     // El toast confirma que la base aceptó la escritura, no solo que la UI cerró.
     await expect(page.getByText('Organización creada')).toBeVisible({ timeout: 15_000 });

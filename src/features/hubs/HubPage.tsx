@@ -1,8 +1,8 @@
-import { Suspense, type ComponentType, type ReactNode } from 'react';
+import { Suspense, useMemo, useState, type ComponentType, type ReactNode } from 'react';
 import { Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Card, EmptyState, LoadingState, PageContainer } from '@/components/ui/primitives';
 import { TabStrip } from '@/components/ui/SectionTabs';
-import { EmbeddedPageContext } from '@/components/ui/pageTrail';
+import { EmbeddedPageContext, type EmbeddedSlots } from '@/components/ui/pageTrail';
 import { findNavItem, visibleTabs } from '@/app/navigation';
 import { useNavAccess } from '@/app/useNavAccess';
 
@@ -17,8 +17,13 @@ import { useNavAccess } from '@/app/useNavAccess';
  *   cada pantalla (p. ej. `/apps?tab=uso#aggregates`). Cambiar de pestaña limpia
  *   los filtros de la anterior.
  * - Cada pantalla se pinta «incrustada»: sin repetir migas ni `h1`.
- * - `actions`: la acción primaria de la entrada (p. ej. «Emitir factura» en
- *   Cobranza), visible en todas sus pestañas.
+ * - V6 · T1 · cabecera única: en una sola fila van el título de la entrada, el
+ *   «¿Qué es esto?» de la pestaña activa (su descripción, plegada) y, a la
+ *   derecha, las acciones de la pestaña (p. ej. «Nuevo cliente»). La pestaña
+ *   las lleva allí con un portal (`EmbeddedSlots`); bajo las pestañas ya no se
+ *   repite ningún párrafo. Las pestañas siguen centradas (regla `gmao-025`).
+ * - `actions`: la acción de la entrada (p. ej. «Emitir factura» en Cobranza),
+ *   visible en todas sus pestañas, después de las de la pestaña.
  */
 export type HubPanels = Record<string, ComponentType>;
 
@@ -26,6 +31,11 @@ export function HubPage({ to, panels, actions }: { to: string; panels: HubPanels
   const item = findNavItem(to);
   const access = useNavAccess();
   const [params, setParams] = useSearchParams();
+  // Huecos de la cabecera para la pestaña incrustada (V6 · T1). Estado y no ref:
+  // al montarse, la pestaña se vuelve a pintar y su portal encuentra el hueco.
+  const [actionsSlot, setActionsSlot] = useState<HTMLElement | null>(null);
+  const [hintSlot, setHintSlot] = useState<HTMLElement | null>(null);
+  const slots = useMemo<EmbeddedSlots>(() => ({ actions: actionsSlot, hint: hintSlot }), [actionsSlot, hintSlot]);
 
   if (!item?.tabs) return <Navigate to="/404" replace />;
   if (access.loading) return <LoadingState variant="page" />;
@@ -48,8 +58,12 @@ export function HubPage({ to, panels, actions }: { to: string; panels: HubPanels
     <PageContainer
       title={item.label}
       description={item.description}
+      titleAside={<span ref={setHintSlot} className="contents" data-hub-hint />}
       actions={
-        actions && tabs.length > 0 ? <Suspense fallback={null}>{actions}</Suspense> : undefined
+        <>
+          <span ref={setActionsSlot} className="contents" data-hub-actions />
+          {actions && tabs.length > 0 ? <Suspense fallback={null}>{actions}</Suspense> : null}
+        </>
       }
     >
       {tabs.length === 0 ? (
@@ -75,7 +89,7 @@ export function HubPage({ to, panels, actions }: { to: string; panels: HubPanels
               id={`hub-panel-${current.id}`}
               aria-labelledby={tabs.length > 1 ? `hub-tab-${current.id}` : undefined}
             >
-              <EmbeddedPageContext.Provider value>
+              <EmbeddedPageContext.Provider value={slots}>
                 <Suspense fallback={<LoadingState label={`Cargando ${current.label.toLowerCase()}…`} />}>
                   <Panel />
                 </Suspense>

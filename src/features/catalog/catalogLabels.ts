@@ -255,3 +255,54 @@ export function billingUnitLabel(unit: string | null | undefined): string {
   if (!unit) return 'Sin unidad';
   return BILLING_UNIT_LABEL[unit] ?? unit;
 }
+
+/* ---- V6 · F3 · resumen de tarifas de un plan para el listado ---------------- */
+
+const MONTH_FACTOR: Record<string, number> = { MONTHLY: 1, QUARTERLY: 1 / 3, YEARLY: 1 / 12 };
+
+export interface PlanPriceSummary {
+  /** Mercados con alguna tarifa abierta (`'Sin mercado'` = tarifa anterior a V3). */
+  markets: string[];
+  /** Precio mensual más bajo (suma de lo recurrente de un mercado y moneda) en la moneda principal. */
+  from: { amount: number; currency: string } | null;
+  /** Precio mensual más bajo por moneda (nunca se comparan monedas entre sí). */
+  fromByCurrency: Record<string, number>;
+  oneTimeCount: number;
+  hasAny: boolean;
+}
+
+/**
+ * Para la fila de 48 px de Planes (V6): en vez de listar cada tarifa, el
+ * precio mensual «desde» (lo recurrente de un mercado y moneda, sumado y
+ * normalizado a mes), los mercados y cuántos cargos únicos hay. Moneda
+ * principal: USD si existe; si no, la primera por orden alfabético.
+ */
+export function planPriceSummary(prices: PriceRow[] | null | undefined): PlanPriceSummary {
+  const open = openPrices(prices);
+  const { recurring, oneTime } = splitPrices(prices);
+  const marketOf = (pr: PriceRow) => (pr.markets as { code?: string } | null)?.code ?? 'Sin mercado';
+  const markets = [...new Set(open.map(marketOf))].sort((a, b) => a.localeCompare(b));
+  const monthly = new Map<string, { currency: string; amount: number }>();
+  for (const pr of recurring) {
+    const currency = pr.currency as string;
+    const amount = Number(pr.amount);
+    if (!currency || !Number.isFinite(amount)) continue;
+    const key = `${marketOf(pr)}|${currency}`;
+    const factor = MONTH_FACTOR[(pr.billing_interval as string) ?? 'MONTHLY'] ?? 1;
+    const prev = monthly.get(key);
+    monthly.set(key, { currency, amount: (prev?.amount ?? 0) + amount * factor });
+  }
+  const fromByCurrency: Record<string, number> = {};
+  for (const { currency, amount } of monthly.values()) {
+    fromByCurrency[currency] = Math.min(fromByCurrency[currency] ?? Infinity, Math.round(amount * 100) / 100);
+  }
+  const currencies = Object.keys(fromByCurrency).sort((a, b) => a.localeCompare(b));
+  const main = currencies.includes('USD') ? 'USD' : currencies[0];
+  return {
+    markets,
+    from: main ? { amount: fromByCurrency[main]!, currency: main } : null,
+    fromByCurrency,
+    oneTimeCount: oneTime.length,
+    hasAny: open.length > 0,
+  };
+}

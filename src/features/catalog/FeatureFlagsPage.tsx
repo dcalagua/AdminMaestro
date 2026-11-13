@@ -5,7 +5,14 @@ import { useAllFeatureFlags } from '@/services/queries';
 import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { StatusTabs } from '@/components/ui/SectionTabs';
 import {
-  PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge,
+  PageContainer,
+  Card,
+  DataTable,
+  SearchBar,
+  LoadingState,
+  ErrorState,
+  EmptyState,
+  Badge,
 } from '@/components/ui/primitives';
 import { formatDateTime } from '@/lib/format';
 import type { BadgeTone } from './catalogLabels';
@@ -30,7 +37,11 @@ type OriginTab = 'ALL' | 'default' | 'override';
 
 function sourceOf(source: string | null | undefined) {
   return (
-    SOURCE[source ?? ''] ?? { label: source ? `Origen ${source}` : 'Origen no registrado', kind: 'override' as const, tone: 'neutral' as BadgeTone }
+    SOURCE[source ?? ''] ?? {
+      label: source ? `Origen ${source}` : 'Origen no registrado',
+      kind: 'override' as const,
+      tone: 'neutral' as BadgeTone,
+    }
   );
 }
 
@@ -64,6 +75,7 @@ export function FeatureFlagsPage() {
         <SearchBar
           value={term}
           onChange={setTerm}
+          total={flags.data?.length}
           placeholder="Buscar por capacidad o tenant…"
           right={
             <StatusTabs
@@ -83,6 +95,15 @@ export function FeatureFlagsPage() {
           <ErrorState error={flags.error} onRetry={() => void flags.refetch()} />
         ) : visible.length === 0 ? (
           <EmptyState
+            variant={hasAny ? 'no-results' : 'empty'}
+            onClear={
+              hasAny
+                ? () => {
+                    setTerm('');
+                    setTab('ALL');
+                  }
+                : undefined
+            }
             title={hasAny ? 'Ninguna capacidad coincide' : 'Sin capacidades configuradas'}
             description={
               hasAny
@@ -93,23 +114,38 @@ export function FeatureFlagsPage() {
         ) : (
           <DataTable columns={['Capacidad', 'Tenant', 'Origen', 'Estado', 'Actualizado']}>
             {visible.map((f) => {
-              const tenant = f.tenants as { name: string; slug: string; saas_products: { short_name: string } | null } | null;
+              const tenant = f.tenants as {
+                name: string;
+                slug: string;
+                saas_products: { short_name: string } | null;
+              } | null;
               const src = sourceOf(f.source);
               return (
                 <tr key={`${f.tenant_id}-${f.feature_key}`}>
                   <td className="ebim-td">
                     <div className="font-semibold">{humanize(f.feature_key)}</div>
-                    <div className="whitespace-nowrap font-mono text-caption text-muted">{f.feature_key}</div>
+                    <div className="whitespace-nowrap font-mono text-caption text-muted">
+                      {f.feature_key}
+                    </div>
                   </td>
                   <td className="ebim-td">
                     {f.tenant_id ? (
-                      <Link className="hover:underline" to={`/tenants/${f.tenant_id}?tab=app#features`}>
+                      <Link
+                        className="hover:underline"
+                        to={`/tenants/${f.tenant_id}?tab=app#features`}
+                      >
                         {tenant?.name ?? '—'}
                       </Link>
                     ) : (
-                      tenant?.name ?? '—'
+                      (tenant?.name ?? '—')
                     )}
-                    <div className="text-compact text-fg-2">{tenant?.saas_products?.short_name ?? '—'}</div>
+                    {/* La app solo se repite si el nombre del tenant no la dice ya. */}
+                    {tenant?.saas_products?.short_name &&
+                    !(tenant.name ?? '').includes(tenant.saas_products.short_name) ? (
+                      <div className="text-caption text-muted">
+                        {tenant.saas_products.short_name}
+                      </div>
+                    ) : null}
                   </td>
                   <td className="ebim-td">
                     <Badge tone={src.tone}>{src.label}</Badge>
@@ -117,7 +153,8 @@ export function FeatureFlagsPage() {
                   <td className="ebim-td">
                     {f.enabled ? (
                       <span className="inline-flex items-center gap-1.5 text-compact font-semibold text-fg">
-                        <CheckCircleIcon size={16} weight="fill" className="text-ok" aria-hidden /> Encendida
+                        <CheckCircleIcon size={16} weight="fill" className="text-ok" aria-hidden />{' '}
+                        Encendida
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1.5 text-compact text-muted">
@@ -125,7 +162,9 @@ export function FeatureFlagsPage() {
                       </span>
                     )}
                   </td>
-                  <td className="ebim-td whitespace-nowrap text-compact text-fg-2">{formatDateTime(f.updated_at)}</td>
+                  <td className="ebim-td whitespace-nowrap text-compact text-fg-2">
+                    {formatDateTime(f.updated_at)}
+                  </td>
                 </tr>
               );
             })}

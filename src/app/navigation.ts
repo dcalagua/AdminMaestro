@@ -67,7 +67,7 @@ export interface NavItem extends AccessRule {
   /** Icono Phosphor, mismo set que EWM. */
   icon: Icon;
   group: NavGroup;
-  /** Una frase bajo el título de la pantalla. */
+  /** Una frase bajo el título de la pantalla: UNA línea a 1280 px (≤ 90 caracteres, V6 · T1). */
   description?: string;
   /** Pantallas fusionadas en esta entrada, como pestañas (`?tab=`). */
   tabs?: NavTab[];
@@ -86,7 +86,7 @@ export const NAV_ITEMS: NavItem[] = [
   // ---- Clientes -----------------------------------------------------------
   {
     to: '/cuentas', label: 'Cuentas', icon: BuildingsIcon, group: 'Clientes',
-    description: 'Clientes y organizaciones de la plataforma. Una misma cuenta puede ser cliente y partner a la vez.',
+    description: 'Tus clientes: qué apps usan, cuánto facturan y cómo van con los pagos.',
     tabs: [
       { id: 'clientes', label: 'Clientes', personas: ['EBIM', 'PARTNER'], legacy: ['/customers'] },
       {
@@ -99,7 +99,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/partners', label: 'Partners', icon: HandshakeIcon, group: 'Clientes', personas: ['EBIM', 'PARTNER'] },
   {
     to: '/sales-agents', label: 'Equipo comercial', icon: UsersThreeIcon, group: 'Clientes',
-    description: 'Comerciales y la cartera que tienen atribuida. Cobrar comisión no da acceso operativo a ningún tenant.',
+    description: 'Comerciales y su cartera atribuida. Vender no da acceso operativo a los tenants.',
     tabs: [
       { id: 'equipo', label: 'Comerciales', personas: ['EBIM', 'PARTNER'] },
       { id: 'atribuciones', label: 'Atribuciones', legacy: ['/attributions'] },
@@ -119,10 +119,11 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     to: '/apps', label: 'Apps', icon: PlugsConnectedIcon, group: 'Suite',
-    description: 'La conexión de la consola con cada app de la suite: altas, módulos habilitados, entornos y uso.',
+    description: 'Cómo se conecta el Admin Maestro con cada app: altas, módulos, entornos y uso.',
     tabs: [
       { id: 'integraciones', label: 'Integraciones', personas: ['EBIM'], legacy: ['/integrations'] },
       { id: 'altas', label: 'Altas en las apps', personas: ['EBIM', 'PARTNER'], legacy: ['/saas-provisioning'], aliases: ['Altas SaaS'] },
+      { id: 'sincronizacion-apps', label: 'Sincronización con las apps', personas: ['EBIM'], aliases: ['Clientes en las apps', 'Vínculos rotos'] },
       {
         id: 'sincronizacion', label: 'Módulos habilitados', personas: ['EBIM'],
         legacy: ['/commercial/entitlement-sync'], aliases: ['Sincronización de entitlements'],
@@ -148,7 +149,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     to: '/catalogo', label: 'Catálogo', icon: StackIcon, group: 'Comercial',
-    description: 'Lo que se vende: productos de la suite, planes, add-ons y las capacidades que habilita cada uno.',
+    description: 'Lo que se vende: productos, planes, add-ons y capacidades.',
     tabs: [
       { id: 'productos', label: 'Productos', legacy: ['/products'], aliases: ['Suite SaaS'] },
       { id: 'planes', label: 'Planes y licencias', legacy: ['/plans'] },
@@ -165,7 +166,7 @@ export const NAV_ITEMS: NavItem[] = [
   // ---- Finanzas -----------------------------------------------------------
   {
     to: '/cobranza', label: 'Cobranza', icon: ReceiptIcon, group: 'Finanzas',
-    description: 'Qué hay que cobrar hoy, facturas, cobros, conciliación con la pasarela y renovaciones por vencer.',
+    description: 'Qué cobrar hoy, facturas y cobros, renovaciones y conciliación con la pasarela.',
     tabs: [
       // V5 · F4: la bandeja de lo que hay que cobrar va primero (tarea antes que tabla).
       {
@@ -185,7 +186,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     to: '/commissions', label: 'Comisiones', icon: HandCoinsIcon, group: 'Finanzas',
-    description: 'Comisiones generadas por cobros confirmados, sus liquidaciones y los planes que las calculan.',
+    description: 'Comisiones de cobros confirmados, sus liquidaciones y los planes que las calculan.',
     tabs: [
       { id: 'comisiones', label: 'Comisiones y liquidaciones', finance: true },
       {
@@ -209,7 +210,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/audit', label: 'Auditoría', icon: ShieldCheckIcon, group: 'Gobierno', personas: ['EBIM', 'PARTNER'] },
   {
     to: '/settings', label: 'Configuración', icon: GearSixIcon, group: 'Gobierno',
-    description: 'Tu sesión y tu apariencia; para EBIM, además, monedas, créditos IA y opciones avanzadas.',
+    description: 'Tu sesión y apariencia; para EBIM, también monedas, créditos IA y opciones avanzadas.',
     tabs: [
       { id: 'general', label: 'General' },
       {

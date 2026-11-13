@@ -44,7 +44,7 @@ export function useConfirmActive() {
       title="Confirmar el tenant como activo"
       message={
         target
-          ? `${target.tenantName} ya está activo en su app. Pasará de «Pendiente» a «Activo» en MasterAdmin y el cambio queda en la auditoría.`
+          ? `${target.tenantName} ya está activo en su app. Pasará de «Pendiente» a «Activo» en el Admin Maestro y el cambio queda en la auditoría.`
           : ''
       }
       confirmLabel={CONFIRM_ACTIVE_LABEL}

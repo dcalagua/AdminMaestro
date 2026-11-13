@@ -40,7 +40,7 @@ export const INTEGRATION_TYPE_LABEL: Record<IntegrationType, string> = {
 
 export const INTEGRATION_TYPE_HINT: Record<IntegrationType, string> = {
   HTTP_M2M:
-    'MasterAdmin llama a la API interna del producto con un JWT asimétrico de vida corta.',
+    'El Admin Maestro llama a la API interna del producto con un JWT asimétrico de vida corta.',
   EDGE_FUNCTION: 'Reservado para invocación directa de una función del producto. Aún no implementado.',
   MANUAL: 'El producto todavía no expone API: el alta la registra una persona, con auditoría.',
   MOCK: 'Simula el flujo completo sin contactar con ningún producto. Bloqueado fuera de DEV.',
@@ -125,7 +125,7 @@ export const PROVISIONING_ROLE_LABEL: Record<ProvisioningRole, string> = {
 export const BLOCKER_LABEL: Record<string, string> = {
   REQUEST_NOT_READY: 'La solicitud no está en estado listo para provisionar',
   ATTEMPTS_EXHAUSTED: 'Se agotaron los intentos configurados',
-  DEPLOYMENT_NOT_CONFIGURED: 'No hay destino de deployment configurado',
+  DEPLOYMENT_NOT_CONFIGURED: 'No hay destino de despliegue configurado',
   DEPLOYMENT_NOT_READY: 'El destino no está marcado como listo',
   DEPLOYMENT_DISABLED: 'El destino está deshabilitado',
   DEPLOYMENT_UNHEALTHY: 'El destino está caído',
@@ -150,8 +150,8 @@ export function blockerLabel(code: string): string {
 export const PROVIDER_ERROR_LABEL: Record<string, string> = {
   ADMIN_EMAIL_ALREADY_PROVISIONED: 'Ese correo de administrador ya tiene un tenant en el producto',
   PROVIDER_CONFLICT: 'El producto reporta un conflicto: el recurso ya existe',
-  PROVIDER_UNAUTHORIZED: 'El producto rechazó las credenciales de MasterAdmin',
-  PROVIDER_FORBIDDEN: 'El producto no autoriza esta operación a MasterAdmin',
+  PROVIDER_UNAUTHORIZED: 'El producto rechazó las credenciales del Admin Maestro',
+  PROVIDER_FORBIDDEN: 'El producto no autoriza esta operación al Admin Maestro',
   PROVIDER_TIMEOUT: 'El producto no respondió a tiempo',
   PROVIDER_UNREACHABLE: 'No se pudo establecer conexión con el producto',
   PROVIDER_UNAVAILABLE: 'El producto no está disponible en este momento',

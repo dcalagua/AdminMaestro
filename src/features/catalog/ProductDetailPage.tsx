@@ -7,9 +7,10 @@ import {
 } from '@/services/queries';
 import { SectionTabs } from '@/components/ui/SectionTabs';
 import {
-  PageContainer, Card, DataTable, LoadingState, ErrorState, EmptyState, Badge, KpiTile,
+  PageContainer, Card, DataTable, LoadingState, ErrorState, EmptyState, Badge,
 } from '@/components/ui/primitives';
-import { KpiStrip, NativeAmountTile } from '@/features/billing/financeUi';
+import { ProductSummaryBar } from './ProductSummaryBar';
+import { DetailFacts } from '@/components/ui/DetailFacts';
 import { initialsOf } from '@/lib/initials';
 import { usePermissions } from '@/hooks/usePermissions';
 import { formatMoney, formatPercent, formatNumber, formatDateTime, sumByCurrency } from '@/lib/format';
@@ -56,7 +57,7 @@ function guard(query: ReadLike): ReactNode | null {
  * Vista 360 de un SaaS de la suite.
  *
  * Seis pestañas (Fase 03 §7): Resumen, Planes, Partners, Tenants, Finanzas y
- * Deployments. Todo sale de datos, no de código: esta pantalla funciona igual
+ * Destinos, bajo una `SummaryBar` (V6 · T8). Todo sale de datos, no de código: esta pantalla funciona igual
  * para el sexto producto que se cree desde la UI que para eSupplier.
  */
 export function ProductDetailPage() {
@@ -144,17 +145,7 @@ export function ProductDetailPage() {
           <span className="absolute inset-x-0 bottom-0 h-1.5 bg-accent" style={p.accent_color ? { background: p.accent_color } : undefined} />
         </span>
       }
-      titleAside={
-        <>
-          <Badge tone={entityStatusTone(p.status)} dot>
-            {entityStatusLabel(p.status)}
-          </Badge>
-          {integrations.error || integrations.isLoading ? null : (
-            <Badge tone={integration.tone}>Integración: {integration.label.toLowerCase()}</Badge>
-          )}
-        </>
-      }
-      meta={`${billingUnitLabel(p.billing_unit)} · ${p.is_billable ? 'facturable' : 'no facturable'} · código ${p.code}`}
+      meta={`${billingUnitLabel(p.billing_unit)} · ${p.is_billable ? 'facturable' : 'no facturable'}`}
       actions={
         perms.canManagePlatform ? (
           <button type="button" className="ebim-btn-ghost" onClick={() => setEditing(true)}>
@@ -163,32 +154,31 @@ export function ProductDetailPage() {
         ) : null
       }
     >
-      <KpiStrip label="Indicadores del producto">
-        <NativeAmountTile
-          label="MRR vigente"
-          info="MRR de los tenants del producto por moneda (foto actual); nunca se suman monedas"
-          amounts={sumByCurrency(productTenants, (t) => t.mrr, (t) => t.currency)}
-          state={fromQuery(tenants, { isEmpty: () => false })}
-          onRetry={() => void tenants.refetch()}
-          emptyLabel="Sin recurrente vigente"
-          footer="Foto actual de los contratos"
-        />
-        <KpiTile
-          label="Tenants"
-          value={countText(tenants, productTenants.length)}
-          footer={
-            tenants.data
-              ? `${formatNumber(productTenants.filter((t) => t.tenant_type === 'PRODUCTION').length)} productivos`
-              : undefined
-          }
-        />
-        <KpiTile
-          label="Canales habilitados"
-          value={countText(agreements, productAgreements.length)}
-          footer="Partners con acuerdo para este producto"
-        />
-        <KpiTile label="Planes" value={countText(plans, productPlans.length)} footer="En el catálogo, todos los estados" />
-      </KpiStrip>
+      <ProductSummaryBar
+        status={{ label: entityStatusLabel(p.status), tone: entityStatusTone(p.status) }}
+        integration={integrations.isLoading ? null : integrations.error ? { label: integrationText, tone: 'neutral' } : { label: integration.label, tone: integration.tone }}
+        mrr={
+          tenants.isLoading
+              ? 'loading'
+              : tenants.error
+                ? 'error'
+                : sumByCurrency(productTenants, (t) => t.mrr, (t) => t.currency)
+        }
+        tenants={{
+          total: countText(tenants, productTenants.length),
+          production: tenants.data ? productTenants.filter((t) => t.tenant_type === 'PRODUCTION').length : null,
+        }}
+        activeContracts={countText(subs, productSubs.filter((s) => s.status === 'ACTIVE').length)}
+        distribution={
+          tenants.data
+            ? (['SHARED', 'PARTNER_DEDICATED', 'TENANT_DEDICATED'] as const).map((mode) => ({
+                key: mode,
+                label: DEPLOYMENT_MODE_LABEL[mode],
+                count: productTenants.filter((t) => t.deployment_mode === mode).length,
+              }))
+            : null
+        }
+      />
 
       <SectionTabs
         tabs={[
@@ -196,59 +186,27 @@ export function ProductDetailPage() {
             id: 'overview',
             label: 'Resumen',
             content: (
-              <div className="grid gap-4 lg:grid-cols-2">
-                <Card title="Identidad del producto">
-                  <dl className="divide-y divide-border">
-                    {[
-                      ['Nombre completo', p.name],
-                      ['Nombre corto', p.short_name],
-                      ['Lockup', p.lockup_name ?? '—'],
-                      ['Estado comercial', entityStatusLabel(p.status)],
-                      ['Integración técnica', integrationText],
-                      ['Unidad de cobro', billingUnitLabel(p.billing_unit)],
-                      ['Facturable', p.is_billable ? 'Sí' : 'No'],
-                      ['Color de marca', p.accent_color ? 'Propio del producto' : 'Hereda de EBIM'],
-                      ['Código técnico', p.code],
-                    ].map(([k, v]) => (
-                      <div key={k as string} className="flex justify-between gap-4 px-5 py-2.5 text-body">
-                        <dt className="text-muted">{k}</dt>
-                        <dd className="text-right font-medium">{v as string}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                </Card>
-
-                <Card
-                  title="Distribución de tenants"
-                  description="Los tres modelos conviven sin ramas de código."
-                >
-                  {guard(tenants) ?? (
-                  <dl className="divide-y divide-border">
-                    {(['SHARED', 'PARTNER_DEDICATED', 'TENANT_DEDICATED'] as const).map((mode) => (
-                      <div key={mode} className="flex justify-between gap-4 px-5 py-2.5 text-body">
-                        <dt className="text-muted">{DEPLOYMENT_MODE_LABEL[mode]}</dt>
-                        <dd className="text-right font-medium tabular-nums">
-                          {formatNumber(
-                            productTenants.filter((t) => t.deployment_mode === mode).length,
-                          )}
-                        </dd>
-                      </div>
-                    ))}
-                    <div className="flex justify-between gap-4 px-5 py-2.5 text-body">
-                      <dt className="text-muted">Suscripciones activas</dt>
-                      <dd className="text-right font-medium tabular-nums">
-                        {countText(subs, productSubs.filter((s) => s.status === 'ACTIVE').length)}
-                      </dd>
-                    </div>
-                  </dl>
-                  )}
-                </Card>
-              </div>
+              <Card title="Identidad del producto">
+                <DetailFacts
+                  columns={4}
+                  items={[
+                    ['Nombre completo', p.name],
+                    ['Nombre corto', p.short_name],
+                    ['Nombre con marca', p.lockup_name ?? '—'],
+                    ['Unidad de cobro', billingUnitLabel(p.billing_unit)],
+                    ['Facturable', p.is_billable ? 'Sí' : 'No'],
+                    ['Color de marca', p.accent_color ? 'Propio del producto' : 'Hereda de EBIM'],
+                    ['Integración técnica', integrationText],
+                    ['Código técnico', <span key="code" className="font-mono text-caption">{p.code}</span>],
+                  ]}
+                />
+              </Card>
             ),
           },
           {
             id: 'plans',
             label: 'Planes',
+            count: plans.data ? productPlans.length : undefined,
             content: (
               <Card
                 description="El plan define qué se licencia; la tarifa se versiona aparte y nunca se edita en sitio."
@@ -341,6 +299,7 @@ export function ProductDetailPage() {
           {
             id: 'partners',
             label: 'Partners',
+            count: agreements.data ? productAgreements.length : undefined,
             content: (
               <Card description="Quién puede comercializar este SaaS y bajo qué condiciones. Un mismo partner puede tener otro margen en otro producto.">
                 {guard(agreements) ?? (productAgreements.length === 0 ? (
@@ -401,6 +360,7 @@ export function ProductDetailPage() {
           {
             id: 'tenants',
             label: 'Tenants',
+            count: tenants.data ? productTenants.length : undefined,
             content: (
               <Card>
                 {guard(tenants) ?? (productTenants.length === 0 ? (
@@ -466,7 +426,7 @@ export function ProductDetailPage() {
                       'Moneda',
                       { label: 'MRR', align: 'right' },
                       { label: 'Cobrado total', align: 'right' },
-                      { label: 'One-time cobrado', align: 'right' },
+                      { label: 'Cobros únicos', align: 'right' },
                       { label: 'Costo directo', align: 'right' },
                       { label: 'Comisiones', align: 'right' },
                       { label: 'Margen bruto', align: 'right' },
@@ -497,14 +457,14 @@ export function ProductDetailPage() {
           },
           {
             id: 'deployments',
-            label: 'Deployments',
+            label: 'Destinos',
             content: (
-              <Card description="Infraestructura que sirve a este producto. Los targets sin producto asignado son compartidos de propósito general.">
+              <Card description="Infraestructura que sirve a este producto. Los destinos sin producto asignado son compartidos de propósito general.">
                 {guard(targets) ?? (productTargets.length === 0 ? (
                   <EmptyState title="Sin infraestructura asociada" />
                 ) : (
                   <DataTable
-                    columns={['Target', 'Modelo', 'Proveedor', 'Región', 'Dueño', 'Tenants', 'Estado']}
+                    columns={['Destino', 'Modelo', 'Proveedor', 'Región', 'Dueño', 'Tenants', 'Estado']}
                   >
                     {productTargets.map((t) => {
                       const active = (

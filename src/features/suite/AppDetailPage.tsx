@@ -2,13 +2,12 @@ import { useMemo, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { SectionTabs } from '@/components/ui/SectionTabs';
 import {
-  Badge, Card, DataTable, EmptyState, ErrorState, KpiTile, LoadingState, PageContainer,
+  Badge, Card, DataTable, EmptyState, ErrorState, LoadingState, PageContainer,
 } from '@/components/ui/primitives';
 import { Avatar } from '@/components/ui/Avatar';
-import { KpiStrip } from '@/features/billing/financeUi';
 import { useProvisioningAccess } from '@/hooks/useProvisioningAccess';
 import { useSaasProvisioningEventsForRequests } from '@/services/queries';
-import { formatDateTime, formatNumber } from '@/lib/format';
+import { formatDateTime } from '@/lib/format';
 import {
   SAAS_PROVISIONING_STATUS_LABEL,
   provisioningStatusTone,
@@ -18,7 +17,8 @@ import { SUBSCRIPTION_STATUS_LABEL } from '@/features/billing/subscriptionLabels
 import { EnvironmentHealthList, HealthDot, HealthText } from '@/features/platform/EnvironmentHealth';
 import { RevealSecretRefButton } from '@/features/platform/RevealSecretRef';
 import { environmentLabel, observedHealth, summarizeByEnvironment } from '@/features/platform/targetHealth';
-import { ChannelGrid, LastCheck } from './SuiteHealthStrip';
+import { LastCheck } from './SuiteHealthStrip';
+import { AppSummaryBar, ChannelBadges } from './AppSummaryBar';
 import { useHealthCheck, useSuiteData } from './useSuiteData';
 import { ATTENTION_KINDS, CELL, isStale, moduleState, type ChannelKey, type MatrixTenant } from './suiteModel';
 
@@ -110,12 +110,6 @@ export function AppDetailPage() {
       title={app.name}
       description="Salud, tenants, conexión, módulos, uso e historial de altas de esta app."
       leading={<Avatar name={app.name} size="lg" ringColor={app.accent} />}
-      titleAside={
-        <span className="inline-flex items-center gap-1.5 text-compact">
-          <HealthDot health={health.health} />
-          <HealthText health={health.health} />
-        </span>
-      }
       meta={
         <span>
           {health.primary ? environmentLabel(health.environment) : 'Sin destino'}
@@ -135,6 +129,17 @@ export function AppDetailPage() {
         ) : null
       }
     >
+      <AppSummaryBar
+        appId={app.id}
+        appCode={app.code}
+        health={health.health}
+        total={tenants.length}
+        active={byKind((t) => t.kind === 'ACTIVE')}
+        pendingConfirm={byKind((t) => t.kind === 'PENDING_CONFIRM')}
+        attention={byKind((t) => ATTENTION_KINDS.has(t.kind))}
+        finance={data.finance}
+        tenantRows={data.tenantRows}
+      />
       <SectionTabs
         tabs={[
           {
@@ -142,22 +147,6 @@ export function AppDetailPage() {
             label: 'Resumen',
             content: (
               <>
-                <KpiStrip label={`Tenants de ${app.name}`}>
-                  <KpiTile label="Tenants" value={formatNumber(tenants.length)} />
-                  <KpiTile label="Activos" value={formatNumber(byKind((t) => t.kind === 'ACTIVE'))} />
-                  <KpiTile
-                    label="Por confirmar"
-                    value={formatNumber(byKind((t) => t.kind === 'PENDING_CONFIRM'))}
-                    tone={byKind((t) => t.kind === 'PENDING_CONFIRM') > 0 ? 'warn' : 'neutral'}
-                    footer="Activos en la app, «Pendiente» en MasterAdmin."
-                  />
-                  <KpiTile
-                    label="Requieren atención"
-                    value={formatNumber(byKind((t) => ATTENTION_KINDS.has(t.kind)))}
-                    tone={byKind((t) => t.kind === 'FAILED') > 0 ? 'danger' : 'neutral'}
-                    to={`/suite?mapp=${app.code}&mestado=ATTENTION`}
-                  />
-                </KpiStrip>
                 <div className="grid gap-4 lg:grid-cols-2">
                   <Card
                     title="Salud por entorno"
@@ -168,16 +157,9 @@ export function AppDetailPage() {
                       {health.primary ? <LastCheck at={health.checkedAt} stale={health.stale} /> : null}
                     </div>
                   </Card>
-                  <Card title="Canales con la app" description="Qué intercambia hoy el Admin Maestro con esta app.">
-                    <div className="flex flex-col gap-3 p-4">
-                      <ChannelGrid channels={health.channels} />
-                      <ul className="flex flex-col gap-1.5 text-caption text-fg-2">
-                        {health.channels.map((c) => (
-                          <li key={c.key}>
-                            <span className="font-semibold text-fg">{c.label}:</span> {c.detail}
-                          </li>
-                        ))}
-                      </ul>
+                  <Card title="Canales con la app" description="Qué intercambia hoy el Admin Maestro con esta app; el detalle de cada canal, al pasar el puntero.">
+                    <div className="p-4">
+                      <ChannelBadges channels={health.channels} />
                     </div>
                   </Card>
                 </div>
@@ -214,7 +196,7 @@ export function AppDetailPage() {
                             {CELL[t.kind].short}
                           </Badge>
                           {t.kind === 'PENDING_CONFIRM' ? (
-                            <p className="mt-1 text-caption text-muted">Activo en la app · pendiente de confirmar en MasterAdmin</p>
+                            <p className="mt-1 text-caption text-muted">Activo en la app · pendiente de confirmar en el Admin Maestro</p>
                           ) : null}
                         </td>
                         <td className="ebim-td text-compact">{t.requestStatusLabel ?? <span className="text-muted">Sin alta</span>}</td>
@@ -294,7 +276,7 @@ export function AppDetailPage() {
                         <Row label="Emisor" value={t.issuer ? <Mono>{t.issuer}</Mono> : NOT_SET} hint="Quién firma el token: el Admin Maestro." />
                         <Row label="Audiencia" value={t.audience ? <Mono>{t.audience}</Mono> : NOT_SET} hint="Para quién es el token: cada app tiene la suya." />
                         <Row
-                          label="Scopes"
+                          label="Permisos"
                           value={
                             t.create_scope || t.read_scope ? (
                               <Mono>{[t.create_scope, t.read_scope].filter(Boolean).join(' ')}</Mono>

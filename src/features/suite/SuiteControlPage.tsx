@@ -13,15 +13,17 @@ import {
   Badge, Card, DataTable, EmptyState, ErrorState, KpiTile, LoadingState, PageContainer, SearchBar,
 } from '@/components/ui/primitives';
 import { Avatar } from '@/components/ui/Avatar';
+import { InfoHint } from '@/components/ui/InfoHint';
+import { CellTitle, MoneyCell, StatusCell } from '@/components/ui/cells';
 import { SwitchField } from '@/components/ui/fields';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { RevokeWithReasonDialog } from '@/components/ui/RevokeWithReasonDialog';
 import { useToast } from '@/components/ui/toast-context';
 import { KpiStrip } from '@/features/billing/financeUi';
-import { formatDate, formatDateTime, formatMoney, formatNumber } from '@/lib/format';
+import { formatCountNoun, formatDate, formatDateTime, formatNumber } from '@/lib/format';
 import {
   appLifecycleChannels, ATTENTION_STAGES, JOB_LABEL, JOB_OUTCOME, RESUME_CAUSE, STAGE, SUSPENSION_CAUSE, buildSuiteMatrix, cycleSummary,
-  deliveryOf, parseCycleResult, stageOf, suiteKpis, suiteProducts,
+  deliveryOf, parseCycleResult, stageOf, suiteKpis, suiteProducts, worstStage,
   type LifecycleCycleResult, type TenantLifecycleRow,
 } from './suiteLifecycleModel';
 
@@ -43,6 +45,12 @@ type Action =
   | { kind: 'resume'; row: TenantLifecycleRow }
   | { kind: 'run' }
   | null;
+
+/** Partes de la segunda línea que el nombre del tenant no dice ya («Cliente · EWM» no repite «Cliente · EWM»). */
+function notIn(name: string | null | undefined, parts: Array<string | null | undefined>): Array<string | null> {
+  const n = (name ?? '').toLowerCase();
+  return parts.map((p) => (p && !n.includes(p.toLowerCase()) ? p : null));
+}
 
 function errorText(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
@@ -68,7 +76,13 @@ export function SuiteControlPage() {
   return (
     <PageContainer
       title="Ciclo de vida de los tenants"
-      description="Cobranza, cortes por impago y reactivación de cada cliente en cada app. La regla vive en la base: el corte automático sólo actúa si el super admin lo habilita."
+      description="Cobranza, cortes por impago y reactivación de cada cliente en cada app."
+      titleAside={
+        <InfoHint label="Cómo funciona el ciclo de vida" title="Ciclo de vida">
+          La regla vive en la base de datos: el ciclo diario calcula la etapa de cada tenant y el corte automático solo
+          actúa si el super admin lo habilita. Cada suscripción conserva su propia regla de corte.
+        </InfoHint>
+      }
       actions={
         perms.canManagePlatform ? (
           <div className="flex flex-wrap gap-2">
@@ -158,7 +172,7 @@ export function SuiteControlPage() {
             { id: 'historial', label: 'Historial de suspensiones', content: <SuspensionHistory rows={rows} /> },
             {
               id: 'politica',
-              label: 'Política y jobs',
+              label: 'Política y tareas programadas',
               content: <PolicyTab isSuperAdmin={perms.isSuperAdmin} rows={rows} />,
               hidden: !(perms.canManagePlatform || perms.canReadFinance),
             },
@@ -217,46 +231,65 @@ function SuiteMatrix({ rows }: { rows: TenantLifecycleRow[] }) {
     m.managingOrganizationName,
     ...Object.values(m.cells).flat().map((r) => r.tenant_name),
   ]);
+  // «Sin canal» se dice una vez por app (nota bajo la leyenda), no en cada celda.
+  const noChannel = products.filter((p) => rows.some((r) => r.product_code === p.code && deliveryOf(r).kind === 'NO_CHANNEL'));
 
   return (
     <Card>
       <SearchBar value={term} onChange={setTerm} placeholder="Buscar cuenta o tenant…" />
       <StageLegend />
+      {noChannel.length > 0 ? (
+        <p className="px-4 pb-3 text-caption text-muted" data-no-channel-note>
+          <span className="font-semibold text-fg-2">Sin canal de entrega</span> (la app aún no recibe el estado del
+          tenant): {noChannel.length === products.length && products.length > 1 ? `las ${products.length} apps` : noChannel.map((p) => p.name).join(', ')}.
+        </p>
+      ) : null}
       {filtered.length === 0 ? (
-        <EmptyState title="Ninguna cuenta coincide" description="Prueba con otra búsqueda." />
+        <EmptyState
+          variant="no-results"
+          title="Ninguna cuenta coincide"
+          description="Prueba con otra búsqueda."
+          onClear={() => setTerm('')}
+        />
       ) : (
-        <DataTable label="Matriz de la suite: cuentas por app" columns={['Cuenta', ...products.map((p) => p.name)]}>
-          {filtered.map((m) => (
-            <tr key={m.organizationId}>
-              <td className="ebim-td">
-                <div className="flex min-w-0 items-center gap-3">
-                  <Avatar name={m.organizationName} />
-                  <div className="min-w-0">
-                    <div className="truncate font-semibold text-fg">{m.organizationName}</div>
-                    {m.managingOrganizationName ? (
-                      <div className="truncate text-caption text-muted">Vía {m.managingOrganizationName}</div>
-                    ) : null}
+        // Las apps con su nombre en su caja real («eChange», no «ECHANGE»).
+        <div className="[&_thead_th:not(:first-child)]:text-compact [&_thead_th:not(:first-child)]:font-semibold [&_thead_th:not(:first-child)]:normal-case [&_thead_th:not(:first-child)]:tracking-normal [&_thead_th:not(:first-child)]:text-fg-2">
+          <DataTable
+            label="Matriz de la suite: cuentas por app"
+            mobileCards={false}
+            minWidth={240 + products.length * 104}
+            columns={[{ label: 'Cuenta', sticky: true }, ...products.map((p) => p.name)]}
+          >
+            {filtered.map((m) => (
+              <tr key={m.organizationId}>
+                <td className="ebim-td py-2">
+                  <div className="max-w-[240px]">
+                    <CellTitle
+                      title={m.organizationName}
+                      to={m.organizationId !== 'sin-organizacion' ? `/organizations/${m.organizationId}` : undefined}
+                      leading={<Avatar name={m.organizationName} />}
+                      secondary={[m.managingOrganizationName ? `Vía ${m.managingOrganizationName}` : null]}
+                    />
                   </div>
-                </div>
-              </td>
-              {products.map((p) => (
-                <td key={p.code} className="ebim-td">
-                  {(m.cells[p.code] ?? []).length === 0 ? (
-                    <span className="text-caption text-disabled" aria-label="Sin contratar">—</span>
-                  ) : (
-                    <ul className="flex flex-col gap-1">
-                      {(m.cells[p.code] ?? []).map((r) => (
-                        <li key={r.tenant_id}>
-                          <TenantChip row={r} />
-                        </li>
-                      ))}
-                    </ul>
-                  )}
                 </td>
-              ))}
-            </tr>
-          ))}
-        </DataTable>
+                {products.map((p) => {
+                  const tenants = m.cells[p.code] ?? [];
+                  return (
+                    <td key={p.code} className="ebim-td py-2">
+                      {tenants.length === 0 ? (
+                        <span className="text-caption text-disabled" aria-label="Sin contratar">
+                          —
+                        </span>
+                      ) : (
+                        <TenantCell rows={tenants} />
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </DataTable>
+        </div>
       )}
     </Card>
   );
@@ -265,7 +298,7 @@ function SuiteMatrix({ rows }: { rows: TenantLifecycleRow[] }) {
 function StageLegend() {
   const order = ['CURRENT', 'IN_GRACE', 'SUSPENSION_SUGGESTED', 'SUSPENSION_SCHEDULED', 'SUSPENDED_NON_PAYMENT', 'SUSPENDED_MANUAL'] as const;
   return (
-    <ul className="flex flex-wrap gap-2 px-4 pb-3" aria-label="Leyenda de etapas">
+    <ul className="flex flex-wrap gap-2 px-4 py-3" aria-label="Leyenda de etapas">
       {order.map((s) => (
         <li key={s}>
           <Badge tone={STAGE[s].tone} dot title={STAGE[s].help}>
@@ -277,16 +310,42 @@ function StageLegend() {
   );
 }
 
-function TenantChip({ row }: { row: TenantLifecycleRow }) {
-  const stage = STAGE[stageOf(row)];
-  const delivery = deliveryOf(row);
-  const title = `${row.tenant_name ?? ''} · ${stage.label}. ${stage.help} App: ${delivery.label}. ${delivery.detail}`;
+/**
+ * Una celda de la matriz: la etapa del tenant (o la PEOR de sus tenants en esa
+ * app, con «×2») y, solo si aporta, cómo va la entrega a la app. El detalle de
+ * cada tenant va en el `title` y en su ficha.
+ */
+function TenantCell({ rows }: { rows: TenantLifecycleRow[] }) {
+  const worst = worstStage(rows.map(stageOf));
+  const lead = rows.find((r) => stageOf(r) === worst) ?? rows[0]!;
+  const stage = STAGE[worst];
+  const delivery = deliveryOf(lead);
+  const title = rows
+    .map((r) => {
+      const st = STAGE[stageOf(r)];
+      const d = deliveryOf(r);
+      return `${r.tenant_name ?? ''} · ${st.label}. ${st.help} App: ${d.label}. ${d.detail}`;
+    })
+    .join('\n');
   return (
-    <Link to={`/tenants/${row.tenant_id}`} title={title} className="inline-flex flex-col gap-0.5 rounded-field hover:underline">
-      <Badge tone={stage.tone} dot>
-        {stage.short}
-      </Badge>
-      <span className="text-caption text-muted">{delivery.label}</span>
+    <Link
+      to={`/tenants/${lead.tenant_id}`}
+      title={title}
+      className="inline-flex flex-col items-start gap-0.5 rounded-field hover:underline"
+      data-stage={worst}
+    >
+      <span className="inline-flex items-center gap-1">
+        <Badge tone={stage.tone} dot>
+          {stage.short}
+        </Badge>
+        {rows.length > 1 ? (
+          <span className="text-caption font-semibold text-fg-2" aria-label={`${rows.length} tenants en esta app`}>
+            ×{rows.length}
+          </span>
+        ) : null}
+      </span>
+      {delivery.kind !== 'NO_CHANNEL' ? <span className="text-caption text-muted">{delivery.label}</span> : null}
+      <span className="sr-only">{rows.length > 1 ? title : `${lead.tenant_name ?? ''}: ${stage.label}`}</span>
     </Link>
   );
 }
@@ -350,7 +409,13 @@ function CollectionsTab({
       ) : (
         <DataTable
           label="Cobranza y cortes por tenant"
-          columns={['Tenant', 'Etapa', 'Deuda vencida', 'Entrega a la app', { label: 'Acciones', srOnly: true }]}
+          columns={[
+            { label: 'Tenant', sticky: true },
+            'Etapa',
+            { label: 'Deuda vencida', align: 'right' },
+            'Entrega a la app',
+            { label: 'Acciones', srOnly: true },
+          ]}
         >
           {visible.map((r) => {
             const s = stageOf(r);
@@ -359,39 +424,46 @@ function CollectionsTab({
             const suspended = s === 'SUSPENDED_NON_PAYMENT' || s === 'SUSPENDED_MANUAL';
             return (
               <tr key={r.tenant_id}>
-                <td className="ebim-td">
-                  <Link to={`/tenants/${r.tenant_id}`} className="block min-w-0 hover:underline">
-                    <div className="truncate font-semibold text-fg">{r.tenant_name}</div>
-                    <div className="truncate text-caption text-muted">
-                      {r.organization_name} · {r.product_short_name}
-                    </div>
-                  </Link>
+                <td className="ebim-td py-2">
+                  <div className="max-w-[280px]">
+                    <CellTitle
+                      title={r.tenant_name ?? '—'}
+                      to={`/tenants/${r.tenant_id}`}
+                      secondary={notIn(r.tenant_name, [r.organization_name, r.product_short_name])}
+                    />
+                  </div>
                 </td>
-                <td className="ebim-td">
-                  <Badge tone={stage.tone} dot title={stage.help}>
-                    {stage.label}
-                  </Badge>
-                  {r.suspended_at ? (
-                    <div className="mt-1 text-caption text-muted">Desde {formatDate(r.suspended_at)}</div>
-                  ) : null}
+                <td className="ebim-td py-2">
+                  <StatusCell
+                    label={stage.label}
+                    tone={stage.tone}
+                    help={stage.help}
+                    detail={
+                      r.suspended_at
+                        ? `Desde ${formatDate(r.suspended_at)}`
+                        : r.grace_ends_on && (r.overdue_invoices ?? 0) > 0
+                          ? `Gracia ${r.grace_expired ? 'vencida el' : 'hasta el'} ${formatDate(r.grace_ends_on)}`
+                          : undefined
+                    }
+                  />
                 </td>
-                <td className="ebim-td text-compact">
+                <td className="ebim-td ebim-num py-2">
                   {(r.overdue_invoices ?? 0) === 0 ? (
-                    <span className="text-muted">Sin deuda vencida</span>
+                    <span className="text-compact text-muted">Sin deuda vencida</span>
+                  ) : r.overdue_balance !== null ? (
+                    <MoneyCell
+                      amount={r.overdue_balance}
+                      currency={r.overdue_currency}
+                      tone="danger"
+                      context={`${formatCountNoun(r.overdue_invoices ?? 0, 'factura')} · ${formatCountNoun(r.days_past_due ?? 0, 'día')} de atraso`}
+                    />
                   ) : (
-                    <>
-                      <div className="whitespace-nowrap font-semibold tabular-nums">
-                        {r.overdue_balance !== null ? formatMoney(r.overdue_balance, r.overdue_currency) : 'Varias monedas'}
-                      </div>
-                      <div className="whitespace-nowrap text-caption text-muted">
-                        {r.overdue_invoices} factura(s) · {r.days_past_due} día(s) de atraso
-                      </div>
-                      {r.grace_ends_on ? (
-                        <div className="whitespace-nowrap text-caption text-muted">
-                          Gracia {r.grace_expired ? 'vencida el' : 'hasta el'} {formatDate(r.grace_ends_on)}
-                        </div>
-                      ) : null}
-                    </>
+                    <span className="inline-flex flex-col items-end leading-tight">
+                      <span className="font-semibold text-danger">Varias monedas</span>
+                      <span className="whitespace-nowrap text-caption text-muted">
+                        {formatCountNoun(r.overdue_invoices ?? 0, 'factura')} · {formatCountNoun(r.days_past_due ?? 0, 'día')} de atraso
+                      </span>
+                    </span>
                   )}
                 </td>
                 <td className="ebim-td">
@@ -491,11 +563,10 @@ function SuspensionHistory({ rows }: { rows: TenantLifecycleRow[] }) {
             const tenant = (s as { tenant?: { name?: string | null } | null }).tenant;
             return (
               <tr key={s.id}>
-                <td className="ebim-td">
-                  <Link to={`/tenants/${s.tenant_id}`} className="block min-w-0 hover:underline">
-                    <div className="truncate font-semibold text-fg">{tenant?.name ?? '—'}</div>
-                    <div className="truncate text-caption text-muted">{productOf.get(s.tenant_id) ?? ''}</div>
-                  </Link>
+                <td className="ebim-td py-2">
+                  <div className="max-w-[260px]">
+                    <CellTitle title={tenant?.name ?? '—'} to={`/tenants/${s.tenant_id}`} secondary={[productOf.get(s.tenant_id)]} />
+                  </div>
                 </td>
                 <td className="ebim-td">
                   <Badge tone={s.cause === 'NON_PAYMENT' ? 'danger' : 'warn'}>{SUSPENSION_CAUSE[s.cause] ?? s.cause}</Badge>
@@ -524,7 +595,7 @@ function SuspensionHistory({ rows }: { rows: TenantLifecycleRow[] }) {
 }
 
 /* ==========================================================================
-   Política y jobs
+   Política y tareas programadas
    ========================================================================== */
 
 function PolicyTab({ isSuperAdmin, rows }: { isSuperAdmin: boolean; rows: TenantLifecycleRow[] }) {
@@ -576,7 +647,7 @@ function PolicyTab({ isSuperAdmin, rows }: { isSuperAdmin: boolean; rows: Tenant
             />
             <SwitchField
               label="Sincronización programada con las apps"
-              hint="Cada 5 minutos entrega a cada app los módulos habilitados y el estado operativo (activo o suspendido, contrato lifecycle.v1)."
+              hint="Cada 5 minutos entrega a cada app los módulos habilitados y el estado operativo (activo o suspendido)."
               checked={s.entitlement_sync_enabled}
               disabled={!isSuperAdmin || save.isPending}
               onChange={(v) => void toggle({ p_entitlement_sync_enabled: v }, v ? 'Sincronización programada habilitada' : 'Sincronización programada apagada')}
@@ -607,7 +678,7 @@ function PolicyTab({ isSuperAdmin, rows }: { isSuperAdmin: boolean; rows: Tenant
 
       <Card
         title="Canal de suspensión por app"
-        description="Contrato lifecycle.v1: sin canal configurado, suspender no bloquea la operación en esa app."
+        description="Sin canal configurado, suspender no bloquea la operación en esa app."
       >
         <DataTable label="Canal de suspensión por app" columns={['App', 'Canal', 'Tenants', 'Bloqueo']}>
           {appLifecycleChannels(rows).map((a) => (
@@ -620,14 +691,14 @@ function PolicyTab({ isSuperAdmin, rows }: { isSuperAdmin: boolean; rows: Tenant
               </td>
               <td className="ebim-td text-compact tabular-nums">{a.tenants}</td>
               <td className="ebim-td text-compact">
-                {a.enforced || a.pending ? `${a.enforced} aplicado(s) · ${a.pending} pendiente(s)` : '—'}
+                {a.enforced || a.pending ? `${formatCountNoun(a.enforced, 'aplicado')} · ${formatCountNoun(a.pending, 'pendiente')}` : '—'}
               </td>
             </tr>
           ))}
         </DataTable>
       </Card>
 
-      <Card title="Jobs programados" description="Lo que pg_cron ejecutó. «Sin configurar» = faltan los secretos de Vault del entorno.">
+      <Card title="Tareas programadas" description="Lo que ejecutaron las tareas programadas. «Sin configurar» = faltan las claves del entorno.">
         {jobs.isLoading ? (
           <LoadingState label="Cargando la bitácora…" />
         ) : jobs.error ? (
@@ -635,7 +706,7 @@ function PolicyTab({ isSuperAdmin, rows }: { isSuperAdmin: boolean; rows: Tenant
         ) : (jobs.data ?? []).length === 0 ? (
           <EmptyState title="Sin ejecuciones todavía" description="La primera aparece tras el próximo disparo programado." />
         ) : (
-          <DataTable label="Ejecuciones programadas" columns={['Job', 'Resultado', 'Cuándo']}>
+          <DataTable label="Ejecuciones programadas" columns={['Tarea', 'Resultado', 'Cuándo']}>
             {(jobs.data ?? []).map((j) => {
               const outcome = JOB_OUTCOME[j.outcome] ?? { label: j.outcome, tone: 'neutral' as const };
               return (

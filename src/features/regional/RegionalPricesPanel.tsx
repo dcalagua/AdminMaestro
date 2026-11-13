@@ -43,7 +43,7 @@ export function RegionalPricesPanel() {
     { id: 'CURRENT', label: 'Vigentes' },
     { id: 'SCHEDULED', label: 'Programadas' },
     { id: 'HISTORY', label: 'Historial' },
-    { id: 'LEGACY', label: 'Sin mercado (legacy)' },
+    { id: 'LEGACY', label: 'Sin mercado (anterior)' },
   ];
 
   return (

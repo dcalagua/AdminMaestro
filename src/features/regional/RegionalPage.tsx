@@ -1,9 +1,8 @@
 import { KpiTile, PageContainer } from '@/components/ui/primitives';
-import { SectionTabs } from '@/components/ui/SectionTabs';
+import { SubSections } from '@/components/ui/SubSections';
 import { useExchangeRates, useFinanceConsolidated, useMarkets, useReportingSettings } from '@/services/queries';
 import { isoDate } from '@/features/executive/reportContext';
 import { formatDate, formatNumber } from '@/lib/format';
-import { InfoNote } from '@/features/billing/listing';
 import { KpiStrip } from '@/features/billing/financeUi';
 import { ReportingCurrencyPanel } from './ReportingCurrencyPanel';
 import { ExchangeRatesPanel } from './ExchangeRatesPanel';
@@ -24,22 +23,17 @@ import { FxCoveragePanel } from './FxCoveragePanel';
 export function RegionalPage() {
   return (
     <PageContainer
-      title="Monedas y FX"
-      description="Mercados, moneda de reporte y tipos de cambio para el consolidado gerencial. Los importes nativos no se convierten ni se reescriben."
+      title="Monedas y tipo de cambio"
+      // La nota «fecha de la tasa ≠ período» pasa a la descripción (que el hub muestra tras «¿Qué es esto?»).
+      description="Mercados, moneda de reporte y tipos de cambio para el consolidado gerencial. Los importes nativos no se convierten ni se reescriben. La fecha de la tasa solo decide con qué tasa se convierte; el período de cobros, costos y comisiones se elige en el Resumen. Si falta una tasa, el consolidado se marca incompleto en vez de mostrar un total falso."
     >
       <RegionalKpis />
-      <div className="mb-4">
-        <InfoNote>
-          <strong>Fecha FX ≠ período financiero.</strong> La fecha de las tasas sólo decide con qué tasa se convierte; el
-          período de cobros, costos y comisiones se elige en el inicio. Si falta una tasa, el consolidado se marca
-          incompleto en vez de mostrar un total falso.
-        </InfoNote>
-      </div>
-      <SectionTabs
+      <SubSections
+        label="Secciones de monedas y tipo de cambio"
         tabs={[
           { id: 'reporting', label: 'Moneda de reporte', content: <ReportingCurrencyPanel /> },
           { id: 'fx', label: 'Tipos de cambio', content: <ExchangeRatesPanel /> },
-          { id: 'coverage', label: 'Cobertura FX', content: <FxCoveragePanel /> },
+          { id: 'coverage', label: 'Cobertura de tasas', content: <FxCoveragePanel /> },
           { id: 'prices', label: 'Tarifas por mercado', content: <RegionalPricesPanel /> },
           { id: 'markets', label: 'Mercados y rutas de cobro', content: <MarketsPanel /> },
         ]}
@@ -78,11 +72,11 @@ function RegionalKpis() {
         onRetry={() => void settings.refetch()}
       />
       <KpiTile
-        label="Tipos de cambio vigentes"
+        label="Tasas vigentes"
         value={rates.data ? formatNumber(active.length) : null}
         footer={
           latest
-            ? `Última publicada: ${formatDate(latest)}${demo > 0 ? ` · ${formatNumber(demo)} DEMO` : ''}`
+            ? `Última publicada: ${formatDate(latest)}${demo > 0 ? ` · ${formatNumber(demo)} de demostración` : ''}`
             : 'Ninguna tasa publicada'
         }
         loading={rates.isLoading}
@@ -90,7 +84,7 @@ function RegionalKpis() {
         onRetry={() => void rates.refetch()}
       />
       <KpiTile
-        label="Cobertura FX a hoy"
+        label="Cobertura hoy"
         info="Monedas con importes que no tienen tasa vigente para convertirse a la moneda de reporte."
         value={coverage.data ? (missing.length === 0 ? 'Completa' : `${formatNumber(missing.length)} sin tasa`) : null}
         tone={coverage.data ? (missing.length === 0 ? 'ok' : 'warn') : 'neutral'}

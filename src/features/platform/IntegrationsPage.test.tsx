@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 /*
@@ -30,6 +30,8 @@ vi.mock('@/services/queries', () => ({
         contract_version: 'v1',
         status: 'READY',
         enabled: true,
+        cutover_state_entitlements: 'SHADOW',
+        cutover_state_billing: 'BILLING_LEGACY',
         owner_name: 'Equipo EWM',
         saas_product_id: 'p-ewm',
         saas_products: { code: 'EWM', short_name: 'EWM' },
@@ -83,26 +85,60 @@ beforeEach(() => {
   checkHealth.mockReset();
 });
 
-describe('IntegrationsPage', () => {
-  it('resume por entorno: QAS sano con fecha; PRD en borrador «No evaluado», nunca «Caído»', () => {
+describe('IntegrationsPage (V6 · F1: tabla densa)', () => {
+  it('resume por entorno en una línea: QAS sano con su fecha en el tooltip; PRD en borrador «No evaluado», nunca «Caído»', () => {
     renderPage();
-    const list = screen.getByRole('list', { name: 'Salud observada por entorno' });
+    const list = screen.getByRole('list', { name: 'Salud por entorno de EWM provisioning' });
     const items = within(list).getAllByRole('listitem');
     const qas = items.find((li) => li.dataset.environment === 'QAS')!;
     const prd = items.find((li) => li.dataset.environment === 'PRD')!;
 
     expect(within(qas).getByText('Saludable')).toBeInTheDocument();
-    expect(within(qas).getByText(/Observado el/)).toBeInTheDocument();
-    expect(qas.querySelector('time')?.getAttribute('dateTime')).toBe('2026-09-20T15:30:00Z');
+    expect(qas.getAttribute('title')).toMatch(/^Calidad: Saludable · observado el /);
 
     expect(within(prd).getByText('No evaluado')).toBeInTheDocument();
     // El destino deshabilitado no contamina nada: ningún «Caído» en la página.
     expect(screen.queryByText('Caído')).not.toBeInTheDocument();
   });
 
+  it('una fila por integración: estado de negocio único, código al tooltip y migraciones sin jerga ni etiquetas encimadas', () => {
+    renderPage();
+    const row = document.querySelector('[data-integration="ewm-provisioning-v1"]') as HTMLElement;
+    const link = within(row).getByRole('link', { name: 'EWM provisioning' });
+    expect(link).toHaveAttribute('href', '/integrations/int-1');
+    expect(link.getAttribute('title')).toContain('Código: ewm-provisioning-v1');
+    // «Lista» + «Habilitada» pasan a una sola insignia.
+    expect(within(row).getByText('Operativa')).toBeInTheDocument();
+    expect(within(row).queryByText('Habilitada')).toBeNull();
+    // Cada migración pinta solo el nombre de su etapa actual.
+    const visible = [...row.querySelectorAll('[data-stepper] p')].map((p) => p.textContent);
+    expect(visible).toEqual(['En comparación', 'Cobra la app']);
+    expect(row.textContent).not.toMatch(/Legacy|Paso \d de|MasterAdmin|Propietarios técnicos/);
+  });
+
+  it('el detalle completo va en un panel lateral, con la salud y sus fechas', () => {
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Acciones de EWM provisioning' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Ver resumen' }));
+    const drawer = screen.getByRole('dialog', { name: 'EWM provisioning' });
+    const list = within(drawer).getByRole('list', { name: 'Salud observada por entorno' });
+    const qas = within(list).getAllByRole('listitem').find((li) => li.dataset.environment === 'QAS')!;
+    expect(within(qas).getByText(/Observado el/)).toBeInTheDocument();
+    expect(qas.querySelector('time')?.getAttribute('dateTime')).toBe('2026-09-20T15:30:00Z');
+    expect(within(drawer).getByRole('link', { name: 'Abrir ficha' })).toHaveAttribute('href', '/integrations/int-1');
+  });
+
+  it('la franja dice lo útil: operativas, destinos evaluados, incidencias y salud desactualizada', () => {
+    renderPage();
+    const strip = screen.getByRole('region', { name: 'Resumen de integraciones' });
+    expect(within(strip).getByText('1 de 1')).toBeInTheDocument();
+    expect(strip.querySelector('[data-stat-cell="Destinos evaluados"]')).toHaveTextContent('1 de 2');
+    expect(strip.querySelector('[data-stat-cell="Con incidencia"]')).toHaveTextContent('0');
+  });
+
   it('con el filtro de entorno sólo se ve ese entorno', () => {
     renderPage('/integrations?entorno=QAS');
-    const list = screen.getByRole('list', { name: 'Salud observada por entorno' });
+    const list = screen.getByRole('list', { name: 'Salud por entorno de EWM provisioning' });
     const envs = within(list).getAllByRole('listitem').map((li) => li.dataset.environment);
     expect(envs).toEqual(['QAS']);
   });

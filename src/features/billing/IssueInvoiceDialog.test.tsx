@@ -21,12 +21,20 @@ vi.mock('@/services/queries', () => ({
       { id: 's-4', code: 'SUB-4', currency: 'USD', status: 'ACTIVE', billing_channel: 'PARTNER_STATEMENT', organizations: { display_name: 'Partner' }, saas_products: { short_name: 'TMS' } },
     ]),
 }));
+// La emisión real (`usePeriodInvoice` → issue_subscription_invoice) se prueba en PeriodInvoiceAction.
+const issued = vi.hoisted(() => ({ calls: [] as string[] }));
+vi.mock('./periodInvoice', () => ({
+  usePeriodInvoice: ({ subscriptionId, onIssued }: { subscriptionId?: string; onIssued?: (r: unknown) => void }) => ({
+    disabled: !subscriptionId,
+    pending: false,
+    issue: async () => {
+      issued.calls.push(subscriptionId ?? '');
+      onIssued?.({ number: 'INV-9' });
+    },
+  }),
+}));
 vi.mock('./PeriodInvoiceAction', () => ({
-  PeriodInvoiceAction: ({ subscriptionId, currency, onIssued }: { subscriptionId: string; currency: string; onIssued: (r: unknown) => void }) => (
-    <button type="button" onClick={() => onIssued({ number: 'INV-9' })}>
-      Emitir factura del período de {subscriptionId} ({currency})
-    </button>
-  ),
+  PeriodInvoiceFields: () => <p>Período de facturación</p>,
 }));
 
 import { IssueInvoiceAction } from './IssueInvoiceDialog';
@@ -44,18 +52,35 @@ beforeEach(() => {
 });
 
 describe('Emitir factura', () => {
-  it('lista sólo contratos facturables por EBIM y reutiliza la emisión del período', async () => {
+  it('lista sólo contratos facturables por EBIM en un único buscador y emite desde el pie', async () => {
+    issued.calls = [];
     renderAction();
     await userEvent.click(screen.getByRole('button', { name: 'Emitir factura' }));
     const dialog = screen.getByRole('dialog', { name: 'Emitir factura' });
-    const select = within(dialog).getByLabelText('Contrato');
-    const labels = within(select).getAllByRole('option').map((o) => o.textContent);
-    expect(labels).toEqual(['Elige el contrato…', 'Alpha · EWM · SUB-1 (PEN)', 'Beta · TMS · SUB-2 (USD)']);
+    // V6: la acción primaria va a la derecha, desactivada hasta elegir; cerrar es secundario.
+    const primary = within(dialog).getByRole('button', { name: 'Emitir factura' });
+    expect(primary).toHaveClass('ebim-btn-primary');
+    expect(primary).toBeDisabled();
+    expect(within(dialog).getByRole('button', { name: 'Cancelar' })).toHaveClass('ebim-btn-secondary');
+    expect(within(dialog).queryByRole('combobox', { name: 'Buscar contrato' })).toBeNull();
 
-    await userEvent.type(within(dialog).getByLabelText('Buscar contrato'), 'beta');
-    expect(within(select).getAllByRole('option')).toHaveLength(2);
-    await userEvent.selectOptions(select, 's-2');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Emitir factura del período de s-2 (USD)' }));
+    const combo = within(dialog).getByRole('combobox', { name: 'Contrato' });
+    await userEvent.click(combo);
+    const list = within(dialog).getByRole('listbox');
+    expect(within(list).getAllByRole('option').map((o) => o.textContent)).toEqual([
+      'Alpha · EWMSUB-1 · PEN',
+      'Beta · TMSSUB-2 · USD',
+    ]);
+    await userEvent.type(combo, 'beta');
+    expect(within(list).getAllByRole('option')).toHaveLength(1);
+    await userEvent.keyboard('{Enter}');
+    expect(combo).toHaveValue('Beta · TMS · SUB-2');
+    expect(within(dialog).getByText('Período de facturación')).toBeInTheDocument();
+
+    const ready = within(dialog).getByRole('button', { name: 'Emitir factura (USD)' });
+    expect(ready).toBeEnabled();
+    await userEvent.click(ready);
+    expect(issued.calls).toEqual(['s-2']);
     expect(within(dialog).getByRole('link', { name: 'Ver INV-9 en el contrato' })).toHaveAttribute('href', '/subscriptions/s-2#invoices');
   });
 

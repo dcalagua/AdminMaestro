@@ -78,10 +78,10 @@ export function TenantStep({ wizard }: { wizard: OnboardingWizard }) {
 
       {!isApp && values.deployment_mode !== 'SHARED' ? (
         <SelectField
-          label="Deployment target dedicado"
+          label="Destino dedicado"
           placeholder="Crear más adelante (queda encolado)"
           options={targetOptions}
-          hint="La base valida que el target sea del mismo modo, producto y dueño."
+          hint="La base valida que el destino sea del mismo modo, producto y dueño."
           error={form.formState.errors.deployment_target_id}
           {...form.register('deployment_target_id')}
         />

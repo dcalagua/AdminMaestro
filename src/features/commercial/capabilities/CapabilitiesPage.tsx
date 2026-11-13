@@ -4,7 +4,14 @@ import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { usePermissions } from '@/hooks/usePermissions';
 import { StatusTabs } from '@/components/ui/SectionTabs';
 import {
-  PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge,
+  PageContainer,
+  Card,
+  DataTable,
+  SearchBar,
+  LoadingState,
+  ErrorState,
+  EmptyState,
+  Badge,
 } from '@/components/ui/primitives';
 import { ImportManifestDialog } from './ImportManifestDialog';
 import type { ManifestImportResult } from './ImportManifestDialog';
@@ -55,7 +62,8 @@ function statusTone(status: string): 'ok' | 'warn' | 'neutral' {
 /** `missing` puede venir como códigos o como objetos con `code`. */
 function missingCode(entry: unknown): string {
   if (typeof entry === 'string') return entry;
-  if (entry && typeof entry === 'object' && 'code' in entry) return String((entry as { code: unknown }).code);
+  if (entry && typeof entry === 'object' && 'code' in entry)
+    return String((entry as { code: unknown }).code);
   return JSON.stringify(entry);
 }
 
@@ -74,7 +82,12 @@ export function CapabilitiesPage() {
   }, [products.data]);
 
   const { term, setTerm, filtered } = useSearchFilter(capabilities.data, (c) => [
-    c.code, c.name, c.description, c.kind, c.meter_code, productName.get(c.saas_product_id),
+    c.code,
+    c.name,
+    c.description,
+    c.kind,
+    c.meter_code,
+    productName.get(c.saas_product_id),
     ...c.aliases.map((a) => a.alias_code),
   ]);
 
@@ -122,17 +135,22 @@ export function CapabilitiesPage() {
             ].map(([k, v]) => (
               <div key={k as string}>
                 <dt className="text-micro text-muted">{k as string}</dt>
-                <dd className="mt-1 text-h2 tabular-nums">{v === undefined || v === null ? '—' : String(v)}</dd>
+                <dd className="mt-1 text-h2 tabular-nums">
+                  {v === undefined || v === null ? '—' : String(v)}
+                </dd>
               </div>
             ))}
           </dl>
           <div className="border-t border-border px-4 py-3">
             {(lastImport.missing ?? []).length === 0 ? (
-              <p className="text-compact text-ok">Sin drift: el registro y el manifiesto coinciden.</p>
+              <p className="text-compact text-ok">
+                Sin drift: el registro y el manifiesto coinciden.
+              </p>
             ) : (
               <div role="status">
                 <p className="text-compact font-semibold text-warn">
-                  Drift de registro: {(lastImport.missing ?? []).length} capacidad(es) registradas que el manifiesto ya no declara
+                  Drift de registro: {(lastImport.missing ?? []).length} capacidad(es) registradas
+                  que el manifiesto ya no declara
                 </p>
                 <ul className="mt-1 flex flex-wrap gap-1.5">
                   {(lastImport.missing ?? []).map((m) => (
@@ -151,6 +169,7 @@ export function CapabilitiesPage() {
         <SearchBar
           value={term}
           onChange={setTerm}
+          total={capabilities.data?.length}
           placeholder="Buscar capacidad por código, nombre, medidor o alias…"
           right={
             <StatusTabs
@@ -166,6 +185,15 @@ export function CapabilitiesPage() {
           <ErrorState error={capabilities.error} onRetry={() => void capabilities.refetch()} />
         ) : groups.length === 0 ? (
           <EmptyState
+            variant={hasAny ? 'no-results' : 'empty'}
+            onClear={
+              hasAny
+                ? () => {
+                    setTerm('');
+                    setTab('ALL');
+                  }
+                : undefined
+            }
             title={hasAny ? 'Ninguna capacidad coincide' : 'Sin capacidades registradas'}
             description={
               hasAny
@@ -177,9 +205,20 @@ export function CapabilitiesPage() {
           groups.map((g) => (
             <section key={g.id} aria-label={g.label}>
               <h2 className="border-b border-border bg-sunken px-5 py-2.5 text-h3 text-fg">
-                {g.label} <span className="ml-1 font-normal text-muted tabular-nums">{g.rows.length}</span>
+                {g.label}{' '}
+                <span className="ml-1 font-normal text-muted tabular-nums">{g.rows.length}</span>
               </h2>
-              <DataTable columns={['Capacidad', 'Tipo', 'Estado', 'Alcance', 'Combinación', 'Unidad / medidor', 'Alias']}>
+              <DataTable
+                columns={[
+                  'Capacidad',
+                  'Tipo',
+                  'Estado',
+                  'Alcance',
+                  'Combinación',
+                  'Unidad / medidor',
+                  'Alias',
+                ]}
+              >
                 {g.rows.map((c) => (
                   <tr key={c.id}>
                     <td className="ebim-td">
@@ -187,19 +226,27 @@ export function CapabilitiesPage() {
                         <span className="font-semibold">{c.name}</span>
                         {c.is_baseline ? <Badge tone="info">Incluida en base</Badge> : null}
                       </div>
-                      <div className="whitespace-nowrap font-mono text-caption text-muted">{c.code}</div>
+                      <div className="whitespace-nowrap font-mono text-caption text-muted">
+                        {c.code}
+                      </div>
                     </td>
                     <td className="ebim-td">
                       <Badge tone="neutral">{label(KIND_LABEL, c.kind)}</Badge>
                     </td>
                     <td className="ebim-td">
-                      <Badge tone={statusTone(c.status)} dot>{label(STATUS_LABEL, c.status)}</Badge>
+                      <Badge tone={statusTone(c.status)} dot>
+                        {label(STATUS_LABEL, c.status)}
+                      </Badge>
                     </td>
                     <td className="ebim-td text-compact">{label(SCOPE_LABEL, c.scope_level)}</td>
                     <td className="ebim-td text-compact">{label(COMBINE_LABEL, c.combine_rule)}</td>
                     <td className="ebim-td text-compact">
                       {c.unit ?? '—'}
-                      {c.meter_code ? <div className="whitespace-nowrap font-mono text-caption text-muted">{c.meter_code}</div> : null}
+                      {c.meter_code ? (
+                        <div className="whitespace-nowrap font-mono text-caption text-muted">
+                          {c.meter_code}
+                        </div>
+                      ) : null}
                     </td>
                     <td className="ebim-td">
                       {c.aliases.length === 0 ? (

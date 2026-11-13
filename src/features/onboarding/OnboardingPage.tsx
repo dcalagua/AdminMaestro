@@ -119,7 +119,8 @@ function OnboardingFlow() {
       ) : null}
 
       <div className="grid items-start gap-4 lg:grid-cols-12">
-      <div className={`min-w-0 ${isApp ? 'lg:col-span-12' : 'lg:col-span-8'}`}>
+      {/* V6: «Nuevo tenant» no tiene resumen lateral; el formulario no se estira a 1.140 px para dos campos. */}
+      <div className={`min-w-0 ${isApp ? 'lg:col-span-9' : 'lg:col-span-8'}`}>
       <Card>
         <div className="p-5">
           {stepIssue ? (

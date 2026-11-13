@@ -62,7 +62,7 @@ export function PoliciesTab() {
   return (
     <Card
       title="Políticas"
-      description="Cuántos créditos incluye un plan o add-on, en qué pool y qué pasa con el exceso. Sin política, el uso de IA alerta y no consume."
+      description="Cuántos créditos incluye un plan o add-on, en qué bolsa y qué pasa con el exceso. Sin política, el uso de IA alerta y no consume."
       actions={
         perms.canReadFinance ? (
           <button type="button" className="ebim-btn-primary ebim-btn-sm" onClick={() => setCreating(true)}>
@@ -96,7 +96,7 @@ export function PoliciesTab() {
         <EmptyState
           title={hasAny ? 'Ninguna política coincide' : 'Sin políticas de créditos'}
           description={
-            hasAny ? 'Prueba con otra búsqueda o cambia de pestaña.' : 'Ningún plan ni add-on incluye créditos todavía (D-03).'
+            hasAny ? 'Prueba con otra búsqueda o cambia de pestaña.' : 'Ningún plan ni add-on incluye créditos todavía.'
           }
         />
       ) : (
@@ -303,7 +303,7 @@ function PolicyDialog({
       open={open}
       wide
       title="Nueva política de créditos"
-      description="Deja vacío lo que no esté decidido: se guarda como «No decidido (D-03)», nunca como 0. Rollover y expiración no se pueden configurar hasta D-04."
+      description="Deja vacío lo que no esté decidido: se guarda como «No decidido», nunca como 0. Rollover y expiración no se pueden configurar por ahora."
       submitLabel="Registrar política"
       busy={create.isPending}
       error={create.error}
@@ -322,20 +322,20 @@ function PolicyDialog({
           error={form.formState.errors.source_code} {...form.register('source_code')} />
       </FieldRow>
       <FieldRow>
-        <SelectField label="Pool"
+        <SelectField label="Bolsa"
           options={[
-            { value: '', label: 'No decidido (D-03)' },
+            { value: '', label: 'No decidido' },
             { value: 'TENANT', label: 'Por tenant' },
             { value: 'PRODUCT', label: 'Por producto' },
           ]}
           error={form.formState.errors.pool_scope} {...form.register('pool_scope')} />
-        <NumberField label="Créditos incluidos por período" min={0} step="any" placeholder="No decidido (D-03)"
+        <NumberField label="Créditos incluidos por período" min={0} step="any" placeholder="No decidido"
           error={form.formState.errors.included_credits} {...form.register('included_credits')} />
       </FieldRow>
       <FieldRow>
         <SelectField label="Exceso"
           options={[
-            { value: '', label: 'No decidido (D-03)' },
+            { value: '', label: 'No decidido' },
             { value: 'BLOCK', label: 'Bloquear el exceso' },
             { value: 'ALLOW', label: 'Permitir y facturar el exceso' },
           ]}

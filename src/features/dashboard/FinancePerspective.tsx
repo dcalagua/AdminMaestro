@@ -277,7 +277,7 @@ function FxCoverage({ query, ctx }: { query: ReturnType<typeof useFinanceConsoli
           <p className="text-warn">No hay moneda de reporte configurada: sólo se muestran importes nativos.</p>
         ) : data.completeness.complete ? (
           <>
-            <p className="font-semibold text-ok">Cobertura FX completa en {data.reporting_currency}.</p>
+            <p className="font-semibold text-ok">Tasas de cambio completas en {data.reporting_currency}.</p>
             <ul className="mt-2 space-y-1 text-caption text-muted">
               {data.rates_used.map((r) => (
                 <li key={`${r.from}-${r.to}-${r.rate_date}`}>
@@ -331,7 +331,7 @@ function FinanceKpis({ query, ctx }: { query: ReturnType<typeof useFinanceConsol
     <section aria-label="Indicadores de finanzas" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <KpiTile
         label="Cobrado del período"
-        info="Pagos confirmados en el período (K02), consolidados con tasa explícita."
+        info="Pagos confirmados en el período, consolidados con tasa explícita."
         currency={collected?.reporting_amount != null ? rc : undefined}
         value={collected?.reporting_amount == null ? null : formatCompactAmount(Number(collected.reporting_amount))}
         footer={missing(collected) ?? `${period} · ${nativeLine(collected?.native) || 'sin cobros'}`}
@@ -342,7 +342,7 @@ function FinanceKpis({ query, ctx }: { query: ReturnType<typeof useFinanceConsol
       />
       <KpiTile
         label="Margen gerencial"
-        info="Cobrado − costo directo − comisión del período (K05). Gestión, no utilidad contable."
+        info="Cobrado − costo directo − comisión del período. Gestión, no utilidad contable."
         currency={margin?.reporting_amount != null ? rc : undefined}
         value={margin?.reporting_amount == null ? null : formatCompactAmount(Number(margin.reporting_amount))}
         tone={ctx.period.partial ? 'warn' : 'neutral'}

@@ -6,23 +6,23 @@ import { SectionTabs } from '@/components/ui/SectionTabs';
 import { FormDialog } from '@/components/ui/FormDialog';
 import { TextAreaField } from '@/components/ui/fields';
 import { useToast } from '@/components/ui/toast-context';
-import { PageContainer, Card, LoadingState, ErrorState, EmptyState, Badge } from '@/components/ui/primitives';
+import { PageContainer, Card, LoadingState, ErrorState, EmptyState } from '@/components/ui/primitives';
 import { isAuthorizationError } from '@/lib/pgError';
-import { formatDateTime } from '@/lib/format';
-import { PLATFORM_ROLE_LABEL } from '@/types/domain';
 import { Avatar } from '@/components/ui/Avatar';
-import { UserStatus } from './UserStatus';
-import { accountStatus, isPendingInvitation } from './userModel';
+import { UserSummaryBar } from './UserSummaryBar';
+import { isPendingInvitation } from './userModel';
 import { useUserAdminScope } from './useUserAdminScope';
 import {
   ActivityPanel, ConsoleRolePanel, OrganizationsPanel, ProfilePanel, ProvisioningPanel, SalesAgentPanel, TenantsPanel,
 } from './UserAccessPanels';
 import { UserAppsPanel } from './UserAppsPanel';
 
+const LEGACY_TABS = new Set(['consola', 'organizaciones']);
+
 /**
  * Ficha de usuario (spec §6.4) con `SectionTabs` y deep-link por `#hash` (U-07):
- * Perfil · Apps y accesos (V5 · F6) · Rol de consola · Organizaciones ·
- * Provisioning · Vendedor · Actividad. Desactivar / Reactivar es una acción de cabecera (super admin).
+ * Perfil · Apps y accesos (V5 · F6) · Rol y organizaciones (V6) ·
+ * Altas en las apps · Vendedor · Actividad, bajo una `SummaryBar`. Desactivar / Reactivar es una acción de cabecera (super admin).
  *
  * Las pestañas se ocultan según el rol (UX); cada RPC vuelve a decidir.
  */
@@ -36,6 +36,13 @@ export function UserDetailPage() {
   const [reason, setReason] = useState('');
   const [reasonError, setReasonError] = useState<Error | null>(null);
   const [resent, setResent] = useState<UserAdminResult | null>(null);
+  // Antes de que monten las pestañas: los #hash anteriores llevan a «Rol y organizaciones».
+  useState(() => {
+    if (typeof window !== 'undefined' && LEGACY_TABS.has(window.location.hash.replace('#', ''))) {
+      window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}#accesos`);
+    }
+    return null;
+  });
 
 
   if (user.isLoading) return <LoadingState variant="page" label="Cargando la ficha del usuario…" />;
@@ -57,7 +64,6 @@ export function UserDetailPage() {
   }
 
   const u = user.data;
-  const status = accountStatus(u);
   const isSelf = u.id === scope.userId;
   const isTheSuperAdmin = u.platformRole === 'EBIM_SUPER_ADMIN';
   const canResend = isPendingInvitation(u) && u.isActive && !isSelf;
@@ -76,8 +82,8 @@ export function UserDetailPage() {
       setStatusDialog(null);
       if (res.auth_updated === false) {
         toast.error(
-          statusDialog === 'ban' ? 'Accesos desactivados, pero Auth no se actualizó' : 'Perfil reactivado, pero Auth no se actualizó',
-          'Revisa el runbook de usuarios (bloqueo en Auth).',
+          statusDialog === 'ban' ? 'Accesos desactivados, pero el inicio de sesión no se actualizó' : 'Perfil reactivado, pero el inicio de sesión no se actualizó',
+          'Revisa el runbook de usuarios (bloqueo de inicio de sesión).',
         );
       } else {
         toast.success(statusDialog === 'ban' ? 'Usuario desactivado' : 'Usuario reactivado', u.email);
@@ -102,13 +108,6 @@ export function UserDetailPage() {
       title={u.fullName ?? u.email}
       description={`${u.email}${u.jobTitle ? ` · ${u.jobTitle}` : ''}`}
       leading={<Avatar name={u.fullName ?? u.email} mode="person" size="lg" />}
-      titleAside={
-        <>
-          <UserStatus label={status.label} tone={u.isActive ? status.tone : 'neutral'} />
-          {u.platformRole && u.platformRoleActive ? <Badge tone="accent">{PLATFORM_ROLE_LABEL[u.platformRole]}</Badge> : null}
-        </>
-      }
-      meta={u.lastSignInAt ? `Último ingreso: ${formatDateTime(u.lastSignInAt)}` : 'Aún no ha ingresado'}
       actions={
         <>
           {canResend ? (
@@ -130,6 +129,7 @@ export function UserDetailPage() {
         </>
       }
     >
+      <UserSummaryBar user={u} />
       {!u.isActive ? (
         <p role="status" className="mb-4 rounded-card border border-border bg-sunken px-4 py-3 text-compact text-fg-2">
           Usuario desactivado: no puede ingresar y sus accesos quedaron inactivos. Reactivarlo solo reactiva el perfil;
@@ -183,8 +183,24 @@ export function UserDetailPage() {
               </div>
             ),
           },
-          { id: 'consola', label: 'Rol de consola', hidden: !scope.isSuperAdmin, content: <ConsoleRolePanel user={u} /> },
-          { id: 'organizaciones', label: 'Organizaciones', content: <OrganizationsPanel user={u} scope={scope} /> },
+          {
+            // V6 · F4: «Rol de consola» y «Organizaciones» en una pestaña; los
+            // enlaces viejos (#consola, #organizaciones) abren ésta.
+            id: 'accesos',
+            label: scope.isSuperAdmin ? 'Rol y organizaciones' : 'Organizaciones',
+            content: (
+              <div className="grid gap-4">
+                {scope.isSuperAdmin ? (
+                  <div id="consola" className="scroll-mt-40">
+                    <ConsoleRolePanel user={u} />
+                  </div>
+                ) : null}
+                <div id="organizaciones" className="scroll-mt-40">
+                  <OrganizationsPanel user={u} scope={scope} />
+                </div>
+              </div>
+            ),
+          },
           {
             id: 'provisioning',
             label: 'Altas en las apps',

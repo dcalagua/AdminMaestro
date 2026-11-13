@@ -21,6 +21,15 @@ export const SUBSCRIPTION_STATUS_TONE: Record<string, 'ok' | 'warn' | 'danger' |
   CANCELLED: 'danger',
 };
 
+/** Cómo se cobra un contrato (`collection_method`). */
+export const COLLECTION_METHOD_LABEL: Record<string, string> = {
+  CULQI_CARD: 'Tarjeta (Culqi)',
+  SERVICE_ORDER: 'Orden de Servicio',
+  PURCHASE_ORDER: 'Orden de Compra',
+  BANK_TRANSFER: 'Transferencia',
+  MANUAL: 'Manual',
+};
+
 export const BILLING_INTERVAL_LABEL: Record<string, string> = {
   MONTHLY: 'Mensual',
   QUARTERLY: 'Trimestral',

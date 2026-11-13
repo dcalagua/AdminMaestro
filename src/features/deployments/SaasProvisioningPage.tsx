@@ -1,5 +1,4 @@
-import { Fragment, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import {
   useSaasProvisioningRequests,
   useSaasProvisioningEvents,
@@ -18,12 +17,15 @@ import { useToast } from '@/components/ui/toast-context';
 import { useTaskQueue, type TaskResult } from '@/components/ui/task-queue-context';
 import { businessErrorMessage } from '@/lib/pgError';
 import {
-  PageContainer, Card, DataTable, SearchBar, KpiTile, LoadingState, ErrorState, EmptyState, Badge,
+  PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState, Badge,
 } from '@/components/ui/primitives';
+import { StatCell, StatStrip } from '@/components/ui/StatStrip';
+import { CellTitle, StatusCell, type CellTone } from '@/components/ui/cells';
+import { CaretDownIcon, CaretRightIcon } from '@phosphor-icons/react';
 import { formatDateTime, formatNumber } from '@/lib/format';
+import { relativeAge } from '@/features/suite/suiteModel';
 import { Avatar } from '@/components/ui/Avatar';
 import { ActionMenu } from '@/components/ui/ActionMenu';
-import { KpiStrip } from '@/features/billing/financeUi';
 import {
   INTEGRATION_TYPE_LABEL,
   MAPPING_STATUS_LABEL,
@@ -51,6 +53,8 @@ import { DEPLOYMENT_MODE_LABEL } from '@/types/domain';
 import type { DeploymentMode } from '@/types/domain';
 
 type QueueFilter = 'ALL' | 'OPEN' | 'WAITING' | 'FAILED' | 'ACTIVE';
+
+const OPEN_STATUSES: SaasProvisioningStatus[] = ['PENDING', 'READY_TO_PROVISION', 'PROVISIONING'];
 
 /** Capacidades que declara el contrato de la integración (no son permisos). */
 const CAPABILITY_LABEL: Record<string, string> = {
@@ -116,7 +120,7 @@ export function SaasProvisioningPage() {
     const status = r.status as SaasProvisioningStatus;
     switch (filter) {
       case 'OPEN':
-        return ['PENDING', 'READY_TO_PROVISION', 'PROVISIONING'].includes(status);
+        return OPEN_STATUSES.includes(status);
       case 'WAITING':
         return status === 'WAITING_INFRA';
       case 'FAILED':
@@ -131,6 +135,8 @@ export function SaasProvisioningPage() {
   const all = requests.data ?? [];
   const countBy = (status: SaasProvisioningStatus) =>
     all.filter((r) => r.status === status).length;
+  const inFlight = all.filter((r) => OPEN_STATUSES.includes(r.status as SaasProvisioningStatus)).length;
+  const toggle = (f: QueueFilter) => setFilter((current) => (current === f ? 'ALL' : f));
 
   /** «Ejecutar alta» (V5 · F5): tarea visible en la cola del shell, con su resultado y el enlace al tenant. */
   async function runProvision(requestId: string, label: string, tenantId: string | null) {
@@ -188,7 +194,7 @@ export function SaasProvisioningPage() {
   return (
     <PageContainer
       title="Altas en las apps"
-      description="El alta del espacio de cada cliente DENTRO de cada app de la suite. El Admin Maestro llama a la API de la app, nunca a su base de datos. La infraestructura física tiene su propia cola."
+      description="El alta del espacio de cada cliente dentro de cada app de la suite. El Admin Maestro llama a la app por su conexión segura, nunca a su base de datos. La infraestructura física tiene su propia cola, en «Solicitudes de infraestructura»."
       actions={
         access.can('platform.provisioning.execute') || access.ownedProductIds.length > 0 ? (
           <button type="button" className="ebim-btn-primary" onClick={() => setNewOpen(true)}>
@@ -197,41 +203,63 @@ export function SaasProvisioningPage() {
         ) : null
       }
     >
-      <KpiStrip label="Estado de las altas">
-        <KpiTile label="Activos" value={formatNumber(countBy('ACTIVE'))} tone="ok" loading={requests.isLoading} />
-        <KpiTile
-          label="Listos para provisionar"
-          value={formatNumber(countBy('READY_TO_PROVISION'))}
-          loading={requests.isLoading}
-          footer="Esperan a que alguien con permiso ejecute el alta."
-        />
-        <KpiTile
-          label="Infraestructura pendiente"
-          value={formatNumber(countBy('WAITING_INFRA'))}
-          tone={countBy('WAITING_INFRA') > 0 ? 'warn' : 'neutral'}
-          loading={requests.isLoading}
-          footer="El destino dedicado aún no existe."
-        />
-        <KpiTile
-          label="Fallidos"
-          value={formatNumber(countBy('FAILED'))}
-          tone={countBy('FAILED') > 0 ? 'danger' : 'neutral'}
-          loading={requests.isLoading}
-        />
-      </KpiStrip>
+      {requests.isLoading || all.length > 0 ? (
+        <StatStrip label="Estado de las altas">
+          <StatCell
+            label="Activas"
+            value={formatNumber(countBy('ACTIVE'))}
+            context={`de ${formatNumber(all.length)} solicitudes`}
+            loading={requests.isLoading}
+            onSelect={() => toggle('ACTIVE')}
+            selected={filter === 'ACTIVE'}
+          />
+          <StatCell
+            label="En curso"
+            value={formatNumber(inFlight)}
+            context={
+              countBy('READY_TO_PROVISION') > 0
+                ? `${formatNumber(countBy('READY_TO_PROVISION'))} listas para ejecutar`
+                : 'Solicitadas o en ejecución'
+            }
+            tone={inFlight > 0 ? 'warn' : 'neutral'}
+            loading={requests.isLoading}
+            onSelect={() => toggle('OPEN')}
+            selected={filter === 'OPEN'}
+          />
+          <StatCell
+            label="Infraestructura pendiente"
+            value={formatNumber(countBy('WAITING_INFRA'))}
+            context="El destino dedicado aún no existe"
+            tone={countBy('WAITING_INFRA') > 0 ? 'warn' : 'neutral'}
+            loading={requests.isLoading}
+            onSelect={() => toggle('WAITING')}
+            selected={filter === 'WAITING'}
+          />
+          <StatCell
+            label="Fallidas"
+            value={formatNumber(countBy('FAILED'))}
+            context={countBy('FAILED') > 0 ? 'Revisa el error y reintenta' : 'Ninguna alta fallida'}
+            tone={countBy('FAILED') > 0 ? 'danger' : 'ok'}
+            loading={requests.isLoading}
+            onSelect={() => toggle('FAILED')}
+            selected={filter === 'FAILED'}
+          />
+        </StatStrip>
+      ) : null}
 
       <Card>
         <SearchBar
           value={term}
           onChange={setTerm}
-          placeholder="Buscar por tenant, producto, destino, correlación o ID externo…"
+          total={requests.isLoading ? undefined : all.length}
+          placeholder="Buscar por tenant, app, destino, correlación o ID externo…"
           right={
             <StatusTabs
               value={filter}
               onChange={setFilter}
               options={[
                 { id: 'ALL', label: 'Todas', count: all.length },
-                { id: 'OPEN', label: 'En curso' },
+                { id: 'OPEN', label: 'En curso', count: inFlight },
                 { id: 'WAITING', label: 'Infra pendiente', count: countBy('WAITING_INFRA') },
                 { id: 'FAILED', label: 'Fallidas', count: countBy('FAILED') },
                 { id: 'ACTIVE', label: 'Activas', count: countBy('ACTIVE') },
@@ -244,23 +272,34 @@ export function SaasProvisioningPage() {
           <LoadingState />
         ) : requests.error ? (
           <ErrorState error={requests.error} onRetry={() => void requests.refetch()} />
-        ) : rows.length === 0 ? (
+        ) : all.length === 0 ? (
           <EmptyState
             title="Sin solicitudes de alta"
-            description="Crear una cotización NO aprovisiona: la política por defecto es manual hasta certificar el contrato de cada producto."
+            description="Crear una cotización no da de alta a nadie: la política por defecto es manual hasta certificar la conexión con cada app."
+          />
+        ) : rows.length === 0 ? (
+          <EmptyState
+            variant="no-results"
+            title={term ? `Ningún resultado para «${term}»` : 'Ninguna solicitud en este estado'}
+            description="Prueba con otra búsqueda o cambia de pestaña."
+            onClear={() => {
+              setTerm('');
+              setFilter('ALL');
+            }}
           />
         ) : (
           <DataTable
             label="Solicitudes de alta SaaS"
+            minWidth={960}
             columns={[
-              'Tenant',
-              'Producto y destino',
-              'Estado',
-              'Solicitado · intentos',
+              { label: 'Tenant', sticky: true },
+              { label: 'App y entorno' },
+              { label: 'Estado' },
+              { label: 'Solicitado', mobile: false },
               { label: 'Acciones', srOnly: true },
             ]}
           >
-            {rows.map((r) => {
+            {rows.flatMap((r) => {
               const status = r.status as SaasProvisioningStatus;
               const id = r.id as string;
               const label = `${r.tenant_name} · ${r.product_short_name}`;
@@ -271,56 +310,64 @@ export function SaasProvisioningPage() {
               const isExpanded = expanded === id;
 
               return (
-                <Fragment key={id}>
-                  <tr>
-                    <td className="ebim-td">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <Avatar name={(r.tenant_name as string) ?? '—'} />
-                        {/* Ancho máximo: un nombre largo empujaba las acciones fuera de la vista. */}
-                        <div className="min-w-0 max-w-[170px]">
-                          <Link
-                            to={`/tenants/${r.tenant_id}`}
-                            title={r.tenant_name as string}
-                            className="block truncate font-semibold text-fg hover:text-accent-deep hover:underline"
-                          >
-                            {r.tenant_name}
-                          </Link>
-                          <p className="truncate font-mono text-caption text-muted">{r.tenant_slug}</p>
+                [
+                  <tr key={id}>
+                    <td className="ebim-td py-2">
+                      <div className="max-w-[300px]">
+                        <CellTitle
+                          title={(r.tenant_name as string) ?? '—'}
+                          to={`/tenants/${r.tenant_id}`}
+                          wrap
+                          tooltip={`${r.tenant_name}${r.tenant_slug ? `\nCódigo: ${r.tenant_slug}` : ''}`}
+                          leading={<Avatar name={(r.tenant_name as string) ?? '—'} />}
+                        />
+                      </div>
+                    </td>
+                    <td className="ebim-td py-2">
+                      <div
+                        className="max-w-[220px] leading-tight"
+                        title={r.deployment_code ? `Destino: ${r.deployment_code}` : 'Sin destino asignado'}
+                      >
+                        <div className="truncate font-semibold text-fg">{r.product_short_name}</div>
+                        <div className="truncate text-caption text-muted">
+                          {[
+                            PROVISIONING_ENVIRONMENT_LABEL[r.provisioning_environment as ProvisioningEnvironment],
+                            DEPLOYMENT_MODE_LABEL[r.deployment_mode as DeploymentMode],
+                            r.deployment_code ? null : 'sin destino',
+                          ]
+                            .filter(Boolean)
+                            .join(' · ')}
                         </div>
                       </div>
                     </td>
-                    <td className="ebim-td">
-                      <div className="font-semibold">{r.product_short_name}</div>
-                      <div className="text-caption text-muted">
-                        {PROVISIONING_ENVIRONMENT_LABEL[r.provisioning_environment as ProvisioningEnvironment]}
-                        {' · '}
-                        {DEPLOYMENT_MODE_LABEL[r.deployment_mode as DeploymentMode]}
-                      </div>
-                      {/* El destino va con el producto: como columna propia la tabla no cabía a 1280. */}
-                      {r.deployment_code ? (
-                        <div className="max-w-[180px] truncate font-mono text-caption" title={r.deployment_code as string}>
-                          {r.deployment_code}
-                        </div>
-                      ) : (
-                        <div className="text-caption text-muted">Sin destino asignado</div>
-                      )}
+                    <td className="ebim-td py-2">
+                      <StatusCell
+                        label={SAAS_PROVISIONING_STATUS_LABEL[status]}
+                        tone={provisioningStatusTone(status) as CellTone}
+                        detail={
+                          r.last_error_code && status === 'FAILED' ? (
+                            <span
+                              className="block max-w-[220px] truncate text-danger"
+                              title={providerErrorLabel(r.last_error_code) ?? ''}
+                            >
+                              {providerErrorLabel(r.last_error_code)}
+                            </span>
+                          ) : undefined
+                        }
+                      />
                     </td>
-                    <td className="ebim-td">
-                      <Badge tone={provisioningStatusTone(status)} dot>
-                        {SAAS_PROVISIONING_STATUS_LABEL[status]}
-                      </Badge>
-                      {r.last_error_code && status === 'FAILED' ? (
-                        <p className="mt-1 max-w-[220px] truncate text-caption text-danger" title={providerErrorLabel(r.last_error_code) ?? ''}>
-                          {providerErrorLabel(r.last_error_code)}
-                        </p>
-                      ) : null}
-                    </td>
-                    <td className="ebim-td">
-                      <div className="text-compact">{r.requested_by_name ?? '—'}</div>
-                      <div className="whitespace-nowrap text-caption text-muted">{formatDateTime(r.requested_at)}</div>
-                      <div className="whitespace-nowrap text-caption tabular-nums text-muted">
-                        Intento {r.attempt_count as number} de {r.max_attempts as number}
-                      </div>
+                    <td className="ebim-td py-2 text-compact">
+                      <span
+                        className="block whitespace-nowrap leading-tight"
+                        title={`${r.requested_by_name ?? 'Sin dato'} · ${r.requested_at ? formatDateTime(r.requested_at) : '—'}`}
+                      >
+                        <span className="block text-fg">{r.requested_at ? relativeAge(r.requested_at) : '—'}</span>
+                        {(r.attempt_count as number) > 1 ? (
+                          <span className="block text-caption tabular-nums text-muted">
+                            Intento {r.attempt_count as number} de {r.max_attempts as number}
+                          </span>
+                        ) : null}
+                      </span>
                     </td>
                     <td className="ebim-td text-right">
                       <div className="flex items-center justify-end gap-1 whitespace-nowrap">
@@ -345,13 +392,16 @@ export function SaasProvisioningPage() {
                             Reintentar
                           </button>
                         ) : null}
+                        {/* El detalle se despliega bajo la fila; un icono en lugar de un botón de texto por fila. */}
                         <button
                           type="button"
-                          className="ebim-btn-ghost ebim-btn-sm"
+                          className="ebim-icon-btn"
                           aria-expanded={isExpanded}
+                          aria-label={isExpanded ? 'Ocultar' : 'Detalle'}
+                          title={isExpanded ? 'Ocultar el detalle' : 'Ver el detalle de la solicitud'}
                           onClick={() => setExpanded(isExpanded ? null : id)}
                         >
-                          {isExpanded ? 'Ocultar' : 'Detalle'}
+                          {isExpanded ? <CaretDownIcon size={16} aria-hidden /> : <CaretRightIcon size={16} aria-hidden />}
                         </button>
                         <ActionMenu
                           variant="icon"
@@ -376,15 +426,15 @@ export function SaasProvisioningPage() {
                         />
                       </div>
                     </td>
-                  </tr>
-                  {isExpanded ? (
-                    <tr>
+                  </tr>,
+                  isExpanded ? (
+                    <tr key={`${id}-detalle`}>
                       <td className="ebim-td bg-sunken" colSpan={5}>
                         <RequestDetail request={r as Record<string, unknown>} />
                       </td>
                     </tr>
-                  ) : null}
-                </Fragment>
+                  ) : null,
+                ].filter(Boolean)
               );
             })}
           </DataTable>

@@ -278,11 +278,14 @@ export function AppShell() {
     const name = item.label;
     // Una ficha de detalle (`/products/:id`) marca la entrada dueña (Catálogo).
     const owns = meta.section?.to === item.to;
+    // V6 · T10: si la ruta pertenece a OTRA entrada (`/apps/:codigo` es del Centro
+    // de la suite), esta no se marca por prefijo: un solo ítem activo.
+    const foreign = Boolean(meta.section && !owns);
     return (
       <li key={item.to}>
         <NavLink
           to={item.to}
-          end={item.to === '/'}
+          end={item.to === '/' || foreign}
           aria-label={compact ? name : undefined}
           {...tipHandlers(compact, name)}
           className={({ isActive: linkActive }) => {

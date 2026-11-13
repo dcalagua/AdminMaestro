@@ -54,6 +54,9 @@ vi.mock('@/services/queries', () => ({
     ]);
   },
 }));
+vi.mock('./appDetailQueries', () => ({
+  useAppLifecycleRows: () => q([{ saas_product_id: 'p-ewm', overdue_balance: 500, overdue_currency: 'PEN' }]),
+}));
 vi.mock('@/hooks/useProvisioningAccess', () => ({
   useProvisioningAccess: () => ({ canForProduct: (code: string) => state.perms.has(code) }),
 }));
@@ -96,6 +99,17 @@ describe('ficha de app', () => {
     expect(checkHealth).not.toHaveBeenCalled();
   });
 
+  it('cabecera fija: salud, tenants, por confirmar y, con vista financiera, MRR y vencido por moneda', () => {
+    renderAt('/apps/ewm');
+    const bar = screen.getByRole('region', { name: 'Resumen de la app' });
+    const item = (label: string) => bar.querySelector(`[data-summary-item="${label}"]`) as HTMLElement;
+    expect(item('Tenants')).toHaveTextContent('0 activos de 1');
+    expect(item('Por confirmar')).toHaveTextContent('1');
+    expect(item('Vencido de sus clientes').querySelector('[data-overdue]')?.textContent).toMatch(/PEN|S\//);
+    // Canales en una fila; el detalle en el title.
+    expect(document.querySelector('[data-channel]')).toHaveAttribute('title');
+  });
+
   it('conexión: endpoints, emisor, audiencia y scopes; la referencia de la llave sólo con permiso', async () => {
     renderAt('/apps/ewm', '#conexion');
     const panel = screen.getByRole('tabpanel');
@@ -123,7 +137,7 @@ describe('ficha de app', () => {
 
   it('tenants: el PENDING con alta activa se ve «por confirmar»; historial con los eventos de sus altas', () => {
     renderAt('/apps/ewm', '#tenants');
-    expect(screen.getByText('Por confirmar')).toBeInTheDocument();
+    expect(within(screen.getByRole('tabpanel')).getByText('Por confirmar')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Acme EWM' })).toHaveAttribute('href', '/tenants/tn-acme');
     expect(eventsFor).toHaveBeenCalledWith(['r-acme']);
   });
