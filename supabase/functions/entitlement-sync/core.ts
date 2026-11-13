@@ -9,6 +9,8 @@
  *   verify          → entitlement-verify: claim → GET → record. Única vía a
  *                     IN_SYNC.
  *   registry-verify → manifiesto del SaaS frente al registro, por integración.
+ *   lifecycle       → estado operativo del tenant (contrato lifecycle.v1): claim →
+ *                     PUT → record. Aparte de entitlements por la enmienda D-14.
  *
  * Sin E/S propia: todo pasa por el puerto SyncStore (RPCs de MasterAdmin) y por
  * el cliente M2M (PUT/GET del contrato). No existe ninguna vía para escribir en
@@ -17,22 +19,25 @@
 import { pushClaimed, verifyClaimed } from '../_shared/entitlements/sync-flow.ts';
 import type { Actor, EntitlementSyncClient } from '../_shared/entitlements/sync-client.ts';
 import type { SyncStore } from '../_shared/entitlements/sync-store.ts';
+import { runLifecycle, type LifecycleJobDeps } from '../_shared/lifecycle/job.ts';
 
 export interface JobDeps {
   store: SyncStore;
   client: EntitlementSyncClient;
   worker: string;
   actor?: Actor;
+  /** Canal lifecycle.v1. Ausente = el job `lifecycle` no hace nada. */
+  lifecycle?: Pick<LifecycleJobDeps, 'store' | 'client'>;
 }
 
-export type JobName = 'issue' | 'push' | 'verify' | 'registry-verify' | 'all';
+export type JobName = 'issue' | 'push' | 'verify' | 'registry-verify' | 'lifecycle' | 'all';
 export interface JobRequest {
   job: JobName;
   sweep: boolean;
   limit: number;
 }
 
-const JOBS: JobName[] = ['issue', 'push', 'verify', 'registry-verify', 'all'];
+const JOBS: JobName[] = ['issue', 'push', 'verify', 'registry-verify', 'lifecycle', 'all'];
 const SERVER_ACTOR: Actor = { id: null, role: 'SERVER' };
 const CODE_RE = /^[A-Z][A-Z0-9_]{1,63}$/;
 
@@ -160,6 +165,12 @@ export async function runJob(deps: JobDeps, request: JobRequest) {
   }
   if (request.job === 'registry-verify' || request.job === 'all') {
     out.registry = await runRegistryVerify(deps);
+  }
+  if ((request.job === 'lifecycle' || request.job === 'all') && deps.lifecycle) {
+    out.lifecycle = await runLifecycle(
+      { ...deps.lifecycle, worker: deps.worker, actor: deps.actor ?? SERVER_ACTOR },
+      { limit: request.limit },
+    );
   }
   return out;
 }
