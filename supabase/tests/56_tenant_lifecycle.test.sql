@@ -333,9 +333,10 @@ select is(platform.invoke_scheduled_function('AUTOCHARGE') ->> 'outcome', 'SKIPP
 select is(platform.invoke_scheduled_function('ENTITLEMENT_SYNC') ->> 'outcome', 'SKIPPED_NOT_CONFIGURED',
   'Sin los secretos de Vault del entorno, el sync programado no hace nada');
 select is(
-  -- Solo los de esta migración: 20261021000100 suma ebim-tenant-sync (test 58).
+  -- Solo los de esta migración: 20261021000100 suma ebim-tenant-sync (test 58)
+  -- y 20261022000100 suma ebim-mail-dispatch (test 59).
   (select string_agg(jobname, ',' order by jobname) from cron.job
-    where jobname like 'ebim-%' and jobname <> 'ebim-tenant-sync'),
+    where jobname like 'ebim-%' and jobname not in ('ebim-tenant-sync', 'ebim-mail-dispatch')),
   'ebim-entitlement-sweep,ebim-entitlement-sync,ebim-payment-autocharge,ebim-tenant-lifecycle',
   'pg_cron tiene los cuatro jobs del ciclo de vida'
 );

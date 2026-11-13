@@ -139,13 +139,13 @@ describe('AppShell', () => {
     expect(screen.getAllByText('Admin Maestro').length).toBeGreaterThan(0);
   });
 
-  it('super admin ve los seis grupos y las 18 entradas del menú V5', () => {
+  it('super admin ve los seis grupos y las 19 entradas del menú (V5 + Correos enviados)', () => {
     renderAt('/');
     const nav = screen.getByRole('navigation', { name: 'Navegación principal' });
     for (const g of ['Inicio', 'Clientes', 'Suite', 'Comercial', 'Finanzas', 'Gobierno']) {
       expect(within(nav).getByRole('button', { name: g })).toBeInTheDocument();
     }
-    expect(within(nav).getAllByRole('link')).toHaveLength(18);
+    expect(within(nav).getAllByRole('link')).toHaveLength(19);
   });
 
   it('usuario técnico EBIM no recibe el grupo Finanzas', () => {
