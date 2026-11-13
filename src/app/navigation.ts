@@ -111,7 +111,7 @@ export const NAV_ITEMS: NavItem[] = [
     to: '/suite', label: 'Centro de la suite', icon: SquaresFourIcon, group: 'Suite', personas: ['EBIM'],
     description: 'La salud de las 8 apps y el estado de cada cuenta en cada app.',
     // Ficha de app (V5 · F2): `/apps/:codigo`. `/apps` a secas sigue siendo la entrada «Apps».
-    details: [{ prefix: '/apps', label: 'Ficha de app' }],
+    details: [{ prefix: '/apps', label: 'Ficha de app' }, { prefix: '/suite', label: 'Ciclo de vida' }],
   },
   {
     to: '/tenants', label: 'Tenants', icon: BuildingOfficeIcon, group: 'Suite',

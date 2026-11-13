@@ -6,7 +6,7 @@
  * el "sincronizar ahora" de la consola es la acción SYNC_ENTITLEMENTS del
  * orquestador, que sí autoriza al usuario con un booleano de la base.
  *
- * Cuerpo: `{ "job": "issue" | "push" | "verify" | "registry-verify" | "all",
+ * Cuerpo: `{ "job": "issue" | "push" | "verify" | "registry-verify" | "lifecycle" | "all",
  *            "sweep": boolean, "limit": 1..100 }`.
  * Respuesta: conteos, estados y códigos. Nunca snapshots, cuerpos ni tokens.
  *
@@ -16,6 +16,8 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { EntitlementSyncClient } from '../_shared/entitlements/sync-client.ts';
 import { createRpcSyncStore } from '../_shared/entitlements/sync-store.ts';
+import { LifecycleClient } from '../_shared/lifecycle/client.ts';
+import { createRpcLifecycleStore } from '../_shared/lifecycle/job.ts';
 import { isServerCall, parseJobRequest, runJob } from './core.ts';
 
 function json(body: unknown, status = 200): Response {
@@ -46,6 +48,10 @@ Deno.serve(async (req: Request) => {
     store: createRpcSyncStore(admin),
     client: new EntitlementSyncClient({ secretResolver: (ref: string) => Deno.env.get(ref) }),
     worker: `entitlement-sync:${crypto.randomUUID()}`,
+    lifecycle: {
+      store: createRpcLifecycleStore(admin),
+      client: new LifecycleClient({ secretResolver: (ref: string) => Deno.env.get(ref) }),
+    },
   };
   try {
     return json(await runJob(deps, request));

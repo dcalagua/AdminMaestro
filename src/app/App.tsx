@@ -48,6 +48,7 @@ const UserDetailPage = lazyPage(() => import('@/features/users/UserDetailPage'),
 const InboxPage = lazyPage(() => import('@/features/inbox/InboxPage'), 'InboxPage');
 const SuiteCenterPage = lazyPage(() => import('@/features/suite/SuiteCenterPage'), 'SuiteCenterPage');
 const AppDetailPage = lazyPage(() => import('@/features/suite/AppDetailPage'), 'AppDetailPage');
+const SuiteControlPage = lazyPage(() => import('@/features/suite/SuiteControlPage'), 'SuiteControlPage');
 
 /*
  * V5 · F1: entradas que fusionan pantallas como pestañas (`?tab=`). Cada
@@ -122,6 +123,19 @@ export function App() {
                       element={
                         <RequirePersona personas={['EBIM']}>
                           <SuiteCenterPage />
+                        </RequirePersona>
+                      }
+                    />
+                    {/*
+                    Ciclo de vida del tenant (impago → suspensión gobernada →
+                    reactivación al pagar). La regla vive en la base: el corte
+                    automático sólo actúa si el super admin lo habilita.
+                  */}
+                    <Route
+                      path="suite/ciclo-de-vida"
+                      element={
+                        <RequirePersona personas={['EBIM']}>
+                          <SuiteControlPage />
                         </RequirePersona>
                       }
                     />

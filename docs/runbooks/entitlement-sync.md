@@ -26,6 +26,12 @@ Fase 08 del Commercial Control Plane. Spec §8–§9, §15, §18. Contrato: `con
 
 ## 3. Programar los jobs (operador, por entorno)
 
+> **Desde `20261020000100_tenant_lifecycle.sql` los jobs ya se programan en la migración**
+> (`ebim-entitlement-sync` cada 5 min y `ebim-entitlement-sweep` diario) vía
+> `platform.invoke_scheduled_function`, con los secretos de Vault `masteradmin_project_url` y
+> `masteradmin_service_role_key` y el interruptor «Sincronización programada» del Centro de la suite.
+> Ver [`tenant-lifecycle.md`](tenant-lifecycle.md) §3. Lo que sigue es el patrón manual original.
+
 La programación **no** va en migraciones: la URL del proyecto y la clave de servicio son del entorno. Patrón de Supabase (pg_cron + pg_net, secretos en Vault):
 
 ```sql
