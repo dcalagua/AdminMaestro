@@ -19,6 +19,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { isFinance, canManagePlatform } from '@/features/auth/session';
 import { hasFinanceView } from '@/app/navigation';
 import { DetailTabs } from '@/components/ui/DetailTabs';
+import { MailActivityCard } from '@/features/mail/MailActivity';
 import { AccountUsersCard } from '@/features/organizations/Account360';
 import { useUserAdminScope } from '@/features/users/useUserAdminScope';
 import { PROVISIONING_ACTION_LABEL } from '@/features/deployments/provisioningLabels';
@@ -544,22 +545,25 @@ export function TenantDetailPage() {
             id: 'actividad',
             label: 'Actividad',
             content: (
-              <Card id="audit" title="Auditoría del tenant" description="Bitácora append-only: no se puede editar ni borrar, ni desde la consola ni por PATCH directo.">
-                {tenantAudit.length === 0 ? (
-                  <EmptyState title="Sin eventos registrados para este tenant" />
-                ) : (
-                  <DataTable columns={['Fecha', 'Actor', 'Acción', 'Entidad']}>
-                    {tenantAudit.map((a) => (
-                      <tr key={a.id as unknown as string}>
-                        <td className="ebim-td text-compact text-muted">{formatDateTime(a.occurred_at)}</td>
-                        <td className="ebim-td">{a.actor_email ?? '—'}</td>
-                        <td className="ebim-td font-semibold">{a.action}</td>
-                        <td className="ebim-td text-muted">{a.entity_type}</td>
-                      </tr>
-                    ))}
-                  </DataTable>
-                )}
-              </Card>
+              <div className="space-y-6">
+                <MailActivityCard tenantId={t.tenant_id as string} />
+                <Card id="audit" title="Auditoría del tenant" description="Bitácora append-only: no se puede editar ni borrar, ni desde la consola ni por PATCH directo.">
+                  {tenantAudit.length === 0 ? (
+                    <EmptyState title="Sin eventos registrados para este tenant" />
+                  ) : (
+                    <DataTable columns={['Fecha', 'Actor', 'Acción', 'Entidad']}>
+                      {tenantAudit.map((a) => (
+                        <tr key={a.id as unknown as string}>
+                          <td className="ebim-td text-compact text-muted">{formatDateTime(a.occurred_at)}</td>
+                          <td className="ebim-td">{a.actor_email ?? '—'}</td>
+                          <td className="ebim-td font-semibold">{a.action}</td>
+                          <td className="ebim-td text-muted">{a.entity_type}</td>
+                        </tr>
+                      ))}
+                    </DataTable>
+                  )}
+                </Card>
+              </div>
             ),
           },
         ]}

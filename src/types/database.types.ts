@@ -3530,6 +3530,335 @@ export type Database = {
         };
         Relationships: [];
       };
+      mail_events: {
+        Row: {
+          detail: NonNullable<Json>;
+          event_id: string;
+          event_type: string;
+          mailhub_email_id: string | null;
+          message_status: string | null;
+          occurred_at: string | null;
+          outbox_id: string | null;
+          received_at: string;
+          recipient: string | null;
+        };
+        Insert: {
+          detail?: NonNullable<Json>;
+          event_id: string;
+          event_type: string;
+          mailhub_email_id?: string | null;
+          message_status?: string | null;
+          occurred_at?: string | null;
+          outbox_id?: string | null;
+          received_at?: string;
+          recipient?: string | null;
+        };
+        Update: {
+          detail?: NonNullable<Json>;
+          event_id?: string;
+          event_type?: string;
+          mailhub_email_id?: string | null;
+          message_status?: string | null;
+          occurred_at?: string | null;
+          outbox_id?: string | null;
+          received_at?: string;
+          recipient?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'mail_events_outbox_id_fkey';
+            columns: ['outbox_id'];
+            isOneToOne: false;
+            referencedRelation: 'mail_outbox';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'mail_events_outbox_id_fkey';
+            columns: ['outbox_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_mail_outbox';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      mail_outbox: {
+        Row: {
+          attempts: number;
+          category: string;
+          created_at: string;
+          created_by: string | null;
+          delivered_at: string | null;
+          delivered_to: string | null;
+          delivery_mode: string | null;
+          event_type: string;
+          id: string;
+          idempotency_key: string;
+          invoice_id: string | null;
+          last_error_code: string | null;
+          last_event_at: string | null;
+          locked_at: string | null;
+          mailhub_email_id: string | null;
+          mailhub_status: string | null;
+          needs_payment_link: boolean;
+          next_attempt_at: string;
+          organization_id: string | null;
+          payment_id: string | null;
+          recipient_email: string | null;
+          recipient_name: string | null;
+          reference_label: string | null;
+          resend_count: number;
+          secret_variables: Json | null;
+          sent_at: string | null;
+          status: string;
+          status_detail: string | null;
+          template_key: string;
+          tenant_id: string | null;
+          updated_at: string;
+          variables: NonNullable<Json>;
+        };
+        Insert: {
+          attempts?: number;
+          category: string;
+          created_at?: string;
+          created_by?: string | null;
+          delivered_at?: string | null;
+          delivered_to?: string | null;
+          delivery_mode?: string | null;
+          event_type: string;
+          id?: string;
+          idempotency_key: string;
+          invoice_id?: string | null;
+          last_error_code?: string | null;
+          last_event_at?: string | null;
+          locked_at?: string | null;
+          mailhub_email_id?: string | null;
+          mailhub_status?: string | null;
+          needs_payment_link?: boolean;
+          next_attempt_at?: string;
+          organization_id?: string | null;
+          payment_id?: string | null;
+          recipient_email?: string | null;
+          recipient_name?: string | null;
+          reference_label?: string | null;
+          resend_count?: number;
+          secret_variables?: Json | null;
+          sent_at?: string | null;
+          status?: string;
+          status_detail?: string | null;
+          template_key: string;
+          tenant_id?: string | null;
+          updated_at?: string;
+          variables?: NonNullable<Json>;
+        };
+        Update: {
+          attempts?: number;
+          category?: string;
+          created_at?: string;
+          created_by?: string | null;
+          delivered_at?: string | null;
+          delivered_to?: string | null;
+          delivery_mode?: string | null;
+          event_type?: string;
+          id?: string;
+          idempotency_key?: string;
+          invoice_id?: string | null;
+          last_error_code?: string | null;
+          last_event_at?: string | null;
+          locked_at?: string | null;
+          mailhub_email_id?: string | null;
+          mailhub_status?: string | null;
+          needs_payment_link?: boolean;
+          next_attempt_at?: string;
+          organization_id?: string | null;
+          payment_id?: string | null;
+          recipient_email?: string | null;
+          recipient_name?: string | null;
+          reference_label?: string | null;
+          resend_count?: number;
+          secret_variables?: Json | null;
+          sent_at?: string | null;
+          status?: string;
+          status_detail?: string | null;
+          template_key?: string;
+          tenant_id?: string | null;
+          updated_at?: string;
+          variables?: NonNullable<Json>;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'mail_outbox_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'invoices';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_collected_payments';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_collected_revenue';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_commission_detail';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_discount_sign_legacy_invoices';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_invoice_balances';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_billing_contact_readiness';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_partner_finance';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_partner_margin';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['customer_organization_id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['managing_organization_id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_payment_id_fkey';
+            columns: ['payment_id'];
+            isOneToOne: false;
+            referencedRelation: 'payments';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_payment_id_fkey';
+            columns: ['payment_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_collected_payments';
+            referencedColumns: ['payment_id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_margin';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['tenant_id'];
+          },
+        ];
+      };
+      mail_settings: {
+        Row: {
+          business_mail_enabled: boolean;
+          id: boolean;
+          ops_recipients: string[];
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          business_mail_enabled?: boolean;
+          id?: boolean;
+          ops_recipients?: string[];
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          business_mail_enabled?: boolean;
+          id?: boolean;
+          ops_recipients?: string[];
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'mail_settings_updated_by_fkey';
+            columns: ['updated_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       market_currencies: {
         Row: {
           created_at: string;
@@ -8406,6 +8735,7 @@ export type Database = {
           id: boolean;
           last_cycle_at: string | null;
           last_cycle_result: Json | null;
+          mail_dispatch_enabled: boolean;
           tenant_sync_enabled: boolean;
           updated_at: string;
           updated_by: string | null;
@@ -8418,6 +8748,7 @@ export type Database = {
           id?: boolean;
           last_cycle_at?: string | null;
           last_cycle_result?: Json | null;
+          mail_dispatch_enabled?: boolean;
           tenant_sync_enabled?: boolean;
           updated_at?: string;
           updated_by?: string | null;
@@ -8430,11 +8761,20 @@ export type Database = {
           id?: boolean;
           last_cycle_at?: string | null;
           last_cycle_result?: Json | null;
+          mail_dispatch_enabled?: boolean;
           tenant_sync_enabled?: boolean;
           updated_at?: string;
           updated_by?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'tenant_lifecycle_settings_updated_by_fkey';
+            columns: ['updated_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       tenant_memberships: {
         Row: {
@@ -11568,6 +11908,175 @@ export type Database = {
           },
         ];
       };
+      v_mail_outbox: {
+        Row: {
+          attempts: number | null;
+          category: string | null;
+          created_at: string | null;
+          delivered_at: string | null;
+          delivered_to: string | null;
+          delivery_mode: string | null;
+          event_type: string | null;
+          id: string | null;
+          invoice_id: string | null;
+          invoice_number: string | null;
+          last_error_code: string | null;
+          last_event_at: string | null;
+          mailhub_email_id: string | null;
+          mailhub_status: string | null;
+          next_attempt_at: string | null;
+          organization_id: string | null;
+          organization_name: string | null;
+          payment_id: string | null;
+          recipient_email: string | null;
+          recipient_name: string | null;
+          reference_label: string | null;
+          resend_count: number | null;
+          sent_at: string | null;
+          status: string | null;
+          status_detail: string | null;
+          template_key: string | null;
+          tenant_id: string | null;
+          tenant_name: string | null;
+          updated_at: string | null;
+          variables: Json | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'mail_outbox_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'invoices';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_collected_payments';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_collected_revenue';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_commission_detail';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_discount_sign_legacy_invoices';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_invoice_id_fkey';
+            columns: ['invoice_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_invoice_balances';
+            referencedColumns: ['invoice_id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_billing_contact_readiness';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_partner_finance';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_partner_margin';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['customer_organization_id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['managing_organization_id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_payment_id_fkey';
+            columns: ['payment_id'];
+            isOneToOne: false;
+            referencedRelation: 'payments';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_payment_id_fkey';
+            columns: ['payment_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_collected_payments';
+            referencedColumns: ['payment_id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_margin';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'mail_outbox_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['tenant_id'];
+          },
+        ];
+      };
       v_partner_agreements: {
         Row: {
           agreement_id: string | null;
@@ -14530,6 +15039,7 @@ export type Database = {
       can_read_tenant: { Args: { p_tenant: string }; Returns: boolean };
       can_run_provisioning: { Args: Record<PropertyKey, never>; Returns: boolean };
       can_sync_entitlements: { Args: { p_tenant_id: string }; Returns: boolean };
+      can_view_mail: { Args: Record<PropertyKey, never>; Returns: boolean };
       cancel_commercial_document: {
         Args: { p_document_id: string; p_reason?: string };
         Returns: undefined;
@@ -15590,6 +16100,95 @@ export type Database = {
         };
         Returns: number;
       };
+      mail_apply_event: {
+        Args: {
+          p_detail?: Json;
+          p_event_id: string;
+          p_event_type: string;
+          p_mailhub_email_id: string;
+          p_message_status: string;
+          p_occurred_at: string;
+          p_recipient: string;
+        };
+        Returns: Json;
+      };
+      mail_cancel: { Args: { p_id: string; p_reason: string }; Returns: Json };
+      mail_claim_batch: {
+        Args: { p_limit?: number };
+        Returns: {
+          attempts: number;
+          category: string;
+          created_at: string;
+          created_by: string | null;
+          delivered_at: string | null;
+          delivered_to: string | null;
+          delivery_mode: string | null;
+          event_type: string;
+          id: string;
+          idempotency_key: string;
+          invoice_id: string | null;
+          last_error_code: string | null;
+          last_event_at: string | null;
+          locked_at: string | null;
+          mailhub_email_id: string | null;
+          mailhub_status: string | null;
+          needs_payment_link: boolean;
+          next_attempt_at: string;
+          organization_id: string | null;
+          payment_id: string | null;
+          recipient_email: string | null;
+          recipient_name: string | null;
+          reference_label: string | null;
+          resend_count: number;
+          secret_variables: Json | null;
+          sent_at: string | null;
+          status: string;
+          status_detail: string | null;
+          template_key: string;
+          tenant_id: string | null;
+          updated_at: string;
+          variables: NonNullable<Json>;
+        }[];
+        SetofOptions: {
+          from: '*';
+          to: 'mail_outbox';
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
+      mail_mark_result: {
+        Args: {
+          p_delivered_to?: string;
+          p_delivery_mode?: string;
+          p_detail?: string;
+          p_error_code?: string;
+          p_id: string;
+          p_mailhub_email_id?: string;
+          p_mailhub_status?: string;
+          p_retry_in_seconds?: number;
+          p_status: string;
+        };
+        Returns: undefined;
+      };
+      mail_payment_link: { Args: { p_outbox_id: string }; Returns: Json };
+      mail_record_auth: {
+        Args: {
+          p_detail?: string;
+          p_error_code?: string;
+          p_event_type: string;
+          p_idempotency_key: string;
+          p_mailhub_email_id?: string;
+          p_mailhub_status?: string;
+          p_status: string;
+          p_template_key: string;
+          p_to: string;
+          p_to_name: string;
+          p_variables: Json;
+        };
+        Returns: string;
+      };
+      mail_retry: { Args: { p_id: string; p_reason: string }; Returns: Json };
+      mail_send_test: { Args: { p_template_key: string; p_to: string }; Returns: Json };
       mark_entitlements_dirty: {
         Args: { p_product_id: string; p_reason: string; p_tenant_id: string };
         Returns: undefined;
@@ -16241,6 +16840,10 @@ export type Database = {
           p_source?: Database['platform']['Enums']['fx_rate_source'];
         };
         Returns: string;
+      };
+      set_mail_settings: {
+        Args: { p_business_mail_enabled: boolean; p_ops_recipients: string[] };
+        Returns: Json;
       };
       set_organization_membership_active: {
         Args: { p_active: boolean; p_membership_id: string; p_reason?: string };

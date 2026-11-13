@@ -40,6 +40,7 @@ const SubscriptionDetailPage = lazyPage(() => import('@/features/billing/Subscri
 const CostsPage = lazyPage(() => import('@/features/billing/CostsPage'), 'CostsPage');
 const IntegrationDetailPage = lazyPage(() => import('@/features/platform/IntegrationDetailPage'), 'IntegrationDetailPage');
 const AuditPage = lazyPage(() => import('@/features/settings/AuditPage'), 'AuditPage');
+const MailOutboxPage = lazyPage(() => import('@/features/mail/MailOutboxPage'), 'MailOutboxPage');
 const PartnerFeesPage = lazyPage(() => import('@/features/partnerFees/PartnerFeesPage'), 'PartnerFeesPage');
 const NotFoundPage = lazyPage(() => import('@/features/settings/NotFoundPage'), 'NotFoundPage');
 const WelcomePage = lazyPage(() => import('@/features/auth/WelcomePage'), 'WelcomePage');
@@ -236,6 +237,16 @@ export function App() {
                       element={
                         <RequirePersona personas={['EBIM', 'PARTNER']}>
                           <AuditPage />
+                        </RequirePersona>
+                      }
+                    />
+
+                    {/* Correo por EBIM MailHub: la RLS (`can_view_mail`) decide qué filas ve cada rol. */}
+                    <Route
+                      path="correos"
+                      element={
+                        <RequirePersona personas={['EBIM']}>
+                          <MailOutboxPage />
                         </RequirePersona>
                       }
                     />

@@ -13,6 +13,9 @@ import { FilterTotals } from '@/features/billing/financeUi';
 import { AccountTrendCharts } from './AccountPanels';
 import { capabilityText } from './organizationLabels';
 import { useAuth } from '@/hooks/useAuth';
+import { useMailFor } from '@/features/mail/mailApi';
+import { InvoiceMailCell } from '@/features/mail/MailActivity';
+import { latestMailByInvoice } from '@/features/mail/mailModel';
 import { CELL, accountApps, type AccountAppTenant, type ProvisioningRow, type TenantRow } from '@/features/suite/suiteModel';
 import { ConfirmActiveButton, PendingConfirmNotice } from '@/features/suite/ConfirmActive';
 import { useConfirmActive } from '@/features/suite/useConfirmActive';
@@ -291,6 +294,8 @@ export function Org360Billing({ organizationId }: { organizationId: string }) {
   };
   const list = useInvoicePage(params);
   const summary = useInvoiceSummary({ search: '', filter: 'ALL', organizationId });
+  // Último correo de cada factura (emitida, pago, vencida). La RLS decide quién lo ve.
+  const mailByInvoice = latestMailByInvoice(useMailFor({ organizationId }).data);
 
   const columns: TableColumn<InvoiceRow>[] = [
     { id: 'number', header: 'Factura', sortKey: 'number', cell: (r) => <span className="whitespace-nowrap font-mono text-compact font-semibold">{r.number}</span> },
@@ -306,6 +311,7 @@ export function Org360Billing({ organizationId }: { organizationId: string }) {
       cell: (r) => (r.balance === null ? <span className="text-muted">No computable</span> : <span className={Number(r.balance) < 0 ? 'text-danger' : ''}>{formatMoney(Number(r.balance), r.currency)}</span>),
     },
     { id: 'status', header: 'Estado', cell: (r) => <Badge tone={r.status === 'PAID' ? 'ok' : r.status === 'VOID' || r.status === 'DRAFT' ? 'neutral' : 'warn'}>{INVOICE_STATUS_LABEL[r.status as keyof typeof INVOICE_STATUS_LABEL] ?? r.status}</Badge> },
+    { id: 'mail', header: 'Correo', cell: (r) => <InvoiceMailCell mail={r.invoice_id ? mailByInvoice.get(r.invoice_id) : undefined} /> },
   ];
 
   return (

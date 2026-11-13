@@ -79,6 +79,7 @@ vi.mock('@/features/organizations/Account360', () => ({
   AccountUsersCard: ({ title }: { title: string }) => <div>{title}</div>,
 }));
 vi.mock('./TenantAddonsPanel', () => ({ TenantAddonsPanel: () => <div>Add-ons del tenant</div> }));
+vi.mock('@/features/mail/MailActivity', () => ({ MailActivityCard: () => <div>Correos del tenant</div> }));
 vi.mock('./TenantUsagePanel', () => ({ TenantUsagePanel: () => <div>Uso del tenant</div> }));
 
 import { TenantDetailPage } from './TenantDetailPage';
