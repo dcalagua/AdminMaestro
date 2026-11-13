@@ -1,9 +1,10 @@
 import { useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { PageContainer } from '@/components/ui/primitives';
 import { CHECK_HEALTH_PARAM } from '@/app/paletteActions';
 import { findNavItem } from '@/app/navigation';
 import { useProvisioningAccess } from '@/hooks/useProvisioningAccess';
+import { usePermissions } from '@/hooks/usePermissions';
 import { SuiteHealthStrip } from './SuiteHealthStrip';
 import { SuiteMatrix } from './SuiteMatrix';
 import { useHealthCheck, useSuiteData } from './useSuiteData';
@@ -22,6 +23,7 @@ export function SuiteCenterPage() {
   const data = useSuiteData();
   const access = useProvisioningAccess();
   const health = useHealthCheck();
+  const perms = usePermissions();
   const [params, setParams] = useSearchParams();
   const launched = useRef(false);
 
@@ -47,7 +49,17 @@ export function SuiteCenterPage() {
   }, [requested, data.loading.health, data.health, access, health, setParams]);
 
   return (
-    <PageContainer title={item?.label ?? 'Centro de la suite'} description={item?.description}>
+    <PageContainer
+      title={item?.label ?? 'Centro de la suite'}
+      description={item?.description}
+      actions={
+        perms.canManagePlatform ? (
+          <Link to="/suite/ciclo-de-vida" className="ebim-btn-secondary ebim-btn-sm">
+            Ciclo de vida y cortes
+          </Link>
+        ) : null
+      }
+    >
       <SuiteHealthStrip
         items={data.health}
         loading={data.loading.health}

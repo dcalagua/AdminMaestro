@@ -173,12 +173,28 @@ describe('runJob y entrada HTTP', () => {
     [{}, { job: 'all', sweep: false, limit: 20 }],
     [{ job: 'push', limit: 5 }, { job: 'push', sweep: false, limit: 5 }],
     [{ job: 'issue', sweep: true }, { job: 'issue', sweep: true, limit: 20 }],
+    [{ job: 'lifecycle', limit: 10 }, { job: 'lifecycle', sweep: false, limit: 10 }],
   ])('parseJobRequest(%j)', (raw, expected) => {
     expect(parseJobRequest(raw)).toEqual(expected);
   });
 
   it.each([[{ job: 'drop' }], [{ limit: 0 }], [{ limit: 1000 }], [{ sweep: 'yes' }], [null]])('rechaza %j', (raw) => {
     expect(() => parseJobRequest(raw)).toThrow(/PETICION_INVALIDA/);
+  });
+
+  it('lifecycle.v1 viaja en `all` y en su propio job; sin canal configurado no se toca', async () => {
+    const lifecycle = {
+      store: { claim: vi.fn(async () => []), context: vi.fn(), record: vi.fn() },
+      client: { putState: vi.fn() },
+    };
+    const deps = { store: store(), client: client(), worker: 'w', lifecycle } as unknown as Parameters<typeof runJob>[0];
+    const all = await runJob(deps, parseJobRequest({ job: 'all', limit: 4 }));
+    expect(all.lifecycle).toEqual({ claimed: 0, results: [] });
+    expect(lifecycle.store.claim).toHaveBeenCalledWith('w', 4, 120);
+    const only = await runJob(deps, parseJobRequest({ job: 'lifecycle' }));
+    expect(Object.keys(only).sort()).toEqual(['job', 'lifecycle', 'worker']);
+    const without = await runJob({ store: store(), client: client(), worker: 'w' }, parseJobRequest({ job: 'lifecycle' }));
+    expect(without.lifecycle).toBeUndefined();
   });
 
   it('solo el canal servidor: la clave de servicio en x-provisioning-secret, comparada en tiempo constante', () => {
