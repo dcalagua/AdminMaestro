@@ -1,0 +1,1039 @@
+<title>Manual del Admin Maestro</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=DM+Mono:wght@400;500&display=swap">
+<style>/* Layout: portada de marca a sangre; índice fijo en escritorio; cada capítulo abre con una banda de su color y sus módulos van en una columna de lectura con capturas enmarcadas como navegador. */
+:root {
+  --bg: #f3f6f7;
+  --card: #ffffff;
+  --sunken: #f6f8fa;
+  --border: #e1e7ec;
+  --text: #0f1b2a;
+  --text-2: #44546a;
+  --muted: #5d6b7e;
+  --brand: #056769;
+  --brand-deep: #0a3d3a;
+  --brand-mid: #0a5a52;
+  --brand-lite: #a8e6c4;
+  --on-dark: #ffffff;
+  --on-dark-2: rgba(255,255,255,.8);
+  --ok: #177a47; --ok-soft: #e3f4ea;
+  --warn: #8f5600; --warn-soft: #fdf0db;
+  --danger: #b42318; --danger-soft: #fde9e7;
+  --off: #5d6b7e; --off-soft: #eef1f5;
+  --info: #1f5fbf; --info-soft: #e7effc;
+  --frame-bar: #eef2f5;
+  --shadow: 0 1px 2px rgba(16,24,40,.06), 0 18px 40px -22px rgba(16,24,40,.35);
+
+  /* Un color por grupo del menú: tono principal, tinta suave y banda de apertura */
+  --inicio: #0e7c86; --inicio-soft: #e0f2f3; --inicio-band: linear-gradient(135deg, #07454c 0%, #0e7c86 100%);
+  --clientes: #2d5bd3; --clientes-soft: #e7edfc; --clientes-band: linear-gradient(135deg, #172f78 0%, #2d5bd3 100%);
+  --suite: #0a7a6c; --suite-soft: #e0f2ec; --suite-band: linear-gradient(135deg, #0a3d3a 0%, #0f7a63 100%);
+  --comercial: #c2610c; --comercial-soft: #fdefdf; --comercial-band: linear-gradient(135deg, #7a3707 0%, #d0711a 100%);
+  --finanzas: #6b46c1; --finanzas-soft: #efe9fb; --finanzas-band: linear-gradient(135deg, #34206e 0%, #7350c8 100%);
+  --gobierno: #3d4b63; --gobierno-soft: #e8ecf2; --gobierno-band: linear-gradient(135deg, #1b2333 0%, #4a5a76 100%);
+
+  --font: "DM Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "DM Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1315; --card: #121c1f; --sunken: #16232a; --border: #24353b;
+    --text: #e8eef0; --text-2: #b6c3c8; --muted: #8fa1a6;
+    --brand: #6fd0b7; --ok: #6fd39b; --ok-soft: #133022; --warn: #f0b85a; --warn-soft: #33270f;
+    --danger: #f3897f; --danger-soft: #3a1714; --off: #a5b3c4; --off-soft: #1d2731; --info: #8db4f5; --info-soft: #172640;
+    --frame-bar: #1a272d; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 18px 40px -22px rgba(0,0,0,.8);
+    --inicio: #5cc9d2; --inicio-soft: #102a2d; --clientes: #8aa7f3; --clientes-soft: #161f39;
+    --suite: #62d3b5; --suite-soft: #0f2e28; --comercial: #f2a35a; --comercial-soft: #33230f;
+    --finanzas: #b096ee; --finanzas-soft: #231a3a; --gobierno: #a9b6cb; --gobierno-soft: #1c2330;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1315; --card: #121c1f; --sunken: #16232a; --border: #24353b;
+  --text: #e8eef0; --text-2: #b6c3c8; --muted: #8fa1a6;
+  --brand: #6fd0b7; --ok: #6fd39b; --ok-soft: #133022; --warn: #f0b85a; --warn-soft: #33270f;
+  --danger: #f3897f; --danger-soft: #3a1714; --off: #a5b3c4; --off-soft: #1d2731; --info: #8db4f5; --info-soft: #172640;
+  --frame-bar: #1a272d; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 18px 40px -22px rgba(0,0,0,.8);
+  --inicio: #5cc9d2; --inicio-soft: #102a2d; --clientes: #8aa7f3; --clientes-soft: #161f39;
+  --suite: #62d3b5; --suite-soft: #0f2e28; --comercial: #f2a35a; --comercial-soft: #33230f;
+  --finanzas: #b096ee; --finanzas-soft: #231a3a; --gobierno: #a9b6cb; --gobierno-soft: #1c2330;
+  color-scheme: dark;
+}
+.c-inicio { --c: var(--inicio); --c-soft: var(--inicio-soft); --c-band: var(--inicio-band); }
+.c-clientes { --c: var(--clientes); --c-soft: var(--clientes-soft); --c-band: var(--clientes-band); }
+.c-suite { --c: var(--suite); --c-soft: var(--suite-soft); --c-band: var(--suite-band); }
+.c-comercial { --c: var(--comercial); --c-soft: var(--comercial-soft); --c-band: var(--comercial-band); }
+.c-finanzas { --c: var(--finanzas); --c-soft: var(--finanzas-soft); --c-band: var(--finanzas-band); }
+.c-gobierno { --c: var(--gobierno); --c-soft: var(--gobierno-soft); --c-band: var(--gobierno-band); }
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { background: var(--bg); color: var(--text); font: 400 16px/1.6 var(--font); -webkit-font-smoothing: antialiased; }
+a { color: var(--brand); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; border-radius: 6px; }
+h1, h2, h3, h4 { text-wrap: balance; line-height: 1.15; margin: 0; letter-spacing: -0.015em; }
+p { margin: 0; }
+code, .mono { font-family: var(--mono); font-size: .87em; }
+code { background: var(--sunken); border: 1px solid var(--border); border-radius: 6px; padding: .05em .4em; }
+svg.i, svg[class$="-i"] { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+svg.i { width: 24px; height: 24px; }
+
+/* ---------- Portada ---------- */
+.cover { position: relative; overflow: hidden; background: radial-gradient(1200px 500px at 85% 0%, rgba(168,230,196,.18), transparent 60%), linear-gradient(150deg, #072d2b 0%, #0a4f48 45%, #0f7a63 100%); color: var(--on-dark); }
+.cover::after { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,.09) 1.2px, transparent 1.3px); background-size: 22px 22px; mask-image: linear-gradient(90deg, transparent 0%, #000 70%); pointer-events: none; }
+.cover-inner { position: relative; z-index: 1; max-width: 1240px; margin: 0 auto; padding-block: 40px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 36px; }
+.wordmark { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 16px; letter-spacing: .01em; }
+.wordmark small { display: block; font-size: 10px; letter-spacing: .24em; font-weight: 600; color: var(--on-dark-2); }
+.mark { width: 32px; height: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
+.mark i { border-radius: 50%; background: #fff; }
+.mark i:nth-child(2) { background: var(--brand-lite); }
+.cover-grid { display: grid; gap: 40px; align-items: center; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 980px) { .cover-grid { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); } }
+.cover-text { display: grid; gap: 20px; }
+.cover-kicker { display: inline-flex; width: fit-content; padding: 6px 12px; border-radius: 999px; background: rgba(168,230,196,.16); color: var(--brand-lite); font-size: 12.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.cover h1 { font-size: clamp(38px, 6vw, 66px); font-weight: 900; letter-spacing: -0.035em; line-height: 1.02; }
+.cover-text > p { font-size: 18px; color: var(--on-dark-2); max-width: 58ch; }
+.apps-strip { display: flex; flex-wrap: wrap; gap: 8px; }
+.apps-strip span { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px 6px 8px; border-radius: 999px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.18); font-size: 13px; font-weight: 600; }
+.apps-strip span::before { content: ""; width: 12px; height: 12px; border-radius: 4px; background: var(--app); box-shadow: 0 0 0 2px rgba(255,255,255,.85); }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 14px; color: var(--on-dark-2); }
+.meta span { display: inline-flex; align-items: center; gap: 7px; }
+.meta-i { width: 16px; height: 16px; }
+.cover-shot { transform: perspective(1600px) rotateY(-7deg) rotateX(2deg); transform-origin: left center; }
+.cover-shot .frame { box-shadow: 0 40px 80px -30px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.12); }
+.cover-shot img { display: block; width: 100%; height: auto; }
+@media (prefers-reduced-motion: reduce) { .cover-shot { transform: none; } }
+
+/* ---------- Estructura ---------- */
+.wrap { max-width: 1240px; margin: 0 auto; padding-block: 40px 80px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; grid-template-columns: minmax(0, 1fr); gap: 40px; }
+@media (min-width: 1100px) { .wrap { grid-template-columns: 220px minmax(0, 1fr); gap: 52px; } }
+.toc { display: none; }
+@media (min-width: 1100px) { .toc { display: block; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; max-height: calc(100vh - 48px); overflow: auto; } }
+.toc h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .14em; color: var(--muted); font-weight: 700; margin-bottom: 12px; }
+.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.toc a { display: block; padding: 7px 10px; border-radius: 8px; color: var(--text-2); text-decoration: none; font-size: 14px; font-weight: 500; }
+.toc a:hover { background: var(--card); color: var(--text); }
+.toc a.on { background: var(--card); color: var(--brand); font-weight: 700; box-shadow: inset 3px 0 0 var(--brand); }
+.mobile-toc { border: 1px solid var(--border); background: var(--card); border-radius: 14px; padding: 4px 16px; }
+@media (min-width: 1100px) { .mobile-toc { display: none; } }
+.mobile-toc summary { cursor: pointer; padding: 12px 0; font-weight: 700; }
+.mobile-toc ol { margin: 0 0 14px; padding-left: 20px; display: grid; gap: 6px; }
+main { min-width: 0; display: grid; gap: 64px; }
+
+/* Secciones introductorias */
+.intro { display: grid; gap: 24px; scroll-margin-top: 24px; }
+.sec-head { display: grid; gap: 10px; max-width: 70ch; }
+.kicker { display: inline-flex; align-items: center; gap: 8px; width: fit-content; font-size: 12.5px; text-transform: uppercase; letter-spacing: .14em; font-weight: 800; color: var(--c, var(--brand)); }
+.k-i { width: 18px; height: 18px; }
+.sec-head h2 { font-size: clamp(28px, 3.4vw, 38px); font-weight: 800; }
+.sec-head p { color: var(--text-2); font-size: 17px; }
+
+.concepts { display: grid; gap: 16px; grid-template-columns: minmax(0,1fr); }
+@media (min-width: 720px) { .concepts { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.concept { border-radius: 18px; padding: 22px; display: grid; gap: 8px; align-content: start; color: var(--text); }
+.concept.k1 { background: var(--clientes-soft); --cc: var(--clientes); }
+.concept.k2 { background: var(--suite-soft); --cc: var(--suite); }
+.concept.k3 { background: var(--comercial-soft); --cc: var(--comercial); }
+.cc-icon { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; background: var(--cc); color: var(--card); margin-bottom: 6px; }
+.concept .k { font-size: 12px; text-transform: uppercase; letter-spacing: .14em; font-weight: 800; color: var(--cc); }
+.concept h4 { font-size: 20px; font-weight: 800; }
+.concept p { color: var(--text-2); font-size: 15px; }
+.flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-weight: 700; font-size: 14.5px; }
+.flow span { display: inline-flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--border); padding: 9px 14px; border-radius: 12px; }
+.flow span.hl { background: var(--suite); color: var(--card); border-color: transparent; }
+.flow i { font-style: normal; color: var(--muted); font-size: 18px; }
+.fl-i { width: 17px; height: 17px; }
+
+.map { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 640px) { .map { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 980px) { .map { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.map-tile { position: relative; overflow: hidden; display: grid; gap: 4px; padding: 20px; border-radius: 18px; background: var(--c-band); color: #fff; text-decoration: none; min-height: 138px; align-content: end; }
+.map-tile b { font-size: 21px; font-weight: 800; }
+.map-tile > span:last-child { font-size: 13.5px; color: rgba(255,255,255,.84); }
+.mt-icon { position: absolute; top: 16px; left: 18px; width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; background: rgba(255,255,255,.16); }
+.mt-icon svg { width: 21px; height: 21px; }
+.mt-n { position: absolute; top: 4px; right: 14px; font-size: 64px; font-weight: 900; letter-spacing: -0.05em; color: rgba(255,255,255,.14); line-height: 1; }
+.map-tile:hover { filter: brightness(1.06); }
+
+/* ---------- Capítulos ---------- */
+.chapter { display: grid; gap: 0; scroll-margin-top: 24px; }
+.opener { border-radius: 22px; background: var(--c-band); color: #fff; position: relative; overflow: hidden; }
+.opener::after { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,.1) 1.2px, transparent 1.3px); background-size: 20px 20px; mask-image: linear-gradient(110deg, transparent 35%, #000 100%); pointer-events: none; }
+.opener-inner { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 30px 28px 28px; }
+@media (min-width: 760px) { .opener-inner { grid-template-columns: auto minmax(0, 1fr); gap: 28px; align-items: start; padding: 38px 40px 34px; } }
+.big-n { font-size: clamp(64px, 9vw, 112px); font-weight: 900; letter-spacing: -0.06em; line-height: .82; color: rgba(255,255,255,.22); font-variant-numeric: tabular-nums; }
+.opener-text { display: grid; gap: 10px; }
+.opener .kicker { color: rgba(255,255,255,.85); }
+.opener h2 { font-size: clamp(30px, 4vw, 44px); font-weight: 900; letter-spacing: -0.03em; }
+.opener p { font-size: 17px; color: rgba(255,255,255,.86); max-width: 62ch; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 7px; padding: 7px 12px; border-radius: 999px; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.22); color: #fff; text-decoration: none; font-size: 13.5px; font-weight: 600; }
+.chip:hover { background: rgba(255,255,255,.22); }
+.chip-i { width: 15px; height: 15px; }
+.ch-body { display: grid; gap: 0; }
+
+/* Módulo */
+.module { display: grid; gap: 18px; padding-block: 36px 8px; scroll-margin-top: 24px; }
+.module + .module { border-top: 1px dashed var(--border); }
+.m-head { display: flex; align-items: center; gap: 14px; }
+.m-icon { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; background: var(--c-soft); color: var(--c); flex: none; }
+.m-title { display: grid; gap: 4px; min-width: 0; }
+.m-title h3 { font-size: 24px; font-weight: 800; }
+.route { display: inline-flex; width: fit-content; font-size: 12.5px; font-weight: 600; color: var(--c); background: var(--c-soft); padding: 3px 10px; border-radius: 999px; }
+.purpose { font-size: 17.5px; line-height: 1.55; color: var(--text); max-width: 70ch; }
+
+/* Capturas en marco de navegador */
+figure.shot { margin: 0; display: grid; gap: 10px; min-width: 0; }
+.frame { border-radius: 14px; overflow: hidden; background: var(--card); border: 1px solid var(--border); box-shadow: var(--shadow); }
+.bar { display: flex; align-items: center; gap: 12px; padding: 9px 12px; background: var(--frame-bar); border-bottom: 1px solid var(--border); }
+.dots { display: inline-flex; gap: 6px; flex: none; }
+.dots i { width: 10px; height: 10px; border-radius: 50%; background: #f26b5b; }
+.dots i:nth-child(2) { background: #f5bd4f; }
+.dots i:nth-child(3) { background: #5ec26a; }
+.url { display: inline-flex; align-items: center; gap: 6px; min-width: 0; flex: 1; max-width: 460px; padding: 4px 10px; border-radius: 8px; background: var(--card); border: 1px solid var(--border); font: 500 12px var(--mono); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.url-i { width: 12px; height: 12px; }
+.frame button { all: unset; cursor: zoom-in; display: block; width: 100%; }
+.frame button:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.frame img { display: block; width: 100%; height: auto; aspect-ratio: 1440 / 900; object-fit: cover; object-position: top; }
+.shot figcaption { font-size: 13.5px; color: var(--muted); padding-left: 4px; }
+.pair { display: grid; gap: 18px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 900px) { .pair { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+
+/* Paneles */
+.panels { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 760px) { .panels { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.panel { border-radius: 16px; padding: 18px 20px; display: grid; gap: 10px; align-content: start; }
+.panel.find { background: var(--c-soft, var(--suite-soft)); }
+.panel.act { background: var(--card); border: 1.5px solid var(--c, var(--suite)); }
+.panel h4 { display: flex; align-items: center; gap: 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .12em; font-weight: 800; color: var(--c, var(--suite)); }
+.h-i { width: 18px; height: 18px; }
+.panel ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
+.panel li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; color: var(--text-2); font-size: 15px; line-height: 1.5; }
+.panel li b { color: var(--text); font-weight: 700; }
+.li-i { width: 18px; height: 18px; margin-top: 2px; color: var(--c, var(--suite)); stroke-width: 2.4; }
+
+/* Avisos */
+.callout { display: grid; grid-template-columns: 26px minmax(0,1fr); gap: 12px; align-items: start; padding: 16px 18px; border-radius: 14px; font-size: 15px; color: var(--text-2); }
+.callout b { color: var(--text); }
+.c-i { width: 24px; height: 24px; }
+.callout.info { background: var(--info-soft); } .callout.info .c-i { color: var(--info); }
+.callout.warn { background: var(--warn-soft); } .callout.warn .c-i { color: var(--warn); }
+.callout.tip { background: var(--ok-soft); } .callout.tip .c-i { color: var(--ok); }
+.ch-body > .callout { margin-top: 28px; }
+
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+.pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.off { background: var(--off-soft); color: var(--off); }
+.pill.bad { background: var(--danger-soft); color: var(--danger); }
+
+/* Pasos */
+.timeline { list-style: none; margin: 28px 0 0; padding: 0; display: grid; gap: 0; }
+.step { position: relative; display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 18px; padding-bottom: 34px; }
+.step::before { content: ""; position: absolute; left: 23px; top: 50px; bottom: 0; width: 2px; background: linear-gradient(var(--suite), var(--suite-soft)); }
+.step:last-child::before { display: none; }
+.step-n { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: var(--suite-band); color: #fff; font-weight: 900; font-size: 20px; box-shadow: 0 0 0 6px var(--suite-soft); font-variant-numeric: tabular-nums; }
+.step-c { display: grid; gap: 6px; min-width: 0; padding-top: 4px; }
+.step-c h4 { font-size: 20px; font-weight: 800; }
+.step-c > p { color: var(--text-2); max-width: 68ch; }
+.step-body { display: grid; gap: 16px; margin-top: 10px; }
+.kv { margin: 0; display: grid; border-radius: 14px; overflow: hidden; border: 1px solid var(--border); background: var(--card); }
+.kv div { display: grid; grid-template-columns: minmax(0, 190px) minmax(0, 1fr); gap: 12px; padding: 11px 16px; font-size: 14.5px; }
+.kv div:nth-child(odd) { background: var(--sunken); }
+.kv dt { color: var(--suite); font-weight: 700; }
+.kv dd { margin: 0; color: var(--text); }
+.sub-h { font-size: 22px; font-weight: 800; margin-top: 40px; margin-bottom: 14px; }
+
+/* Tablas */
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 16px; background: var(--card); }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 14.5px; }
+th, td { text-align: left; padding: 13px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { background: var(--suite-band); color: #fff; font-size: 12px; text-transform: uppercase; letter-spacing: .1em; font-weight: 700; }
+tbody tr:nth-child(even) td { background: var(--sunken); }
+tr:last-child td { border-bottom: 0; }
+td:first-child { white-space: nowrap; }
+.app-dot { display: inline-block; width: 12px; height: 12px; border-radius: 4px; background: var(--app); margin-right: 9px; vertical-align: -1px; }
+
+/* Tarjetas de app */
+.app-cards { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 640px) { .app-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1000px) { .app-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.app-card { position: relative; overflow: hidden; border-radius: 16px; background: var(--card); border: 1px solid var(--border); padding: 18px 18px 16px; display: grid; gap: 8px; align-content: start; }
+.app-card::before { content: ""; position: absolute; inset: 0 0 auto; height: 5px; background: var(--app); }
+.app-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.app-chip { display: inline-flex; padding: 4px 10px; border-radius: 8px; background: var(--app); color: #fff; font-size: 12.5px; font-weight: 800; letter-spacing: .02em; }
+.app-card h4 { font-size: 17px; font-weight: 800; }
+.code { color: var(--muted); }
+.app-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--text-2); padding-top: 8px; border-top: 1px dashed var(--border); }
+.app-meta span { display: inline-flex; align-items: center; gap: 5px; }
+.am-i { width: 14px; height: 14px; }
+
+/* Revisión */
+.score { display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 32px; }
+@media (min-width: 900px) { .score { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.score > div { border-radius: 18px; padding: 20px; display: grid; gap: 6px; align-content: start; }
+.score .s1 { background: var(--suite-soft); --sc: var(--suite); }
+.score .s2 { background: var(--inicio-soft); --sc: var(--inicio); }
+.score .s3 { background: var(--comercial-soft); --sc: var(--comercial); }
+.score .s4 { background: var(--finanzas-soft); --sc: var(--finanzas); }
+.s-icon { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--sc); color: var(--card); }
+.s-icon svg { width: 21px; height: 21px; }
+.score b { font-size: 34px; font-weight: 900; letter-spacing: -0.03em; color: var(--sc); font-variant-numeric: tabular-nums; }
+.score span:last-child { color: var(--text-2); font-size: 14px; }
+.findings { display: grid; gap: 12px; }
+.finding { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 14px; padding: 18px; border-radius: 16px; background: var(--card); border: 1px solid var(--border); }
+.f-icon { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; }
+.f-icon svg { width: 22px; height: 22px; }
+.f-bad .f-icon { background: var(--danger-soft); color: var(--danger); }
+.f-warn .f-icon { background: var(--warn-soft); color: var(--warn); }
+.f-off .f-icon { background: var(--off-soft); color: var(--off); }
+.f-top { margin-bottom: 6px; }
+.finding h4 { font-size: 17px; font-weight: 800; margin-bottom: 4px; }
+.finding p { color: var(--text-2); font-size: 15px; }
+.caps { list-style: none; margin: 0; padding: 0; display: grid; border-radius: 16px; overflow: hidden; border: 1px solid var(--border); background: var(--card); }
+.caps li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; padding: 13px 18px; border-bottom: 1px solid var(--border); font-size: 15px; }
+.caps li:last-child { border-bottom: 0; }
+.caps li:nth-child(even) { background: var(--sunken); }
+
+/* Visor */
+dialog.viewer { padding: 0; border: 0; background: transparent; max-width: min(96vw, 1600px); width: 100%; }
+dialog.viewer::backdrop { background: rgba(5, 16, 18, .86); }
+dialog.viewer img { width: 100%; height: auto; border-radius: 10px; display: block; }
+dialog.viewer p { color: #fff; text-align: center; margin-top: 10px; font-size: 14px; }
+dialog.viewer button { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 14px); right: calc(env(safe-area-inset-right, 0px) + 14px); background: rgba(255,255,255,.14); color: #fff; border: 1px solid rgba(255,255,255,.3); border-radius: 999px; padding: 8px 16px; font: 600 14px var(--font); cursor: pointer; }
+footer.end { color: var(--muted); font-size: 13px; border-top: 1px solid var(--border); padding-top: 20px; margin-top: 40px; }
+
+/* ---------- Impresión / PDF ---------- */
+@media print {
+  @page { size: A4; margin: 0 0 13mm 0; }
+  :root { color-scheme: light; }
+  body { background: #ffffff; font-size: 13.5px; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .toc, .mobile-toc, dialog.viewer { display: none !important; }
+  .cover { height: 279mm; overflow: hidden; display: flex; align-items: center; break-after: page; }
+  .cover-inner { padding: 16mm 16mm !important; gap: 10mm; }
+  .cover-shot { max-width: 150mm; }
+  .cover-grid { grid-template-columns: 1fr !important; gap: 12mm; }
+  .cover h1 { font-size: 54px; }
+  .cover-shot { transform: none; }
+  .wrap { display: block; padding: 0 !important; max-width: none; }
+  main { display: block; }
+  .intro, .chapter { break-before: page; }
+  .intro { padding: 14mm 14mm 0; display: grid; gap: 7mm; }
+  #conceptos { break-before: auto; }
+  .opener { border-radius: 0; }
+  .opener-inner { padding: 14mm 14mm 11mm !important; grid-template-columns: auto minmax(0,1fr) !important; }
+  .big-n { font-size: 96px; }
+  .chapter, .ch-body, .intro { display: block !important; }
+  .intro > * + * { margin-top: 6mm; }
+  .ch-body { padding: 0 14mm; }
+  .module { display: block; padding-block: 9mm 2mm; break-inside: auto; }
+  .module > * + * { margin-top: 5mm; }
+  .module:first-child { break-before: auto; }
+  .module + .module { break-before: page; border-top: 0; }
+  .m-head, .purpose { break-after: avoid; }
+  figure.shot, .panel, .callout, .finding, .concept, .score > div, .step, .app-card, tr, .map-tile, .kv { break-inside: avoid; }
+  .frame { box-shadow: none; }
+  .pair { grid-template-columns: 1fr 1fr; gap: 5mm; }
+  .panels { grid-template-columns: 1fr 1fr; }
+  .map { grid-template-columns: repeat(3, 1fr); }
+  .concepts { grid-template-columns: repeat(3, 1fr); }
+  .app-cards { grid-template-columns: repeat(3, 1fr); }
+  .score { grid-template-columns: repeat(4, 1fr); }
+  .table-wrap { overflow: visible; }
+  table { min-width: 0; }
+  .step { padding-bottom: 7mm; }
+  .sub-h { break-after: avoid; }
+  .module > figure.shot { width: 84%; margin-inline: auto; }
+  .module > .pair, .step-body .pair { width: 100%; }
+  .map-tile { min-height: 96px; padding: 14px 16px; }
+  .mt-n { font-size: 48px; }
+  .intro > * + * { margin-top: 5mm; }
+  .opener-inner { padding: 11mm 14mm 9mm !important; }
+  .big-n { font-size: 80px; }
+  .panel { padding: 12px 14px; gap: 6px; }
+  .panel li { font-size: 13.5px; }
+  .caps li { padding: 9px 16px; }
+  .finding { padding: 13px 16px; }
+}
+</style>
+
+<header class="cover">
+  <div class="cover-inner">
+    <div class="wordmark"><span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>Admin Maestro<small>BY EBIM</small></span></div>
+    <div class="cover-grid">
+      <div class="cover-text">
+        <span class="cover-kicker">Manual de uso · Versión V5</span>
+        <h1>Manual del Admin&nbsp;Maestro</h1>
+        <p>La consola desde la que EBIM ve, da de alta y gobierna los clientes de las 8 apps de la suite. Cada módulo explicado con capturas reales, el paso a paso para crear un tenant y la revisión completa de la plataforma.</p>
+        <div class="apps-strip" aria-label="Apps de la suite">
+          <span style="--app:#056769">eSupplier</span><span style="--app:#3E8F63">EWM</span><span style="--app:#2B7A9B">TMS</span><span style="--app:#185D4A">GMAO</span>
+          <span style="--app:#8A5CB8">eChange</span><span style="--app:#C2610C">eExpense</span><span style="--app:#2D5BD3">eCommerce</span><span style="--app:#B4436C">Comerza</span>
+        </div>
+        <div class="meta"><span><svg class="meta-i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>adminmaestro.pages.dev</span><span><svg class="meta-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg>Ambiente QAS</span><span><svg class="meta-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Revisado el 12-nov-2026</span></div>
+      </div>
+      <div class="cover-shot" aria-hidden="true">
+        <div class="frame"><div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">adminmaestro.pages.dev/suite</span></div><img src="img/suite.jpg" alt=""></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="toc" aria-label="Índice"><h2>Contenido</h2><ol id="toc-list"><li><a href="#conceptos">1. Cómo está organizado</a></li><li><a href="#navegacion">2. Ingreso y navegación</a></li><li><a href="#inicio">3. Inicio</a></li><li><a href="#clientes">4. Clientes</a></li><li><a href="#suite">5. Suite</a></li><li><a href="#comercial">6. Comercial</a></li><li><a href="#finanzas">7. Finanzas</a></li><li><a href="#gobierno">8. Gobierno</a></li><li><a href="#crear-tenant">9. Crear un tenant</a></li><li><a href="#ejemplos">10. Tenants de ejemplo</a></li><li><a href="#revision">11. Revisión</a></li></ol></nav>
+  <main>
+    <details class="mobile-toc"><summary>Contenido del manual</summary><ol><li><a href="#conceptos">1. Cómo está organizado</a></li><li><a href="#navegacion">2. Ingreso y navegación</a></li><li><a href="#inicio">3. Inicio</a></li><li><a href="#clientes">4. Clientes</a></li><li><a href="#suite">5. Suite</a></li><li><a href="#comercial">6. Comercial</a></li><li><a href="#finanzas">7. Finanzas</a></li><li><a href="#gobierno">8. Gobierno</a></li><li><a href="#crear-tenant">9. Crear un tenant</a></li><li><a href="#ejemplos">10. Tenants de ejemplo</a></li><li><a href="#revision">11. Revisión</a></li></ol></details>
+
+    <section class="intro c-suite" id="conceptos">
+      <div class="sec-head"><span class="kicker"><svg class="k-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.6v.3"/></svg>Capítulo 1</span><h2>Cómo está organizado</h2><p>Todo en la consola gira alrededor de tres piezas. Entenderlas basta para leer cualquier pantalla.</p></div>
+      <div class="concepts">
+        <div class="concept k1"><span class="cc-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V4h10v17"/><path d="M14 9h6v12"/><path d="M8 8h2M8 12h2M8 16h2M3 21h18"/></svg></span><span class="k">Cuenta</span><h4>El cliente</h4><p>La empresa que compra. Tiene sus contratos, su facturación y su responsable comercial. Puede ser cliente y partner a la vez.</p></div>
+        <div class="concept k2"><span class="cc-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg></span><span class="k">Tenant</span><h4>Su espacio en una app</h4><p>El lugar del cliente dentro de UNA app. Un cliente con TMS y eChange tiene dos tenants.</p></div>
+        <div class="concept k3"><span class="cc-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></span><span class="k">Alta</span><h4>La creación en la app</h4><p>La llamada firmada con la que el Admin Maestro crea el tenant dentro de la app, con su resultado registrado.</p></div>
+      </div>
+      <div class="flow" aria-label="Recorrido de un cliente"><span><svg class="fl-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V4h10v17"/><path d="M14 9h6v12"/><path d="M8 8h2M8 12h2M8 16h2M3 21h18"/></svg>Cuenta</span><i>›</i><span><svg class="fl-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg>Contrato</span><i>›</i><span><svg class="fl-i" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="9" cy="7" rx="6" ry="3"/><path d="M3 7v5c0 1.7 2.7 3 6 3s6-1.3 6-3V7"/><path d="M9 15v3c0 1.7 2.7 3 6 3s6-1.3 6-3v-5c0-1.7-2.7-3-6-3"/></svg>Factura y cobro</span><i>›</i><span><svg class="fl-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>Tenant por app</span><i>›</i><span class="hl"><svg class="fl-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Alta en la app</span></div>
+      <div class="callout info"><svg class="c-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.6v.3"/></svg><p><b>Las 8 apps conectadas:</b> eSupplier, EWM, TMS, GMAO, eChange, eExpense, eCommerce y Comerza. El ERP aún no está conectado; ebim-mail y el gateway son servicios de apoyo, no apps.</p></div>
+      <div class="callout info"><svg class="c-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg><p><b>Quién puede hacer qué:</b> lo decide la base de datos. La consola esconde los botones que un rol no puede usar, pero la autorización real vive en el servidor. Cobrar una comisión no da acceso a ningún tenant.</p></div>
+    </section>
+
+    <section class="intro c-gobierno" id="navegacion">
+      <div class="sec-head"><span class="kicker"><svg class="k-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>Capítulo 2</span><h2>Ingreso y navegación</h2><p>Se entra con correo y contraseña. El menú izquierdo agrupa 18 módulos en seis grupos, cada uno con su color en este manual.</p></div>
+      <div class="map"><a class="map-tile c-inicio" href="#inicio"><span class="mt-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg></span><span class="mt-n">03</span><b>Inicio</b><span>Resumen · Bandeja</span></a><a class="map-tile c-clientes" href="#clientes"><span class="mt-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16 4.8a3.2 3.2 0 0 1 0 6.4"/><path d="M21 20c0-2.4-1.4-4.3-3.6-5"/></svg></span><span class="mt-n">04</span><b>Clientes</b><span>Cuentas · Partners · Equipo comercial</span></a><a class="map-tile c-suite" href="#suite"><span class="mt-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span><span class="mt-n">05</span><b>Suite</b><span>Centro de la suite · Tenants · Apps</span></a><a class="map-tile c-comercial" href="#comercial"><span class="mt-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 15l-3-3c2-6 7-9 13-9 0 6-3 11-9 13z"/><circle cx="14.5" cy="9.5" r="1.6"/><path d="M5.5 15.5C4 17 4 20 4 20s3 0 4.5-1.5"/></svg></span><span class="mt-n">06</span><b>Comercial</b><span>Nueva venta · Contratos · Catálogo</span></a><a class="map-tile c-finanzas" href="#finanzas"><span class="mt-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="9" cy="7" rx="6" ry="3"/><path d="M3 7v5c0 1.7 2.7 3 6 3s6-1.3 6-3V7"/><path d="M9 15v3c0 1.7 2.7 3 6 3s6-1.3 6-3v-5c0-1.7-2.7-3-6-3"/></svg></span><span class="mt-n">07</span><b>Finanzas</b><span>Cobranza · Comisiones · Costos · Tarifas</span></a><a class="map-tile c-gobierno" href="#gobierno"><span class="mt-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="mt-n">08</span><b>Gobierno</b><span>Usuarios · Auditoría · Configuración</span></a></div>
+      <div class="pair">
+        <figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/login</span></div>
+    <button type="button" data-full="img/login.jpg" aria-label="Ampliar: Pantalla de ingreso"><img src="img/login.jpg" alt="Pantalla de ingreso" loading="lazy" width="1440" height="900"></button>
+  </div><figcaption>Ingreso. El registro público está cerrado: los usuarios se invitan desde Gobierno › Usuarios.</figcaption>
+</figure>
+        <figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/suite</span></div>
+    <button type="button" data-full="img/palette.jpg" aria-label="Ampliar: Buscador con acciones rápidas"><img src="img/palette.jpg" alt="Buscador con acciones rápidas" loading="lazy" width="1440" height="900"></button>
+  </div><figcaption>⌘K abre el buscador: pantallas, acciones como «Nuevo tenant», facturas y cobros.</figcaption>
+</figure>
+      </div>
+      <div class="panels">
+        <div class="panel find"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>La barra superior</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>Buscador ⌘K</b>: ir a cualquier sitio o ejecutar una acción.</span></li><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>Etiqueta de ambiente</b> «QAS · pruebas», siempre visible.</span></li><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>Campana</b> con los pendientes de la Bandeja.</span></li><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>Modo oscuro</b> y <b>menú del usuario</b>.</span></li></ul></div>
+        <div class="panel act"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Atajos útiles</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>⌘K › «Nuevo tenant».</span></li><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>⌘K › «Verificar salud de las apps».</span></li><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>⌘K › «Emitir factura…».</span></li><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>⌘K › «Ir a Bandeja».</span></li></ul></div>
+      </div>
+    </section>
+
+    <section class="chapter c-inicio" id="inicio">
+  <div class="opener">
+    <div class="opener-inner">
+      <span class="big-n" aria-hidden="true">03</span>
+      <div class="opener-text">
+        <span class="kicker"><svg class="k-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Capítulo 3</span>
+        <h2>Inicio</h2>
+        <p>El pulso del negocio y lo que hay que hacer hoy. Es la primera pantalla después de ingresar.</p>
+        <nav class="chips" aria-label="Módulos de Inicio"><a class="chip" href="#m-resumen"><svg class="chip-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V11M10 20V4M16 20v-7M3 20h18"/></svg>Resumen ejecutivo</a><a class="chip" href="#m-bandeja"><svg class="chip-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13l3-8h12l3 8v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M3 13h5l1 3h6l1-3h5"/></svg>Bandeja</a></nav>
+      </div>
+    </div>
+  </div>
+  <div class="ch-body"><article class="module" id="m-resumen">
+  <div class="m-head">
+    <span class="m-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V11M10 20V4M16 20v-7M3 20h18"/></svg></span>
+    <div class="m-title"><h3>Resumen ejecutivo</h3><span class="route">Inicio › Resumen</span></div>
+  </div>
+  <p class="purpose">Cuánto factura el negocio, si crece, de dónde viene el crecimiento, si se cobra y qué requiere atención. Cada cifra abre el detalle que la compone.</p>
+  <figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/</span></div>
+    <button type="button" data-full="img/resumen.jpg" aria-label="Ampliar: Resumen ejecutivo con KPIs y gráficos de MRR"><img src="img/resumen.jpg" alt="Resumen ejecutivo con KPIs y gráficos de MRR" loading="lazy" width="1440" height="900"></button>
+  </div>
+</figure>
+  <div class="panels"><div class="panel find"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Qué encuentras</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Tres vistas: <b>Ejecutivo</b>, <b>Finanzas</b> y <b>Operación SaaS</b>.</span></li><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Evolución del MRR, puente de cambios, cobrado frente a facturado y antigüedad de la cartera.</span></li><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>MRR por producto y por mercado, cada moneda por separado, sin mezclarlas.</span></li></ul></div><div class="panel act"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Acciones</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Cambiar el horizonte a <b>12 o 18 meses</b> y alternar gráfico o tabla.</span></li><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>Presentar</b>: modo de proyección para reuniones, con opción de ocultar nombres.</span></li></ul></div></div>
+  
+</article><article class="module" id="m-bandeja">
+  <div class="m-head">
+    <span class="m-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13l3-8h12l3 8v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M3 13h5l1 3h6l1-3h5"/></svg></span>
+    <div class="m-title"><h3>Bandeja</h3><span class="route">Inicio › Bandeja</span></div>
+  </div>
+  <p class="purpose">Lo que requiere atención hoy, en una sola lista y con la acción al lado.</p>
+  <figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/bandeja</span></div>
+    <button type="button" data-full="img/bandeja.jpg" aria-label="Ampliar: Bandeja de pendientes agrupados por tipo"><img src="img/bandeja.jpg" alt="Bandeja de pendientes agrupados por tipo" loading="lazy" width="1440" height="900"></button>
+  </div>
+</figure>
+  <div class="panels"><div class="panel find"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Qué encuentras</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Filtros por urgencia: <b>Urgentes</b>, <b>Importantes</b> y <b>Normales</b>.</span></li><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Grupos con contador: 18 facturas vencidas, 16 renovaciones y alertas, 1 documento por aprobar.</span></li><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>La campana de la barra superior muestra el mismo contador.</span></li></ul></div><div class="panel act"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Acciones</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Cada pendiente abre directamente la pantalla donde se resuelve.</span></li></ul></div></div>
+  
+</article></div>
+</section><section class="chapter c-clientes" id="clientes">
+  <div class="opener">
+    <div class="opener-inner">
+      <span class="big-n" aria-hidden="true">04</span>
+      <div class="opener-text">
+        <span class="kicker"><svg class="k-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16 4.8a3.2 3.2 0 0 1 0 6.4"/><path d="M21 20c0-2.4-1.4-4.3-3.6-5"/></svg>Capítulo 4</span>
+        <h2>Clientes</h2>
+        <p>Las cuentas, los canales que venden con EBIM y el equipo comercial con su cartera.</p>
+        <nav class="chips" aria-label="Módulos de Clientes"><a class="chip" href="#m-cuentas"><svg class="chip-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V4h10v17"/><path d="M14 9h6v12"/><path d="M8 8h2M8 12h2M8 16h2M3 21h18"/></svg>Cuentas</a><a class="chip" href="#m-cuenta360"><svg class="chip-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Ficha 360 del cliente</a><a class="chip" href="#m-partners"><svg class="chip-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12l4-4 4 2 3-3 7 5"/><path d="M7 15l3 3 2-2 2 2 3-3-4-4"/><path d="M3 12v3l4 0"/></svg>Partners y canales</a><a class="chip" href="#m-equipo"><svg class="chip-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16 4.8a3.2 3.2 0 0 1 0 6.4"/><path d="M21 20c0-2.4-1.4-4.3-3.6-5"/></svg>Equipo comercial</a></nav>
+      </div>
+    </div>
+  </div>
+  <div class="ch-body"><article class="module" id="m-cuentas">
+  <div class="m-head">
+    <span class="m-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V4h10v17"/><path d="M14 9h6v12"/><path d="M8 8h2M8 12h2M8 16h2M3 21h18"/></svg></span>
+    <div class="m-title"><h3>Cuentas</h3><span class="route">Clientes › Cuentas</span></div>
+  </div>
+  <p class="purpose">Clientes y organizaciones de la plataforma. Es la puerta de entrada a la ficha 360 de cada cliente.</p>
+  <figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/cuentas</span></div>
+    <button type="button" data-full="img/cuentas.jpg" aria-label="Ampliar: Listado de cuentas cliente"><img src="img/cuentas.jpg" alt="Listado de cuentas cliente" loading="lazy" width="1440" height="900"></button>
+  </div>
+</figure>
+  <div class="panels"><div class="panel find"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Qué encuentras</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Pestañas <b>Clientes</b> y <b>Todas las organizaciones</b>.</span></li><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Filtros de activos o archivados y buscador por nombre, RUC o país.</span></li></ul></div><div class="panel act"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Acciones</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>Nuevo cliente</b>. Para vender un plan completo, usa Comercial › Nueva venta.</span></li></ul></div></div>
+  
+</article><article class="module" id="m-cuenta360">
+  <div class="m-head">
+    <span class="m-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span>
+    <div class="m-title"><h3>Ficha 360 del cliente</h3><span class="route">Cuentas › un cliente</span></div>
+  </div>
+  <p class="purpose">Todo lo de un cliente en una ficha: qué contrató, qué debe, en qué paso está su alta y en qué apps está.</p>
+  <div class="pair"><figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/organizations/…</span></div>
+    <button type="button" data-full="img/cuenta-360.jpg" aria-label="Ampliar: Ficha 360 de Industrias Titán, pestaña Resumen"><img src="img/cuenta-360.jpg" alt="Ficha 360 de Industrias Titán, pestaña Resumen" loading="lazy" width="1440" height="900"></button>
+  </div><figcaption>Resumen: cabecera fija y avance del alta.</figcaption>
+</figure><figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/organizations/…?tab=apps</span></div>
+    <button type="button" data-full="img/cuenta-360-apps.jpg" aria-label="Ampliar: Ficha 360, pestaña Apps y accesos"><img src="img/cuenta-360-apps.jpg" alt="Ficha 360, pestaña Apps y accesos" loading="lazy" width="1440" height="900"></button>
+  </div><figcaption>Apps y accesos: un bloque por app.</figcaption>
+</figure></div>
+  <div class="panels"><div class="panel find"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Qué encuentras</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>Cabecera fija</b>: estado, salud de cobranza, MRR, saldo vencido, apps activas y responsable comercial.</span></li><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>¿En qué paso está el alta del cliente?</b>: cuenta, contrato, factura, enlace de pago, pago y alta en las apps.</span></li><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Pestañas: Resumen, Apps y accesos, Contratos y cobranza, Personas y Actividad.</span></li></ul></div><div class="panel act"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Acciones</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>Dar de alta en las apps</b>: abre la tabla de altas de este cliente.</span></li><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>Generar enlace de pago</b> y <b>Más acciones</b>.</span></li></ul></div></div>
+  
+</article><article class="module" id="m-partners">
+  <div class="m-head">
+    <span class="m-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12l4-4 4 2 3-3 7 5"/><path d="M7 15l3 3 2-2 2 2 3-3-4-4"/><path d="M3 12v3l4 0"/></svg></span>
+    <div class="m-title"><h3>Partners y canales</h3><span class="route">Clientes › Partners</span></div>
+  </div>
+  <p class="purpose">Organizaciones que comercializan o administran tenants. Sus condiciones pueden variar por producto; los acuerdos y la cartera están en su ficha 360.</p>
+  <figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/partners</span></div>
+    <button type="button" data-full="img/partners.jpg" aria-label="Ampliar: Listado de partners y canales"><img src="img/partners.jpg" alt="Listado de partners y canales" loading="lazy" width="1440" height="900"></button>
+  </div>
+</figure>
+  <div class="panels"><div class="panel act"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Acciones</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>Nuevo partner</b> y acceso a su ficha con acuerdos por producto.</span></li></ul></div></div>
+  
+</article><article class="module" id="m-equipo">
+  <div class="m-head">
+    <span class="m-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16 4.8a3.2 3.2 0 0 1 0 6.4"/><path d="M21 20c0-2.4-1.4-4.3-3.6-5"/></svg></span>
+    <div class="m-title"><h3>Equipo comercial</h3><span class="route">Clientes › Equipo comercial</span></div>
+  </div>
+  <p class="purpose">Los comerciales y la cartera que tienen atribuida. Cobrar una comisión no da acceso operativo a ningún tenant.</p>
+  <div class="pair"><figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/sales-agents</span></div>
+    <button type="button" data-full="img/equipo-comercial.jpg" aria-label="Ampliar: Listado de comerciales"><img src="img/equipo-comercial.jpg" alt="Listado de comerciales" loading="lazy" width="1440" height="900"></button>
+  </div><figcaption>Comerciales.</figcaption>
+</figure><figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/sales-agents?tab=atribuciones</span></div>
+    <button type="button" data-full="img/atribuciones.jpg" aria-label="Ampliar: Atribuciones comerciales vigentes"><img src="img/atribuciones.jpg" alt="Atribuciones comerciales vigentes" loading="lazy" width="1440" height="900"></button>
+  </div><figcaption>Atribuciones: base del cálculo de comisiones.</figcaption>
+</figure></div>
+  <div class="panels"><div class="panel act"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Acciones</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>Nuevo comercial</b> y <b>Nueva atribución</b>.</span></li></ul></div></div>
+  
+</article></div>
+</section><section class="chapter c-suite" id="suite">
+  <div class="opener">
+    <div class="opener-inner">
+      <span class="big-n" aria-hidden="true">05</span>
+      <div class="opener-text">
+        <span class="kicker"><svg class="k-i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Capítulo 5</span>
+        <h2>Suite</h2>
+        <p>El corazón del Admin Maestro: las 8 apps, cada cliente en cada app y la conexión segura con ellas.</p>
+        <nav class="chips" aria-label="Módulos de Suite"><a class="chip" href="#m-centro"><svg class="chip-i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Centro de la suite</a><a class="chip" href="#m-matriz"><svg class="chip-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>Matriz cliente × app</a><a class="chip" href="#m-ciclo"><svg class="chip-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/></svg>Ciclo de vida y cortes</a><a class="chip" href="#m-ficha-app"><svg class="chip-i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>Ficha de una app</a><a class="chip" href="#m-tenants"><svg class="chip-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>Tenants</a><a class="chip" href="#m-apps"><svg class="chip-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3v5M15 3v5"/><path d="M6 8h12v3a6 6 0 0 1-12 0z"/><path d="M12 17v4"/></svg>Apps</a></nav>
+      </div>
+    </div>
+  </div>
+  <div class="ch-body"><article class="module" id="m-centro">
+  <div class="m-head">
+    <span class="m-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
+    <div class="m-title"><h3>Centro de la suite</h3><span class="route">Suite › Centro de la suite</span></div>
+  </div>
+  <p class="purpose">La salud de las 8 apps y el estado de cada cuenta en cada app, en una sola pantalla.</p>
+  <figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/suite</span></div>
+    <button type="button" data-full="img/suite.jpg" aria-label="Ampliar: Franja de salud con una tarjeta por app"><img src="img/suite.jpg" alt="Franja de salud con una tarjeta por app" loading="lazy" width="1440" height="900"></button>
+  </div><figcaption>Salud de las apps: estado, hora del último chequeo y canales de cada app.</figcaption>
+</figure>
+  <div class="panels"><div class="panel find"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Qué encuentras</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><span class="pill ok">Activo</span> existe en la app y en el Admin Maestro.</span></li><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><span class="pill warn">Sin alta</span> existe aquí, pero nunca se creó en la app.</span></li><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><span class="pill warn">Pendiente de confirmar</span> la app ya lo creó; falta confirmarlo aquí.</span></li><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><span class="pill off">De baja</span> archivado. Un guion «—» indica que el cliente no tiene esa app.</span></li></ul></div><div class="panel act"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Acciones</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>Verificar ahora</b>: llamada real y firmada a la app.</span></li><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Filtros: Requieren atención, Por confirmar, Alta fallida, En curso, Suspendidas, Activas.</span></li><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Desde una celda: <b>Ver tenant</b>, <b>Confirmar como activo</b>, <b>Reintentar alta</b>, <b>Suspender</b>.</span></li></ul></div></div>
+  
+</article><article class="module" id="m-matriz">
+  <div class="m-head">
+    <span class="m-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg></span>
+    <div class="m-title"><h3>Matriz cliente × app</h3><span class="route">Centro de la suite › Cuentas en cada app</span></div>
+  </div>
+  <p class="purpose">Una fila por cliente y una columna por app. Al abrir una celda se ve el detalle del tenant y sus acciones.</p>
+  <div class="pair"><figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/suite</span></div>
+    <button type="button" data-full="img/matriz.jpg" aria-label="Ampliar: Matriz con una fila por cuenta y una columna por app"><img src="img/matriz.jpg" alt="Matriz con una fila por cuenta y una columna por app" loading="lazy" width="1440" height="900"></button>
+  </div><figcaption>Cuentas en cada app.</figcaption>
+</figure><figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/suite</span></div>
+    <button type="button" data-full="img/celda-detalle.jpg" aria-label="Ampliar: Panel con el detalle del tenant Textiles Arequipa en EWM"><img src="img/celda-detalle.jpg" alt="Panel con el detalle del tenant Textiles Arequipa en EWM" loading="lazy" width="1440" height="900"></button>
+  </div><figcaption>Detalle de una celda.</figcaption>
+</figure></div>
+  
+  
+</article><article class="module" id="m-ciclo">
+  <div class="m-head">
+    <span class="m-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/></svg></span>
+    <div class="m-title"><h3>Ciclo de vida y cortes</h3><span class="route">Centro de la suite › Ciclo de vida y cortes</span></div>
+  </div>
+  <p class="purpose">Cobranza, cortes por impago y reactivación de cada cliente en cada app. La regla vive en la base: el corte automático solo actúa si el super admin lo habilita.</p>
+  <figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/suite/ciclo-de-vida</span></div>
+    <button type="button" data-full="img/ciclo-vida.jpg" aria-label="Ampliar: Ciclo de vida de los tenants"><img src="img/ciclo-vida.jpg" alt="Ciclo de vida de los tenants" loading="lazy" width="1440" height="900"></button>
+  </div>
+</figure>
+  <div class="panels"><div class="panel find"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Qué encuentras</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>KPIs: tenants activos, en gracia, <b>por suspender</b> y suspendidos.</span></li><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Pestañas: Matriz, Cobranza y cortes, Historial de suspensiones, Política y jobs.</span></li></ul></div><div class="panel act"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Acciones</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>Simular ciclo</b>: muestra qué pasaría, sin cambiar nada.</span></li><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>Ejecutar ciclo ahora</b>: aplica la política. Con el corte automático apagado no suspende a nadie.</span></li></ul></div></div>
+  <div class="callout warn"><svg class="c-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v4M12 17.2v.3"/></svg><p><b>Hoy:</b> el corte automático está apagado y 16 tenants figuran «por suspender». Encenderlo es una decisión de negocio del super admin y queda en la auditoría.</p></div>
+</article><article class="module" id="m-ficha-app">
+  <div class="m-head">
+    <span class="m-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg></span>
+    <div class="m-title"><h3>Ficha de una app</h3><span class="route">Centro de la suite › Ver ficha</span></div>
+  </div>
+  <p class="purpose">Salud, tenants, conexión, módulos, uso e historial de altas de una app.</p>
+  <figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/apps/tms</span></div>
+    <button type="button" data-full="img/ficha-app.jpg" aria-label="Ampliar: Ficha de la app TMS"><img src="img/ficha-app.jpg" alt="Ficha de la app TMS" loading="lazy" width="1440" height="900"></button>
+  </div>
+</figure>
+  <div class="panels"><div class="panel find"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Qué encuentras</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>Resumen</b>: salud por entorno y canales.</span></li><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>Tenants</b>: los clientes de esa app.</span></li><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>Conexión</b>: cómo se conecta de forma segura, sin mostrar secretos.</span></li><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>Sincronización</b>, <b>Uso</b> e <b>Historial</b> de altas.</span></li></ul></div><div class="panel act"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Acciones</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>Verificar ahora</b> en cada entorno.</span></li></ul></div></div>
+  
+</article><article class="module" id="m-tenants">
+  <div class="m-head">
+    <span class="m-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg></span>
+    <div class="m-title"><h3>Tenants</h3><span class="route">Suite › Tenants</span></div>
+  </div>
+  <p class="purpose">Todos los tenants de todas las apps. Un tenant pertenece a una sola app; dónde vive lo decide su modo de despliegue.</p>
+  <div class="pair"><figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/tenants</span></div>
+    <button type="button" data-full="img/tenants.jpg" aria-label="Ampliar: Listado de tenants"><img src="img/tenants.jpg" alt="Listado de tenants" loading="lazy" width="1440" height="900"></button>
+  </div><figcaption>Listado con filtros.</figcaption>
+</figure><figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/tenants/…</span></div>
+    <button type="button" data-full="img/tenant-360.jpg" aria-label="Ampliar: Ficha del tenant Textiles Arequipa en EWM"><img src="img/tenant-360.jpg" alt="Ficha del tenant Textiles Arequipa en EWM" loading="lazy" width="1440" height="900"></button>
+  </div><figcaption>Ficha del tenant.</figcaption>
+</figure></div>
+  <div class="panels"><div class="panel act"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Acciones</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>Nuevo tenant</b>: el asistente del capítulo 9.</span></li><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>En la ficha: <b>Suspender</b> o reactivar, con motivo y vista previa del impacto.</span></li></ul></div></div>
+  
+</article><article class="module" id="m-apps">
+  <div class="m-head">
+    <span class="m-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3v5M15 3v5"/><path d="M6 8h12v3a6 6 0 0 1-12 0z"/><path d="M12 17v4"/></svg></span>
+    <div class="m-title"><h3>Apps</h3><span class="route">Suite › Apps</span></div>
+  </div>
+  <p class="purpose">La conexión técnica de la consola con cada app: integraciones, altas, módulos habilitados, uso, entornos y solicitudes de infraestructura.</p>
+  <div class="pair"><figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/apps</span></div>
+    <button type="button" data-full="img/apps.jpg" aria-label="Ampliar: Pestaña de integraciones SaaS"><img src="img/apps.jpg" alt="Pestaña de integraciones SaaS" loading="lazy" width="1440" height="900"></button>
+  </div><figcaption>Integraciones.</figcaption>
+</figure><figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/apps?tab=altas</span></div>
+    <button type="button" data-full="img/apps-altas.jpg" aria-label="Ampliar: Altas en las apps"><img src="img/apps-altas.jpg" alt="Altas en las apps" loading="lazy" width="1440" height="900"></button>
+  </div><figcaption>Altas en las apps.</figcaption>
+</figure></div>
+  <div class="panels"><div class="panel act"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Acciones</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Revisar o reintentar un alta.</span></li><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Completar la configuración que pide una app (por ejemplo, EWM).</span></li></ul></div></div>
+  
+</article></div>
+</section><section class="chapter c-comercial" id="comercial">
+  <div class="opener">
+    <div class="opener-inner">
+      <span class="big-n" aria-hidden="true">06</span>
+      <div class="opener-text">
+        <span class="kicker"><svg class="k-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 15l-3-3c2-6 7-9 13-9 0 6-3 11-9 13z"/><circle cx="14.5" cy="9.5" r="1.6"/><path d="M5.5 15.5C4 17 4 20 4 20s3 0 4.5-1.5"/></svg>Capítulo 6</span>
+        <h2>Comercial</h2>
+        <p>Vender, contratar y definir qué se vende.</p>
+        <nav class="chips" aria-label="Módulos de Comercial"><a class="chip" href="#m-venta"><svg class="chip-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 15l-3-3c2-6 7-9 13-9 0 6-3 11-9 13z"/><circle cx="14.5" cy="9.5" r="1.6"/><path d="M5.5 15.5C4 17 4 20 4 20s3 0 4.5-1.5"/></svg>Nueva venta</a><a class="chip" href="#m-contratos"><svg class="chip-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg>Contratos y suscripciones</a><a class="chip" href="#m-catalogo"><svg class="chip-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5"/></svg>Catálogo</a></nav>
+      </div>
+    </div>
+  </div>
+  <div class="ch-body"><article class="module" id="m-venta">
+  <div class="m-head">
+    <span class="m-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 15l-3-3c2-6 7-9 13-9 0 6-3 11-9 13z"/><circle cx="14.5" cy="9.5" r="1.6"/><path d="M5.5 15.5C4 17 4 20 4 20s3 0 4.5-1.5"/></svg></span>
+    <div class="m-title"><h3>Nueva venta</h3><span class="route">Comercial › Nueva venta</span></div>
+  </div>
+  <p class="purpose">Da de alta a un cliente de principio a fin: cuenta, plan con su precio y contrato. Después emite la primera factura, envía el enlace de pago y activa sus apps.</p>
+  <figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/onboarding</span></div>
+    <button type="button" data-full="img/nueva-venta.jpg" aria-label="Ampliar: Asistente de nueva venta en seis pasos"><img src="img/nueva-venta.jpg" alt="Asistente de nueva venta en seis pasos" loading="lazy" width="1440" height="900"></button>
+  </div>
+</figure>
+  <div class="panels"><div class="panel find"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Qué encuentras</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Seis pasos: Cuenta › Plan y precio › Contrato › Primera factura › Enlace de pago › Alta en las apps.</span></li></ul></div><div class="panel act"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Acciones</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Nueva venta crea contrato y factura. «Nuevo tenant» solo crea el espacio del cliente en una app.</span></li></ul></div></div>
+  
+</article><article class="module" id="m-contratos">
+  <div class="m-head">
+    <span class="m-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg></span>
+    <div class="m-title"><h3>Contratos y suscripciones</h3><span class="route">Comercial › Contratos</span></div>
+  </div>
+  <p class="purpose">La cartera contractual: licencias por tenant, licencias base de partner y fees de infraestructura dedicada.</p>
+  <figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/subscriptions</span></div>
+    <button type="button" data-full="img/contratos.jpg" aria-label="Ampliar: Listado de contratos y suscripciones"><img src="img/contratos.jpg" alt="Listado de contratos y suscripciones" loading="lazy" width="1440" height="900"></button>
+  </div>
+</figure>
+  <div class="panels"><div class="panel find"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Qué encuentras</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Filtros: Activas, Pago atrasado, Borrador, Pausadas y Canceladas.</span></li></ul></div><div class="panel act"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Acciones</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>Nueva suscripción</b>; cada contrato abre su ficha 360.</span></li></ul></div></div>
+  
+</article><article class="module" id="m-catalogo">
+  <div class="m-head">
+    <span class="m-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5"/></svg></span>
+    <div class="m-title"><h3>Catálogo</h3><span class="route">Comercial › Catálogo</span></div>
+  </div>
+  <p class="purpose">Lo que se vende: productos de la suite, planes, add-ons y las capacidades que habilita cada uno.</p>
+  <div class="pair"><figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/catalogo</span></div>
+    <button type="button" data-full="img/catalogo.jpg" aria-label="Ampliar: Catálogo de productos"><img src="img/catalogo.jpg" alt="Catálogo de productos" loading="lazy" width="1440" height="900"></button>
+  </div><figcaption>Productos.</figcaption>
+</figure><figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/catalogo?tab=planes</span></div>
+    <button type="button" data-full="img/catalogo-planes.jpg" aria-label="Ampliar: Planes y licencias"><img src="img/catalogo-planes.jpg" alt="Planes y licencias" loading="lazy" width="1440" height="900"></button>
+  </div><figcaption>Planes y licencias.</figcaption>
+</figure></div>
+  <div class="panels"><div class="panel find"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Qué encuentras</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Pestañas: Productos, Planes y licencias, Add-ons y tarifas, Capacidades, Registro de capacidades.</span></li></ul></div></div>
+  
+</article></div>
+</section><section class="chapter c-finanzas" id="finanzas">
+  <div class="opener">
+    <div class="opener-inner">
+      <span class="big-n" aria-hidden="true">07</span>
+      <div class="opener-text">
+        <span class="kicker"><svg class="k-i" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="9" cy="7" rx="6" ry="3"/><path d="M3 7v5c0 1.7 2.7 3 6 3s6-1.3 6-3V7"/><path d="M9 15v3c0 1.7 2.7 3 6 3s6-1.3 6-3v-5c0-1.7-2.7-3-6-3"/></svg>Capítulo 7</span>
+        <h2>Finanzas</h2>
+        <p>Cobrar, pagar comisiones y entender el margen de cada producto, partner y tenant.</p>
+        <nav class="chips" aria-label="Módulos de Finanzas"><a class="chip" href="#m-cobranza"><svg class="chip-i" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="9" cy="7" rx="6" ry="3"/><path d="M3 7v5c0 1.7 2.7 3 6 3s6-1.3 6-3V7"/><path d="M9 15v3c0 1.7 2.7 3 6 3s6-1.3 6-3v-5c0-1.7-2.7-3-6-3"/></svg>Cobranza</a><a class="chip" href="#m-comisiones"><svg class="chip-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 5L5 19"/><circle cx="7" cy="7" r="2.2"/><circle cx="17" cy="17" r="2.2"/></svg>Comisiones</a><a class="chip" href="#m-costos"><svg class="chip-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V11M10 20V4M16 20v-7M3 20h18"/></svg>Costos y margen</a><a class="chip" href="#m-tarifas"><svg class="chip-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9l1-5h14l1 5"/><path d="M4 9v11h16V9M4 9h16M9 20v-6h6v6"/></svg>Tarifas de partners</a></nav>
+      </div>
+    </div>
+  </div>
+  <div class="ch-body"><article class="module" id="m-cobranza">
+  <div class="m-head">
+    <span class="m-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="9" cy="7" rx="6" ry="3"/><path d="M3 7v5c0 1.7 2.7 3 6 3s6-1.3 6-3V7"/><path d="M9 15v3c0 1.7 2.7 3 6 3s6-1.3 6-3v-5c0-1.7-2.7-3-6-3"/></svg></span>
+    <div class="m-title"><h3>Cobranza</h3><span class="route">Finanzas › Cobranza</span></div>
+  </div>
+  <p class="purpose">Qué hay que cobrar hoy, facturas, cobros, conciliación con la pasarela y renovaciones por vencer.</p>
+  <div class="pair"><figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/cobranza</span></div>
+    <button type="button" data-full="img/cobranza.jpg" aria-label="Ampliar: Facturas por cobrar"><img src="img/cobranza.jpg" alt="Facturas por cobrar" loading="lazy" width="1440" height="900"></button>
+  </div><figcaption>Por cobrar.</figcaption>
+</figure><figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/cobranza?tab=conciliacion</span></div>
+    <button type="button" data-full="img/conciliacion.jpg" aria-label="Ampliar: Conciliación con la pasarela"><img src="img/conciliacion.jpg" alt="Conciliación con la pasarela" loading="lazy" width="1440" height="900"></button>
+  </div><figcaption>Conciliación.</figcaption>
+</figure></div>
+  <div class="panels"><div class="panel find"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Qué encuentras</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Pestañas: Por cobrar, Facturación y cobros, Renovaciones y Conciliación.</span></li></ul></div><div class="panel act"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Acciones</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>Emitir factura</b> y enviar el enlace al portal de pago del cliente.</span></li></ul></div></div>
+  
+</article><article class="module" id="m-comisiones">
+  <div class="m-head">
+    <span class="m-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 5L5 19"/><circle cx="7" cy="7" r="2.2"/><circle cx="17" cy="17" r="2.2"/></svg></span>
+    <div class="m-title"><h3>Comisiones</h3><span class="route">Finanzas › Comisiones</span></div>
+  </div>
+  <p class="purpose">Comisiones generadas solo por cobros confirmados, sus liquidaciones y los planes que las calculan.</p>
+  <figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/commissions</span></div>
+    <button type="button" data-full="img/comisiones.jpg" aria-label="Ampliar: Comisiones y liquidaciones"><img src="img/comisiones.jpg" alt="Comisiones y liquidaciones" loading="lazy" width="1440" height="900"></button>
+  </div>
+</figure>
+  <div class="panels"><div class="panel act"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Acciones</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>Generar liquidación</b> y <b>Exportar CSV</b>.</span></li></ul></div></div>
+  
+</article><article class="module" id="m-costos">
+  <div class="m-head">
+    <span class="m-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V11M10 20V4M16 20v-7M3 20h18"/></svg></span>
+    <div class="m-title"><h3>Costos y margen</h3><span class="route">Finanzas › Costos y margen</span></div>
+  </div>
+  <p class="purpose">Margen gerencial = cobrado − costo asignado − comisión. Es una lectura de gestión, no utilidad neta ni resultado contable.</p>
+  <figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/costs</span></div>
+    <button type="button" data-full="img/costos.jpg" aria-label="Ampliar: Costos registrados y margen"><img src="img/costos.jpg" alt="Costos registrados y margen" loading="lazy" width="1440" height="900"></button>
+  </div>
+</figure>
+  <div class="panels"><div class="panel find"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Qué encuentras</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Costos registrados y margen por producto, por partner y por tenant.</span></li></ul></div></div>
+  
+</article><article class="module" id="m-tarifas">
+  <div class="m-head">
+    <span class="m-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9l1-5h14l1 5"/><path d="M4 9v11h16V9M4 9h16M9 20v-6h6v6"/></svg></span>
+    <div class="m-title"><h3>Tarifas de partners</h3><span class="route">Finanzas › Tarifas de partners</span></div>
+  </div>
+  <p class="purpose">Lo que cada partner paga a EBIM por usar la plataforma con los clientes que él factura. No son comisiones.</p>
+  <figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/partner-fees</span></div>
+    <button type="button" data-full="img/tarifas-partners.jpg" aria-label="Ampliar: Estados de cuenta de partners"><img src="img/tarifas-partners.jpg" alt="Estados de cuenta de partners" loading="lazy" width="1440" height="900"></button>
+  </div>
+</figure>
+  <div class="panels"><div class="panel act"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Acciones</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>Calcular</b> o <b>Calcular todos</b>: genera el estado de cuenta, que luego se emite como factura al partner.</span></li></ul></div></div>
+  
+</article></div>
+</section><section class="chapter c-gobierno" id="gobierno">
+  <div class="opener">
+    <div class="opener-inner">
+      <span class="big-n" aria-hidden="true">08</span>
+      <div class="opener-text">
+        <span class="kicker"><svg class="k-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Capítulo 8</span>
+        <h2>Gobierno</h2>
+        <p>Quién entra, qué hizo cada persona y cómo se configura la consola.</p>
+        <nav class="chips" aria-label="Módulos de Gobierno"><a class="chip" href="#m-usuarios"><svg class="chip-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>Usuarios y accesos</a><a class="chip" href="#m-auditoria"><svg class="chip-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Auditoría</a><a class="chip" href="#m-config"><svg class="chip-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9L7 7M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>Configuración</a></nav>
+      </div>
+    </div>
+  </div>
+  <div class="ch-body"><article class="module" id="m-usuarios">
+  <div class="m-head">
+    <span class="m-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
+    <div class="m-title"><h3>Usuarios y accesos</h3><span class="route">Gobierno › Usuarios</span></div>
+  </div>
+  <p class="purpose">Personal EBIM, usuarios de partners y de clientes: perfil, accesos, invitaciones, desactivación y a qué apps entra cada persona.</p>
+  <figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/users</span></div>
+    <button type="button" data-full="img/usuarios.jpg" aria-label="Ampliar: Usuarios y accesos"><img src="img/usuarios.jpg" alt="Usuarios y accesos" loading="lazy" width="1440" height="900"></button>
+  </div>
+</figure>
+  <div class="panels"><div class="panel act"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Acciones</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>Invitar usuario</b>. Requiere el correo transaccional configurado.</span></li></ul></div></div>
+  
+</article><article class="module" id="m-auditoria">
+  <div class="m-head">
+    <span class="m-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></span>
+    <div class="m-title"><h3>Auditoría</h3><span class="route">Gobierno › Auditoría</span></div>
+  </div>
+  <p class="purpose">Las acciones administrativas sensibles, día por día. La bitácora no se puede editar ni borrar desde la aplicación: lo impide la base de datos.</p>
+  <figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/audit</span></div>
+    <button type="button" data-full="img/auditoria.jpg" aria-label="Ampliar: Bitácora de auditoría"><img src="img/auditoria.jpg" alt="Bitácora de auditoría" loading="lazy" width="1440" height="900"></button>
+  </div>
+</figure>
+  <div class="panels"><div class="panel act"><h4><svg class="h-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Acciones</h4><ul><li><svg class="li-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>Ver detalle</b> de cada acción y <b>Exportar CSV</b>.</span></li></ul></div></div>
+  
+</article><article class="module" id="m-config">
+  <div class="m-head">
+    <span class="m-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9L7 7M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg></span>
+    <div class="m-title"><h3>Configuración</h3><span class="route">Gobierno › Configuración</span></div>
+  </div>
+  <p class="purpose">Sesión y apariencia de cada usuario; para EBIM, además, monedas y tipo de cambio, créditos IA, cuentas de pago y opciones avanzadas.</p>
+  <div class="pair"><figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/settings</span></div>
+    <button type="button" data-full="img/configuracion.jpg" aria-label="Ampliar: Configuración general"><img src="img/configuracion.jpg" alt="Configuración general" loading="lazy" width="1440" height="900"></button>
+  </div><figcaption>General y apariencia.</figcaption>
+</figure><figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/settings?tab=creditos-ia</span></div>
+    <button type="button" data-full="img/creditos-ia.jpg" aria-label="Ampliar: Créditos IA"><img src="img/creditos-ia.jpg" alt="Créditos IA" loading="lazy" width="1440" height="900"></button>
+  </div><figcaption>Créditos IA.</figcaption>
+</figure></div>
+  
+  
+</article></div>
+</section>
+
+    <section class="chapter c-suite" id="crear-tenant">
+      <div class="opener"><div class="opener-inner"><span class="big-n" aria-hidden="true">09</span><div class="opener-text">
+        <span class="kicker"><svg class="k-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Capítulo 9 · Guía práctica</span>
+        <h2>Cómo crear un tenant en una app</h2>
+        <p>Dos movimientos en un solo asistente: crear el tenant en el Admin Maestro y ejecutar el alta, que lo crea dentro de la app. Menos de un minuto. Ejemplo real: Exportadora Guayas en eChange.</p>
+      </div></div></div>
+      <div class="ch-body">
+        <div class="callout info"><svg class="c-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.6v.3"/></svg><p><b>Antes de empezar:</b> necesitas un usuario con permiso de plataforma (el super admin lo tiene) y un cliente que ya exista en Cuentas. Si es nuevo, créalo en Clientes › Cuentas › Nuevo cliente o véndele un plan con Comercial › Nueva venta.</p></div>
+        <ol class="timeline"><li class="step">
+  <span class="step-n">1</span>
+  <div class="step-c"><h4>Abre «Nuevo tenant»</h4><p>En <b>Suite › Tenants</b> pulsa <b>Nuevo tenant</b>, arriba a la derecha. También puedes pulsar ⌘K y escribir «Nuevo tenant».</p></div>
+</li><li class="step">
+  <span class="step-n">2</span>
+  <div class="step-c"><h4>Paso 1 · Cuenta y app</h4><p>Elige la <b>Organización cliente</b> y el <b>Producto SaaS</b> (la app). Pulsa <b>Continuar</b>.</p><div class="step-body"><figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/onboarding?modo=app</span></div>
+    <button type="button" data-full="img/wizard-1-cuenta-app.jpg" aria-label="Ampliar: Paso 1 con cliente y app elegidos"><img src="img/wizard-1-cuenta-app.jpg" alt="Paso 1 con cliente y app elegidos" loading="lazy" width="1440" height="900"></button>
+  </div>
+</figure></div></div>
+</li><li class="step">
+  <span class="step-n">3</span>
+  <div class="step-c"><h4>Paso 2 · Tenant</h4><p>Completa los datos y pulsa <b>Crear tenant</b>. El tenant queda creado en el Admin Maestro, «Pendiente» hasta su alta en la app.</p><div class="step-body"><dl class="kv">
+  <div><dt>Canal / partner</dt><dd>«Venta directa EBIM (sin partner)», salvo que lo administre un partner con acuerdo activo.</dd></div>
+  <div><dt>Despliegue y tipo</dt><dd>«Compartido» y «Producción». DEMO no genera suscripción recurrente.</dd></div>
+  <div><dt>Nombre del tenant</dt><dd>Cliente · App, por ejemplo <b>Exportadora Guayas · eChange</b>.</dd></div>
+  <div><dt>Código</dt><dd>Minúsculas y guiones, único dentro de la app: <code>exportadora-guayas-echange</code>.</dd></div>
+  <div><dt>Correo del administrador</dt><dd>El del cliente. No puede ser del dominio <code>@ebim.pe</code>.</dd></div>
+</dl><figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/onboarding?modo=app</span></div>
+    <button type="button" data-full="img/wizard-2-tenant.jpg" aria-label="Ampliar: Paso 2 con los datos del tenant"><img src="img/wizard-2-tenant.jpg" alt="Paso 2 con los datos del tenant" loading="lazy" width="1440" height="900"></button>
+  </div>
+</figure></div></div>
+</li><li class="step">
+  <span class="step-n">4</span>
+  <div class="step-c"><h4>Paso 3 · Solicitar y ejecutar el alta</h4><p>En la fila de la app pulsa <b>Solicitar alta</b> (pasa a «Lista para ejecutar») y luego <b>Ejecutar alta</b>. El Admin Maestro hace una llamada firmada a la app.</p><div class="step-body"><div class="pair"><figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/onboarding?modo=app</span></div>
+    <button type="button" data-full="img/wizard-4-solicitud.jpg" aria-label="Ampliar: Solicitud lista para ejecutar"><img src="img/wizard-4-solicitud.jpg" alt="Solicitud lista para ejecutar" loading="lazy" width="1440" height="900"></button>
+  </div><figcaption>Solicitud creada.</figcaption>
+</figure><figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/onboarding?modo=app</span></div>
+    <button type="button" data-full="img/wizard-5-resultado.jpg" aria-label="Ampliar: Resultado del alta: Activo"><img src="img/wizard-5-resultado.jpg" alt="Resultado del alta: Activo" loading="lazy" width="1440" height="900"></button>
+  </div><figcaption>En 10 a 16 segundos: «Activo».</figcaption>
+</figure></div></div></div>
+</li><li class="step">
+  <span class="step-n">5</span>
+  <div class="step-c"><h4>Confirma el tenant como activo</h4><p>En <b>Centro de la suite</b>, la celda dice «Activo en la app · pendiente de confirmar». Ábrela y pulsa <b>Confirmar como activo</b> dos veces (botón y confirmación). Queda en la auditoría.</p><div class="step-body"><figure class="shot">
+  <div class="frame">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url"><svg class="url-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>adminmaestro.pages.dev/suite</span></div>
+    <button type="button" data-full="img/confirm-c2-detalle.jpg" aria-label="Ampliar: Botón Confirmar como activo en el detalle de la celda"><img src="img/confirm-c2-detalle.jpg" alt="Botón Confirmar como activo en el detalle de la celda" loading="lazy" width="1440" height="900"></button>
+  </div>
+</figure></div></div>
+</li></ol>
+        <div class="callout tip"><svg class="c-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><p><b>Si el tenant ya existe y solo falta el alta:</b> abre el cliente en Clientes › Cuentas y pulsa <b>Dar de alta en las apps</b>. Aparece la misma tabla del paso 3.</p></div>
+        <h3 class="sub-h">Qué pide cada app</h3>
+        <div class="table-wrap"><table><thead><tr><th>App</th><th>¿Con el asistente?</th><th>Qué tener en cuenta</th></tr></thead><tbody><tr><td><span class="app-dot" style="--app:#2B7A9B"></span><b>TMS</b></td><td><span class="pill ok">Sí</span></td><td>Ensayada tres veces. Render puede tardar ~30 s en despertar la app: pulsa «Verificar ahora» antes.</td></tr><tr><td><span class="app-dot" style="--app:#8A5CB8"></span><b>eChange</b></td><td><span class="pill ok">Sí</span></td><td>Ensayada. El resultado llega en el mismo alta.</td></tr><tr><td><span class="app-dot" style="--app:#056769"></span><b>eSupplier</b></td><td><span class="pill ok">Sí</span></td><td>Su alta habilitada está en el entorno de Desarrollo compartido (DEVQAS).</td></tr><tr><td><span class="app-dot" style="--app:#2D5BD3"></span><b>eCommerce</b></td><td><span class="pill ok">Sí</span></td><td>Ensayada.</td></tr><tr><td><span class="app-dot" style="--app:#B4436C"></span><b>Comerza</b></td><td><span class="pill ok">Sí</span></td><td>Ensayada.</td></tr><tr><td><span class="app-dot" style="--app:#3E8F63"></span><b>EWM</b></td><td><span class="pill warn">Con pasos extra</span></td><td>Exige la <b>empresa</b> del cliente y una <b>configuración</b> (almacén inicial, zona horaria y nombre del administrador). Sin ellas responde «Precondiciones no cumplidas». La configuración se completa en Apps › Altas en las apps; la empresa aún no se elige en el asistente.</td></tr><tr><td><span class="app-dot" style="--app:#C2610C"></span><b>eExpense</b></td><td><span class="pill bad">No usar en QAS</span></td><td>Su ambiente QAS lo usa un cliente real.</td></tr><tr><td><span class="app-dot" style="--app:#185D4A"></span><b>GMAO</b></td><td><span class="pill bad">No usar en QAS</span></td><td>Un solo proyecto para todos sus ambientes.</td></tr></tbody></table></div>
+      </div>
+    </section>
+
+    <section class="intro c-suite" id="ejemplos">
+      <div class="sec-head"><span class="kicker"><svg class="k-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Capítulo 10</span><h2>Tenants de ejemplo creados</h2><p>Altas reales hechas el 12-nov-2026 por la noche desde la web publicada. Todas activas en su app y confirmadas en el Admin Maestro.</p></div>
+      <div class="app-cards"><div class="app-card" style="--app:#2B7A9B">
+  <div class="app-top"><span class="app-chip">TMS</span><span class="pill ok">Activo</span></div>
+  <h4>GRUPASA · TMS</h4>
+  <span class="mono code">grupasa-tms</span>
+  <div class="app-meta"><span><svg class="am-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>16 s</span><span>Asistente completo</span></div>
+</div><div class="app-card" style="--app:#2B7A9B">
+  <div class="app-top"><span class="app-chip">TMS</span><span class="pill ok">Activo</span></div>
+  <h4>Industrias Titán · TMS</h4>
+  <span class="mono code">industrias-titan-tms</span>
+  <div class="app-meta"><span><svg class="am-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>10 s</span><span>Desde la ficha 360</span></div>
+</div><div class="app-card" style="--app:#8A5CB8">
+  <div class="app-top"><span class="app-chip">eChange</span><span class="pill ok">Activo</span></div>
+  <h4>Exportadora Guayas · eChange</h4>
+  <span class="mono code">exportadora-guayas-echange</span>
+  <div class="app-meta"><span><svg class="am-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>16 s</span><span>Asistente completo</span></div>
+</div><div class="app-card" style="--app:#056769">
+  <div class="app-top"><span class="app-chip">eSupplier</span><span class="pill ok">Activo</span></div>
+  <h4>Industrias Titán · eSupplier</h4>
+  <span class="mono code">industrias-titan-esupplier</span>
+  <div class="app-meta"><span><svg class="am-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>15 s</span><span>Entorno Desarrollo (DEVQAS)</span></div>
+</div><div class="app-card" style="--app:#2D5BD3">
+  <div class="app-top"><span class="app-chip">eCommerce</span><span class="pill ok">Activo</span></div>
+  <h4>Empresa Enterprise Omega · eCommerce</h4>
+  <span class="mono code">omega-ecommerce</span>
+  <div class="app-meta"><span><svg class="am-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>14 s</span><span>Asistente completo</span></div>
+</div><div class="app-card" style="--app:#B4436C">
+  <div class="app-top"><span class="app-chip">Comerza</span><span class="pill ok">Activo</span></div>
+  <h4>GRUPASA · Comerza</h4>
+  <span class="mono code">grupasa-comerza</span>
+  <div class="app-meta"><span><svg class="am-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>13 s</span><span>Asistente completo</span></div>
+</div><div class="app-card" style="--app:#3E8F63">
+  <div class="app-top"><span class="app-chip">EWM</span><span class="pill ok">Activo</span></div>
+  <h4>Textiles Arequipa · EWM</h4>
+  <span class="mono code">textiles-arequipa-ewm</span>
+  <div class="app-meta"><span><svg class="am-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>—</span><span>Con empresa y almacén WH-AQP</span></div>
+</div><div class="app-card" style="--app:#C2610C">
+  <div class="app-top"><span class="app-chip">eExpense</span><span class="pill ok">Activo</span></div>
+  <h4>EBIM eExpense QAS Smoke</h4>
+  <span class="mono code">prueba técnica</span>
+  <div class="app-meta"><span><svg class="am-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>—</span><span>Existente; no se creó otro</span></div>
+</div><div class="app-card" style="--app:#185D4A">
+  <div class="app-top"><span class="app-chip">GMAO</span><span class="pill ok">Activo</span></div>
+  <h4>EBIM GMAO QAS Smoke</h4>
+  <span class="mono code">prueba técnica</span>
+  <div class="app-meta"><span><svg class="am-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>—</span><span>Existente; no se creó otro</span></div>
+</div></div>
+      <div class="callout warn"><svg class="c-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v4M12 17.2v.3"/></svg><p><b>Reservados para la demo en vivo:</b> Minera Illimani · TMS (<code>minera-illimani-tms</code>) y, como respaldo, Comercial Santa Cruz · eChange (<code>comercial-santa-cruz-echange</code>). No los uses en pruebas.</p></div>
+    </section>
+
+    <section class="chapter c-finanzas" id="revision">
+      <div class="opener"><div class="opener-inner"><span class="big-n" aria-hidden="true">11</span><div class="opener-text">
+        <span class="kicker"><svg class="k-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Capítulo 11</span>
+        <h2>Revisión completa de la plataforma</h2>
+        <p>Todas las pantallas recorridas con el super admin en la web publicada, chequeo real de las 8 apps, altas reales en 6 apps y comparación del código con lo desplegado en Supabase Cloud.</p>
+      </div></div></div>
+      <div class="ch-body">
+        <div class="score">
+          <div class="s1"><span class="s-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg></span><b>34/34</b><span>pantallas sin errores de consola ni de red</span></div>
+          <div class="s2"><span class="s-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg></span><b>8/8</b><span>apps sanas en el chequeo real</span></div>
+          <div class="s3"><span class="s-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></span><b>7</b><span>altas reales activas en 6 apps</span></div>
+          <div class="s4"><span class="s-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg></span><b>85 · 10</b><span>migraciones y funciones en la nube, iguales al código</span></div>
+        </div>
+        <h3 class="sub-h">Hallazgos y recomendaciones</h3>
+        <div class="findings"><div class="finding f-bad">
+  <span class="f-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M14 9l2 2"/></svg></span>
+  <div><div class="f-top"><span class="pill bad">Alta prioridad</span></div><h4>Contraseña del super admin publicada</h4><p>La contraseña de las cuentas administrativas está en el repositorio público. Rotarla al terminar la presentación con Gerencia.</p></div>
+</div><div class="finding f-bad">
+  <span class="f-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3v5M15 3v5"/><path d="M6 8h12v3a6 6 0 0 1-12 0z"/><path d="M12 17v4"/></svg></span>
+  <div><div class="f-top"><span class="pill bad">Alta prioridad</span></div><h4>EWM no se da de alta solo con el asistente</h4><p>EWM exige la empresa del cliente y la configuración del almacén. Añadir al paso 2 el selector de empresa y, para EWM, los campos de almacén que ya existen en Apps › Altas.</p></div>
+</div><div class="finding f-warn">
+  <span class="f-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+  <div><div class="f-top"><span class="pill warn">Media</span></div><h4>La confirmación del tenant activo es manual</h4><p>Cuando la app responde «Activo», el tenant sigue «Pendiente» hasta que una persona lo confirma. Confirmarlo solo al recibir la respuesta activa, conservando la auditoría.</p></div>
+</div><div class="finding f-warn">
+  <span class="f-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg></span>
+  <div><div class="f-top"><span class="pill warn">Media</span></div><h4>Datos de demostración sin alta</h4><p>13 cuentas aparecen «Sin alta» en la matriz (tenants semilla que nunca se crearon en su app) y las cuentas técnicas se llaman «EBIM … QAS Smoke». Darlos de alta o archivarlos, y renombrar las técnicas.</p></div>
+</div><div class="finding f-warn">
+  <span class="f-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13l3-8h12l3 8v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M3 13h5l1 3h6l1-3h5"/></svg></span>
+  <div><div class="f-top"><span class="pill warn">Media</span></div><h4>Correo transaccional sin configurar</h4><p>Las invitaciones de usuarios y los cambios de contraseña no llegan. Configurar el SMTP antes de invitar a partners o clientes.</p></div>
+</div><div class="finding f-off">
+  <span class="f-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg></span>
+  <div><div class="f-top"><span class="pill off">Planificado</span></div><h4>Canales que aún no actúan dentro de las apps</h4><p>Suspensión dentro de cada app (falta desplegar el receptor <code>lifecycle.v1</code>), módulos habilitados por contrato, consumo por app y usuarios por app (SSO). La consola los muestra como «No activo».</p></div>
+</div><div class="finding f-off">
+  <span class="f-icon"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/></svg></span>
+  <div><div class="f-top"><span class="pill off">Decisión de negocio</span></div><h4>Corte automático por impago apagado</h4><p>16 tenants están «por suspender». Encender el corte automático es una decisión del super admin; hasta entonces decide una persona y todo queda auditado.</p></div>
+</div></div>
+        <h3 class="sub-h">Lo que funciona hoy</h3>
+        <ul class="caps"><li><span>Alta de tenants en las apps desde la consola</span><span class="pill ok">Operativa</span></li><li><span>Salud de las 8 apps con verificación real</span><span class="pill ok">Operativa</span></li><li><span>Matriz cliente × app y fichas 360</span><span class="pill ok">Operativa</span></li><li><span>Ciclo de vida: gracia, corte y reactivación</span><span class="pill ok">Operativa · corte automático apagado</span></li><li><span>Facturación, cobranza, portal de pago, comisiones y margen</span><span class="pill ok">Operativa</span></li><li><span>Bandeja, buscador ⌘K y auditoría</span><span class="pill ok">Operativa</span></li><li><span>Suspensión aplicada dentro de cada app</span><span class="pill off">Pendiente en las apps</span></li><li><span>Módulos habilitados y consumo por app</span><span class="pill off">Apagado en QAS</span></li></ul>
+        <footer class="end">Manual elaborado sobre la versión publicada en adminmaestro.pages.dev (ambiente QAS) el 12-nov-2026. Las capturas muestran datos de prueba de QAS.</footer>
+      </div>
+    </section>
+  </main>
+</div>
+
+<dialog class="viewer" id="viewer" aria-label="Captura ampliada"><button type="button" id="viewer-close">Cerrar</button><img id="viewer-img" alt=""><p id="viewer-cap"></p></dialog>
+<script>(function () {
+  var dlg = document.getElementById('viewer');
+  var img = document.getElementById('viewer-img');
+  var cap = document.getElementById('viewer-cap');
+  document.querySelectorAll('.frame button[data-full]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var inner = b.querySelector('img');
+      img.src = b.getAttribute('data-full');
+      img.alt = inner ? inner.alt : '';
+      var fig = b.closest('figure');
+      var fc = fig ? fig.querySelector('figcaption') : null;
+      cap.textContent = fc ? fc.textContent : (inner ? inner.alt : '');
+      if (dlg.showModal) dlg.showModal();
+    });
+  });
+  document.getElementById('viewer-close').addEventListener('click', function () { dlg.close(); });
+  dlg.addEventListener('click', function (e) { if (e.target === dlg) dlg.close(); });
+
+  var links = Array.prototype.slice.call(document.querySelectorAll('#toc-list a'));
+  var sections = links.map(function (a) { return document.querySelector(a.getAttribute('href')); }).filter(Boolean);
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) links.forEach(function (l) { l.classList.toggle('on', l.getAttribute('href') === '#' + en.target.id); });
+      });
+    }, { rootMargin: '-15% 0px -75% 0px' });
+    sections.forEach(function (s) { io.observe(s); });
+  }
+})();
+</script>
