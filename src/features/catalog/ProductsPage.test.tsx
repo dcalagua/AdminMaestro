@@ -60,9 +60,9 @@ function renderPage() {
 }
 
 function statValue(label: string): string {
-  // El KpiTile anida la etiqueta en su fila (icono, info, estado): se lee el tile entero.
-  const card = screen.getByText(label).closest('.ebim-card')!;
-  return card.textContent ?? '';
+  // V6: cada cifra es una celda de la franja (`data-stat-cell`).
+  const cell = document.querySelector(`[data-stat-cell="${label}"]`)!;
+  return cell.textContent ?? '';
 }
 
 beforeEach(() => {
@@ -83,9 +83,9 @@ describe('ProductsPage', () => {
   it('deriva los conteos de los datos y nunca muestra un 8/8 fijo', () => {
     renderPage();
     expect(document.body.textContent).not.toContain('8/8');
-    expect(statValue('Productos en catálogo')).toContain('3');
-    expect(statValue('Activos en catálogo')).toContain('2');
-    expect(statValue('Integración lista y habilitada')).toContain('1');
+    expect(statValue('Productos activos')).toContain('2');
+    expect(statValue('Productos activos')).toContain('de 3 productos');
+    expect(statValue('Productos activos')).toContain('1 con integración lista');
     // Tabs de estado con conteos reales.
     expect(screen.getByRole('tab', { name: /Activos\s*2/ })).toBeInTheDocument();
   });
@@ -113,8 +113,9 @@ describe('ProductsPage', () => {
     expect(within(card).queryByText('TENANT')).toBeNull();
     expect(within(card).getByText('2')).toBeInTheDocument();
     // Una línea por moneda: nunca un total que mezcle PEN y USD.
-    expect(card.textContent).toMatch(/PEN\s?200\.00/);
-    expect(card.textContent).toMatch(/USD\s?100\.00/);
+    expect(card.textContent).toMatch(/PEN\s?200/);
+    expect(card.textContent).toMatch(/USD\s?100/);
+    expect(within(card).getByTitle(/PEN\s?200\.00/)).toBeInTheDocument();
     expect(within(screen.getByRole('article', { name: /EWM by EBIM/ })).getByText('Sin recurrente')).toBeInTheDocument();
   });
 
@@ -131,6 +132,6 @@ describe('ProductsPage', () => {
     renderPage();
     expect(screen.getByRole('alert')).toHaveTextContent('No se pudo cargar la información');
     expect(screen.queryByText('Sin productos')).toBeNull();
-    expect(statValue('Productos en catálogo')).toContain('No se pudo leer');
+    expect(statValue('Productos activos')).toContain('No se pudo leer');
   });
 });

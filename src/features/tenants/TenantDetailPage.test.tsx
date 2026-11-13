@@ -73,9 +73,7 @@ vi.mock('./tenantQueries', () => ({
   useTenantRenewals: () => q([]),
 }));
 vi.mock('@/features/organizations/AccountPanels', () => ({
-  AccountMrrTile: () => <div>Tile de MRR</div>,
   AccountTrendCharts: () => <div>Tendencia de MRR</div>,
-  HealthTile: () => <div>Salud de cobranza</div>,
 }));
 vi.mock('@/features/organizations/Account360', () => ({
   AccountUsersCard: ({ title }: { title: string }) => <div>{title}</div>,
@@ -129,7 +127,11 @@ describe('cabecera del tenant', () => {
     expect(within(item('Cuenta')).getByRole('link', { name: 'Qhapaq' })).toHaveAttribute('href', '/organizations/o-qhapaq');
     expect(item('Estado aquí')).toHaveTextContent('Activo');
     expect(item('Estado en la app').querySelector('[data-app-state="ACTIVE"]')).not.toBeNull();
-    expect(item('Modo')).toHaveTextContent('Producción');
+    expect(item('Modo')).toHaveTextContent('Compartido');
+    // V6 · T8: plan, MRR y salud van en la barra, no en KPI grandes.
+    expect(item('Plan')).toHaveTextContent('Pro');
+    expect(item('MRR vigente')).toHaveTextContent('Sin contratos recurrentes');
+    expect(item('Salud de cobranza')).toHaveTextContent('Sin contratos');
   });
 
   it('fuera de EBIM la app no enlaza a su ficha técnica', () => {
@@ -162,7 +164,7 @@ describe('pendiente aquí con alta activa en la app', () => {
   it('muestra el aviso del Centro de la suite y confirma con la misma acción', async () => {
     renderAt();
     const box = document.querySelector('[data-tenant-pending-confirm]') as HTMLElement;
-    expect(within(box).getByRole('note')).toHaveTextContent('1 tenant activo en su app pero «Pendiente» en MasterAdmin.');
+    expect(within(box).getByRole('note')).toHaveTextContent('1 tenant activo en su app pero «Pendiente» en el Admin Maestro.');
     await userEvent.click(within(box).getByRole('button', { name: 'Confirmar como activo' }));
     const dialog = await screen.findByRole('dialog');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Confirmar como activo' }));
@@ -235,7 +237,8 @@ describe('permisos del tenant', () => {
   it('sin vista financiera (técnico EBIM): ni MRR ni margen', async () => {
     state.platformRole = null;
     renderAt();
-    expect(screen.queryByText('Tile de MRR')).toBeNull();
+    expect(header().querySelector('[data-summary-item="MRR vigente"]')).toBeNull();
+    expect(header().querySelector('[data-summary-item="Salud de cobranza"]')).toBeNull();
     expect(screen.queryByText('Tendencia de MRR')).toBeNull();
     await userEvent.click(screen.getByRole('tab', { name: 'Contrato' }));
     expect(screen.queryByRole('heading', { name: 'Rentabilidad del tenant' })).toBeNull();
@@ -246,7 +249,7 @@ describe('permisos del tenant', () => {
     state.platformRole = null;
     state.canViewUsers = false;
     renderAt();
-    expect(screen.getByText('Tile de MRR')).toBeInTheDocument();
+    expect(header().querySelector('[data-summary-item="MRR vigente"]')).not.toBeNull();
     expect(screen.queryByRole('button', { name: 'Suspender' })).toBeNull();
     await userEvent.click(screen.getByRole('tab', { name: 'Contrato' }));
     expect(screen.queryByRole('heading', { name: 'Rentabilidad del tenant' })).toBeNull();

@@ -63,10 +63,31 @@ describe('HubPage (V5 · pantallas fusionadas)', () => {
     renderAt('/cobranza');
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Cobranza');
-    // La pantalla incrustada conserva su descripción y acciones, con título h2.
+    // La pantalla incrustada conserva su título como h2 para lectores de pantalla.
     expect(screen.getByRole('heading', { level: 2, name: 'Facturación y cobros' })).toBeInTheDocument();
-    expect(screen.getByText('Descripción de Facturación y cobros')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Acción' })).toBeInTheDocument();
+  });
+
+  it('V6 · T1: cabecera única; la acción de la pestaña sube junto al título y su descripción pasa a «¿Qué es esto?»', () => {
+    renderAt('/cobranza');
+    const h1 = screen.getByRole('heading', { level: 1 });
+    const header = h1.closest('header')!;
+    // La acción de la pestaña está en la misma cabecera que el h1, no bajo las pestañas.
+    expect(within(header).getByRole('button', { name: 'Acción' })).toBeInTheDocument();
+    expect(within(screen.getByRole('tabpanel')).queryByRole('button', { name: 'Acción' })).toBeNull();
+    // La descripción no es un párrafo visible bajo las pestañas: va plegada en el «¿Qué es…?» del título.
+    const hint = within(header).getByRole('button', { name: 'Qué es «Facturación y cobros»' });
+    expect(hint).toHaveAttribute('aria-expanded', 'false');
+    const note = screen.getByRole('note', { hidden: true });
+    expect(note).toHaveTextContent('Descripción de Facturación y cobros');
+    expect(note).not.toBeVisible();
+    fireEvent.click(hint);
+    expect(hint).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('note')).toBeVisible();
+    // Al cambiar de pestaña, la acción y el «¿Qué es…?» son los de la nueva.
+    fireEvent.click(within(screen.getByRole('tablist')).getByRole('tab', { name: 'Renovaciones' }));
+    expect(within(header).getAllByRole('button', { name: 'Acción' })).toHaveLength(1);
+    expect(within(header).getByRole('button', { name: 'Qué es «Renovaciones»' })).toBeInTheDocument();
+    expect(within(header).queryByRole('button', { name: 'Qué es «Facturación y cobros»' })).toBeNull();
   });
 
   it('abre la pestaña pedida por ?tab= y cambiar de pestaña actualiza la URL', () => {

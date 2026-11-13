@@ -27,7 +27,6 @@ import {
   PROVISIONING_ENVIRONMENT_LABEL,
   PROVISIONING_POLICY_HINT,
   PROVISIONING_POLICY_LABEL,
-  integrationStatusTone,
   targetStatusTone,
   type CredentialProfileType,
   type DeploymentTargetStatus,
@@ -50,6 +49,9 @@ import { environmentLabel, isEvaluable, notEvaluatedReason, observedHealth, summ
 import { EnvironmentHealthList, HealthBadge, ObservationDate } from './EnvironmentHealth';
 import { CutoverStepper } from './CutoverStepper';
 import { Avatar } from '@/components/ui/Avatar';
+import { SummaryBar, SummaryItem } from '@/components/ui/SummaryBar';
+import { isStale, relativeAge } from '@/features/suite/suiteModel';
+import { integrationState } from './integrationState';
 import { AuditTimeline } from '@/features/settings/AuditTimeline';
 import { AuditDetail } from '@/features/settings/AuditPage';
 
@@ -134,6 +136,13 @@ export function IntegrationDetailPage() {
   const productOwners = (owners.data ?? []).filter((o) => o.saas_product_id === productId);
   const enabledTargets = relatedTargets.filter(isEvaluable);
   const readyCredentials = productCredentials.filter((c) => c.enabled && c.secret_configured);
+  const state = integrationState(data);
+  const lastCheck =
+    relatedTargets
+      .map((t) => t.health_checked_at as string | null)
+      .filter((d): d is string => Boolean(d))
+      .sort()
+      .at(-1) ?? null;
   const responsible =
     data.owner_name ??
     (data.profiles as { full_name: string | null; email: string } | null)?.full_name ??
@@ -181,15 +190,7 @@ export function IntegrationDetailPage() {
       title={data.name}
       description={`${product?.short_name ?? 'Producto'} · ${INTEGRATION_TYPE_LABEL[type]} · contrato ${data.contract_version}`}
       leading={<Avatar name={product?.short_name ?? data.name} size="lg" ringColor={product?.accent_color} />}
-      titleAside={
-        <>
-          <Badge tone={integrationStatusTone(data.status as IntegrationStatus)}>
-            {INTEGRATION_STATUS_LABEL[data.status as IntegrationStatus]}
-          </Badge>
-          {data.enabled ? <Badge tone="ok" dot>Habilitada</Badge> : <Badge>Deshabilitada</Badge>}
-        </>
-      }
-      meta={<span className="font-mono">{data.code}</span>}
+      meta={<span className="font-mono text-caption">{data.code}</span>}
       actions={
         canManage ? (
           <button type="button" className="ebim-btn-primary" onClick={() => setEditOpen(true)}>
@@ -198,6 +199,36 @@ export function IntegrationDetailPage() {
         ) : null
       }
     >
+      <SummaryBar label="Resumen de la integración">
+        <SummaryItem label="Estado" hint={`${INTEGRATION_STATUS_LABEL[data.status as IntegrationStatus]} · ${data.enabled ? 'habilitada' : 'deshabilitada'}`}>
+          <span data-integration-state>
+            <Badge tone={state.tone} dot>{state.label}</Badge>
+          </span>
+        </SummaryItem>
+        <SummaryItem label="Política de altas" hint={PROVISIONING_POLICY_HINT[data.provisioning_policy as ProvisioningPolicy]}>
+          {PROVISIONING_POLICY_LABEL[data.provisioning_policy as ProvisioningPolicy]}
+        </SummaryItem>
+        <SummaryItem label="Destinos habilitados" hint="Un destino deshabilitado o en borrador queda «No evaluado»">
+          <span className="tabular-nums">
+            {targets.isLoading ? '…' : `${enabledTargets.length} de ${relatedTargets.length}`}
+          </span>
+        </SummaryItem>
+        <SummaryItem label="Credenciales listas" hint="Solo se sabe si la referencia existe; el valor del secreto nunca llega a la consola">
+          <span className="tabular-nums">
+            {credentials.isLoading ? '…' : `${readyCredentials.length} de ${productCredentials.length}`}
+          </span>
+        </SummaryItem>
+        <SummaryItem label="Última comprobación" hint={lastCheck ? formatDateTime(lastCheck) : 'Ningún destino se ha comprobado todavía'}>
+          {targets.isLoading ? '…' : lastCheck ? (
+            <span className={isStale(lastCheck) ? 'text-warn' : undefined}>{relativeAge(lastCheck)}</span>
+          ) : (
+            <span className="font-normal text-warn">Nunca</span>
+          )}
+        </SummaryItem>
+        <SummaryItem label="Responsable técnico">
+          {responsible ?? <span className="font-normal text-muted">Sin asignar</span>}
+        </SummaryItem>
+      </SummaryBar>
       <SectionTabs
         tabs={[
           {
@@ -206,73 +237,31 @@ export function IntegrationDetailPage() {
             content: (
               <div className="grid gap-4 lg:grid-cols-2">
                 <Card
-                  title="Resumen operativo"
-                  description="Lo necesario para saber si se puede operar. Los parámetros técnicos están en las pestañas siguientes."
+                  title="Salud observada por entorno"
+                  description="Última comprobación guardada de cada entorno; se actualiza con «Verificar conexión» en Entornos y despliegues."
                 >
-                  <div className="px-4 pb-2">
-                    <Row
-                      label="Estado"
-                      value={
-                        <span className="flex flex-wrap gap-2">
-                          <Badge tone={integrationStatusTone(data.status as IntegrationStatus)}>
-                            {INTEGRATION_STATUS_LABEL[data.status as IntegrationStatus]}
-                          </Badge>
-                          {data.enabled ? <Badge tone="ok">Habilitada</Badge> : <Badge>Deshabilitada</Badge>}
-                        </span>
-                      }
-                    />
-                    <Row
-                      label="Política de altas"
-                      value={PROVISIONING_POLICY_LABEL[data.provisioning_policy as ProvisioningPolicy]}
-                      hint={PROVISIONING_POLICY_HINT[data.provisioning_policy as ProvisioningPolicy]}
-                    />
-                    <Row label="Responsable técnico" value={responsible ?? NOT_SET} />
-                    <Row
-                      label="Destinos habilitados"
-                      value={`${enabledTargets.length} de ${relatedTargets.length}`}
-                      hint="Un destino deshabilitado o en borrador queda «No evaluado»."
-                    />
-                    <Row
-                      label="Credenciales listas"
-                      value={
-                        credentials.isLoading
-                          ? 'Leyendo…'
-                          : `${readyCredentials.length} de ${productCredentials.length} con referencia configurada y habilitadas`
-                      }
-                      hint="Sólo se sabe si la referencia existe; el valor del secreto nunca llega a la consola."
-                    />
-                    <Row
-                      label="Certificación"
-                      value={<span className="text-muted">Sin fuente verificable en la consola</span>}
-                      hint="No se deduce de que la integración esté lista ni de que un alta haya quedado activa."
-                    />
+                  <div className="flex flex-col gap-3 p-4">
+                    {targets.isLoading ? (
+                      <LoadingState label="Leyendo destinos…" />
+                    ) : targets.error ? (
+                      <ErrorState error={targets.error} onRetry={() => void targets.refetch()} />
+                    ) : (
+                      <EnvironmentHealthList summaries={summarizeByEnvironment(relatedTargets)} />
+                    )}
+                    <p className="text-caption text-muted" title="No se deduce de que la integración esté lista ni de que un alta haya quedado activa.">
+                      Certificación: sin fuente verificable en la consola.
+                    </p>
                   </div>
                 </Card>
-                <div className="flex flex-col gap-4">
-                  <Card
-                    title="Salud observada por entorno"
-                    description="Última comprobación guardada de cada entorno. No es monitoreo en tiempo real: se actualiza con «Verificar conexión» en Entornos y despliegues."
-                  >
-                    <div className="p-4">
-                      {targets.isLoading ? (
-                        <LoadingState label="Leyendo destinos…" />
-                      ) : targets.error ? (
-                        <ErrorState error={targets.error} onRetry={() => void targets.refetch()} />
-                      ) : (
-                        <EnvironmentHealthList summaries={summarizeByEnvironment(relatedTargets)} />
-                      )}
-                    </div>
-                  </Card>
-                  <Card
-                    title="Migración de cobro"
-                    description="Quién manda en cada eje para este producto. Se mueve paso a paso, con motivo, desde Configuración › Avanzado; aquí solo se muestra."
-                  >
-                    <div className="grid gap-5 p-4 sm:grid-cols-2">
-                      <CutoverStepper axis="entitlements" state={data.cutover_state_entitlements} />
-                      <CutoverStepper axis="billing" state={data.cutover_state_billing} />
-                    </div>
-                  </Card>
-                </div>
+                <Card
+                  title="Migración de cobro"
+                  description="Quién manda en cada eje para este producto. Se mueve paso a paso, con motivo, desde Configuración › Avanzado; aquí solo se muestra."
+                >
+                  <div className="grid gap-5 p-4 sm:grid-cols-2">
+                    <CutoverStepper axis="entitlements" state={data.cutover_state_entitlements} />
+                    <CutoverStepper axis="billing" state={data.cutover_state_billing} />
+                  </div>
+                </Card>
               </div>
             ),
           },
@@ -309,7 +298,7 @@ export function IntegrationDetailPage() {
                         <Row
                           label="Issuer"
                           value={<Mono>{data.issuer}</Mono>}
-                          hint="Quién emite el token. Siempre MasterAdmin."
+                          hint="Quién emite el token. Siempre el Admin Maestro."
                         />
                         <Row
                           label="Audience"
@@ -392,20 +381,20 @@ export function IntegrationDetailPage() {
           },
           {
             id: 'scopes',
-            label: 'Scopes',
+            label: 'Permisos',
             content: (
               <Card title="Alcance del token">
                 <div className="px-4 pb-2">
                   <Row
-                    label="Scope de creación"
+                    label="Permiso de creación"
                     value={data.create_scope ? <Mono>{data.create_scope}</Mono> : NOT_SET}
                   />
                   <Row
-                    label="Scope de consulta"
+                    label="Permiso de consulta"
                     value={data.read_scope ? <Mono>{data.read_scope}</Mono> : NOT_SET}
                   />
                   <Row
-                    label="Scopes adicionales"
+                    label="Permisos adicionales"
                     value={
                       (data.additional_scopes ?? []).length > 0 ? (
                         <Mono>{(data.additional_scopes ?? []).join(' ')}</Mono>
@@ -416,7 +405,7 @@ export function IntegrationDetailPage() {
                   />
                 </div>
                 <p className="px-4 pb-4 text-caption text-muted">
-                  El orquestador rechaza firmar un token sin scope: un token sin alcance declarado
+                  El orquestador rechaza firmar un token sin permisos: un token sin alcance declarado
                   es un token con todos.
                 </p>
               </Card>
@@ -424,7 +413,8 @@ export function IntegrationDetailPage() {
           },
           {
             id: 'deployments',
-            label: `Destinos (${relatedTargets.length})`,
+            label: 'Destinos',
+            count: targets.data ? relatedTargets.length : undefined,
             content: (
               <Card title="Destinos que usan esta integración">
                 {relatedTargets.length === 0 ? (
@@ -570,7 +560,8 @@ export function IntegrationDetailPage() {
           },
           {
             id: 'owners',
-            label: `Propietarios (${productOwners.length})`,
+            label: 'Propietarios',
+            count: owners.data ? productOwners.length : undefined,
             content: (
               <Card
                 title="Propietarios técnicos del producto"

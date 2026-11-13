@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { PlusIcon } from '@phosphor-icons/react';
 import { useFinanceMonthlySeries, useSettlements } from '@/services/queries';
 import { usePermissions } from '@/hooks/usePermissions';
 import {
@@ -11,12 +10,26 @@ import {
   type CommissionSort,
 } from '@/services/financeRead';
 import { useListState } from '@/hooks/useListState';
-import { SectionTabs, StatusTabs } from '@/components/ui/SectionTabs';
-import { PageContainer, Card, SearchBar, Badge, KpiTile, DataTable } from '@/components/ui/primitives';
+import { StatusTabs } from '@/components/ui/SectionTabs';
+import {
+  PageContainer,
+  Card,
+  SearchBar,
+  Badge,
+  KpiTile,
+  DataTable,
+} from '@/components/ui/primitives';
 import { PagedTable, type TableColumn } from '@/components/ui/PagedTable';
 import { ExportMenu } from '@/components/ui/ExportMenu';
 import type { ExportColumn } from '@/lib/export';
-import { formatCompactAmount, formatMoney, formatPercent, formatDate, formatNumber, sumByCurrency } from '@/lib/format';
+import {
+  formatCompactAmount,
+  formatMoney,
+  formatPercent,
+  formatDate,
+  formatNumber,
+  sumByCurrency,
+} from '@/lib/format';
 import { SettlementsSection } from './SettlementsSection';
 import { ChartLegend, ChartPanel } from '@/features/executive/components/ChartPanel';
 import { fromQuery } from '@/features/executive/dataState';
@@ -24,9 +37,21 @@ import { currentMonth, lastMonths, toCurrencyAmounts } from '@/features/executiv
 import { monthLongLabel } from '@/features/dashboard/executiveModel';
 import { monthShortLabel } from '@/features/dashboard/executiveData';
 import { ConsistencyNote } from '@/features/billing/listing';
+import { SubSections } from '@/components/ui/SubSections';
 import { useDebouncedSearch } from '@/features/billing/listingState';
-import { FilterTotals, KpiStrip, NativeAmountTile } from '@/features/billing/financeUi';
-import { analyzedMonth, closedWindow, longMonthName, relChange, shortMonthName } from '@/features/billing/financeModel';
+import {
+  FilterTotals,
+  KpiStrip,
+  NativeAmountTile,
+} from '@/features/billing/financeUi';
+import { EmptyChartLine } from '@/components/ui/EmptyChartLine';
+import {
+  analyzedMonth,
+  closedWindow,
+  longMonthName,
+  relChange,
+  shortMonthName,
+} from '@/features/billing/financeModel';
 import { PeriodBars } from '@/features/billing/lazyFinanceCharts';
 import { COMMISSION_STATUS_LABEL, COMMISSION_STATUS_TONE } from './commissionLabels';
 
@@ -46,8 +71,19 @@ import { COMMISSION_STATUS_LABEL, COMMISSION_STATUS_TONE } from './commissionLab
  * ve lo suyo por RLS y sin acciones.
  */
 
-const FILTERS = ['ALL', 'PENDING', 'PAID', 'WAITING', 'VOID'] as const satisfies readonly CommissionFilter[];
-const SORTS = ['earned_on', 'amount', 'agent_name', 'product_short_name'] as const satisfies readonly CommissionSort[];
+const FILTERS = [
+  'ALL',
+  'PENDING',
+  'PAID',
+  'WAITING',
+  'VOID',
+] as const satisfies readonly CommissionFilter[];
+const SORTS = [
+  'earned_on',
+  'amount',
+  'agent_name',
+  'product_short_name',
+] as const satisfies readonly CommissionSort[];
 const LIST = {
   filter: 'ALL' as CommissionFilter,
   filters: FILTERS,
@@ -66,8 +102,13 @@ function num(value: number | string | null | undefined): number | null {
 
 function calculation(r: CommissionRow): string {
   const parts = [formatMoney(num(r.base_amount), r.currency)];
-  if (r.applied_rate !== null && r.applied_rate !== undefined) parts.push(formatPercent(Number(r.applied_rate)));
-  if (r.attribution_pct !== null && r.attribution_pct !== undefined && Number(r.attribution_pct) < 1) {
+  if (r.applied_rate !== null && r.applied_rate !== undefined)
+    parts.push(formatPercent(Number(r.applied_rate)));
+  if (
+    r.attribution_pct !== null &&
+    r.attribution_pct !== undefined &&
+    Number(r.attribution_pct) < 1
+  ) {
     parts.push(`${formatPercent(Number(r.attribution_pct), 0)} de participación`);
   }
   return parts.join(' × ');
@@ -77,7 +118,9 @@ export function CommissionsPage() {
   const settlements = useSettlements();
   const { canReadFinance } = usePermissions();
   const [generating, setGenerating] = useState(false);
-  const awaiting = (settlements.data ?? []).filter((x) => x.status === 'OPEN' || x.status === 'APPROVED').length;
+  const awaiting = (settlements.data ?? []).filter(
+    (x) => x.status === 'OPEN' || x.status === 'APPROVED',
+  ).length;
   return (
     <PageContainer
       title="Comisiones y liquidaciones"
@@ -89,20 +132,20 @@ export function CommissionsPage() {
       actions={
         canReadFinance ? (
           <button type="button" className="ebim-btn-primary" onClick={() => setGenerating(true)}>
-            <PlusIcon size={16} weight="bold" aria-hidden />
             Generar liquidación
           </button>
         ) : undefined
       }
     >
       <CommissionKpis settlements={settlements} />
-      <SectionTabs
+      <SubSections
+        label="Vista de comisiones"
         tabs={[
           {
             id: 'devengado',
             label: 'Devengado',
             content: (
-              <div className="space-y-6">
+              <div>
                 <CommissionsByMonthPanel />
                 <CommissionEventsSection />
               </div>
@@ -149,10 +192,13 @@ function CommissionKpis({ settlements }: { settlements: ReturnType<typeof useSet
   const inProgress = all.filter((x) => OPEN_SETTLEMENT.includes(x.status));
   const approvedCount = inProgress.filter((x) => x.status === 'APPROVED').length;
   const paidCount = all.filter((x) => x.status === 'PAID').length;
-  const rate = current?.commission != null && current.collected ? current.commission / current.collected : null;
+  const rate =
+    current?.commission != null && current.collected
+      ? current.commission / current.collected
+      : null;
 
   return (
-    <KpiStrip label="Indicadores de comisiones">
+    <KpiStrip variant="tiles" label="Indicadores de comisiones">
       <KpiTile
         label={`Devengado · ${shortMonthName(month)}`}
         info="Comisión devengada en el mes sobre cobros confirmados (sin anuladas), en moneda de reporte (S09)."
@@ -188,7 +234,11 @@ function CommissionKpis({ settlements }: { settlements: ReturnType<typeof useSet
       <NativeAmountTile
         label="En liquidación"
         info="Liquidaciones abiertas (en revisión) o aprobadas (por pagar). Cada liquidación es de una sola moneda."
-        amounts={sumByCurrency(inProgress, (x) => x.total_amount, (x) => x.currency)}
+        amounts={sumByCurrency(
+          inProgress,
+          (x) => x.total_amount,
+          (x) => x.currency,
+        )}
         state={settlementState}
         onRetry={() => void settlements.refetch()}
         emptyLabel="Ninguna liquidación abierta"
@@ -218,59 +268,82 @@ function CommissionsByMonthPanel() {
   const { trend } = closedWindow(query.data, month);
   const rc = query.data?.[0]?.reportingCurrency ?? '';
   const owed = (p: (typeof trend)[number]) =>
-    p.commission == null || p.commissionPaid == null ? null : Math.round((p.commission - p.commissionPaid) * 100) / 100;
-  const total = trend.every((p) => p.commission != null) ? trend.reduce((t, p) => t + (p.commission ?? 0), 0) : null;
+    p.commission == null || p.commissionPaid == null
+      ? null
+      : Math.round((p.commission - p.commissionPaid) * 100) / 100;
+  const total = trend.every((p) => p.commission != null)
+    ? trend.reduce((t, p) => t + (p.commission ?? 0), 0)
+    : null;
   const state = fromQuery(query, { isEmpty: (rows) => rows.every((p) => !p.commission) });
+  if (state.status === 'empty') {
+    return (
+      <EmptyChartLine title="Comisión por mes">
+        sin comisiones devengadas en los últimos 12 meses cerrados.
+      </EmptyChartLine>
+    );
+  }
   return (
-    <ChartPanel
-      id="comisiones-mes"
-      title="¿Cuánta comisión generan los cobros cada mes?"
-      unit={`Comisión devengada por mes en ${rc || 'moneda de reporte'}, según su estado de hoy`}
-      period={`${trend[0] ? monthShortLabel(trend[0].month.slice(0, 7)) : ''} – ${monthShortLabel(month)}${total != null ? ` · ${formatMoney(total, rc)} en el período` : ''}`}
-      source="finance_monthly_series"
-      coverage="Por fecha de devengo; «por pagar» incluye lo pendiente y lo que está en espera"
-      state={state}
-      onRetry={() => void query.refetch()}
-      emptyText="Sin comisiones devengadas en el período"
-      refreshing={query.isPlaceholderData}
-      legend={<ChartLegend items={COMMISSION_SERIES.map((c) => ({ label: c.label, color: c.color }))} />}
-      chart={() => (
-        <PeriodBars
-          stacked
-          data={trend.map((p) => ({
-            key: p.month,
-            label: monthShortLabel(p.month.slice(0, 7)),
-            title: monthLongLabel(p.month.slice(0, 7)),
-            values: { paid: p.commissionPaid, owed: owed(p) },
-          }))}
-          series={COMMISSION_SERIES}
-          unit={{ currency: rc }}
-          height={220}
-          ariaLabel={`Comisión devengada por mes en ${rc}, separada en pagada y por pagar${total != null ? `; ${formatMoney(total, rc)} en total` : ''}. Use la vista Tabla para leer cada mes.`}
-        />
-      )}
-      table={() => (
-        <DataTable
-          paginate={false}
-          caption="Comisión devengada por mes"
-          columns={[
-            'Mes',
-            { label: `Devengada (${rc})`, align: 'right' },
-            { label: 'Pagada', align: 'right' },
-            { label: 'Por pagar', align: 'right' },
-          ]}
-        >
-          {[...trend].reverse().map((p) => (
-            <tr key={p.month}>
-              <th scope="row" className="ebim-td text-left font-medium">{monthLongLabel(p.month.slice(0, 7))}</th>
-              <td className="ebim-td ebim-num">{p.commission == null ? 'Sin tasa' : formatMoney(p.commission, rc)}</td>
-              <td className="ebim-td ebim-num">{p.commissionPaid == null ? 'Sin tasa' : formatMoney(p.commissionPaid, rc)}</td>
-              <td className="ebim-td ebim-num">{owed(p) == null ? 'Sin tasa' : formatMoney(owed(p), rc)}</td>
-            </tr>
-          ))}
-        </DataTable>
-      )}
-    />
+    <div className="mb-6">
+      <ChartPanel
+        id="comisiones-mes"
+        title="¿Cuánta comisión generan los cobros cada mes?"
+        unit={`Comisión devengada por mes en ${rc || 'moneda de reporte'}, según su estado de hoy`}
+        period={`${trend[0] ? monthShortLabel(trend[0].month.slice(0, 7)) : ''} – ${monthShortLabel(month)}${total != null ? ` · ${formatMoney(total, rc)} en el período` : ''}`}
+        source="finance_monthly_series"
+        coverage="Por fecha de devengo; «por pagar» incluye lo pendiente y lo que está en espera"
+        state={state}
+        onRetry={() => void query.refetch()}
+        emptyText="Sin comisiones devengadas en el período"
+        refreshing={query.isPlaceholderData}
+        legend={
+          <ChartLegend items={COMMISSION_SERIES.map((c) => ({ label: c.label, color: c.color }))} />
+        }
+        chart={() => (
+          <PeriodBars
+            stacked
+            data={trend.map((p) => ({
+              key: p.month,
+              label: monthShortLabel(p.month.slice(0, 7)),
+              title: monthLongLabel(p.month.slice(0, 7)),
+              values: { paid: p.commissionPaid, owed: owed(p) },
+            }))}
+            series={COMMISSION_SERIES}
+            unit={{ currency: rc }}
+            height={220}
+            ariaLabel={`Comisión devengada por mes en ${rc}, separada en pagada y por pagar${total != null ? `; ${formatMoney(total, rc)} en total` : ''}. Use la vista Tabla para leer cada mes.`}
+          />
+        )}
+        table={() => (
+          <DataTable
+            paginate={false}
+            caption="Comisión devengada por mes"
+            columns={[
+              'Mes',
+              { label: `Devengada (${rc})`, align: 'right' },
+              { label: 'Pagada', align: 'right' },
+              { label: 'Por pagar', align: 'right' },
+            ]}
+          >
+            {[...trend].reverse().map((p) => (
+              <tr key={p.month}>
+                <th scope="row" className="ebim-td text-left font-medium">
+                  {monthLongLabel(p.month.slice(0, 7))}
+                </th>
+                <td className="ebim-td ebim-num">
+                  {p.commission == null ? 'Sin tasa' : formatMoney(p.commission, rc)}
+                </td>
+                <td className="ebim-td ebim-num">
+                  {p.commissionPaid == null ? 'Sin tasa' : formatMoney(p.commissionPaid, rc)}
+                </td>
+                <td className="ebim-td ebim-num">
+                  {owed(p) == null ? 'Sin tasa' : formatMoney(owed(p), rc)}
+                </td>
+              </tr>
+            ))}
+          </DataTable>
+        )}
+      />
+    </div>
   );
 }
 
@@ -295,7 +368,14 @@ function CommissionEventsSection() {
   const retry = () => void summary.refetch();
 
   const columns: TableColumn<CommissionRow>[] = [
-    { id: 'date', header: 'Fecha', sortKey: 'earned_on', cell: (r) => <span className="whitespace-nowrap text-compact text-fg-2">{formatDate(r.earned_on)}</span> },
+    {
+      id: 'date',
+      header: 'Fecha',
+      sortKey: 'earned_on',
+      cell: (r) => (
+        <span className="whitespace-nowrap text-compact text-fg-2">{formatDate(r.earned_on)}</span>
+      ),
+    },
     {
       id: 'agent',
       header: 'Comercial',
@@ -303,7 +383,10 @@ function CommissionEventsSection() {
       cell: (r) => (
         <span className="block min-w-[140px]">
           <span className="block font-semibold">{r.agent_name ?? '—'}</span>
-          <span className="block max-w-[160px] truncate text-compact text-fg-2" title={r.tenant_name ?? undefined}>
+          <span
+            className="block max-w-[160px] truncate text-compact text-fg-2"
+            title={r.tenant_name ?? undefined}
+          >
             {r.tenant_name ?? 'Sin tenant'}
           </span>
         </span>
@@ -317,12 +400,18 @@ function CommissionEventsSection() {
       sortKey: 'product_short_name',
       cell: (r) => (
         <span className="block max-w-[200px] text-compact">
-          <span className="block truncate text-body" title={r.rule_name ? `Regla: ${r.rule_name}` : undefined}>
+          <span
+            className="block truncate text-body"
+            title={r.rule_name ? `Regla: ${r.rule_name}` : undefined}
+          >
             {r.product_short_name ?? '—'}
             <span className="text-fg-2"> · {r.source_label ?? '—'}</span>
           </span>
           {r.invoice_number ? (
-            <span className="block truncate font-mono text-caption text-muted" title={r.invoice_number}>
+            <span
+              className="block truncate font-mono text-caption text-muted"
+              title={r.invoice_number}
+            >
               {r.invoice_number}
             </span>
           ) : null}
@@ -334,9 +423,14 @@ function CommissionEventsSection() {
       id: 'calc',
       header: 'Cálculo',
       cell: (r) => (
-        <span className="block whitespace-nowrap text-compact text-fg-2" title={r.rule_name ? `Regla: ${r.rule_name}` : undefined}>
+        <span
+          className="block whitespace-nowrap text-compact text-fg-2"
+          title={r.rule_name ? `Regla: ${r.rule_name}` : undefined}
+        >
           {calculation(r)}
-          <span className="block max-w-[180px] truncate text-caption text-muted">{r.rule_name ?? 'Sin regla'}</span>
+          <span className="block max-w-[180px] truncate text-caption text-muted">
+            {r.rule_name ?? 'Sin regla'}
+          </span>
         </span>
       ),
     },
@@ -346,7 +440,11 @@ function CommissionEventsSection() {
       sortKey: 'amount',
       align: 'right',
       cell: (r) => (
-        <span className={`whitespace-nowrap font-semibold ${Number(r.amount ?? 0) < 0 ? 'text-danger' : ''}`}>{formatMoney(num(r.amount), r.currency)}</span>
+        <span
+          className={`whitespace-nowrap font-semibold ${Number(r.amount ?? 0) < 0 ? 'text-danger' : ''}`}
+        >
+          {formatMoney(num(r.amount), r.currency)}
+        </span>
       ),
     },
     {
@@ -355,11 +453,16 @@ function CommissionEventsSection() {
       cell: (r) => (
         <span className="block">
           <span className="flex gap-1">
-            <Badge tone={STATUS_TONE[r.status ?? ''] ?? 'neutral'}>{STATUS_LABEL[r.status ?? ''] ?? r.status ?? '—'}</Badge>
+            <Badge tone={STATUS_TONE[r.status ?? ''] ?? 'neutral'}>
+              {STATUS_LABEL[r.status ?? ''] ?? r.status ?? '—'}
+            </Badge>
             {r.is_reversal ? <Badge tone="danger">Reverso</Badge> : null}
           </span>
           {r.settlement_code ? (
-            <span className="mt-0.5 block max-w-[128px] truncate whitespace-nowrap font-mono text-caption text-muted" title={`Liquidación ${r.settlement_code}`}>
+            <span
+              className="mt-0.5 block max-w-[128px] truncate whitespace-nowrap font-mono text-caption text-muted"
+              title={`Liquidación ${r.settlement_code}`}
+            >
               {r.settlement_code}
             </span>
           ) : null}
@@ -402,7 +505,9 @@ function CommissionEventsSection() {
               pageRows={page.data?.rows ?? []}
               total={page.data?.total ?? 0}
               rowKey={(r) => r.commission_event_id ?? ''}
-              fetchPage={(p, size) => fetchCommissionPage({ ...tableParams, page: p, pageSize: size })}
+              fetchPage={(p, size) =>
+                fetchCommissionPage({ ...tableParams, page: p, pageSize: size })
+              }
             />
           }
         />
@@ -418,11 +523,13 @@ function CommissionEventsSection() {
               { id: 'VOID' as const, label: 'Anuladas' },
             ].map((o) => ({
               ...o,
-              count: o.id === list.filter && summary.data ? Number(summary.data.row_count) : undefined,
+              count:
+                o.id === list.filter && summary.data ? Number(summary.data.row_count) : undefined,
             }))}
           />
         </div>
         <FilterTotals
+          compact
           state={summaryState}
           onRetry={retry}
           items={[
@@ -447,7 +554,9 @@ function CommissionEventsSection() {
           ]}
           note={
             <ConsistencyNote
-              summaryCount={summary.data && !summary.isFetching ? summary.data.row_count : undefined}
+              summaryCount={
+                summary.data && !summary.isFetching ? summary.data.row_count : undefined
+              }
               tableTotal={page.data && !page.isFetching ? page.data.total : undefined}
               noun="comisiones"
             />

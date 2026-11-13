@@ -40,6 +40,12 @@ const ROWS = [
   },
 ];
 
+vi.mock('@/services/queries', () => ({
+  useTenantOverview: () => ({ data: [{ tenant_id: 't-1', name: 'Andina PD · Cliente A' }] }),
+  useOrganizations: () => ({ data: [] }),
+  useProducts: () => ({ data: [] }),
+}));
+
 vi.mock('./auditQueries', () => ({
   useAuditPage: () => ({
     isLoading: false,
@@ -67,7 +73,9 @@ describe('AuditPage', () => {
     const timeline = screen.getByRole('list', { name: 'Eventos de auditoría' });
     expect(timeline.textContent).not.toMatch(/[{}]/);
     expect(within(timeline).getByText('1 campo modificado')).toBeInTheDocument();
-    expect(within(timeline).getByText('corr-abc')).toBeInTheDocument();
+    // V6 · F4: la correlación y los ids no van en la línea del evento, sino en el detalle.
+    expect(within(timeline).queryByText('corr-abc')).toBeNull();
+    expect(timeline.textContent).not.toMatch(/11111111/);
     expect(screen.queryByText(/Metadata técnica/)).not.toBeInTheDocument();
   });
 
@@ -81,6 +89,14 @@ describe('AuditPage', () => {
     expect(within(timeline).getByText('Sistema')).toBeInTheDocument();
     expect(timeline.querySelectorAll('time[datetime]')).toHaveLength(2);
     expect(timeline.querySelectorAll('[data-audit-kind]')).toHaveLength(2);
+  });
+
+  it('V6: la entidad se nombra con su nombre de negocio y enlaza a su ficha', () => {
+    renderPage();
+    const timeline = screen.getByRole('list', { name: 'Eventos de auditoría' });
+    const link = within(timeline).getByRole('link', { name: 'Andina PD · Cliente A' });
+    expect(link).toHaveAttribute('href', '/tenants/t-1');
+    expect(link.closest('[data-audit-entity]')).toHaveTextContent('Tenant · Andina PD · Cliente A');
   });
 
   it('el detalle se despliega bajo su evento y se vuelve a plegar', () => {

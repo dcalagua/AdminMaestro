@@ -105,7 +105,7 @@ const integrationSchema = z
   )
   .refine(
     (v) => v.integration_type !== 'HTTP_M2M' || v.status !== 'READY' || Boolean(v.create_scope),
-    { path: ['create_scope'], message: 'Un token sin scope es un token con todos' },
+    { path: ['create_scope'], message: 'Un token sin permisos los tiene todos' },
   );
 
 // `z.input` y no `z.infer`: con `z.coerce` el tipo de ENTRADA del formulario no
@@ -255,7 +255,7 @@ export function IntegrationDialog({
     <FormDialog
       open={open}
       title={isEdit ? `Editar ${integration?.code}` : 'Nueva integración de producto'}
-      description="Define CÓMO habla MasterAdmin con el producto. Aquí va configuración —endpoint relativo, issuer, audience, algoritmo, TTL, scopes—, nunca secretos ni lógica interna del SaaS."
+      description="Define CÓMO habla el Admin Maestro con el producto. Aquí va configuración —endpoint relativo, issuer, audience, algoritmo, TTL, permisos—, nunca secretos ni lógica interna del SaaS."
       submitLabel={isEdit ? 'Guardar cambios' : 'Crear integración'}
       busy={upsert.isPending}
       error={upsert.error}
@@ -355,14 +355,14 @@ export function IntegrationDialog({
               label="Issuer"
               required
               placeholder="masteradmin.ebim"
-              hint="Quién EMITE el token. Es siempre MasterAdmin."
+              hint="Quién EMITE el token. Es siempre el Admin Maestro."
               error={form.formState.errors.issuer}
               {...form.register('issuer')}
             />
             <TextField
               label="Audience"
               placeholder="ewm.ebim"
-              hint="Para QUIÉN es el token. Cada producto tiene la suya; MasterAdmin no la adivina."
+              hint="Para QUIÉN es el token. Cada producto tiene la suya; el Admin Maestro no la adivina."
               error={form.formState.errors.audience}
               {...form.register('audience')}
             />
@@ -408,13 +408,13 @@ export function IntegrationDialog({
 
           <FieldRow>
             <TextField
-              label="Scope de creación"
+              label="Permiso de creación"
               placeholder="provisioning:tenant:create"
               error={form.formState.errors.create_scope}
               {...form.register('create_scope')}
             />
             <TextField
-              label="Scope de consulta"
+              label="Permiso de consulta"
               placeholder="provisioning:tenant:read"
               error={form.formState.errors.read_scope}
               {...form.register('read_scope')}

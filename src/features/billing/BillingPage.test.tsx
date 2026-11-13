@@ -152,13 +152,15 @@ describe('BillingPage · totales del resultado (resumen del servidor)', () => {
     renderAt();
 
     const box = totals();
-    expect(box).toHaveTextContent(/Facturado \(emitido\)USD 250\.00 · PEN 1,000\.00|Facturado \(emitido\)PEN 1,000\.00 · USD 250\.00/);
+    // V6 · T9: compactos, con el monto completo en el `title`.
+    expect(box).toHaveTextContent(/Facturado \(emitido\)PEN 1\.0 K · USD 250/);
+    expect(within(box).getByTitle('PEN 1,000.00 · USD 250.00')).toBeInTheDocument();
     // 1 000 + 250 no existe como cifra: cada moneda va aparte.
     expect(box).not.toHaveTextContent('1,250');
-    expect(box).toHaveTextContent(/Cobrado \(confirmado\)PEN 400\.00 · USD 250\.00/);
-    expect(box).toHaveTextContent(/Saldo por cobrarPEN 600\.00/);
+    expect(box).toHaveTextContent(/Cobrado \(confirmado\)PEN 400 · USD 250/);
+    expect(box).toHaveTextContent(/Saldo por cobrarPEN 600/);
     // Un saldo negativo (sobrepago) se conserva, no se recorta a cero.
-    expect(box).toHaveTextContent(/Cartera vencida(-PEN\s15\.00|PEN\s-15\.00)/);
+    expect(box).toHaveTextContent(/Cartera vencidaPEN\s[−-]15/);
   });
 
   it('resumen y tabla sobre el mismo universo: lo declara; si difieren, avisa', () => {

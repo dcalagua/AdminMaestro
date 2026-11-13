@@ -256,7 +256,7 @@ export const CELL: Record<CellKind, { label: string; short: string; tone: Tone; 
     help: 'El último intento de crear el tenant en la app falló.',
   },
   PENDING_CONFIRM: {
-    label: 'Activo en la app · pendiente de confirmar en MasterAdmin',
+    label: 'Activo en la app · pendiente de confirmar en el Admin Maestro',
     short: 'Por confirmar',
     tone: 'warn',
     help: 'La app ya creó el tenant (alta activa), pero en el Admin Maestro sigue «Pendiente»: el estado no se actualizó solo al confirmarse el alta.',

@@ -42,7 +42,8 @@ describe('RenewalsPage · cobros con tarjeta guardada', () => {
     });
     render(<MemoryRouter><RenewalsPage /></MemoryRouter>);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Ejecutar cobros pendientes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Acciones de cobranza' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Ejecutar cobros pendientes' }));
     const dialog = screen.getByRole('dialog', { name: '¿Ejecutar los cobros pendientes?' });
     expect(dialog).toHaveTextContent('3 días');
     expect(dialog).toHaveTextContent('7 días');
@@ -58,11 +59,14 @@ describe('RenewalsPage · cobros con tarjeta guardada', () => {
 });
 
 describe('RenewalsPage · jerarquía de acciones (A11)', () => {
-  it('la suspensión no compite con las demás acciones: vive en «Más acciones», al final y en rojo', () => {
+  it('V6: las acciones de la pestaña van juntas en un menú; la suspensión, al final y en rojo', () => {
     perms.canManagePlatform = true;
     render(<MemoryRouter><RenewalsPage /></MemoryRouter>);
     expect(screen.queryByRole('button', { name: /Ejecutar suspensiones/ })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Más acciones de renovaciones' }));
+    expect(screen.queryByRole('button', { name: 'Recalcular alertas' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Acciones de cobranza' }));
+    const items = screen.getAllByRole('menuitem');
+    expect(items.map((i) => i.textContent)).toEqual(['Recalcular alertas', 'Ejecutar cobros pendientes', 'Ejecutar suspensiones…']);
     const item = screen.getByRole('menuitem', { name: 'Ejecutar suspensiones…' });
     expect(item).toHaveClass('text-danger');
     fireEvent.click(item);

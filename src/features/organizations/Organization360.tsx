@@ -9,10 +9,8 @@ import type { ExportColumn } from '@/lib/export';
 import { fromQuery, type DataState } from '@/features/executive/dataState';
 import { toCurrencyAmounts } from '@/features/executive/reportContext';
 import { StateMessage } from '@/features/executive/components/StateView';
-import { FilterTotals, KpiStrip, NativeAmountTile } from '@/features/billing/financeUi';
-import { nativeInline } from '@/features/billing/financeModel';
-import { AccountMrrTile, AccountTrendCharts, HealthTile } from './AccountPanels';
-import { accountHealth } from './accountSeriesModel';
+import { FilterTotals } from '@/features/billing/financeUi';
+import { AccountTrendCharts } from './AccountPanels';
 import { capabilityText } from './organizationLabels';
 import { useAuth } from '@/hooks/useAuth';
 import { CELL, accountApps, type AccountAppTenant, type ProvisioningRow, type TenantRow } from '@/features/suite/suiteModel';
@@ -82,58 +80,6 @@ function Section({ title, description, state, onRetry, children, empty }: {
 }
 
 /* ---------------------------------------------------------------- Resumen */
-
-/**
- * Franja de la cabecera de perfil (PT-360): MRR con tendencia, saldo, cobrado y
- * salud de cobranza. Va sobre las pestañas: se ve en cualquier sección.
- */
-export function Org360KpiStrip({ organizationId }: { organizationId: string }) {
-  const series = useAccountSeries({ organizationId });
-  const invoices = useInvoiceSummary({ search: '', filter: 'ALL', organizationId });
-  const renewals = useRenewalPipeline(organizationId);
-  const invoiceState = fromQuery(invoices, { isEmpty: () => false });
-  const overdue = toCurrencyAmounts(invoices.data?.overdue);
-  const soon = (renewals.data ?? []).filter(
-    (r) => r.days_to_renewal !== null && Number(r.days_to_renewal) >= 0 && Number(r.days_to_renewal) <= 60,
-  ).length;
-  return (
-    <KpiStrip label="Indicadores de la cuenta">
-      <AccountMrrTile
-        query={series}
-        info="MRR contratado de los contratos facturados a esta organización, a hoy (misma definición que el Resumen Ejecutivo)"
-      />
-      <NativeAmountTile
-        label="Saldo por cobrar"
-        info="Facturas emitidas con saldo pendiente, a hoy"
-        amounts={toCurrencyAmounts(invoices.data?.receivable)}
-        state={invoiceState}
-        onRetry={() => void invoices.refetch()}
-        emptyLabel="Sin saldo pendiente"
-        footer={Object.keys(overdue).length ? `Vencido: ${nativeInline(overdue)}` : 'Nada vencido'}
-      />
-      <NativeAmountTile
-        label="Cobrado confirmado"
-        info="Pagos confirmados acumulados de la organización"
-        amounts={toCurrencyAmounts(invoices.data?.collected)}
-        state={invoiceState}
-        onRetry={() => void invoices.refetch()}
-        emptyLabel="Sin cobros confirmados"
-        footer="Acumulado histórico"
-      />
-      <HealthTile
-        health={accountHealth(renewals.data ?? [])}
-        loading={renewals.isLoading}
-        error={Boolean(renewals.error)}
-        onRetry={() => void renewals.refetch()}
-        footer={
-          renewals.data && renewals.data.length > 0
-            ? `${formatNumber(soon)} ${soon === 1 ? 'contrato renueva' : 'contratos renuevan'} en 60 días`
-            : undefined
-        }
-      />
-    </KpiStrip>
-  );
-}
 
 /** Dato compacto de la tarjeta «La cuenta» (no es un KPI: no compite con la franja). */
 function Fact({ label, state, onRetry, children, hint }: {
@@ -593,7 +539,7 @@ export function Org360Activity({ organizationId }: { organizationId: string }) {
 
   return (
     <div className="grid gap-4 xl:grid-cols-2">
-      <Section title="Bitácora de la organización" description="Registro append-only. Sin JSON en la primera lectura." state={fromQuery(audit)} onRetry={() => void audit.refetch()} empty="Sin eventos registrados para esta organización.">
+      <Section title="Bitácora de la organización" description="Registro que no se puede editar ni borrar." state={fromQuery(audit)} onRetry={() => void audit.refetch()} empty="Sin eventos registrados para esta organización.">
         {() => (
           <ol className="divide-y divide-border">
             {audit.data!.map((e) => (
@@ -607,7 +553,7 @@ export function Org360Activity({ organizationId }: { organizationId: string }) {
           </ol>
         )}
       </Section>
-      <Section title="Altas en las apps" description="Últimas 50 solicitudes registradas en el control plane; no se ejecuta nada desde aquí." state={fromQuery(saas)} onRetry={() => void saas.refetch()} empty="Sin altas SaaS para los tenants de esta organización.">
+      <Section title="Altas en las apps" description="Últimas 50 solicitudes registradas en el Admin Maestro; desde aquí no se ejecuta nada." state={fromQuery(saas)} onRetry={() => void saas.refetch()} empty="Sin altas en las apps para los tenants de esta organización.">
         {() => (
           <DataTable columns={['Producto', 'Tenant', 'Solicitud', 'Mapping', 'Fecha']}>
             {saas.data!.slice(0, 50).map((r) => (

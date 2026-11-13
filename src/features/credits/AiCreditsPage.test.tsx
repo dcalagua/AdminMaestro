@@ -128,9 +128,9 @@ describe('BalancesTab', () => {
       ]),
     );
     wrap(<BalancesTab />);
-    expect(screen.getByRole('row', { name: /Pool del tenant/ })).toHaveTextContent('-40');
+    expect(screen.getByRole('row', { name: /Bolsa del tenant/ })).toHaveTextContent('-40');
     await userEvent.click(screen.getByRole('tab', { name: /Saldo negativo/ }));
-    expect(screen.queryByRole('row', { name: /Pool del producto ewm/ })).toBeNull();
+    expect(screen.queryByRole('row', { name: /Bolsa del producto ewm/ })).toBeNull();
   });
 
   it('carga y error', () => {
@@ -194,9 +194,9 @@ describe('LedgerTab', () => {
 });
 
 describe('WeightsTab', () => {
-  it('sin peso vigente la capacidad es «No decidido (D-03)»', () => {
+  it('sin peso vigente la capacidad es «No decidido»', () => {
     wrap(<WeightsTab />);
-    expect(within(screen.getByRole('row', { name: /Lectura IA/ })).getByText('No decidido (D-03)')).toBeInTheDocument();
+    expect(within(screen.getByRole('row', { name: /Lectura IA/ })).getByText('No decidido')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Nueva versión' })).toBeNull();
   });
 
@@ -240,8 +240,10 @@ describe('PoliciesTab', () => {
     );
     wrap(<PoliciesTab />);
     const row = screen.getByRole('row', { name: /EWM Pro/ });
-    expect(within(row).getAllByText('No decidido (D-03)')).toHaveLength(3);
-    expect(within(row).getByText('No decidido (D-04)')).toBeInTheDocument();
+    expect(within(row).getAllByText('No decidido')).toHaveLength(4);
+    // El código de la decisión no se muestra (V6 · F5): queda en `data-decision`.
+    expect(row.querySelectorAll('[data-decision="D-03"]')).toHaveLength(3);
+    expect(row.querySelector('[data-decision="D-04"]')).not.toBeNull();
     expect(row.textContent).not.toMatch(/\b0\b/);
   });
 
@@ -253,7 +255,7 @@ describe('PoliciesTab', () => {
     await user.click(screen.getByRole('button', { name: 'Nueva política' }));
     const dialog = screen.getByRole('dialog');
     await user.selectOptions(within(dialog).getByLabelText(/^Plan/), 'ewm-pro');
-    await user.selectOptions(within(dialog).getByLabelText(/Pool/), 'TENANT');
+    await user.selectOptions(within(dialog).getByLabelText(/Bolsa/), 'TENANT');
     fireEvent.change(within(dialog).getByLabelText(/Vigente desde/), { target: { value: '2026-11-01' } });
     await user.type(within(dialog).getByLabelText(/Motivo/), 'Pool decidido, incluidos no');
     await user.click(within(dialog).getByRole('button', { name: 'Registrar política' }));
@@ -321,7 +323,7 @@ describe('OperationsTab', () => {
     expect(screen.queryByRole('button', { name: 'Abrir período' })).toBeNull();
   });
 
-  it('abrir período sin política informa «No decidido (D-03)»', async () => {
+  it('abrir período sin política informa «No decidido»', async () => {
     const user = userEvent.setup();
     permissions.mockReturnValue(FINANCE);
     openPeriod.mockResolvedValue({ granted: 0, code: 'POLITICA_CREDITOS_NO_DEFINIDA' });
@@ -332,7 +334,7 @@ describe('OperationsTab', () => {
     fireEvent.change(within(dialog).getByLabelText(/Mes/), { target: { value: '2026-10' } });
     await user.click(within(dialog).getByRole('button', { name: 'Abrir período' }));
     expect(openPeriod).toHaveBeenCalledWith({ p_tenant_id: 't-alpha', p_period_start: '2026-10-01' });
-    expect(await screen.findByRole('status')).toHaveTextContent('No decidido (D-03)');
+    expect(await screen.findByRole('status')).toHaveTextContent('No decidido');
   });
 
   it('bono o ajuste: solo GRANT_BONUS / ADJUST, con clave de idempotencia', async () => {
@@ -345,7 +347,7 @@ describe('OperationsTab', () => {
     const types = Array.from((within(dialog).getByLabelText(/Tipo/) as HTMLSelectElement).options).map((o) => o.value);
     expect(types).toEqual(['GRANT_BONUS', 'ADJUST']);
     await user.selectOptions(within(dialog).getByLabelText(/Tenant/), 't-alpha');
-    await user.selectOptions(within(dialog).getByLabelText(/Pool/), 'PRODUCT:ewm');
+    await user.selectOptions(within(dialog).getByLabelText(/Bolsa/), 'PRODUCT:ewm');
     await user.selectOptions(within(dialog).getByLabelText(/Tipo/), 'ADJUST');
     await user.type(within(dialog).getByLabelText(/Créditos/), '-15');
     fireEvent.change(within(dialog).getByLabelText(/Mes/), { target: { value: '2026-10' } });
@@ -393,8 +395,8 @@ describe('CreditCatalogTab', () => {
   it('lo no decidido se rotula; sin finanzas no hay acciones', () => {
     itemsHook.mockReturnValue(ok(items));
     wrap(<CreditCatalogTab />);
-    expect(within(screen.getByRole('row', { name: /Paquete 1k/ })).getByText('No decidido (D-03)')).toBeInTheDocument();
-    expect(within(screen.getByRole('row', { name: /Páginas extra/ })).getByText('No decidido (D-02/D-06)')).toBeInTheDocument();
+    expect(within(screen.getByRole('row', { name: /Paquete 1k/ })).getByText('No decidido')).toBeInTheDocument();
+    expect(within(screen.getByRole('row', { name: /Páginas extra/ })).getByText('No decidido')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Créditos por paquete' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Vincular uso' })).toBeNull();
   });

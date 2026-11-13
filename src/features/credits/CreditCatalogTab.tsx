@@ -191,7 +191,7 @@ function CreditPackDialog({ item, onClose }: { item: Item | null; onClose: () =>
     <FormDialog
       open={Boolean(item)}
       title={`Créditos por paquete · ${item?.name ?? ''}`}
-      description="Decisión comercial (D-03). El precio del paquete es la tarifa CREDIT_PURCHASE del ítem (Add-ons y tarifas)."
+      description="Decisión comercial. El precio del paquete es la tarifa CREDIT_PURCHASE del ítem (Add-ons y tarifas)."
       submitLabel="Guardar"
       busy={setPack.isPending}
       error={setPack.error}
@@ -256,7 +256,7 @@ function UsageBindingDialog({
     <FormDialog
       open={Boolean(item)}
       title={`Vincular uso · ${item?.name ?? ''}`}
-      description="Un medidor, o el pool de créditos, tiene un solo ítem de tarifa vivo: no hay doble cobro. La tarifa USAGE_OVERAGE se fija aparte (D-01/D-02)."
+      description="Un medidor, o la bolsa de créditos, tiene un solo ítem de tarifa vivo: no hay doble cobro. La tarifa USAGE_OVERAGE se fija aparte."
       submitLabel="Guardar vínculo"
       busy={bind.isPending}
       error={bind.error}
@@ -266,7 +266,7 @@ function UsageBindingDialog({
       <SelectField label="Qué tarifa" required
         options={[
           { value: 'METER', label: 'El uso de un medidor' },
-          { value: 'AI_CREDIT', label: 'El exceso de créditos IA del pool' },
+          { value: 'AI_CREDIT', label: 'El exceso de créditos IA de la bolsa' },
         ]}
         error={form.formState.errors.source} {...form.register('source')} />
       {source === 'METER' ? (
@@ -302,7 +302,7 @@ function ClearBindingDialog({
   }, [item]);
 
   const what =
-    item?.per_unit_source === 'AI_CREDIT' ? 'el exceso de créditos IA del pool' : `el medidor ${meterCode ?? ''}`.trim();
+    item?.per_unit_source === 'AI_CREDIT' ? 'el exceso de créditos IA de la bolsa' : `el medidor ${meterCode ?? ''}`.trim();
 
   const submit = form.handleSubmit(async (values) => {
     if (!item) return;

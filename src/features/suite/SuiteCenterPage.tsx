@@ -31,6 +31,16 @@ export function SuiteCenterPage() {
   // una verificación por app que este perfil puede verificar, cada una visible en
   // la cola de tareas. Es la misma acción explícita que «Verificar ahora».
   const requested = params.get('accion') === CHECK_HEALTH_PARAM;
+  // Apps que este perfil puede verificar (con destino): las mismas para ⌘K y para el botón de la cabecera.
+  const checkable = data.health.filter(
+    (h) => h.primary?.deployment_target_id && access.canForProduct('platform.deployment.read', h.app.id),
+  );
+  const checkAll = () => {
+    for (const h of checkable) {
+      const targetId = h.primary?.deployment_target_id;
+      if (targetId && !health.isRunning(targetId)) void health.run(targetId, h.app.name, h.app.code);
+    }
+  };
   useEffect(() => {
     if (!requested || launched.current || data.loading.health || access.loading) return;
     launched.current = true;
@@ -53,11 +63,27 @@ export function SuiteCenterPage() {
       title={item?.label ?? 'Centro de la suite'}
       description={item?.description}
       actions={
-        perms.canManagePlatform ? (
-          <Link to="/suite/ciclo-de-vida" className="ebim-btn-secondary ebim-btn-sm">
-            Ciclo de vida y cortes
-          </Link>
-        ) : null
+        <>
+          {checkable.length > 0 ? (
+            // Una sola «Verificar ahora» para todas (V6 · F2); la de cada app sigue en su detalle.
+            <button
+              type="button"
+              className="ebim-btn-ghost ebim-btn-sm"
+              disabled={health.isPending}
+              aria-busy={health.isPending || undefined}
+              aria-label="Verificar ahora todas las apps"
+              title={`Comprueba la conexión de ${checkable.length} apps; cada verificación queda en la cola de tareas.`}
+              onClick={checkAll}
+            >
+              {health.isPending ? 'Verificando…' : 'Verificar ahora'}
+            </button>
+          ) : null}
+          {perms.canManagePlatform ? (
+            <Link to="/suite/ciclo-de-vida" className="ebim-btn-secondary ebim-btn-sm">
+              Ciclo de vida y cortes
+            </Link>
+          ) : null}
+        </>
       }
     >
       <SuiteHealthStrip

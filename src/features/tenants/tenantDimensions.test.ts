@@ -25,7 +25,7 @@ describe('tenantDimensions', () => {
 
   it('comercial PENDING no se convierte en «no provisionado» ni en fallo', () => {
     expect(d.commercial.label).toBe('Pendiente de activación comercial');
-    expect(d.commercial.detail).toMatch(/no refleja el acceso remoto/i);
+    expect(d.commercial.detail).toMatch(/no refleja el acceso en la app/i);
     expect(d.commercial.tone).toBe('warn');
   });
 
@@ -56,7 +56,7 @@ describe('tenantDimensions', () => {
 
   it('sin alta ni mapping: se dice, no se inventa', () => {
     const none = tenantDimensions({ ...tenant, status: 'ACTIVE' }, [], []);
-    expect(none.technical.label).toBe('Sin alta SaaS registrada');
+    expect(none.technical.label).toBe('Sin alta en la app');
     expect(none.health.label).toBe('Sin observación de salud');
     expect(none.admin.label).toBe('Sin dato del producto');
   });

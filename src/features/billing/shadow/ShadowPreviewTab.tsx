@@ -32,7 +32,7 @@ export function ShadowPreviewTab() {
   return (
     <Card
       title="Vista previa"
-      description="Lo que MasterAdmin facturaría al tenant en el mes: líneas del contrato con su signo y consumo vencido de agregados finalizados. No emite nada."
+      description="Lo que el Admin Maestro facturaría al tenant en el mes: líneas del contrato con su signo y consumo vencido de agregados finalizados. No emite nada."
     >
       <form
         className="flex flex-wrap items-end gap-3 border-b border-border px-4 py-3"
@@ -77,7 +77,7 @@ export function ShadowPreviewTab() {
       {!params ? (
         <EmptyState title="Elige producto, tenant y mes" description="La vista previa se calcula bajo demanda en la base." />
       ) : expected.isLoading ? (
-        <LoadingState label="Calculando lo que MasterAdmin facturaría…" />
+        <LoadingState label="Calculando lo que el Admin Maestro facturaría…" />
       ) : expected.error ? (
         <div role="alert" className="px-4 py-10 text-center">
           <p className="text-body font-semibold text-danger">No se pudo calcular la vista previa</p>

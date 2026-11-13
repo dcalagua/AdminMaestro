@@ -24,7 +24,7 @@ export function PendingConfirmNotice({ count, children }: { count: number; child
         <p>
           <strong>
             {count} tenant{count === 1 ? '' : 's'} activo{count === 1 ? '' : 's'} en su app
-            {' '}pero «Pendiente» en MasterAdmin.
+            {' '}pero «Pendiente» en el Admin Maestro.
           </strong>{' '}
           Cuando la app confirma el alta, el estado del tenant todavía no se actualiza solo. Revisa cada uno y
           confírmalo desde su detalle; nada cambia sin tu confirmación.

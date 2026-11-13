@@ -8,16 +8,16 @@ import { useRejectDocument, useCancelDocument, useAutocharge } from '@/services/
 import { usePermissions } from '@/hooks/usePermissions';
 import { SectionTabs } from '@/components/ui/SectionTabs';
 import {
-  PageContainer, Card, DataTable, KpiTile, LoadingState, ErrorState, EmptyState, Badge, type DataColumn,
+  PageContainer, Card, DataTable, LoadingState, ErrorState, EmptyState, Badge, type DataColumn,
 } from '@/components/ui/primitives';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ActionMenu } from '@/components/ui/ActionMenu';
 import { DetailList } from '@/components/ui/DetailDrawer';
-import { KpiStrip, NativeAmountTile } from './financeUi';
-import { nativeInline } from './financeModel';
+import { ContractSummaryBar } from './ContractSummaryBar';
+import { contractSubtitle } from './contractSubtitle';
 import { useToast } from '@/components/ui/toast-context';
 import { businessErrorMessage } from '@/lib/pgError';
-import { formatMoney, formatDate, formatDateTime, formatNumber, sumByCurrency } from '@/lib/format';
+import { formatMoney, formatDate, formatDateTime, sumByCurrency } from '@/lib/format';
 import { INVOICE_STATUS_LABEL } from '@/types/domain';
 import { formatPeriod } from '@/lib/billing';
 import {
@@ -37,7 +37,6 @@ import {
 
 
 const R = (label: string): DataColumn => ({ label, align: 'right' });
-const READY = { status: 'ready', data: null } as const;
 
 /**
  * Detalle de suscripción, con la pestaña **Cobranza** que introduce la Fase 07.
@@ -192,18 +191,17 @@ export function SubscriptionDetailPage() {
   return (
     <PageContainer
       title={s.code}
-      description={`${(s.saas_products as { lockup_name: string } | null)?.lockup_name} · ${
-        (s.organizations as { display_name: string } | null)?.display_name
-      }${(s.tenants as { name: string } | null)?.name ? ` · ${(s.tenants as { name: string }).name}` : ' · nivel partner'}`}
+      description={contractSubtitle({
+        lockup: (s.saas_products as { lockup_name: string | null } | null)?.lockup_name,
+        shortName: (s.saas_products as { short_name: string | null } | null)?.short_name,
+        organization: (s.organizations as { display_name: string } | null)?.display_name,
+        tenant: (s.tenants as { name: string } | null)?.name,
+      })}
       meta={
-        <span className="flex flex-wrap items-center gap-2">
-          <Badge tone={SUBSCRIPTION_STATUS_TONE[s.status] ?? 'neutral'} dot>
-            Contrato: {SUBSCRIPTION_STATUS_LABEL[s.status] ?? s.status}
-          </Badge>
-          <Badge tone={labelOf(BILLING_CHANNEL, s.billing_channel).tone}>
-            Facturación: {labelOf(BILLING_CHANNEL, s.billing_channel).label}
-          </Badge>
-        </span>
+        // El estado del contrato va en la cabecera fija; aquí, quién factura.
+        <Badge tone={labelOf(BILLING_CHANNEL, s.billing_channel).tone}>
+          Facturación: {labelOf(BILLING_CHANNEL, s.billing_channel).label}
+        </Badge>
       }
       actions={
         perms.canReadFinance ? (
@@ -222,78 +220,40 @@ export function SubscriptionDetailPage() {
         ) : null
       }
     >
-      <KpiStrip label="Resumen del contrato">
-        <NativeAmountTile
-          label="Recurrente mensual"
-          info="Líneas recurrentes normalizadas a mes. Los cargos únicos no cuentan para el MRR."
-          amounts={charges.monthly}
-          state={READY}
-          emptyLabel="Sin líneas recurrentes"
-          footer={`Cadencia: ${BILLING_INTERVAL_LABEL[s.billing_interval] ?? s.billing_interval}${
-            charges.oneTimeCount > 0 ? ` · cargos únicos ${nativeInline(charges.oneTime)}` : ''
-          }`}
-        />
-        {showMoney ? (
-          <NativeAmountTile
-            label="Saldo por cobrar"
-            info="Facturas emitidas o con pago parcial menos cobros confirmados, por moneda."
-            amounts={sumByCurrency(openInvoices, (i) => i.outstanding, (i) => i.currency)}
-            state={
-              invoices.isLoading
-                ? { status: 'loading' }
-                : invoices.error
-                  ? { status: 'error', message: String((invoices.error as Error).message ?? invoices.error) }
-                  : READY
-            }
-            onRetry={() => void invoices.refetch()}
-            tone={overdueCount > 0 ? 'warn' : 'neutral'}
-            emptyLabel={s.billing_channel === 'PARTNER_STATEMENT' ? 'Lo factura el partner' : 'Sin saldo pendiente'}
-            footer={`${formatNumber(openInvoices.length)} factura(s) abierta(s)${overdueCount > 0 ? ` · ${formatNumber(overdueCount)} vencida(s)` : ''}`}
-          />
-        ) : (
-          <NativeAmountTile
-            label="Cargos únicos"
-            info="Se facturan una vez. No cuentan para el MRR."
-            amounts={charges.oneTime}
-            state={READY}
-            emptyLabel="Ninguno"
-          />
-        )}
-        <KpiTile
-          label="Método de cobro"
-          value={
-            profile?.collection_method
-              ? (METHOD_LABEL[profile.collection_method as string] ?? String(profile.collection_method))
-              : 'Sin configurar'
-          }
-          tone={profile?.collection_method ? 'neutral' : 'warn'}
-          footer={
-            profile?.collection_method
-              ? `${profile.auto_charge ? 'Cargo automático' : 'Sin cargo automático'}${isCardOnFile ? ' · tarjeta guardada' : ''}`
-              : 'Se cobra manualmente; no se presupone tarjeta'
-          }
-          loading={collection.isLoading}
-        />
-        <KpiTile
-          label="Documento vigente"
-          value={
-            !needsDocument
-              ? 'No aplica'
-              : activeDoc?.status === 'APPROVED'
-                ? 'Aprobado'
-                : (DOC_STATUS_LABEL[activeDoc?.status as string] ?? 'Ninguno')
-          }
-          tone={!needsDocument ? 'neutral' : activeDoc?.status === 'APPROVED' ? 'ok' : 'warn'}
-          footer={
-            !needsDocument
-              ? 'El método de cobro no exige OS/OC'
-              : activeDoc?.valid_to
-                ? `Vigente hasta ${formatDate(activeDoc.valid_to as string)}`
-                : 'El método exige OS/OC'
-          }
-          loading={documents.isLoading}
-        />
-      </KpiStrip>
+      <ContractSummaryBar
+        subscriptionId={s.id}
+        status={{
+          label: SUBSCRIPTION_STATUS_LABEL[s.status] ?? s.status,
+          tone: SUBSCRIPTION_STATUS_TONE[s.status] ?? 'neutral',
+        }}
+        monthly={charges.monthly}
+        oneTime={charges.oneTime}
+        interval={BILLING_INTERVAL_LABEL[s.billing_interval] ?? s.billing_interval}
+        showMoney={showMoney}
+        balance={{
+          loading: invoices.isLoading,
+          error: Boolean(invoices.error),
+          amounts: sumByCurrency(openInvoices, (i) => i.outstanding, (i) => i.currency),
+          open: openInvoices.length,
+          overdue: overdueCount,
+          partnerStatement: s.billing_channel === 'PARTNER_STATEMENT',
+        }}
+        method={{
+          loading: collection.isLoading,
+          label: profile?.collection_method
+            ? (METHOD_LABEL[profile.collection_method as string] ?? String(profile.collection_method))
+            : null,
+          auto: Boolean(profile?.auto_charge),
+          cardOnFile: isCardOnFile,
+        }}
+        document={{
+          loading: documents.isLoading,
+          required: needsDocument,
+          label: activeDoc?.status === 'APPROVED' ? 'Aprobado' : (DOC_STATUS_LABEL[activeDoc?.status as string] ?? 'Ninguno'),
+          tone: activeDoc?.status === 'APPROVED' ? 'ok' : 'warn',
+          validTo: (activeDoc?.valid_to as string | null | undefined) ?? null,
+        }}
+      />
 
       <SectionTabs
         tabs={[

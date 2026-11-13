@@ -137,9 +137,9 @@ describe('PartnerFeesPage', () => {
     // BOB 590: la tarifa emitida y, a la vez, su saldo por cobrar.
     expect(within(strip).getAllByTitle('BOB 590.00')).toHaveLength(2);
     expect(strip).not.toHaveTextContent('944');
-    expect(within(strip).getByText('2 estado(s) de cuenta')).toBeInTheDocument();
+    expect(within(strip).getByText('2 estados de cuenta')).toBeInTheDocument();
     expect(within(strip).getByText('Borradores sin factura')).toBeInTheDocument();
-    expect(within(strip).getByText('1 factura(s) con saldo')).toBeInTheDocument();
+    expect(within(strip).getByText('1 factura con saldo')).toBeInTheDocument();
   });
 
   it('«Calcular» exige el partner y llama a compute_partner_fee_statement con el período', async () => {
@@ -206,6 +206,10 @@ describe('PartnerFeesPage', () => {
     m.agreements.mockReturnValue(q([]));
     const { unmount } = wrap(<PartnerFeesPage />);
     expect(screen.getByText(/Ningún acuerdo tiene tarifa de plataforma/)).toBeInTheDocument();
+    // V6: un único estado vacío (sin franja de «Sin datos» ni botones de calcular) con el camino a la ficha.
+    expect(document.querySelector('[data-kpi-strip]')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Calcular todos' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Configurar tarifa en la ficha del partner' })).toHaveAttribute('href', '/partners');
     unmount();
     m.statements.mockReturnValue(failed());
     wrap(<PartnerFeesPage />);

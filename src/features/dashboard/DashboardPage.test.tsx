@@ -232,11 +232,14 @@ describe('Resumen ejecutivo · franja hero', () => {
     expect(collected).not.toHaveTextContent(/vs (sep|set)/);
   });
 
-  it('si falta una tasa, el MRR se rotula sin tasa y nunca se pinta como cero', () => {
+  it('si falta una tasa, el MRR muestra los montos por moneda «sin consolidar» y nunca se pinta como cero', () => {
     state.seriesMissing = true;
     const { container } = renderHome();
     const mrr = tile(container, 'MRR');
-    expect(mrr).toHaveTextContent('—');
+    // V6 · 3.1: nunca «Sin datos» si hay datos: la suma en cada moneda nativa, marcada.
+    const native = mrr.querySelector('[data-unconsolidated]') as HTMLElement;
+    expect(native).toHaveTextContent("PEN 20.0 K · USD 47.0 K");
+    expect(native).toHaveTextContent('sin consolidar');
     expect(mrr).toHaveTextContent('Sin tasa para BOB');
     expect(mrr).not.toHaveTextContent('USD0');
     expect(within(screen.getByRole('list', { name: 'Notas del reporte' })).getByText(/Parcial: falta tasa BOB/)).toBeInTheDocument();

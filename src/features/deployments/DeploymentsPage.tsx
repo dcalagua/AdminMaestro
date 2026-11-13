@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowsClockwiseIcon, CaretDownIcon, CaretRightIcon, GearSixIcon } from '@phosphor-icons/react';
 import { useDeploymentTargets, useProvisioningTargets } from '@/services/queries';
 import { useCheckDeploymentHealth } from '@/services/mutations';
 import { useProvisioningAccess } from '@/hooks/useProvisioningAccess';
@@ -18,34 +20,29 @@ import {
   isEvaluable,
   notEvaluatedReason,
   observedHealth,
+  observedHealthLabel,
   summarizeByEnvironment,
   type TargetHealthInput,
 } from '@/features/platform/targetHealth';
-import { HealthDot, HealthText, ObservationDate } from '@/features/platform/EnvironmentHealth';
+import { HealthDot, HealthText } from '@/features/platform/EnvironmentHealth';
+import { isStale, relativeAge } from '@/features/suite/suiteModel';
 import { ActionMenu } from '@/components/ui/ActionMenu';
 import { StatusTabs } from '@/components/ui/SectionTabs';
-import { KpiStrip } from '@/features/billing/financeUi';
-import { formatNumber } from '@/lib/format';
+import { StatCell, StatStrip } from '@/components/ui/StatStrip';
+import { CellTitle, StatusCell, type CellTone } from '@/components/ui/cells';
+import { formatDateTime, formatNumber } from '@/lib/format';
 import {
   DeploymentProvisioningDialog,
   type TargetProvisioningDraft,
 } from './ProvisioningDialogs';
 import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { usePermissions } from '@/hooks/usePermissions';
-import { Link } from 'react-router-dom';
 import {
-  PageContainer, Card, DataTable, SearchBar, KpiTile, LoadingState, ErrorState, EmptyState, Badge,
+  PageContainer, Card, DataTable, SearchBar, LoadingState, ErrorState, EmptyState,
 } from '@/components/ui/primitives';
 import { DEPLOYMENT_MODE_LABEL } from '@/types/domain';
 import { DeploymentTargetDialog, AttachTenantDialog } from './DeploymentDialogs';
 import type { TargetDraft } from './DeploymentDialogs';
-
-const TARGET_STATUS_LABEL: Record<string, string> = {
-  ACTIVE: 'Activo',
-  INACTIVE: 'Inactivo',
-  SUSPENDED: 'Suspendido',
-  ARCHIVED: 'Archivado',
-};
 
 const ENVIRONMENT_KIND_LABEL: Record<string, string> = {
   DEMO: 'Demo',
@@ -54,17 +51,32 @@ const ENVIRONMENT_KIND_LABEL: Record<string, string> = {
   SANDBOX: 'Sandbox',
 };
 
+const PROVIDER_LABEL: Record<string, string> = {
+  SUPABASE: 'Supabase',
+  AWS: 'AWS',
+  AZURE: 'Azure',
+  GCP: 'Google Cloud',
+  ON_PREMISE: 'Servidor propio',
+};
+
+type ModeFilter = 'ALL' | 'SHARED' | 'PARTNER_DEDICATED' | 'TENANT_DEDICATED' | 'INCIDENT' | 'STALE';
+type ProvisioningRow = Record<string, unknown> & TargetHealthInput;
+
 /**
- * Entornos y despliegues: la infraestructura FÍSICA, desacoplada del tenant lógico.
+ * Entornos y despliegues (V6 · F2, plan §3.3): la infraestructura FÍSICA,
+ * desacoplada del tenant lógico, como TABLA de destinos (antes, un bloque por
+ * destino con su tabla de tenants abierta: 5.400 px de alto).
+ *
+ * Una fila por destino: nombre y código, app y dueño, entorno y modo, tenants
+ * alojados, estado de las altas y salud en una línea. El detalle técnico de la
+ * conexión y la lista de tenants se despliegan bajo la fila, plegados por
+ * defecto. «Verificar conexión» y «Configurar altas» quedan en la fila como
+ * iconos con su nombre accesible.
  *
  * La salud que se ve es la ÚLTIMA OBSERVACIÓN guardada, con su fecha. Abrir la
- * pantalla no verifica nada ni habilita nada: «Verificar conexión» es una acción
- * explícita, y un destino en borrador o deshabilitado se muestra «No evaluado»,
- * no como fallo.
- *
- * Estas filas contienen SÓLO metadata pública (region, project ref). No hay
- * passwords, service_role keys ni PATs: un trigger en la base rechaza cualquier
- * clave JSONB que huela a credencial.
+ * pantalla no verifica nada ni habilita nada; un destino en borrador o
+ * deshabilitado se muestra «No evaluado», no como fallo. Estas filas contienen
+ * SÓLO metadata pública (región, referencia del proyecto): ninguna credencial.
  */
 export function DeploymentsPage() {
   const targets = useDeploymentTargets();
@@ -78,6 +90,7 @@ export function DeploymentsPage() {
   const toast = useToast();
   const checkHealth = useCheckDeploymentHealth();
   const [provisioningDialog, setProvisioningDialog] = useState<TargetProvisioningDraft | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   async function runHealthCheck(targetId: string, code: string) {
     try {
@@ -106,19 +119,41 @@ export function DeploymentsPage() {
   const { term, setTerm, filtered } = useSearchFilter(targets.data, (t) => [
     t.code, t.name, t.region, t.provider, t.deployment_mode,
     (t.organizations as { display_name: string } | null)?.display_name,
+    (t.saas_products as { short_name: string } | null)?.short_name,
   ]);
 
-  const [mode, setMode] = useState<string>('ALL');
+  const [mode, setMode] = useState<ModeFilter>('ALL');
   const all = targets.data ?? [];
-  const byMode = (m: string) => all.filter((t) => t.deployment_mode === m).length;
-  const countIn = (m: string) => filtered.filter((t) => m === 'ALL' || t.deployment_mode === m).length;
-  const visible = filtered.filter((t) => mode === 'ALL' || t.deployment_mode === mode);
-  const provisioningRows = provisioning.data ?? [];
+  const provisioningRows = useMemo(() => (provisioning.data ?? []) as ProvisioningRow[], [provisioning.data]);
+  const provisioningOf = useMemo(
+    () => new Map(provisioningRows.map((p) => [p.deployment_target_id as string, p])),
+    [provisioningRows],
+  );
+  const healthOf = (id: string) => {
+    const p = provisioningOf.get(id);
+    return p ? observedHealth(p) : 'NOT_EVALUATED';
+  };
+  const inMode = (t: (typeof all)[number], m: ModeFilter) => {
+    if (m === 'ALL') return true;
+    if (m === 'INCIDENT') return ['UNHEALTHY', 'DEGRADED'].includes(healthOf(t.id));
+    if (m === 'STALE') {
+      const p = provisioningOf.get(t.id);
+      return Boolean(p && isEvaluable(p) && isStale(p.health_checked_at as string | null));
+    }
+    return t.deployment_mode === m;
+  };
+  const countIn = (m: ModeFilter) => filtered.filter((t) => inMode(t, m)).length;
+  const visible = filtered.filter((t) => inMode(t, mode));
+  const incidents = all.filter((t) => inMode(t, 'INCIDENT')).length;
+  const stale = all.filter((t) => inMode(t, 'STALE')).length;
+  const dedicated = all.filter((t) => t.deployment_mode !== 'SHARED').length;
+  const toggle = (m: ModeFilter) => setMode((current) => (current === m ? 'ALL' : m));
+  const modeTabs: ModeFilter[] = ['ALL', 'SHARED', 'PARTNER_DEDICATED', 'TENANT_DEDICATED'];
 
   return (
     <PageContainer
       title="Entornos y despliegues"
-      description="Dónde vive físicamente cada tenant y a qué destino se llama en cada entorno. Un destino compartido aloja muchos tenants; uno dedicado de cliente, exactamente uno."
+      description="Dónde vive físicamente cada tenant y a qué destino se llama en cada entorno. Un destino compartido aloja muchos tenants; uno dedicado de cliente, exactamente uno. La salud es la última comprobación guardada, no monitoreo en tiempo real."
       actions={
         perms.canManagePlatform ? (
           <button
@@ -126,22 +161,57 @@ export function DeploymentsPage() {
             className="ebim-btn-primary"
             onClick={() => setTargetDialog({ open: true, target: null })}
           >
-            Nuevo target
+            Nuevo destino
           </button>
         ) : null
       }
     >
-      <KpiStrip label="Destinos de despliegue">
-        <KpiTile label="Destinos totales" value={targets.isLoading ? null : formatNumber(all.length)} loading={targets.isLoading} />
-        <KpiTile
-          label="Compartidos"
-          value={targets.isLoading ? null : formatNumber(byMode('SHARED'))}
-          loading={targets.isLoading}
-          footer="Infraestructura de EBIM para muchos tenants."
-        />
-        <KpiTile label="Dedicados de partner" value={targets.isLoading ? null : formatNumber(byMode('PARTNER_DEDICATED'))} loading={targets.isLoading} />
-        <KpiTile label="Dedicados de cliente" value={targets.isLoading ? null : formatNumber(byMode('TENANT_DEDICATED'))} loading={targets.isLoading} />
-      </KpiStrip>
+      {targets.isLoading || all.length > 0 ? (
+        <StatStrip label="Destinos de despliegue">
+          <StatCell
+            label="Destinos"
+            value={formatNumber(all.length)}
+            loading={targets.isLoading}
+            context={`${formatNumber(provisioningRows.filter(isEvaluable).length)} con altas habilitadas`}
+            onSelect={() => setMode('ALL')}
+            selected={mode === 'ALL'}
+          />
+          <StatCell
+            label="Compartidos"
+            value={formatNumber(all.filter((t) => t.deployment_mode === 'SHARED').length)}
+            loading={targets.isLoading}
+            context="Infraestructura de EBIM para muchos tenants"
+            onSelect={() => toggle('SHARED')}
+            selected={mode === 'SHARED'}
+          />
+          <StatCell
+            label="Dedicados"
+            value={formatNumber(dedicated)}
+            loading={targets.isLoading}
+            context={`${formatNumber(all.filter((t) => t.deployment_mode === 'PARTNER_DEDICATED').length)} de partner · ${formatNumber(
+              all.filter((t) => t.deployment_mode === 'TENANT_DEDICATED').length,
+            )} de cliente`}
+          />
+          <StatCell
+            label="Con incidencia"
+            value={formatNumber(incidents)}
+            loading={targets.isLoading || provisioning.isLoading}
+            tone={incidents > 0 ? 'danger' : 'ok'}
+            context={incidents > 0 ? 'Caídos o degradados' : 'Ningún destino caído'}
+            onSelect={() => toggle('INCIDENT')}
+            selected={mode === 'INCIDENT'}
+          />
+          <StatCell
+            label="Sin comprobar en 24 h"
+            value={formatNumber(stale)}
+            loading={targets.isLoading || provisioning.isLoading}
+            tone={stale > 0 ? 'warn' : 'neutral'}
+            context="Salud desactualizada"
+            onSelect={() => toggle('STALE')}
+            selected={mode === 'STALE'}
+          />
+        </StatStrip>
+      ) : null}
 
       <EnvironmentMatrix rows={provisioningRows} loading={provisioning.isLoading} error={provisioning.error} />
 
@@ -149,17 +219,23 @@ export function DeploymentsPage() {
         <SearchBar
           value={term}
           onChange={setTerm}
-          placeholder="Buscar por código, región, proveedor u organización…"
+          total={targets.isLoading ? undefined : all.length}
+          placeholder="Buscar por destino, app, región, proveedor u organización…"
           right={
             <StatusTabs
               label="Modo de despliegue"
               value={mode}
               onChange={setMode}
               options={[
-                { id: 'ALL', label: 'Todos', count: countIn('ALL') },
-                { id: 'SHARED', label: 'Compartidos', count: countIn('SHARED') },
-                { id: 'PARTNER_DEDICATED', label: 'De partner', count: countIn('PARTNER_DEDICATED') },
-                { id: 'TENANT_DEDICATED', label: 'De cliente', count: countIn('TENANT_DEDICATED') },
+                ...modeTabs.map((id) => ({
+                  id,
+                  label: { ALL: 'Todos', SHARED: 'Compartidos', PARTNER_DEDICATED: 'De partner', TENANT_DEDICATED: 'De cliente' }[
+                    id as 'ALL'
+                  ],
+                  count: countIn(id),
+                })),
+                ...(mode === 'INCIDENT' ? [{ id: 'INCIDENT' as const, label: 'Con incidencia', count: countIn('INCIDENT') }] : []),
+                ...(mode === 'STALE' ? [{ id: 'STALE' as const, label: 'Sin comprobar', count: countIn('STALE') }] : []),
               ]}
             />
           }
@@ -168,124 +244,169 @@ export function DeploymentsPage() {
           <LoadingState />
         ) : targets.error ? (
           <ErrorState error={targets.error} onRetry={() => void targets.refetch()} />
+        ) : all.length === 0 ? (
+          <EmptyState title="Sin destinos de despliegue" description="No hay destinos visibles para tu perfil." />
         ) : visible.length === 0 ? (
-          <EmptyState title="Sin destinos de despliegue" description="No hay destinos visibles para tu perfil o ninguno coincide con la búsqueda." />
+          <EmptyState
+            variant="no-results"
+            title="Ningún destino coincide"
+            description="Prueba con otra búsqueda o cambia de pestaña."
+            onClear={() => {
+              setTerm('');
+              setMode('ALL');
+            }}
+          />
         ) : (
-          <div className="divide-y divide-border">
-            {visible.map((t) => {
+          <DataTable
+            label="Destinos de despliegue"
+            minWidth={1040}
+            columns={[
+              { label: 'Destino', sticky: true },
+              { label: 'App y dueño' },
+              { label: 'Entorno y modo' },
+              { label: 'Tenants', align: 'right' },
+              { label: 'Altas en las apps' },
+              { label: 'Salud' },
+              { label: 'Acciones', srOnly: true },
+            ]}
+          >
+            {visible.flatMap((t) => {
               const deployments = ((t.tenant_deployments ?? []) as Array<Record<string, unknown>>).filter(
                 (d) => d.status === 'ACTIVE',
               );
-              return (
-                <div key={t.id} className="min-w-0 px-5 py-4" data-target={t.code}>
-                  <div className="mb-3 flex items-start gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                        <span className="break-all font-mono text-body font-semibold text-fg">{t.code}</span>
-                        <Badge tone={t.status === 'ACTIVE' ? 'ok' : 'neutral'} dot>
-                          {TARGET_STATUS_LABEL[t.status] ?? t.status}
-                        </Badge>
-                        <Badge tone="accent">
-                          {DEPLOYMENT_MODE_LABEL[t.deployment_mode as keyof typeof DEPLOYMENT_MODE_LABEL]}
-                        </Badge>
-                      </div>
-                      <p className="mt-0.5 text-body text-fg-2">{t.name}</p>
-                      <p className="mt-1 flex flex-wrap gap-x-2 text-caption text-muted">
-                        <span>
-                          {t.owner_organization_id
-                            ? `Dueño: ${(t.organizations as { display_name: string } | null)?.display_name}`
-                            : 'Infraestructura de EBIM (compartida)'}
-                        </span>
-                        {t.saas_products ? <span>· {(t.saas_products as { short_name: string }).short_name}</span> : null}
-                        <span>· {t.provider}{t.region ? ` ${t.region}` : ''}</span>
-                        <span>· {ENVIRONMENT_KIND_LABEL[t.environment] ?? t.environment}</span>
-                        {t.cost_center ? <span>· centro de costo {t.cost_center}</span> : null}
-                        <span>
-                          · ref pública <span className="font-mono">{(t.provider_project_ref as string) ?? '—'}</span>
-                        </span>
-                      </p>
-                    </div>
-                    {perms.canManagePlatform ? (
-                      <ActionMenu
-                        variant="icon"
-                        label={`Acciones de ${t.code}`}
-                        items={[
-                          {
-                            label: 'Editar destino',
-                            onSelect: () =>
-                              setTargetDialog({
-                                open: true,
-                                target: {
-                                  id: t.id,
-                                  code: t.code,
-                                  name: t.name,
-                                  provider: t.provider,
-                                  deployment_mode: t.deployment_mode,
-                                  environment: t.environment,
-                                  region: t.region,
-                                  provider_project_ref: t.provider_project_ref,
-                                  owner_organization_id: t.owner_organization_id,
-                                  saas_product_id: t.saas_product_id,
-                                  cost_center: t.cost_center,
-                                  status: t.status,
-                                },
-                              }),
-                          },
-                          {
-                            label: 'Adjuntar tenant',
-                            onSelect: () => setAttachTarget({ id: t.id, code: t.code, mode: t.deployment_mode }),
-                          },
-                        ]}
+              const row = provisioningOf.get(t.id);
+              const env = (row?.provisioning_environment as ProvisioningEnvironment | null) ?? null;
+              const product = (t.saas_products as { short_name: string } | null)?.short_name ?? null;
+              const owner = t.owner_organization_id
+                ? (t.organizations as { display_name: string } | null)?.display_name ?? 'Organización'
+                : 'EBIM (compartida)';
+              const isOpen = expanded === t.id;
+              const canManage = access.canForProduct('platform.deployment.manage', t.saas_product_id);
+              const canCheck = access.canForProduct('platform.deployment.read', t.saas_product_id);
+              const draft = row ? provisioningDraft(row) : null;
+              const cells = [
+                <tr key={t.id} data-target={t.code} className={t.status === 'ACTIVE' ? undefined : 'opacity-80'}>
+                  <td className="ebim-td py-2">
+                    <div className="max-w-[250px]">
+                      <CellTitle
+                        title={t.name}
+                        secondary={[t.code, [PROVIDER_LABEL[t.provider] ?? t.provider, t.region].filter(Boolean).join(' ')]}
+                        monoParts={[0]}
+                        tooltip={`${t.name}${t.provider_project_ref ? `\nReferencia pública: ${t.provider_project_ref as string}` : ''}${
+                          t.cost_center ? `\nCentro de costo: ${t.cost_center as string}` : ''
+                        }`}
                       />
-                    ) : null}
-                  </div>
-
-                  <ProvisioningPanel
-                    row={(provisioning.data ?? []).find((p) => p.deployment_target_id === t.id)}
-                    canManage={access.canForProduct('platform.deployment.manage', t.saas_product_id)}
-                    canCheck={access.canForProduct('platform.deployment.read', t.saas_product_id)}
-                    busy={checkHealth.isPending}
-                    onConfigure={setProvisioningDialog}
-                    onCheck={(id, code) => void runHealthCheck(id, code)}
-                  />
-
-                  {deployments.length === 0 ? (
-                    <p className="text-caption text-muted">Sin tenants asignados.</p>
-                  ) : (
-                    <details className="group rounded-card border border-border">
-                      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-2.5 text-compact font-semibold text-fg hover:bg-hover">
-                        <span>
-                          Tenants alojados <span className="font-normal tabular-nums text-muted">{deployments.length}</span>
-                        </span>
-                        <span className="text-caption font-normal text-accent-deep group-open:hidden">Ver tenants</span>
-                        <span className="hidden text-caption font-normal text-accent-deep group-open:inline">Ocultar</span>
-                      </summary>
-                      <div className="border-t border-border">
-                        <DataTable label={`Tenants alojados en ${t.code}`} columns={['Tenant', 'Código', 'Estado']}>
-                          {deployments.map((d) => {
-                            const tenant = d.tenants as { name: string; slug: string } | null;
-                            return (
-                              <tr key={d.tenant_id as string}>
-                                <td className="ebim-td">
-                                  <Link className="ebim-link" to={`/tenants/${d.tenant_id}`}>
-                                    {tenant?.name}
-                                  </Link>
-                                </td>
-                                <td className="ebim-td font-mono text-caption text-muted">{tenant?.slug}</td>
-                                <td className="ebim-td text-compact text-muted">
-                                  {d.status === 'ACTIVE' ? 'Activo' : (d.status as string)}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </DataTable>
-                      </div>
-                    </details>
-                  )}
-                </div>
-              );
+                    </div>
+                  </td>
+                  <td className="ebim-td py-2">
+                    <span className="block max-w-[170px] leading-tight">
+                      <span className="block truncate font-semibold text-fg">{product ?? 'Varias apps'}</span>
+                      <span className="block truncate text-caption text-muted" title={owner}>
+                        {owner}
+                      </span>
+                    </span>
+                  </td>
+                  <td className="ebim-td py-2 text-compact">
+                    <span className="block whitespace-nowrap leading-tight">
+                      <span className="block text-fg">
+                        {env ? PROVISIONING_ENVIRONMENT_LABEL[env] : ENVIRONMENT_KIND_LABEL[t.environment] ?? t.environment}
+                      </span>
+                      <span className="block text-caption text-muted">
+                        {DEPLOYMENT_MODE_LABEL[t.deployment_mode as keyof typeof DEPLOYMENT_MODE_LABEL]}
+                      </span>
+                    </span>
+                  </td>
+                  <td className="ebim-td ebim-num">{formatNumber(deployments.length)}</td>
+                  <td className="ebim-td py-2">
+                    {row ? <AltasCell row={row} /> : <span className="text-compact text-muted">Sin configurar</span>}
+                  </td>
+                  <td className="ebim-td py-2">
+                    {row ? <HealthCell row={row} /> : <span className="text-compact text-muted">No evaluado</span>}
+                  </td>
+                  <td className="ebim-td w-[132px] pl-1 pr-3 text-right">
+                    <div className="flex items-center justify-end gap-0.5 whitespace-nowrap">
+                      {row && canCheck ? (
+                        <button
+                          type="button"
+                          className="ebim-icon-btn"
+                          aria-label="Verificar conexión"
+                          title={`Verificar la conexión con ${t.code}`}
+                          disabled={checkHealth.isPending}
+                          onClick={() => void runHealthCheck(t.id, t.code)}
+                        >
+                          <ArrowsClockwiseIcon size={16} aria-hidden />
+                        </button>
+                      ) : null}
+                      {draft && canManage ? (
+                        <button
+                          type="button"
+                          className="ebim-icon-btn"
+                          aria-label="Configurar altas"
+                          title={`Configurar las altas en ${t.code}`}
+                          onClick={() => setProvisioningDialog(draft)}
+                        >
+                          <GearSixIcon size={16} aria-hidden />
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="ebim-icon-btn"
+                        aria-expanded={isOpen}
+                        aria-label={isOpen ? `Ocultar el detalle de ${t.code}` : `Ver el detalle de ${t.code}`}
+                        title={isOpen ? 'Ocultar el detalle' : 'Conexión y tenants alojados'}
+                        onClick={() => setExpanded(isOpen ? null : t.id)}
+                      >
+                        {isOpen ? <CaretDownIcon size={16} aria-hidden /> : <CaretRightIcon size={16} aria-hidden />}
+                      </button>
+                      {perms.canManagePlatform ? (
+                        <ActionMenu
+                          variant="icon"
+                          label={`Acciones de ${t.code}`}
+                          items={[
+                            {
+                              label: 'Editar destino',
+                              onSelect: () =>
+                                setTargetDialog({
+                                  open: true,
+                                  target: {
+                                    id: t.id,
+                                    code: t.code,
+                                    name: t.name,
+                                    provider: t.provider,
+                                    deployment_mode: t.deployment_mode,
+                                    environment: t.environment,
+                                    region: t.region,
+                                    provider_project_ref: t.provider_project_ref,
+                                    owner_organization_id: t.owner_organization_id,
+                                    saas_product_id: t.saas_product_id,
+                                    cost_center: t.cost_center,
+                                    status: t.status,
+                                  },
+                                }),
+                            },
+                            {
+                              label: 'Adjuntar tenant',
+                              onSelect: () => setAttachTarget({ id: t.id, code: t.code, mode: t.deployment_mode }),
+                            },
+                          ]}
+                        />
+                      ) : null}
+                    </div>
+                  </td>
+                </tr>,
+              ];
+              if (isOpen) {
+                cells.push(
+                  <tr key={`${t.id}-detalle`} data-target-detail={t.code}>
+                    <td className="ebim-td bg-sunken" colSpan={7}>
+                      <TargetDetail row={row} deployments={deployments} code={t.code} />
+                    </td>
+                  </tr>,
+                );
+              }
+              return cells;
             })}
-          </div>
+          </DataTable>
         )}
       </Card>
 
@@ -312,44 +433,10 @@ export function DeploymentsPage() {
   );
 }
 
-/**
- * Panel de provisioning de un destino.
- *
- * Distingue visualmente los tres modos porque las preguntas son distintas: un
- * compartido sirve a muchos tenants, uno de partner a los de ese partner, y uno
- * dedicado existe para un solo cliente — y hasta que ese existe, sus solicitudes
- * esperan en «Infraestructura pendiente».
- *
- * No muestra ninguna credencial: sólo si la referencia está configurada.
- */
-function ProvisioningPanel({
-  row,
-  canManage,
-  canCheck,
-  busy,
-  onConfigure,
-  onCheck,
-}: {
-  row: Record<string, unknown> | undefined;
-  canManage: boolean;
-  canCheck: boolean;
-  busy: boolean;
-  onConfigure: (draft: TargetProvisioningDraft) => void;
-  onCheck: (targetId: string, code: string) => void;
-}) {
-  if (!row) return null;
-
-  const environment = row.provisioning_environment as ProvisioningEnvironment | null;
-  const status = row.provisioning_status as DeploymentTargetStatus;
-  const healthInput = row as TargetHealthInput;
-  const health = observedHealth(healthInput);
-  const evaluable = isEvaluable(healthInput);
-  const targetId = row.deployment_target_id as string;
-  const code = row.code as string;
-
-  const draft: TargetProvisioningDraft = {
-    deployment_target_id: targetId,
-    code,
+function provisioningDraft(row: ProvisioningRow): TargetProvisioningDraft {
+  return {
+    deployment_target_id: row.deployment_target_id as string,
+    code: row.code as string,
     saas_product_id: row.saas_product_id as string,
     provisioning_environment: (row.provisioning_environment as string) ?? null,
     product_integration_id: (row.product_integration_id as string) ?? null,
@@ -361,98 +448,115 @@ function ProvisioningPanel({
     provisioning_enabled: Boolean(row.provisioning_enabled),
     effective_provisioning_policy: (row.effective_provisioning_policy as string) ?? null,
   };
+}
 
+/** Estado de las altas del destino: «Habilitadas» o su estado (borrador ≠ fallo: tono neutro). */
+function AltasCell({ row }: { row: ProvisioningRow }) {
+  const status = row.provisioning_status as DeploymentTargetStatus;
+  const enabled = Boolean(row.provisioning_enabled);
+  const env = row.provisioning_environment as ProvisioningEnvironment | null;
+  const ready = enabled && status === 'READY';
+  const label = ready ? 'Habilitadas' : DEPLOYMENT_TARGET_STATUS_LABEL[status] ?? status;
+  const tone: CellTone = ready ? 'ok' : status === 'DISABLED' ? 'neutral' : targetStatusTone(status);
+  // El entorno ya va en su columna: aquí solo lo que falta para que las altas funcionen.
+  const missing = [env ? null : 'sin entorno', enabled ? null : 'deshabilitadas'].filter(Boolean).join(' · ');
+  return <StatusCell label={label} tone={tone} detail={ready || !missing ? undefined : missing.charAt(0).toUpperCase() + missing.slice(1)} />;
+}
+
+/** Salud en una línea (punto + estado) y hace cuánto; la fecha exacta y el detalle en el `title`. */
+function HealthCell({ row }: { row: ProvisioningRow }) {
+  const health = observedHealth(row);
+  const evaluable = isEvaluable(row);
+  const at = row.health_checked_at as string | null;
+  const stale = evaluable && isStale(at);
+  const title = [
+    `${observedHealthLabel(health)}`,
+    evaluable ? (at ? `Observado el ${formatDateTime(at)}` : 'Nunca comprobado') : notEvaluatedReason(row),
+    evaluable && row.health_detail ? `Detalle: ${row.health_detail as string}` : null,
+  ]
+    .filter(Boolean)
+    .join('\n');
   return (
-    <div className="mb-3 rounded-card border border-border bg-sunken p-3">
-      <div className="mb-2 flex flex-wrap items-center gap-2">
-        <span className="text-micro text-muted">Altas en las apps</span>
-        {environment ? (
-          <Badge tone="info">Entorno: {PROVISIONING_ENVIRONMENT_LABEL[environment]}</Badge>
-        ) : (
-          <Badge tone="neutral">Sin entorno</Badge>
-        )}
-        {/* Deshabilitado/borrador no es un fallo: tono neutro, nunca rojo. */}
-        <Badge tone={status === 'DISABLED' ? 'neutral' : targetStatusTone(status)}>
-          {DEPLOYMENT_TARGET_STATUS_LABEL[status]}
-        </Badge>
-        {row.provisioning_enabled ? (
-          <Badge tone="ok">Habilitado</Badge>
-        ) : (
-          <Badge tone="neutral">Deshabilitado</Badge>
-        )}
-        <span className="inline-flex items-center gap-1.5 text-compact">
-          <HealthDot health={health} />
-          <HealthText health={health} />
-        </span>
-        <span className="text-caption">
-          {evaluable ? (
-            <ObservationDate at={row.health_checked_at as string | null} />
-          ) : (
-            <span className="text-muted">{notEvaluatedReason(healthInput)}</span>
-          )}
-        </span>
+    <span className="flex flex-col items-start gap-0.5 leading-tight" title={title} data-health-cell={health}>
+      <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-compact">
+        <HealthDot health={health} />
+        <HealthText health={health} />
+      </span>
+      <span className={`whitespace-nowrap text-caption ${stale ? 'text-warn' : 'text-muted'}`}>
+        {evaluable ? (at ? relativeAge(at) : 'Nunca comprobado') : notEvaluatedReason(row)}
+      </span>
+    </span>
+  );
+}
 
-        <span className="ml-auto flex flex-wrap gap-2">
-          {canCheck ? (
-            <button
-              type="button"
-              className="ebim-btn-secondary ebim-btn-sm"
-              disabled={busy}
-              onClick={() => onCheck(targetId, code)}
-            >
-              Verificar conexión
-            </button>
-          ) : null}
-          {canManage ? (
-            <button
-              type="button"
-              className="ebim-btn-ghost ebim-btn-sm"
-              onClick={() => onConfigure(draft)}
-            >
-              Configurar altas
-            </button>
-          ) : null}
-        </span>
+/**
+ * Detalle plegado bajo la fila: la conexión técnica (sin ninguna credencial,
+ * solo si la referencia está puesta) y los tenants alojados.
+ */
+function TargetDetail({
+  row,
+  deployments,
+  code,
+}: {
+  row: ProvisioningRow | undefined;
+  deployments: Array<Record<string, unknown>>;
+  code: string;
+}) {
+  return (
+    <div className="grid gap-4 py-2 lg:grid-cols-2">
+      <div className="min-w-0">
+        <p className="mb-2 text-micro text-muted">Conexión para las altas</p>
+        {row ? (
+          <dl className="space-y-1 text-compact">
+            <DetailPair
+              label="Integración"
+              value={row.integration_code ? `${row.integration_code as string} · ${row.integration_type as string}` : 'Sin configurar'}
+              mono={Boolean(row.integration_code)}
+            />
+            <DetailPair label="URL base" value={(row.base_url as string) ?? 'No aplica'} mono={Boolean(row.base_url)} />
+            <DetailPair
+              label="Credencial"
+              value={`${(row.credential_profile_code as string) ?? 'Sin perfil'}${row.credential_secret_configured ? ' · referencia configurada' : ''}`}
+            />
+            <DetailPair label="Tiempo de espera" value={`${String(row.timeout_ms)} ms · ${String(row.retry_count)} reintentos`} />
+            {isEvaluable(row) && row.health_detail ? (
+              <DetailPair label="Última comprobación" value={row.health_detail as string} />
+            ) : null}
+          </dl>
+        ) : (
+          <p className="text-compact text-muted">Este destino no tiene configuradas las altas en las apps.</p>
+        )}
       </div>
-
-      {evaluable && row.health_detail ? (
-        <p className="mb-2 break-words text-caption text-muted">
-          Detalle de la última comprobación: {row.health_detail as string}
+      <div className="min-w-0">
+        <p className="mb-2 text-micro text-muted">
+          Tenants alojados <span className="tabular-nums">({deployments.length})</span>
         </p>
-      ) : null}
-
-      <div className="flex flex-wrap gap-x-6 gap-y-1 text-caption text-muted">
-        <span>
-          Integración:{' '}
-          {row.integration_code ? (
-            <span className="font-mono">
-              {row.integration_code as string} · {row.integration_type as string}
-            </span>
-          ) : (
-            'sin configurar'
-          )}
-        </span>
-        <span>
-          URL base:{' '}
-          {row.base_url ? (
-            <span className="break-all font-mono">{row.base_url as string}</span>
-          ) : (
-            'no aplica'
-          )}
-        </span>
-        <span>
-          Credencial:{' '}
-          {row.credential_profile_code ? (
-            <span className="font-mono">{row.credential_profile_code as string}</span>
-          ) : (
-            'sin perfil'
-          )}
-          {row.credential_secret_configured ? ' · referencia configurada' : ''}
-        </span>
-        <span>
-          Timeout {String(row.timeout_ms)} ms · {String(row.retry_count)} reintentos
-        </span>
+        {deployments.length === 0 ? (
+          <p className="text-compact text-muted">Sin tenants asignados.</p>
+        ) : (
+          <ul className="grid gap-x-4 gap-y-1 text-compact sm:grid-cols-2" aria-label={`Tenants alojados en ${code}`}>
+            {deployments.map((d) => {
+              const tenant = d.tenants as { name: string; slug: string } | null;
+              return (
+                <li key={d.tenant_id as string} className="min-w-0 truncate" title={tenant?.slug ?? undefined}>
+                  <Link className="ebim-link" to={`/tenants/${d.tenant_id}`}>
+                    {tenant?.name ?? 'Tenant'}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
+    </div>
+  );
+}
+
+function DetailPair({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
+      <dt className="shrink-0 text-muted sm:w-36">{label}</dt>
+      <dd className={mono ? 'min-w-0 break-all font-mono text-caption' : 'min-w-0'}>{value}</dd>
     </div>
   );
 }
@@ -489,38 +593,43 @@ function EnvironmentMatrix({
   return (
     <Card
       className="mb-4"
-      title="Salud observada por producto y entorno"
-      description="Última comprobación guardada; no es monitoreo en tiempo real. Sólo cuentan los destinos con altas habilitadas."
+      title="Salud por app y entorno"
+      description="Última comprobación guardada; solo cuentan los destinos con altas habilitadas."
     >
       <DataTable
         label="Matriz de producto y entorno"
         paginate={false}
         scrollRegion
-        columns={['Producto', ...environments.map((e) => PROVISIONING_ENVIRONMENT_LABEL[e])]}
+        mobileCards={false}
+        columns={['App', ...environments.map((e) => PROVISIONING_ENVIRONMENT_LABEL[e])]}
       >
         {products.map(([product, targets]) => {
           const summaries = summarizeByEnvironment(targets);
           return (
             <tr key={product}>
-              {/* Producto y celdas alineados arriba: las celdas con salud ocupan tres líneas. */}
-              <th scope="row" className="ebim-td py-3 text-left align-top font-semibold">
+              <th scope="row" className="ebim-td text-left font-semibold">
                 {product}
               </th>
               {environments.map((e) => {
                 const s = summaries.find((x) => x.environment === e);
                 return (
-                  <td key={e} className="ebim-td py-3 align-top">
+                  <td key={e} className="ebim-td">
                     {s ? (
-                      <div className="flex flex-col items-start gap-0.5 text-caption" data-health-cell={s.health}>
-                        <span className="inline-flex items-center gap-1.5 text-compact">
-                          <HealthDot health={s.health} />
-                          <HealthText health={s.health} />
-                        </span>
-                        {s.health === 'NOT_EVALUATED' ? null : <ObservationDate at={s.latestCheckedAt} />}
-                        <span className="text-muted">
-                          {s.evaluated} de {s.total} habilitado{s.total === 1 ? '' : 's'}
-                        </span>
-                      </div>
+                      <span
+                        className="inline-flex items-center gap-1.5 whitespace-nowrap text-compact"
+                        data-health-cell={s.health}
+                        title={`${s.label}: ${observedHealthLabel(s.health)}${
+                          s.latestCheckedAt ? ` · observado el ${formatDateTime(s.latestCheckedAt)}` : ''
+                        }\n${s.evaluated} de ${s.total} destino${s.total === 1 ? '' : 's'} con altas habilitadas`}
+                      >
+                        <HealthDot health={s.health} />
+                        <HealthText health={s.health} />
+                        {s.health !== 'NOT_EVALUATED' && s.latestCheckedAt ? (
+                          <span className={isStale(s.latestCheckedAt) ? 'text-caption text-warn' : 'text-caption text-muted'}>
+                            · {relativeAge(s.latestCheckedAt)}
+                          </span>
+                        ) : null}
+                      </span>
                     ) : (
                       <span className="text-caption text-muted">Sin destino</span>
                     )}

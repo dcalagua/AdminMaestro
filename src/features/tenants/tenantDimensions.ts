@@ -97,13 +97,13 @@ export function tenantDimensions(
   const commercial = {
     ...c,
     mrr,
-    detail: `${TYPE[tenant.tenant_type ?? ''] ?? tenant.tenant_type ?? 'Tipo sin definir'} · registro del control plane; no refleja el acceso remoto.`,
+    detail: `${TYPE[tenant.tenant_type ?? ''] ?? tenant.tenant_type ?? 'Tipo sin definir'} · registro del Admin Maestro; no refleja el acceso en la app.`,
   };
 
   const latest = [...saas].sort((a, b) => String(b.requested_at ?? '').localeCompare(String(a.requested_at ?? '')))[0];
   let technical: Dimension;
   if (!latest) {
-    technical = { label: 'Sin alta SaaS registrada', detail: 'No hay solicitud de alta en ningún producto.', tone: 'neutral' };
+    technical = { label: 'Sin alta en la app', detail: 'No hay solicitud de alta en ningún producto.', tone: 'neutral' };
   } else {
     const r = REQUEST[latest.status ?? ''] ?? { label: latest.status ?? 'Sin estado', tone: 'neutral' as DimTone };
     const mapping = latest.mapping_status === 'ACTIVE' ? ' · mapping activo' : latest.mapping_status ? ` · mapping ${latest.mapping_status}` : '';

@@ -63,6 +63,7 @@ export function AlertsTab() {
       <SearchBar
         value={term}
         onChange={setTerm}
+        total={alerts.isLoading ? undefined : (alerts.data ?? []).length}
         placeholder="Buscar por código, tenant, producto, detalle o nota…"
         right={
           <StatusTabs

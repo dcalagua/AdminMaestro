@@ -18,7 +18,6 @@ import { ActionMenu } from '@/components/ui/ActionMenu';
 import { Avatar } from '@/components/ui/Avatar';
 import { capabilityText } from './organizationLabels';
 import {
-  Org360KpiStrip,
   Org360Activity,
   Org360Apps,
   Org360Billing,
@@ -209,7 +208,6 @@ export function OrganizationDetailPage() {
                     showFinance={showFinance}
                   />
                 ) : null}
-                {showFinance ? <Org360KpiStrip organizationId={o.id} /> : null}
                 <Org360Summary
                   organizationId={o.id}
                   organizationName={o.display_name}

@@ -9,6 +9,7 @@ import { fetchAuditPage, useAuditPage, type AuditFilter, type AuditRow, type Aud
 import { changedFieldsOf, correlationOf, diffOf, metadataOf, redact } from './auditFormat';
 import { auditActionLabel, entityTypeLabel } from './auditActions';
 import { AuditTimeline } from './AuditTimeline';
+import { useAuditEntityResolver } from './auditEntities';
 import { SelectInput } from '@/components/ui/fields';
 
 const SORTS: AuditSort[] = ['occurred_at', 'action', 'entity_type'];
@@ -27,6 +28,9 @@ const EXPORT_COLUMNS: ExportColumn<AuditRow>[] = [
 
 /**
  * Bitácora de auditoría.
+ *
+ * Cada evento se lee con su nombre de negocio y el de su entidad (V6 · F4); el
+ * código y los ids quedan en el detalle.
  *
  * Append-only REAL: `authenticated` no tiene GRANT de UPDATE ni DELETE sobre
  * `audit_logs`, y no existe política que los permita. No es "append-only por
@@ -63,13 +67,14 @@ export function AuditPage() {
     sortDir,
   };
   const page = useAuditPage(params);
+  const entityOf = useAuditEntityResolver();
   const rows = page.data?.rows ?? [];
   const total = page.data?.total ?? 0;
 
   return (
     <PageContainer
       title="Auditoría"
-      description="Acciones administrativas sensibles. La bitácora no se puede editar ni borrar desde la aplicación: el enforcement está en los GRANT, no en una convención."
+      description="Acciones administrativas sensibles: quién hizo qué, sobre qué y cuándo. La bitácora no se puede editar ni borrar."
     >
       <Card>
         <SearchBar
@@ -116,6 +121,7 @@ export function AuditPage() {
             <AuditTimeline
               label="Eventos de auditoría"
               rows={rows}
+              entityOf={entityOf}
               renderDetail={(row) => <AuditDetail row={row} embedded />}
             />
             <TablePager
@@ -152,6 +158,24 @@ export function AuditDetail({
 
   const body = (
     <div className={embedded ? 'space-y-4' : 'space-y-4 p-4'}>
+      {embedded ? (
+        // V6 · F4: el código y los identificadores salen de la línea del evento y quedan aquí.
+        <dl className="grid gap-x-6 gap-y-1 text-caption sm:grid-cols-[auto_minmax(0,1fr)]" data-audit-reference>
+          <dt className="text-muted">Código</dt>
+          <dd className="break-all font-mono text-fg-2">{row.action}</dd>
+          <dt className="text-muted">Entidad</dt>
+          <dd className="break-all text-fg-2">
+            {entityTypeLabel(row.entity_type)}
+            {row.entity_id ? <span className="ml-1 font-mono">{row.entity_id}</span> : null}
+          </dd>
+          {correlation ? (
+            <>
+              <dt className="text-muted">Correlación</dt>
+              <dd className="break-all font-mono text-fg-2">{correlation}</dd>
+            </>
+          ) : null}
+        </dl>
+      ) : null}
       {diff ? (
         <div>
           <p className="mb-2 text-micro text-muted">Cambios (antes → después)</p>

@@ -7,7 +7,7 @@
  * Lo técnico que un super admin necesite (códigos de API, nombres de vistas,
  * referencias a contratos) va a un tooltip o a la pestaña «Avanzado».
  *
- * Fuente única: `docs/design/GLOSARIO_V5.md` documenta las mismas entradas y el
+ * Fuente única: `docs/design/GLOSARIO_V6.md` documenta las mismas entradas y el
  * test `glossary.test.ts` vigila que los términos prohibidos no vuelvan a
  * aparecer en los textos visibles.
  */
@@ -59,6 +59,40 @@ export const GLOSSARY = {
     business: 'Conexión segura',
     note: 'La conexión firmada entre el Admin Maestro y cada app (servidor a servidor).',
   },
+  // V6 · T7
+  masterAdmin: {
+    technical: 'MasterAdmin / Control Plane',
+    business: 'Admin Maestro',
+    note: 'El nombre del producto: «en el Admin Maestro», «al Admin Maestro».',
+  },
+  target: {
+    technical: 'Deployment target',
+    business: 'Destino',
+    plural: 'Destinos',
+    note: 'Dónde corre el tenant: «destino dedicado», «destino compartido».',
+  },
+  webhook: {
+    technical: 'Webhook',
+    business: 'Aviso del proveedor',
+    plural: 'Avisos del proveedor',
+    note: 'Lo que la pasarela de pago nos notifica.',
+  },
+  pool: {
+    technical: 'Pool',
+    business: 'Bolsa',
+    note: 'Bolsa de créditos IA de un tenant o de un producto.',
+  },
+  scope: {
+    technical: 'Scope',
+    business: 'Permiso',
+    plural: 'Permisos',
+    note: 'Lo que un token puede hacer en la app. El valor técnico se muestra tal cual en mono.',
+  },
+  ingest: {
+    technical: 'Ingest',
+    business: 'Conexión de uso',
+    note: 'El canal por el que cada app envía sus eventos de uso.',
+  },
   tenant: {
     technical: 'Tenant',
     business: 'Tenant',
@@ -89,6 +123,27 @@ export const FORBIDDEN_UI_TERMS: ReadonlyArray<RegExp> = [
   /\bM2M\b/,
   // Referencias a contratos, specs o runbooks («contrato §4.4», «spec §12.7»).
   /§/,
+  // V6 · T7: jerga que el glosario V5 no vigilaba (plan V6 §0 y §2).
+  /\b[Ll]egacy\b/,
+  /\b[Ii]ngest\b/,
+  /\bGET\b/,
+  /\b[Cc]hecksum\b/,
+  /\b[Ll]edger\b/,
+  /\b[Pp]ool\b/,
+  /\b[Tt]argets?\b/,
+  /\b[Ss]copes?\b/,
+  /\b[Ll]ockup\b/,
+  /\b[Oo]ne-time\b/,
+  /\b[Dd]eployments?\b/,
+  /\b[Ww]ebhooks?\b/,
+  /\bMasterAdmin\b/,
+  /\bControl Plane\b/,
+  /\b[Jj]obs?\b/,
+  /\b[Bb]iller\b/,
+  /\bAuth\b/,
+  // Referencias a decisiones o KPI internos: «(D-06)», «hasta D-12», «(K05)».
+  /\bD-\d{2}\b/,
+  /\(K\d{2}\)/,
 ];
 
 /**

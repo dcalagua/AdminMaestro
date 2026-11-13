@@ -43,6 +43,9 @@ const SQLSTATE_MESSAGES: Record<string, string> = {
   // pantalla, no del usuario. El texto técnico queda plegado en ErrorState.
   PGRST200: 'El servidor no pudo relacionar los datos pedidos. Avisa al equipo de plataforma.',
   PGRST201: 'El servidor no pudo relacionar los datos pedidos (relación ambigua). Avisa al equipo de plataforma.',
+  // La vista o la función todavía no existe en este entorno (la pantalla llegó antes que su migración).
+  PGRST202: 'Esta función todavía no está disponible en este entorno. Avisa al equipo de plataforma.',
+  PGRST205: 'Esta información todavía no está disponible en este entorno. Avisa al equipo de plataforma.',
 };
 
 export function parseBusinessError(error: unknown): BusinessError {

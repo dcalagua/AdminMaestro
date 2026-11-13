@@ -68,7 +68,7 @@ export function RequireFinanceView({ children }: { children: ReactNode }) {
         <Card>
           <EmptyState
             title="Tu perfil técnico no incluye finanzas"
-            description="Tu acceso a MasterAdmin es de operación SaaS. La información de cobros, costos y comisiones está protegida en la base de datos y no se muestra por pertenecer a EBIM."
+            description="Tu acceso al Admin Maestro es de operación SaaS. La información de cobros, costos y comisiones está protegida en la base de datos y no se muestra por pertenecer a EBIM."
           />
         </Card>
       </PageContainer>

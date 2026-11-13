@@ -12,6 +12,7 @@ import {
   documentItems,
   healthItems,
   inboxAudience,
+  inboxSummary,
   invoiceItems,
   matchesInbox,
   settlementItems,
@@ -105,7 +106,8 @@ describe('facturas vencidas', () => {
       account: { name: 'Acme', to: '/organizations/o-1' },
       action: { type: 'link', label: 'Gestionar el cobro', to: '/cobranza?tab=por-cobrar&pcq=F001-12' },
     });
-    expect(items[0]!.detail).toMatch(/1,180\.00/);
+    expect(items[0]!.amount).toEqual({ value: 1180, currency: 'PEN' });
+    expect(items[0]!.detail).toMatch(/^Venció el /);
   });
 });
 
@@ -262,7 +264,8 @@ describe('documentos y liquidaciones', () => {
       ['Liquidación LQ-2 por pagar', 2, 'Registrar pago…'],
     ]);
     expect(items[1]!.key).toBe('settlement:2:APPROVED');
-    expect(items[1]!.detail).toMatch(/Ana Ruiz · .*500\.00/);
+    expect(items[1]!.detail).toBe('Ana Ruiz');
+    expect(items[1]!.amount).toEqual({ value: 500, currency: 'USD' });
   });
 });
 
@@ -281,5 +284,29 @@ describe('bandeja completa', () => {
     expect(countByKind(items)).toMatchObject({ invoice: 2, alta: 1, 'billing-alert': 1, health: 0 });
     expect(items.filter((i) => matchesInbox(i, 'acmé')).length).toBe(4);
     expect(items.filter((i) => matchesInbox(i, 'f001-12')).map((i) => i.kind)).toEqual(['invoice', 'invoice']);
+  });
+
+  it('la franja cuenta urgentes, vencido por moneda (sin sumar monedas), altas fallidas y aprobaciones', () => {
+    const items = buildInbox(
+      {
+        invoices: [
+          invoice({ days_overdue: 40 }),
+          invoice({ invoice_id: 'inv-2', balance: 300 }),
+          invoice({ invoice_id: 'inv-3', balance: 50, currency: 'USD', days_overdue: 3 }),
+        ],
+        requests: [request({})],
+      },
+      ALL,
+      NOW,
+    );
+    expect(inboxSummary(items)).toMatchObject({
+      urgent: 3,
+      invoices: 3,
+      overdue: { PEN: 1480, USD: 50 },
+      altas: 1,
+      failedAltas: 1,
+      alerts: 0,
+      approvals: 0,
+    });
   });
 });

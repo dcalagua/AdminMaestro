@@ -1,4 +1,5 @@
 import { Badge, Card, DataTable, EmptyState, ErrorState } from '@/components/ui/primitives';
+import { DetailFacts } from '@/components/ui/DetailFacts';
 import { ActionMenu } from '@/components/ui/ActionMenu';
 import { formatDate, formatMoney, formatNumber, formatPercent } from '@/lib/format';
 import { DEPLOYMENT_MODE_LABEL, TENANT_TYPE_LABEL } from '@/types/domain';
@@ -39,20 +40,16 @@ export function OrgIdentityCards({
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <Card id="overview" title="Identidad y marca" description="Logo, colores y enlace de ingreso con la marca del cliente.">
-        <dl className="divide-y divide-border">
-          {[
-            ['Código', org.slug],
+        <DetailFacts
+          columns={2}
+          items={[
+            ['Código', <span key="slug" className="font-mono text-caption">{org.slug}</span>],
             ['Código de marca (enlace de ingreso)', org.brand_slug ? `?t=${org.brand_slug}` : '—'],
             ['Color de acento', org.accent_color ?? 'Hereda de EBIM'],
             ['Marca blanca', org.white_label ? 'Sí' : 'No'],
             ['Correo de facturación', org.billing_email ?? '—'],
-          ].map(([k, v]) => (
-            <div key={k as string} className="flex justify-between gap-4 px-5 py-2.5 text-body">
-              <dt className="text-muted">{k}</dt>
-              <dd className="text-right font-medium">{v as string}</dd>
-            </div>
-          ))}
-        </dl>
+          ]}
+        />
       </Card>
 
       <Card
@@ -75,7 +72,7 @@ export function OrgIdentityCards({
               <tr key={c.id as string}>
                 <td className="ebim-td font-semibold">
                   {c.name as string}
-                  {c.is_default ? <Badge tone="accent">Principal</Badge> : null}
+                  {c.is_default ? <span className="ml-1.5"><Badge tone="accent">Principal</Badge></span> : null}
                 </td>
                 <td className="ebim-td">
                   {(c.markets as { code: string; name: string } | null)?.name ?? (

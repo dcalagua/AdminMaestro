@@ -126,7 +126,7 @@ beforeEach(() => {
 describe('UsagePage', () => {
   it('organiza el uso en pestañas con deep-link', () => {
     wrap(<UsagePage />);
-    for (const name of ['Medidores', 'Ingest', 'Agregados', 'Eventos', 'Rechazos', 'Alertas']) {
+    for (const name of ['Medidores', 'Conexión de uso', 'Agregados', 'Eventos', 'Rechazos', 'Alertas']) {
       expect(screen.getByRole('tab', { name })).toBeInTheDocument();
     }
     expect(screen.getByText('Sin medidores registrados')).toBeInTheDocument();
@@ -134,7 +134,7 @@ describe('UsagePage', () => {
 });
 
 describe('MetersTab', () => {
-  it('un medidor sin decisión de finanzas se rotula «No decidido (D-06)», nunca gratis', () => {
+  it('un medidor sin decisión de finanzas se rotula «No decidido», nunca gratis', () => {
     metersHook.mockReturnValue(
       ok([
         meter(),
@@ -144,7 +144,7 @@ describe('MetersTab', () => {
     );
     wrap(<MetersTab />);
     const pages = screen.getByRole('row', { name: /Páginas IA/ });
-    expect(within(pages).getByText('No decidido (D-06)')).toBeInTheDocument();
+    expect(within(pages).getByText('No decidido')).toBeInTheDocument();
     expect(within(pages).getByText('ewm.ai_docs')).toBeInTheDocument();
     expect(within(screen.getByRole('row', { name: /Llamadas/ })).getByText('Facturable')).toBeInTheDocument();
     expect(within(screen.getByRole('row', { name: /Viejo/ })).getByText('No facturable')).toBeInTheDocument();
@@ -265,11 +265,11 @@ describe('IngestTab', () => {
     product_code: 'ewm', product_short_name: 'EWM', cutover_state_billing: 'BILLING_LEGACY',
   };
 
-  it('avisa que el flag global vive en el entorno y está apagado hasta D-12', () => {
+  it('avisa que el flag global vive en el entorno y está apagado', () => {
     wrap(<IngestTab />);
     expect(screen.getByRole('note')).toHaveTextContent('USAGE_INGEST_ENABLED');
-    expect(screen.getByRole('note')).toHaveTextContent('D-12');
-    expect(screen.getByText('Sin credenciales de ingest')).toBeInTheDocument();
+    expect(screen.getByRole('note')).toHaveTextContent('USAGE_INGEST_ENABLED');
+    expect(screen.getByText('Sin credenciales de la conexión de uso')).toBeInTheDocument();
   });
 
   it('el kill-switch pide motivo y llama a set_usage_ingest_enabled', async () => {
@@ -280,7 +280,7 @@ describe('IngestTab', () => {
     wrap(<IngestTab />);
     const row = screen.getByRole('row', { name: /EWM/ });
     expect(within(row).getByText('Apagado')).toBeInTheDocument();
-    await user.click(within(row).getByRole('button', { name: 'Encender ingest' }));
+    await user.click(within(row).getByRole('button', { name: 'Encender conexión de uso' }));
     const dialog = screen.getByRole('dialog');
     await user.type(within(dialog).getByLabelText(/Motivo/), 'D-12 aprobada para DEV');
     await user.click(within(dialog).getByRole('button', { name: 'Encender' }));
@@ -499,7 +499,7 @@ describe('AlertsTab', () => {
       ]),
     );
     wrap(<AlertsTab />);
-    expect(screen.getByText('Política de créditos no decidida (D-03)')).toBeInTheDocument();
+    expect(screen.getByText('Política de créditos no decidida')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('tab', { name: /Créditos IA/ }));
     expect(screen.queryByText('Exceso bajo política BLOCK')).toBeNull();
   });

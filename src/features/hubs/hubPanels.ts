@@ -26,6 +26,7 @@ const EQUIPO_COMERCIAL: HubPanels = {
 const APPS: HubPanels = {
   integraciones: lazyPanel(() => import('@/features/platform/IntegrationsPage'), 'IntegrationsPage'),
   altas: lazyPanel(() => import('@/features/deployments/SaasProvisioningPage'), 'SaasProvisioningPage'),
+  'sincronizacion-apps': lazyPanel(() => import('@/features/sync/TenantSyncPage'), 'TenantSyncPage'),
   sincronizacion: lazyPanel(() => import('@/features/commercial/sync/EntitlementSyncPage'), 'EntitlementSyncPage'),
   uso: lazyPanel(() => import('@/features/usage/UsagePage'), 'UsagePage'),
   entornos: lazyPanel(() => import('@/features/deployments/DeploymentsPage'), 'DeploymentsPage'),

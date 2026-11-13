@@ -37,12 +37,15 @@ export function MrrEvolutionPanel({
   horizon,
   month,
   onSelect,
+  notice,
 }: {
   query: ReturnType<typeof useExecutiveMrrSeries>;
   currency: string;
   horizon: Horizon;
   month: string;
   onSelect: (month: string) => void;
+  /** Aviso extra en la línea de cobertura (el puente plegado). */
+  notice?: string;
 }) {
   const view = usePresentationView();
   const points = (query.data ?? []).slice(-horizon);
@@ -70,7 +73,12 @@ export function MrrEvolutionPanel({
           : `Últimos ${horizon} meses`
       }
       source="executive_mrr_series"
-      coverage={missing.length ? `Meses sin tasa para ${missing.join(', ')} quedan sin dibujar` : 'Clic en un mes para analizarlo; el punto hueco es el mes en curso'}
+      coverage={[
+        missing.length ? `Meses sin tasa para ${missing.join(', ')} quedan sin dibujar` : 'Clic en un mes para analizarlo; el punto hueco es el mes en curso',
+        notice,
+      ]
+        .filter(Boolean)
+        .join(' · ')}
       state={state.status === 'ready' && missing.length ? { status: 'partial', data: points, reasons: [`falta tasa ${missing.join(', ')}`] } : state}
       onRetry={() => void query.refetch()}
       emptyText="Aún no hay contratos con MRR en el período"

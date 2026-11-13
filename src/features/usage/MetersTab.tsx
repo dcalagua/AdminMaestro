@@ -12,7 +12,6 @@ import { FormDialog } from '@/components/ui/FormDialog';
 import { CheckboxField, FieldRow, NumberField, SelectField, TextAreaField, TextField } from '@/components/ui/fields';
 import { useToast } from '@/components/ui/toast-context';
 import { AGGREGATION_LABEL, MEASUREMENT_LABEL, METER_STATUS, labelOf } from './usageLabels';
-import { Undecided } from './Undecided';
 import { useLookups } from './useLookups';
 import { Sparkline } from '@/components/ui/Sparkline';
 import { formatPeriod, formatQuantity } from './usageLabels';
@@ -23,7 +22,7 @@ import { meterKey, meterSeries, type MeterSeries } from './usageSeries';
  *
  * Registrar o editar un medidor es de producto (EBIM_PRODUCT_ADMIN). Que sea
  * FACTURABLE es una decisión de finanzas (D-06) con motivo: mientras nadie la
- * toma, el medidor se muestra «No decidido (D-06)», nunca «gratis».
+ * toma, el medidor se muestra «No decidido», nunca «gratis».
  */
 
 type Meter = NonNullable<ReturnType<typeof useUsageMeters>['data']>[number];
@@ -66,7 +65,7 @@ export function MetersTab() {
     <>
       <Card
         title="Medidores"
-        description="Qué mide cada producto y cómo se agrega por período. Un medidor nace no facturable: lo decide finanzas (D-06)."
+        description="Qué mide cada producto y cómo se agrega por período. Un medidor nace no facturable: lo decide finanzas."
         actions={
           perms.canManagePlatform ? (
             <button type="button" className="ebim-btn-primary ebim-btn-sm" onClick={() => setEditing('new')}>
@@ -78,6 +77,7 @@ export function MetersTab() {
         <SearchBar
           value={term}
           onChange={setTerm}
+          total={meters.isLoading ? undefined : (meters.data ?? []).length}
           placeholder="Buscar medidor, unidad, producto o capacidad…"
           right={
             <StatusTabs
@@ -99,10 +99,11 @@ export function MetersTab() {
         ) : groups.length === 0 ? (
           <EmptyState
             title={hasAny ? 'Ningún medidor coincide' : 'Sin medidores registrados'}
+            variant={hasAny ? 'no-results' : 'empty'}
             description={
               hasAny
                 ? 'Prueba con otra búsqueda o cambia de estado.'
-                : 'Se registran desde el contrato de uso de cada producto (contracts/usage/v1/meters.json).'
+                : 'Cada app declara sus medidores cuando conecta su canal de uso. Mientras ninguna app reporte consumo, no hay uso que mostrar ni que cobrar.'
             }
           />
         ) : (
@@ -157,7 +158,10 @@ export function MetersTab() {
                         ) : m.billable_decided_by || m.billable_reason ? (
                           <Badge tone="neutral">No facturable</Badge>
                         ) : (
-                          <Undecided code="D-06" />
+                          // Sin referencias a decisiones internas en la UI de negocio (V6 · T7): la marca dice qué falta.
+                          <Badge tone="warn" title="Pendiente de que finanzas decida si se cobra">
+                            No decidido
+                          </Badge>
                         )}
                         {m.billable_reason ? (
                           <div className="mt-0.5 max-w-[200px] truncate text-caption text-muted" title={m.billable_reason}>
@@ -344,7 +348,7 @@ function MeterDialog({
       open={open}
       wide
       title={meter ? `Editar medidor · ${meter.code}` : 'Nuevo medidor'}
-      description="El medidor nace no facturable. Que lo sea lo decide finanzas aparte (D-06). Una foto diaria solo se registra para dimensiones aprobadas."
+      description="El medidor nace no facturable. Que lo sea lo decide finanzas aparte. Una foto diaria solo se registra para dimensiones aprobadas."
       submitLabel={meter ? 'Guardar' : 'Registrar'}
       busy={upsert.isPending}
       error={upsert.error}
@@ -446,7 +450,7 @@ function BillableDialog({
   return (
     <FormDialog
       open={Boolean(meter)}
-      title={`Decisión D-06 · ${meter?.code ?? ''}`}
+      title={`Decisión de facturación · ${meter?.code ?? ''}`}
       description="Solo finanzas decide si el uso de este medidor se factura. El agregado hereda la decisión al finalizar; un tenant DEMO/SANDBOX nunca factura."
       submitLabel="Registrar decisión"
       busy={setBillable.isPending}
@@ -460,7 +464,7 @@ function BillableDialog({
           { value: 'false', label: 'No, el uso no se factura' },
         ]}
         error={form.formState.errors.billable} {...form.register('billable')} />
-      <TextAreaField label="Motivo" required hint="Queda en la auditoría (referencia a la decisión D-06)."
+      <TextAreaField label="Motivo" required hint="Queda en la auditoría."
         error={form.formState.errors.reason} {...form.register('reason')} />
     </FormDialog>
   );

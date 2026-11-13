@@ -29,7 +29,11 @@ export function ScopeChip({ label, onRemove }: { label: string; onRemove: () => 
 
 /** Fila de chips bajo el buscador; no ocupa espacio si no hay contexto. */
 export function ScopeChips({ children }: { children: ReactNode }) {
-  return <div className="flex flex-wrap items-center gap-2 border-b border-border px-5 py-2">{children}</div>;
+  return (
+    <div className="flex flex-wrap items-center gap-2 border-b border-border px-5 py-2">
+      {children}
+    </div>
+  );
 }
 
 /**
@@ -45,13 +49,21 @@ export function ConsistencyNote({
   tableTotal: number | null | undefined;
   noun: string;
 }) {
-  if (summaryCount === null || summaryCount === undefined || tableTotal === null || tableTotal === undefined) {
+  if (
+    summaryCount === null ||
+    summaryCount === undefined ||
+    tableTotal === null ||
+    tableTotal === undefined
+  ) {
     return null;
   }
   const count = Number(summaryCount);
   if (count === tableTotal) {
     return (
-      <p className="flex items-center gap-1.5 text-caption text-muted" data-testid="consistency-note">
+      <p
+        className="flex items-center gap-1.5 text-caption text-muted"
+        data-testid="consistency-note"
+      >
         <CheckCircleIcon size={14} aria-hidden className="shrink-0 text-ok" />
         Resumen y tabla cubren las mismas {formatNumber(count)} {noun}.
       </p>
@@ -64,8 +76,8 @@ export function ConsistencyNote({
       data-testid="consistency-note"
     >
       <WarningIcon size={14} aria-hidden className="mt-px shrink-0" />
-      El resumen cubre {formatNumber(count)} {noun} y la tabla {formatNumber(tableTotal)}: los datos cambiaron entre
-      lecturas. Vuelve a cargar para alinearlos.
+      El resumen cubre {formatNumber(count)} {noun} y la tabla {formatNumber(tableTotal)}: los datos
+      cambiaron entre lecturas. Vuelve a cargar para alinearlos.
     </p>
   );
 }

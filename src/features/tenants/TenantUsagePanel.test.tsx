@@ -56,7 +56,7 @@ describe('TenantUsagePanel', () => {
 
     expect(within(screen.getByRole('row', { name: /ai\.pages/ })).getByText('Dentro de la asignación')).toBeInTheDocument();
     expect(within(screen.getByRole('row', { name: /api\.calls/ })).getByText('Se calcula al finalizar')).toBeInTheDocument();
-    expect(screen.getByRole('row', { name: /Pool del tenant.*-15|-15.*Pool del tenant/ })).toBeInTheDocument();
+    expect(screen.getByRole('row', { name: /Bolsa del tenant.*-15|-15.*Bolsa del tenant/ })).toBeInTheDocument();
     expect(screen.getByText('Consumo')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Ir a Uso' })).toHaveAttribute('href', '/apps?tab=uso#aggregates');
   });

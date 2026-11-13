@@ -108,11 +108,25 @@ beforeEach(() => {
 });
 
 describe('UserDetailPage', () => {
-  it('el super admin ve todas las pestañas y el #hash abre la indicada', () => {
+  it('el super admin ve todas las pestañas y el #hash anterior abre «Rol y organizaciones»', () => {
     renderAt('#organizaciones');
-    expect(tabNames()).toEqual(['Perfil', 'Apps y accesos', 'Rol de consola', 'Organizaciones', 'Altas en las apps', 'Vendedor', 'Actividad']);
-    expect(screen.getByRole('tab', { name: 'Organizaciones' })).toHaveAttribute('aria-selected', 'true');
+    expect(tabNames()).toEqual(['Perfil', 'Apps y accesos', 'Rol y organizaciones', 'Altas en las apps', 'Vendedor', 'Actividad']);
+    expect(screen.getByRole('tab', { name: 'Rol y organizaciones' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tabpanel')).toHaveTextContent('Consultora Andina');
+  });
+
+  it('V6 · cabecera fija con estado, rol, organizaciones, apps y último ingreso; el perfil se edita con «Editar»', () => {
+    renderAt();
+    const bar = screen.getByRole('region', { name: 'Resumen del usuario' });
+    for (const label of ['Estado', 'Rol de consola', 'Organizaciones', 'Apps', 'Último ingreso']) {
+      expect(bar.querySelector(`[data-summary-item="${label}"]`)).not.toBeNull();
+    }
+    expect(bar.querySelector('[data-orgs]')).toHaveTextContent('Consultora Andina');
+    expect(screen.queryByRole('textbox', { name: /Nombre completo/ })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Editar' }));
+    expect(screen.getByRole('textbox', { name: /Nombre completo/ })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(screen.queryByRole('textbox', { name: /Nombre completo/ })).toBeNull();
   });
 
   it('V5 · F6: apps y accesos con rol, estado en la app y el canal de usuarios pendiente', () => {
@@ -152,7 +166,9 @@ describe('UserDetailPage', () => {
     m.user = { ...base, email: 'dcalagua@ebim.pe', platformRole: 'EBIM_SUPER_ADMIN', platformRoleActive: true };
     renderAt('#consola');
     expect(screen.getByText(/no se asigna, no se transfiere/)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Desactivar' })).not.toBeInTheDocument();
+    // La pestaña también lista membresías (con su propio «Desactivar»): aquí se mira la acción de cabecera.
+    const headerAction = screen.queryAllByRole('button', { name: 'Desactivar' }).filter((b) => b.className.includes('ebim-btn'));
+    expect(headerAction).toHaveLength(0);
   });
 
   it('desactivar exige motivo y llama a la Edge Function (ban)', async () => {
@@ -172,6 +188,7 @@ describe('UserDetailPage', () => {
     m.scope = andinaScope;
     renderAt();
     expect(tabNames()).toEqual(['Perfil', 'Apps y accesos', 'Organizaciones', 'Actividad']);
+    expect(screen.queryByRole('button', { name: 'Editar' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Desactivar' })).not.toBeInTheDocument();
   });
 

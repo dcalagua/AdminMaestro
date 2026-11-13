@@ -6,9 +6,8 @@ import {
 import { useTenantAudit, useTenantInfraRequests, useTenantMarginRows, useTenantRenewals, useTenantSubscriptions } from './tenantQueries';
 import { useAccountSeries } from '@/services/queries';
 import { Avatar } from '@/components/ui/Avatar';
-import { KpiTile } from '@/components/ui/primitives';
-import { KpiStrip } from '@/features/billing/financeUi';
-import { AccountMrrTile, AccountTrendCharts, HealthTile } from '@/features/organizations/AccountPanels';
+import { AccountTrendCharts } from '@/features/organizations/AccountPanels';
+import { currentMrrByCurrency } from '@/features/organizations/account360Model';
 import { accountHealth } from '@/features/organizations/accountSeriesModel';
 import { AGENT_TYPE_LABEL, SOURCE_LABEL } from '@/features/commercial/commercialLabels';
 import { tenantDimensions } from './tenantDimensions';
@@ -28,6 +27,7 @@ import { ConfirmActiveButton, PENDING_CONFIRM_EXPLANATION, PendingConfirmNotice 
 import { useConfirmActive } from '@/features/suite/useConfirmActive';
 import { LifecycleDialog } from '@/features/suite/LifecycleDialog';
 import { TenantHeader } from './TenantHeader';
+import { DetailFacts } from '@/components/ui/DetailFacts';
 import {
   PageContainer, Card, DataTable, LoadingState, ErrorState, EmptyState, Badge,
 } from '@/components/ui/primitives';
@@ -167,7 +167,18 @@ export function TenantDetailPage() {
         ) : null
       }
     >
-      <TenantHeader tenant={t} appState={appState} />
+      <TenantHeader
+        tenant={t}
+        appState={appState}
+        finance={
+          showFinanceView
+            ? {
+                mrr: { loading: series.isLoading, error: Boolean(series.error), value: currentMrrByCurrency(series.data) },
+                health: { loading: renewals.isLoading, error: Boolean(renewals.error), value: accountHealth(renewals.data ?? []) },
+              }
+            : undefined
+        }
+      />
       {appState?.kind === 'PENDING_CONFIRM' ? (
         <div className="ebim-card mb-4 overflow-hidden" data-tenant-pending-confirm>
           <PendingConfirmNotice count={1}>
@@ -215,25 +226,6 @@ export function TenantDetailPage() {
             label: 'Resumen',
             content: (
               <div className="space-y-4">
-                <KpiStrip label="Indicadores del tenant">
-                  {showFinanceView ? (
-                    <AccountMrrTile
-                      query={series}
-                      info="MRR contratado de los contratos de este tenant, a hoy (misma definición que el Resumen Ejecutivo)"
-                    />
-                  ) : null}
-                  <KpiTile
-                    label="Plan"
-                    value={t.plan_name ? <span className="text-h2">{t.plan_name as string}</span> : null}
-                    footer={t.plan_name ? `${t.product_short_name as string} · ${TENANT_TYPE_LABEL[t.tenant_type as keyof typeof TENANT_TYPE_LABEL]}` : 'Sin plan contratado'}
-                  />
-                  <HealthTile
-                    health={accountHealth(renewals.data ?? [])}
-                    loading={renewals.isLoading}
-                    error={Boolean(renewals.error)}
-                    onRetry={() => void renewals.refetch()}
-                  />
-                </KpiStrip>
                 <div>
                   {productProvisioning.error ? (
                     <p className="mb-2 text-compact font-semibold text-warn" role="status">
@@ -244,26 +236,21 @@ export function TenantDetailPage() {
                 </div>
                 {showFinanceView ? <AccountTrendCharts query={series} subject={t.name as string} /> : null}
                 <Card title="Datos del tenant">
-                  <dl className="grid gap-x-8 px-5 py-2 md:grid-cols-2">
-                    {[
-                      ['Código', <span key="slug" className="font-mono text-compact">{t.slug as string}</span>],
-                      ['Producto', t.product_lockup],
-                      ['Organización cliente', t.customer_name],
-                      ['Organización que administra', t.managing_name ?? 'Ninguna (venta directa EBIM)'],
+                  <DetailFacts
+                    items={[
+                      ['Código', <span key="slug" className="font-mono text-caption">{t.slug as string}</span>],
+                      ['Producto', t.product_lockup as string],
+                      ['Organización cliente', t.customer_name as string],
+                      ['Organización que administra', (t.managing_name as string) ?? 'Ninguna (venta directa EBIM)'],
                       ['Tipo', TENANT_TYPE_LABEL[t.tenant_type as keyof typeof TENANT_TYPE_LABEL]],
-                      ['Entorno', ENVIRONMENT_TEXT[t.environment as string] ?? t.environment],
+                      ['Entorno', ENVIRONMENT_TEXT[t.environment as string] ?? (t.environment as string)],
                       ['Modelo de despliegue', DEPLOYMENT_MODE_LABEL[t.deployment_mode as keyof typeof DEPLOYMENT_MODE_LABEL]],
-                      ['Correo del administrador', t.admin_email],
+                      ['Correo del administrador', t.admin_email as string],
                       ['Administrador activado', t.admin_activated_at ? formatDateTime(t.admin_activated_at as string) : 'Pendiente de activar'],
                       ['Creado', formatDateTime(t.created_at as string)],
                       ['Activado', t.activated_at ? formatDateTime(t.activated_at as string) : '—'],
-                    ].map(([k, v]) => (
-                      <div key={k as string} className="flex justify-between gap-4 border-b border-border py-2.5 text-body">
-                        <dt className="text-muted">{k as string}</dt>
-                        <dd className="min-w-0 truncate text-right font-medium">{(v as React.ReactNode) ?? '—'}</dd>
-                      </div>
-                    ))}
-                  </dl>
+                    ]}
+                  />
                 </Card>
               </div>
             ),
@@ -276,7 +263,7 @@ export function TenantDetailPage() {
                 <Card
                   id="products"
                   title="Alta en los productos de la suite"
-                  description="Estado del tenant DENTRO de cada SaaS. MasterAdmin muestra los identificadores que devolvió cada producto; no muestra sus datos operativos ni los interpreta."
+                  description="Estado del tenant DENTRO de cada SaaS. El Admin Maestro muestra los identificadores que devolvió cada producto; no muestra sus datos operativos ni los interpreta."
                 >
                   {(productProvisioning.data ?? []).length === 0 ? (
                     <EmptyState

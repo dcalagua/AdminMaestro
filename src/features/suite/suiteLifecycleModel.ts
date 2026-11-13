@@ -117,7 +117,7 @@ export function operationalDeliveryOf(row: Partial<DeliveryRow>): Delivery | nul
       label: 'App sin canal de suspensión',
       tone: 'warn',
       detail:
-        'La app no tiene configurado el contrato lifecycle.v1: el cambio queda en MasterAdmin y la app sigue operando.',
+        'La app no tiene configurado el canal de ciclo de vida: el cambio queda en el Admin Maestro y la app sigue operando.',
     };
   }
   if (row.lifecycle_applied_version != null && row.lifecycle_applied_version === row.lifecycle_desired_version) {
@@ -151,7 +151,7 @@ export function deliveryOf(row: Partial<DeliveryRow>): Delivery {
       kind: 'NO_CHANNEL',
       label: 'Sin canal',
       tone: 'neutral',
-      detail: 'El tenant no está enrolado en la sincronización de entitlements: la app no recibe su estado.',
+      detail: 'El tenant no está inscrito en la sincronización de módulos: la app no recibe su estado.',
     };
   }
   if (INCIDENT_STATES.has(state)) {
@@ -178,14 +178,14 @@ export function deliveryOf(row: Partial<DeliveryRow>): Delivery {
       kind: 'ENFORCED',
       label: 'Aplicado en la app',
       tone: 'ok',
-      detail: 'La app confirmó el estado y aplica los entitlements de MasterAdmin.',
+      detail: 'La app confirmó el estado y aplica los módulos que habilita el Admin Maestro.',
     };
   }
   return {
     kind: 'SHADOW',
     label: 'Entregado, en sombra',
     tone: 'warn',
-    detail: 'La app recibió el estado pero todavía no lo aplica (cohorte LEGACY_ONLY o SHADOW).',
+    detail: 'La app recibió el estado pero todavía no lo aplica: sigue mandando su propia configuración.',
   };
 }
 

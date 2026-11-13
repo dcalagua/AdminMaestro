@@ -36,6 +36,12 @@ vi.mock('@/services/financeRead', () => ({
     return q({ rows: ROWS, total: ROWS.length });
   },
   useInvoiceSummary: () => q({ row_count: 2, receivable: { PEN: 500, USD: 100 }, overdue: { PEN: 500 }, status_counts: {} }),
+  useReceivablesAging: () =>
+    q([
+      { aging_bucket: 'VIGENTE', currency: 'USD', invoice_count: 1, balance: 100 },
+      { aging_bucket: 'D31_60', currency: 'PEN', invoice_count: 1, balance: 500 },
+      { aging_bucket: 'D31_60', currency: 'USD', invoice_count: 2, balance: 1200 },
+    ]),
 }));
 vi.mock('@/services/queries', () => ({
   useActiveCardsByOrganization: () => q(new Map([['o-alpha', { brand: 'VISA', last4: '4242' }]])),
@@ -92,6 +98,26 @@ describe('bandeja «Por cobrar»', () => {
     expect(within(row('INV-0001')).getByText('vencida hace 42 días')).toBeInTheDocument();
     expect(within(row('INV-0001')).getByText('VISA •••• 4242')).toBeInTheDocument();
     expect(within(row('INV-0002')).getByText('Sin tarjeta guardada')).toBeInTheDocument();
+  });
+
+  it('V6: la franja muestra el saldo por tramo de antigüedad y filtra al pulsarla', async () => {
+    renderPage();
+    const strip = screen.getByRole('region', { name: 'Saldo por cobrar según antigüedad' });
+    const tramo = within(strip).getByRole('button', { name: /^Vencido 31–60 días/ });
+    expect(tramo).toHaveTextContent('PEN');
+    expect(tramo).toHaveTextContent('USD');
+    expect(tramo).toHaveTextContent('3 facturas');
+    expect(within(strip).getByRole('button', { name: /^Vencido Más de 90 días/ })).toHaveTextContent('Nada en el tramo');
+    await userEvent.click(tramo);
+    expect(m.pageParams.at(-1)).toMatchObject({ filter: 'OPEN', aging: 'D31_60' });
+    expect(screen.getByRole('tab', { name: /Vencidas 31–60 días/ })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('V6: número completo, «de X» solo con cobro parcial y «Enviar enlace» visible en la fila', () => {
+    renderPage();
+    expect(within(row('INV-0001')).getByText(/de PEN/)).toBeInTheDocument();
+    expect(within(row('INV-0002')).queryByText(/^de /)).toBeNull();
+    expect(within(row('INV-0001')).getByRole('button', { name: 'Enviar enlace de pago de INV-0001' })).toHaveClass('ebim-btn-secondary');
   });
 
   it('«Por vencer» filtra por la banda vigente', async () => {

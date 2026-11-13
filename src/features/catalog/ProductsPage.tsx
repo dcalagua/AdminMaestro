@@ -6,18 +6,30 @@ import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { usePermissions } from '@/hooks/usePermissions';
 import { StatusTabs } from '@/components/ui/SectionTabs';
 import {
-  PageContainer, Card, SearchBar, LoadingState, ErrorState, EmptyState, Badge, KpiTile,
+  PageContainer,
+  Card,
+  SearchBar,
+  LoadingState,
+  ErrorState,
+  EmptyState,
+  Badge,
 } from '@/components/ui/primitives';
 import { ActionMenu } from '@/components/ui/ActionMenu';
-import { KpiStrip } from '@/features/billing/financeUi';
-import { formatMoney, sumByCurrency } from '@/lib/format';
+import { StatCell, StatStrip } from '@/components/ui/StatStrip';
+import { formatCompactAmount, formatCountNoun, formatMoney, sumByCurrency } from '@/lib/format';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/toast-context';
 import { businessErrorMessage } from '@/lib/pgError';
 import { ProductFormDialog } from './ProductFormDialog';
 import {
-  billingUnitLabel, countText, entityStatusLabel, entityStatusTabs, entityStatusTone, isForbiddenError,
-  matchesEntityStatusTab, summarizeIntegration,
+  billingUnitLabel,
+  countText,
+  entityStatusLabel,
+  entityStatusTabs,
+  entityStatusTone,
+  isForbiddenError,
+  matchesEntityStatusTab,
+  summarizeIntegration,
 } from './catalogLabels';
 import type { EntityStatusTab } from './catalogLabels';
 import type { SaasProduct } from '@/types/domain';
@@ -50,7 +62,10 @@ export function ProductsPage() {
   const [archiving, setArchiving] = useState<SaasProduct | null>(null);
 
   const { term, setTerm, filtered } = useSearchFilter(products.data, (p) => [
-    p.code, p.name, p.short_name, p.description,
+    p.code,
+    p.name,
+    p.short_name,
+    p.description,
   ]);
   const visible = filtered.filter((p) => matchesEntityStatusTab(p.status, tab));
 
@@ -79,6 +94,12 @@ export function ProductsPage() {
     (p) => summarizeIntegration(integrationsByProduct.get(p.id)).tone === 'ok',
   ).length;
 
+  const suiteMrr = sumByCurrency(
+    tenants.data ?? [],
+    (t) => t.mrr,
+    (t) => t.currency,
+  );
+
   function tenantCell(productId: string) {
     return countText(tenants, tenantsByProduct.get(productId) ?? 0);
   }
@@ -93,30 +114,31 @@ export function ProductsPage() {
     }
     if (integrations.isLoading) return <span className="text-compact text-muted">…</span>;
     const summary = summarizeIntegration(integrationsByProduct.get(productId));
+    // V6: los códigos técnicos de la integración van al tooltip, no a la tarjeta.
     return (
-      <div className="min-w-0">
+      <span title={summary.detail ? `Integraciones: ${summary.detail}` : undefined}>
         <Badge tone={summary.tone} dot>
           {summary.label}
         </Badge>
-        {summary.detail ? (
-          <div className="mt-1 truncate font-mono text-caption text-muted" title={summary.detail}>
-            {summary.detail}
-          </div>
-        ) : null}
-      </div>
+      </span>
     );
   }
 
   function mrrCell(productId: string) {
     if (tenants.error) return <span className="text-compact text-muted">No se pudo leer</span>;
     if (tenants.isLoading) return <span className="text-compact text-muted">…</span>;
-    const entries = Object.entries(mrrByProduct(productId)).filter(([, v]) => v !== 0).sort(([a], [b]) => a.localeCompare(b));
-    if (entries.length === 0) return <span className="text-compact text-muted">Sin recurrente</span>;
+    const entries = Object.entries(mrrByProduct(productId))
+      .filter(([, v]) => v !== 0)
+      .sort(([a], [b]) => a.localeCompare(b));
+    if (entries.length === 0)
+      return <span className="text-compact text-muted">Sin recurrente</span>;
+    // V6: una sola línea compacta; el monto completo de cada moneda en su `title`.
     return (
-      <span className="flex flex-col">
+      <span className="flex flex-wrap gap-x-2 tabular-nums">
         {entries.map(([currency, amount]) => (
-          <span key={currency} className="tabular-nums">
-            {formatMoney(amount, currency)}
+          <span key={currency} className="whitespace-nowrap" title={formatMoney(amount, currency)}>
+            <span className="text-caption font-semibold text-muted">{currency}</span>{' '}
+            {formatCompactAmount(amount)}
           </span>
         ))}
       </span>
@@ -139,7 +161,6 @@ export function ProductsPage() {
     }
   }
 
-  const productsCount = countText(products, all.length);
 
   return (
     <PageContainer
@@ -157,24 +178,34 @@ export function ProductsPage() {
         ) : null
       }
     >
-      <KpiStrip label="Resumen del catálogo">
-        <KpiTile label="Productos en catálogo" value={productsCount} footer="Visibles para tu perfil" />
-        <KpiTile
-          label="Activos en catálogo"
+      <StatStrip label="Resumen del catálogo">
+        <StatCell
+          label="Productos activos"
           value={countText(products, activeCount)}
-          footer={products.data ? `de ${productsCount} · estado comercial` : 'Estado comercial'}
+          context={
+            products.data
+              ? `de ${formatCountNoun(all.length, 'producto')} · ${countText(integrations, readyCount)} con integración lista`
+              : undefined
+          }
+          info="Estado comercial en el catálogo (se ofrece o no). La integración técnica se mide aparte y no es una certificación."
+          onSelect={() => setTab((t) => (t === 'ACTIVE' ? 'ALL' : 'ACTIVE'))}
+          selected={tab === 'ACTIVE'}
         />
-        <KpiTile
-          label="Integración lista y habilitada"
-          value={products.error ? 'No se pudo leer' : countText(integrations, readyCount)}
-          footer="Configuración registrada; no es certificación"
+        <StatCell
+          label="MRR vigente"
+          amounts={tenants.error ? undefined : suiteMrr}
+          value={tenants.error ? countText(tenants, 0) : undefined}
+          loading={tenants.isLoading}
+          emptyLabel="Sin recurrente"
+          info="Recurrente mensual de los tenants de la suite, por moneda: nunca se suman monedas distintas."
+          context="Todos los productos, por moneda"
         />
-        <KpiTile
+        <StatCell
           label="Tenants en la suite"
           value={countText(tenants, (tenants.data ?? []).length)}
-          footer="Todos los productos, visibles para tu perfil"
+          context="Visibles para tu perfil"
         />
-      </KpiStrip>
+      </StatStrip>
 
       <Card>
         <SearchBar
@@ -189,6 +220,15 @@ export function ProductsPage() {
           <ErrorState error={products.error} onRetry={() => void products.refetch()} />
         ) : visible.length === 0 ? (
           <EmptyState
+            variant={all.length > 0 ? 'no-results' : 'empty'}
+            onClear={
+              all.length > 0
+                ? () => {
+                    setTerm('');
+                    setTab('ALL');
+                  }
+                : undefined
+            }
             title={all.length > 0 ? 'Ningún producto coincide' : 'Sin productos'}
             description={
               all.length > 0
@@ -208,7 +248,10 @@ export function ProductsPage() {
             }
           />
         ) : (
-          <ul className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3" aria-label="Productos de la suite">
+          <ul
+            className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3"
+            aria-label="Productos de la suite"
+          >
             {visible.map((p) => (
               <li key={p.id}>
                 <article
@@ -216,8 +259,12 @@ export function ProductsPage() {
                   className="flex h-full flex-col overflow-hidden rounded-card border border-border bg-card transition-colors hover:border-border-strong"
                 >
                   {/* Color de marca del producto (dato del catálogo): una franja, nunca fondo de texto. */}
-                  <span aria-hidden className="h-1 w-full bg-accent" style={p.accent_color ? { background: p.accent_color } : undefined} />
-                  <div className="flex flex-1 flex-col p-5">
+                  <span
+                    aria-hidden
+                    className="h-1 w-full bg-accent"
+                    style={p.accent_color ? { background: p.accent_color } : undefined}
+                  />
+                  <div className="flex flex-1 flex-col p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <h2 id={`product-${p.id}`} className="text-h3 text-fg">
@@ -237,33 +284,44 @@ export function ProductsPage() {
                             label={`Acciones de ${p.short_name}`}
                             items={[
                               { label: 'Abrir ficha', to: `/products/${p.id}` },
-                              { label: 'Editar producto', onSelect: () => setDialog({ open: true, product: p }) },
+                              {
+                                label: 'Editar producto',
+                                onSelect: () => setDialog({ open: true, product: p }),
+                              },
                               p.status !== 'ARCHIVED'
-                                ? { label: 'Archivar…', tone: 'danger' as const, onSelect: () => setArchiving(p) }
+                                ? {
+                                    label: 'Archivar…',
+                                    tone: 'danger' as const,
+                                    onSelect: () => setArchiving(p),
+                                  }
                                 : null,
                             ]}
                           />
                         ) : null}
                       </div>
                     </div>
-                    {p.description ? <p className="mt-2 line-clamp-2 text-compact text-fg-2">{p.description}</p> : null}
-                    <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-border pt-4">
-                      <div className="min-w-0">
-                        <dt className="text-micro text-muted">MRR vigente</dt>
-                        <dd className="mt-1 text-compact font-semibold text-fg">{mrrCell(p.id)}</dd>
+                    {p.description ? (
+                      <p className="mt-2 line-clamp-2 text-compact text-fg-2">{p.description}</p>
+                    ) : null}
+                    <dl className="mt-3 flex flex-wrap gap-x-5 gap-y-1 border-t border-border pt-3">
+                      <div className="flex min-w-0 basis-full items-baseline gap-2">
+                        <dt className="shrink-0 text-micro text-muted">MRR vigente</dt>
+                        <dd className="min-w-0 text-compact font-semibold text-fg">{mrrCell(p.id)}</dd>
                       </div>
-                      <div>
+                      <div className="flex items-baseline gap-2">
                         <dt className="text-micro text-muted">Tenants</dt>
-                        <dd className="mt-1 text-h3 tabular-nums text-fg">{tenantCell(p.id)}</dd>
+                        <dd className="text-compact font-semibold tabular-nums text-fg">{tenantCell(p.id)}</dd>
                       </div>
-                      <div className="min-w-0">
+                      <div className="flex min-w-0 items-baseline gap-2">
                         <dt className="text-micro text-muted">Cobro</dt>
-                        <dd className="mt-1 text-compact text-fg-2">{billingUnitLabel(p.billing_unit)}</dd>
+                        <dd className="truncate text-compact text-fg-2">
+                          {billingUnitLabel(p.billing_unit)}
+                        </dd>
                       </div>
                     </dl>
-                    <div className="mt-auto pt-4">
-                      <p className="text-micro text-muted">Integración técnica</p>
-                      <div className="mt-1">{integrationCell(p.id)}</div>
+                    <div className="mt-auto flex items-center gap-2 pt-4">
+                      <span className="text-caption text-muted">Integración</span>
+                      {integrationCell(p.id)}
                     </div>
                   </div>
                 </article>

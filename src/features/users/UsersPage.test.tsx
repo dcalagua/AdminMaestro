@@ -142,6 +142,15 @@ describe('UsersPage', () => {
     expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(2);
   });
 
+  it('V6: si nadie de la lista entra a una app, la columna «Apps» se oculta y lo explica el pie', () => {
+    renderPage();
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'alpha' } });
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'Alicia' } });
+    const table = screen.getByRole('table');
+    expect(within(table).queryByRole('columnheader', { name: 'Apps' })).toBeNull();
+    expect(screen.getByText(/canal de usuarios por app/)).toBeInTheDocument();
+  });
+
   it('V5 · F7: en móvil cada usuario es una tarjeta con sus apps y sus acciones', () => {
     const restore = mockViewport('mobile');
     try {

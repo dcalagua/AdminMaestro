@@ -30,35 +30,39 @@ export function BalancesTab({ tenantId }: { tenantId?: string } = {}) {
   return (
     <Card
       title="Saldos"
-      description="Saldo derivado del ledger por tenant, pool y período. Las columnas suman créditos EBIM, no tokens ni dinero."
+      description="Saldo calculado de los movimientos por tenant, bolsa y período. Las columnas suman créditos EBIM, no tokens ni dinero."
     >
-      <SearchBar
-        value={term}
-        onChange={setTerm}
-        placeholder="Buscar por tenant, pool o producto…"
-        right={
-          <StatusTabs
-            value={tab}
-            onChange={setTab}
-            options={[
-              { id: 'ALL', label: 'Todos', count: count('ALL') },
-              { id: 'NEGATIVE', label: 'Saldo negativo', count: count('NEGATIVE') },
-              { id: 'POSITIVE', label: 'Con saldo', count: count('POSITIVE') },
-            ]}
-          />
-        }
-      />
+      {/* V6 · T5: con el conjunto vacío no se muestran buscador ni «Todos 0 · Saldo negativo 0». */}
+      {hasAny || balances.isLoading || balances.error ? (
+        <SearchBar
+          value={term}
+          onChange={setTerm}
+          placeholder="Buscar por tenant, bolsa o producto…"
+          right={
+            <StatusTabs
+              value={tab}
+              onChange={setTab}
+              options={[
+                { id: 'ALL', label: 'Todos', count: count('ALL') },
+                { id: 'NEGATIVE', label: 'Saldo negativo', count: count('NEGATIVE') },
+                { id: 'POSITIVE', label: 'Con saldo', count: count('POSITIVE') },
+              ]}
+            />
+          }
+        />
+      ) : null}
       {balances.isLoading ? (
         <LoadingState label="Cargando saldos…" />
       ) : balances.error ? (
         <ErrorState error={balances.error} onRetry={() => void balances.refetch()} />
       ) : visible.length === 0 ? (
         <EmptyState
+          variant={hasAny ? 'no-results' : 'empty'}
           title={hasAny ? 'Ningún saldo coincide' : 'Sin saldos de créditos'}
           description={
             hasAny
               ? 'Prueba con otra búsqueda o cambia de filtro.'
-              : 'No hay movimientos: las políticas, pesos y créditos incluidos siguen sin decidir (D-03).'
+              : 'No hay movimientos: las políticas, pesos y créditos incluidos siguen sin decidir.'
           }
         />
       ) : (
@@ -66,7 +70,7 @@ export function BalancesTab({ tenantId }: { tenantId?: string } = {}) {
           maxHeight={560}
           label="Saldos de créditos"
           columns={[
-            'Tenant · pool y período',
+            'Tenant · bolsa y período',
             ...['Incluidos', 'Comprados', 'Bono', 'Reservados', 'Usados', 'Expirados', 'Ajuste', 'Saldo'].map((label) => ({
               label,
               align: 'right' as const,

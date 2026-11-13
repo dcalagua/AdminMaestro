@@ -1,17 +1,15 @@
-import type { ReactNode } from 'react';
-import { KpiTile, DataTable } from '@/components/ui/primitives';
+import { DataTable } from '@/components/ui/primitives';
 import { ChartLegend, ChartPanel } from '@/features/executive/components/ChartPanel';
 import { fromQuery } from '@/features/executive/dataState';
 import { PeriodArea, PeriodBars } from '@/features/billing/lazyFinanceCharts';
-import { longMonthName, relChange } from '@/features/billing/financeModel';
-import { formatCompactAmount, formatMoney } from '@/lib/format';
+import { formatMoney } from '@/lib/format';
 import type { AccountSeriesPoint } from '@/services/queries';
-import { HEALTH_TEXT, accountSeriesView, type AccountHealth, type AccountSeriesView } from './accountSeriesModel';
+import { accountSeriesView, type AccountSeriesView } from './accountSeriesModel';
 
 /**
  * Piezas de las fichas 360 (organización y tenant; VISUAL_SYSTEM_V2 §8 PT-360):
- * el tile de MRR con su tendencia de 12 meses, el tile de salud de cobranza y
- * los dos mini-gráficos del resumen. Todo sale de S11
+ * los dos mini-gráficos del resumen. El MRR vigente y la salud de cobranza van
+ * en la `SummaryBar` de cada ficha (V6 · T8). Todo sale de S11
  * (`executive_account_series`): la UI elige moneda y presenta, no calcula.
  */
 
@@ -31,76 +29,6 @@ const BILLING_SERIES = [
 
 function currencyNote(view: AccountSeriesView): string {
   return view.native ? `en ${view.currency}, la moneda de la cuenta` : `en ${view.currency} (moneda de reporte)`;
-}
-
-/** MRR vigente (último punto de S11 = hoy) con tendencia de 12 meses y variación vs el mes anterior. */
-export function AccountMrrTile({ query, label = 'MRR vigente', to, info }: { query: SeriesQuery; label?: string; to?: string; info?: string }) {
-  if (query.isLoading) return <KpiTile label={label} value={null} loading />;
-  if (query.error) return <KpiTile label={label} value={null} error="No disponible" onRetry={() => void query.refetch()} />;
-  const view = accountSeriesView(query.data);
-  const last = view?.points[view.points.length - 1];
-  const prev = view?.points[view.points.length - 2];
-  if (!view || !last || !view.hasMrr) {
-    return <KpiTile label={label} value={null} info={info} footer="Sin contratos recurrentes vigentes" to={to} />;
-  }
-  return (
-    <KpiTile
-      label={label}
-      info={info}
-      to={to}
-      currency={last.mrr == null ? undefined : view.currency}
-      value={last.mrr == null ? null : <span title={formatMoney(last.mrr, view.currency)}>{formatCompactAmount(last.mrr)}</span>}
-      delta={
-        prev
-          ? {
-              value: relChange(last.mrr, prev.mrr),
-              kind: 'percent',
-              comparison: `vs ${longMonthName(prev.month.slice(0, 7))}`,
-              goodWhen: 'up',
-            }
-          : undefined
-      }
-      trend={view.points.map((p) => p.mrr)}
-      trendPartial={last.partial}
-      trendDescription={`MRR de los últimos ${view.points.length} meses ${currencyNote(view)}`}
-      footer={
-        last.mrr == null
-          ? `Falta tipo de cambio: ${view.missing.join(', ')}`
-          : `${formatCompactAmount((last.mrr ?? 0) * 12)} ARR · ${view.native ? 'moneda de la cuenta' : 'moneda de reporte'}`
-      }
-    />
-  );
-}
-
-/** Salud de cobranza: texto + icono del rol (nunca solo color). */
-export function HealthTile({
-  health,
-  loading,
-  error,
-  onRetry,
-  footer,
-  to,
-}: {
-  health: AccountHealth;
-  loading?: boolean;
-  error?: boolean;
-  onRetry?: () => void;
-  footer?: ReactNode;
-  to?: string;
-}) {
-  const label = 'Salud de cobranza';
-  if (loading) return <KpiTile label={label} value={null} loading />;
-  if (error) return <KpiTile label={label} value={null} error="No disponible" onRetry={onRetry} />;
-  const h = HEALTH_TEXT[health];
-  return (
-    <KpiTile
-      label={label}
-      value={<span className="block text-h2 leading-tight">{h.label}</span>}
-      tone={h.tone}
-      footer={footer ?? h.detail}
-      to={to}
-    />
-  );
 }
 
 /** «¿Cómo evoluciona su MRR?» + «¿Paga lo que se le factura?», 7·5 en escritorio. */

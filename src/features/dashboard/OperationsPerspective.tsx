@@ -80,7 +80,7 @@ export function OperationsPerspective() {
           label="Solicitudes de infraestructura fallidas"
           value={summary.data ? formatNumber(summary.data.provisioning_failures) : null}
           state={fromQuery(summary, { isEmpty: () => false })}
-          note="Cola de infraestructura; distinta de las altas SaaS"
+          note="Cola de infraestructura; distinta de las altas en las apps"
         />
       </div>
 
@@ -88,7 +88,7 @@ export function OperationsPerspective() {
         <header className="border-b border-border px-4 py-3">
           <h3 id="ops-matrix-title" className="text-body font-bold text-fg">Matriz por producto y entorno</h3>
           <p className="text-caption text-muted">
-            Catálogo, integración, destino, última observación de salud y altas SaaS. Sin llamadas a proveedores al abrir esta vista.
+            Catálogo, integración, destino, última observación de salud y altas en las apps. Sin llamadas a proveedores al abrir esta vista.
           </p>
         </header>
         {productState.status !== 'ready' ? (

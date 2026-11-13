@@ -3,7 +3,7 @@ import { useAppearance } from '@/hooks/useAppearance';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PaymentAccountsPanel } from './PaymentAccountsPanel';
 import { MyProfilePanel } from './MyProfilePanel';
-import { SectionTabs } from '@/components/ui/SectionTabs';
+import { SubSections } from '@/components/ui/SubSections';
 import { PageContainer, Card, Badge, DataTable, EmptyState } from '@/components/ui/primitives';
 import { PLATFORM_ROLE_LABEL, ORG_ROLE_LABEL } from '@/types/domain';
 import { env } from '@/lib/env';
@@ -32,7 +32,9 @@ export function SettingsPage() {
 
   return (
     <PageContainer title="Configuración" description="Tu sesión, tu apariencia y el entorno de esta consola.">
-      <SectionTabs
+      <SubSections
+        label="Secciones de configuración general"
+        layout="side"
         tabs={[
           {
             id: 'appearance',

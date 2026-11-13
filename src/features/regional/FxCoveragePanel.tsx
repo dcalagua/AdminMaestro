@@ -42,7 +42,7 @@ export function FxCoveragePanel() {
       <div className="grid gap-3 md:grid-cols-2">
         <section className="ebim-card p-4" aria-labelledby="fx-date-title">
           <h3 id="fx-date-title" className="text-micro text-muted">
-            Fecha de valuación FX
+            Fecha de la tasa de cambio
           </h3>
           <label className="mt-2 block text-body">
             <span className="text-muted">Fecha de las tasas</span>
@@ -65,7 +65,7 @@ export function FxCoveragePanel() {
           </h3>
           <p className="mt-2 text-body text-fg">No se elige aquí.</p>
           <p className="mt-1 text-compact text-muted">
-            El período de cobros, costos y comisiones se elige en el inicio ejecutivo. Cambiar la fecha FX no mueve el
+            El período de cobros, costos y comisiones se elige en el inicio ejecutivo. Cambiar la fecha de la tasa no mueve el
             período, y cambiar el período no cambia las tasas.
           </p>
         </section>
@@ -77,7 +77,7 @@ export function FxCoveragePanel() {
         actions={
           data ? (
             <Badge tone={data.completeness.complete ? 'ok' : 'warn'}>
-              {data.completeness.complete ? 'Cobertura completa' : 'FX incompleto'}
+              {data.completeness.complete ? 'Cobertura completa' : 'Tasas incompletas'}
             </Badge>
           ) : null
         }
@@ -108,7 +108,7 @@ export function FxCoveragePanel() {
             </dl>
             {missing.length > 0 ? (
               <p className="mx-4 mt-3 rounded-md bg-warn-soft px-3 py-2 text-compact font-semibold text-warn" role="status">
-                FX incompleto a {formatDate(fxDate)}: falta tasa para {missing.join(', ')}. El consolidado en{' '}
+                Tasas incompletas al {formatDate(fxDate)}: falta tasa para {missing.join(', ')}. El consolidado en{' '}
                 {data.reporting_currency ?? 'moneda de reporte'} se marca como no calculable; los importes nativos siguen
                 siendo válidos. Publica la tasa en «Tipos de cambio».
               </p>

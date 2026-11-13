@@ -34,7 +34,7 @@ export function TenantUsagePanel({ tenantId }: { tenantId: string }) {
         ) : aggregates.error ? (
           <ErrorState error={aggregates.error} onRetry={() => void aggregates.refetch()} />
         ) : (aggregates.data ?? []).length === 0 ? (
-          <EmptyState title="Sin uso registrado" description="Este tenant no ha emitido eventos de uso (el ingest está apagado hasta D-12)." />
+          <EmptyState title="Sin uso registrado" description="Este tenant no ha emitido eventos de uso (la conexión de uso está apagada)." />
         ) : (
           <DataTable columns={['Medidor', 'Período', 'Estado', 'Cantidad', 'Asignación', 'Facturable']}>
             {(aggregates.data ?? []).map((a) => {
@@ -65,8 +65,8 @@ export function TenantUsagePanel({ tenantId }: { tenantId: string }) {
       </Card>
 
       <Card
-        title="Saldo de créditos IA por pool"
-        description="Derivado del ledger. Sin política de créditos (D-03) no hay incluidos: el saldo no se inventa."
+        title="Saldo de créditos IA por bolsa"
+        description="Calculado de los movimientos. Sin política de créditos no hay incluidos: el saldo no se inventa."
         actions={
           <Link className="ebim-link text-caption" to="/settings?tab=creditos-ia#balances">
             Ir a Créditos IA
@@ -98,7 +98,7 @@ export function TenantUsagePanel({ tenantId }: { tenantId: string }) {
         )}
       </Card>
 
-      <Card title="Últimos movimientos" description={`Los ${RECENT_LEDGER} más recientes del ledger de este tenant.`}>
+      <Card title="Últimos movimientos" description={`Los ${RECENT_LEDGER} movimientos más recientes de este tenant.`}>
         {ledger.isLoading ? (
           <LoadingState label="Cargando movimientos…" />
         ) : ledger.error ? (

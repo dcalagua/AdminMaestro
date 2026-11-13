@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { DetailFacts } from '@/components/ui/DetailFacts';
 import { Card, DataTable, EmptyState, Badge, LoadingState, ErrorState } from '@/components/ui/primitives';
 import { SelectField, TextField, FieldRow } from '@/components/ui/fields';
 import { FormDialog } from '@/components/ui/FormDialog';
@@ -37,6 +38,8 @@ export function ProfilePanel({ user, scope }: { user: AdminUser; scope: Scope })
   const update = useAdminUpdateProfile();
   const toast = useToast();
   const editable = scope.isSuperAdmin || scope.userId === user.id;
+  // V6 · F4: la ficha abre en lectura; «Editar» muestra el formulario.
+  const [editing, setEditing] = useState(false);
   const [fullName, setFullName] = useState(user.fullName ?? '');
   const [phone, setPhone] = useState(user.phone ?? '');
   const [jobTitle, setJobTitle] = useState(user.jobTitle ?? '');
@@ -48,6 +51,14 @@ export function ProfilePanel({ user, scope }: { user: AdminUser; scope: Scope })
     setJobTitle(user.jobTitle ?? '');
   }, [user.id, user.fullName, user.phone, user.jobTitle]);
 
+  function cancel() {
+    setFullName(user.fullName ?? '');
+    setPhone(user.phone ?? '');
+    setJobTitle(user.jobTitle ?? '');
+    update.reset();
+    setEditing(false);
+  }
+
   async function save(event: React.FormEvent) {
     event.preventDefault();
     try {
@@ -58,71 +69,68 @@ export function ProfilePanel({ user, scope }: { user: AdminUser; scope: Scope })
         p_job_title: jobTitle.trim() || undefined,
       });
       toast.success('Perfil actualizado', fullName);
+      setEditing(false);
     } catch {
       /* visible bajo el formulario */
     }
   }
 
   const facts: Array<[string, string]> = [
+    ['Nombre', user.fullName ?? '—'],
+    ['Teléfono', user.phone ?? '—'],
+    ['Cargo', user.jobTitle ?? '—'],
     ['Correo', user.email],
     ['Alta', formatDate(user.createdAt)],
-    ['Último ingreso', user.lastSignInAt ? formatDateTime(user.lastSignInAt) : 'Nunca'],
     ['Invitación', isPendingInvitation(user) ? `Pendiente desde ${formatDate(user.invitedAt)}` : user.invitedAt ? 'Aceptada' : '—'],
   ];
 
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <Card title="Datos de la persona" description={editable ? undefined : 'Solo el propio usuario o el super admin los editan.'}>
-        {editable ? (
-          <form className="grid gap-4 p-4" aria-label="Datos de la persona" onSubmit={(e) => void save(e)}>
-            <TextField label="Nombre completo" required value={fullName} onChange={(e) => setFullName(e.target.value)} />
-            <FieldRow>
-              <TextField label="Teléfono" value={phone} onChange={(e) => setPhone(e.target.value)} />
-              <TextField label="Cargo" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} />
-            </FieldRow>
-            {update.error ? (
-              <p role="alert" className="rounded-lg bg-danger-soft px-3 py-2 text-body text-danger">
-                {businessErrorMessage(update.error)}
-              </p>
-            ) : null}
-            <div className="flex justify-end">
-              <button type="submit" className="ebim-btn-primary" disabled={update.isPending}>
-                {update.isPending ? 'Guardando…' : 'Guardar cambios'}
-              </button>
-            </div>
-          </form>
-        ) : (
-          <dl className="divide-y divide-border">
-            {[['Nombre', user.fullName ?? '—'], ['Teléfono', user.phone ?? '—'], ['Cargo', user.jobTitle ?? '—']].map(([k, v]) => (
-              <div key={k} className="flex justify-between gap-4 px-4 py-2.5 text-body">
-                <dt className="text-muted">{k}</dt>
-                <dd className="text-right font-medium">{v}</dd>
-              </div>
-            ))}
-          </dl>
-        )}
-      </Card>
-      <Card title="Cuenta" description="El correo es la identidad: no se edita desde la consola.">
-        <dl className="divide-y divide-border">
-          {facts.map(([k, v]) => (
-            <div key={k} className="flex justify-between gap-4 px-4 py-2.5 text-body">
-              <dt className="text-muted">{k}</dt>
-              <dd className="text-right font-medium">{v}</dd>
+    <Card
+      title="Datos de la persona"
+      description={editable ? 'El correo es la identidad: no se edita desde la consola.' : 'Solo el propio usuario o el super admin los editan.'}
+      actions={
+        editable && !editing ? (
+          <button type="button" className="ebim-btn-secondary ebim-btn-sm" onClick={() => setEditing(true)}>
+            Editar
+          </button>
+        ) : null
+      }
+    >
+      {editing ? (
+        <form className="grid gap-4 p-4 lg:max-w-3xl" aria-label="Datos de la persona" onSubmit={(e) => void save(e)}>
+          <TextField label="Nombre completo" required value={fullName} onChange={(e) => setFullName(e.target.value)} />
+          <FieldRow>
+            <TextField label="Teléfono" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <TextField label="Cargo" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} />
+          </FieldRow>
+          {update.error ? (
+            <p role="alert" className="rounded-lg bg-danger-soft px-3 py-2 text-body text-danger">
+              {businessErrorMessage(update.error)}
+            </p>
+          ) : null}
+          <div className="flex justify-end gap-2">
+            <button type="button" className="ebim-btn-ghost" onClick={cancel} disabled={update.isPending}>
+              Cancelar
+            </button>
+            <button type="submit" className="ebim-btn-primary" disabled={update.isPending}>
+              {update.isPending ? 'Guardando…' : 'Guardar cambios'}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <DetailFacts items={facts} />
+      )}
+      {(invitations.data ?? []).length > 0 ? (
+        <div className="border-t border-border px-5 py-3 text-caption text-muted">
+          {(invitations.data ?? []).map((i) => (
+            <div key={i.id}>
+              Invitación del {formatDateTime(i.created_at)} · {i.delivery === 'EMAIL' ? 'por correo' : 'enlace copiado'} ·{' '}
+              {i.status === 'ACCEPTED' ? 'aceptada' : i.status === 'REVOKED' ? 'anulada' : 'pendiente'}
             </div>
           ))}
-        </dl>
-        {(invitations.data ?? []).length > 0 ? (
-          <div className="border-t border-border px-4 py-3 text-caption text-muted">
-            {(invitations.data ?? []).map((i) => (
-              <div key={i.id}>
-                {formatDateTime(i.created_at)} · {i.delivery === 'EMAIL' ? 'por correo' : 'enlace copiado'} ·{' '}
-                {i.status === 'ACCEPTED' ? 'aceptada' : i.status === 'REVOKED' ? 'anulada' : 'pendiente'}
-              </div>
-            ))}
-          </div>
-        ) : null}
-      </Card>
-    </div>
+        </div>
+      ) : null}
+    </Card>
   );
 }
 

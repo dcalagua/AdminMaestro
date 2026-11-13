@@ -95,7 +95,7 @@ describe('menú V5: seis grupos, 18 entradas (plan §4)', () => {
     expect(tabs('/catalogo')).toEqual(['productos', 'planes', 'addons', 'capacidades', 'registro']);
     expect(tabs('/cobranza')).toEqual(['por-cobrar', 'facturacion', 'renovaciones', 'conciliacion']);
     expect(tabs('/commissions')).toEqual(['comisiones', 'planes']);
-    expect(tabs('/apps')).toEqual(['integraciones', 'altas', 'sincronizacion', 'uso', 'entornos', 'infraestructura']);
+    expect(tabs('/apps')).toEqual(['integraciones', 'altas', 'sincronizacion-apps', 'sincronizacion', 'uso', 'entornos', 'infraestructura']);
     expect(tabs('/sales-agents')).toEqual(['equipo', 'atribuciones']);
     expect(tabs('/settings')).toEqual(['general', 'regional', 'creditos-ia', 'avanzado']);
   });
@@ -266,5 +266,14 @@ describe('destinos de ⌘K', () => {
     expect(tos).toContain('/cobranza?tab=renovaciones');
     expect(tos).not.toContain('/cobranza?tab=conciliacion');
     expect(tos).not.toContain('/apps?tab=integraciones');
+  });
+});
+
+describe('V6 · T1 · descripciones de entrada en una línea', () => {
+  it('cada descripción cabe en una línea (≤ 90 caracteres) y es una sola frase corta', () => {
+    for (const item of NAV_ITEMS) {
+      if (!item.description) continue;
+      expect(item.description.length, item.label).toBeLessThanOrEqual(90);
+    }
   });
 });
