@@ -71,7 +71,14 @@ export interface SyncRunResult {
   status?: string;
   findings_opened?: number;
   findings_closed?: number;
-  targets?: Array<{ deployment_code: string; product_code: string; outcome: string }>;
+  targets?: Array<{
+    deployment_code: string;
+    product_code: string;
+    outcome: string;
+    /** Altas manuales vinculadas en la app en esta corrida (§8 del contrato de inventario). */
+    app_links_linked?: number;
+    app_links_failed?: number;
+  }>;
   error?: string;
 }
 

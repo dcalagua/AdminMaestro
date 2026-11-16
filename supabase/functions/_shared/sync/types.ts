@@ -17,6 +17,10 @@ export interface SyncPlanLink {
   external_company_id: string | null;
   /** Estado que la app DEBERÍA tener; null = el tenant aún no opera (PENDING). */
   expected_state: 'ACTIVE' | 'SUSPENDED' | null;
+  /** Alta registrada a mano: la app no tiene su registro hasta que se vincula (§8). */
+  registered_manually?: boolean;
+  /** Estado del vínculo en la app de un alta manual; null = sin intentar. */
+  app_link_status?: 'LINKED' | 'FAILED' | null;
 }
 
 export interface SyncPlanTarget {
@@ -46,6 +50,8 @@ export interface SyncPlanTarget {
     lifecycle_read_scope: string | null;
     inventory_path: string | null;
     inventory_read_scope: string | null;
+    /** Scope del PUT …/{controlPlaneTenantId}/link (tenant-inventory.v1 §8); null = sin vínculo. */
+    tenant_link_scope?: string | null;
     allowed_hosts: string[];
   };
   credential: {
