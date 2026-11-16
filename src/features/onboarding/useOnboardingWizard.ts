@@ -5,7 +5,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   useProducts, useOrganizations, usePlans, usePartnerAgreements, useSalesAgents,
   useCommissionPlans, useDeploymentTargets, useMarkets, usePlanPriceCatalog,
+  useOrganization, useProductIntegrations,
 } from '@/services/queries';
+import { contractAdapterFor } from '@/features/deployments/contractAdapters';
 import {
   currencyForMarket,
   findMarket,
@@ -74,6 +76,7 @@ export function useOnboardingWizard() {
   const targets = useDeploymentTargets();
   const markets = useMarkets();
   const priceCatalog = usePlanPriceCatalog();
+  const integrations = useProductIntegrations();
   const marketList = useMemo(() => markets.data ?? [], [markets.data]);
 
   const [step, setStep] = useState(1);
@@ -90,7 +93,7 @@ export function useOnboardingWizard() {
       customer_organization_id: params.get('cuenta') ?? '', saas_product_code: '',
       managing_organization_id: '', channel_margin_pct: 0,
       deployment_mode: 'SHARED', tenant_type: 'PRODUCTION',
-      tenant_slug: '', tenant_name: '', admin_email: '', deployment_target_id: '',
+      tenant_slug: '', tenant_name: '', admin_email: '', deployment_target_id: '', company_id: '',
       market_code: '',
       plan_id: '', billing_interval: 'MONTHLY', currency: '', quantity: 1,
       started_on: new Date().toISOString().slice(0, 10), license_amount: '',
@@ -108,6 +111,35 @@ export function useOnboardingWizard() {
   const manager = (orgs.data ?? []).find((o) => o.id === values.managing_organization_id);
   const plan = (plans.data ?? []).find((p) => p.id === values.plan_id);
   const market = findMarket(marketList, values.market_code);
+
+  /** Sociedades (empresas) del cliente elegido, para el contrato que las exige. */
+  const customerDetail = useOrganization(values.customer_organization_id || undefined);
+  const companyOptions = useMemo(
+    () =>
+      (((customerDetail.data as { companies?: Array<{ id: string; name: string; tax_id: string | null; status: string }> } | null)
+        ?.companies ?? []) as Array<{ id: string; name: string; tax_id: string | null; status: string }>)
+        .filter((c) => c.status === 'ACTIVE')
+        .map((c) => ({ value: c.id, label: c.tax_id ? `${c.name} · ${c.tax_id}` : c.name })),
+    [customerDetail.data],
+  );
+  /**
+   * ¿El contrato de la app exige la sociedad? Lo dice el adaptador de sus
+   * integraciones habilitadas (EWM_V1 hoy). Sin ella el alta se bloquea con
+   * COMPANY_REQUIRED, así que se pide aquí y no después.
+   */
+  const companyRequired = Boolean(
+    product &&
+      (integrations.data ?? []).some(
+        (i) => i.saas_product_id === product.id && i.enabled && contractAdapterFor(i.adapter_key).requiresCompany,
+      ),
+  );
+
+  // Cambiar de cliente invalida la sociedad elegida.
+  useEffect(() => {
+    const chosen = form.getValues('company_id');
+    if (chosen && !companyOptions.some((c) => c.value === chosen)) form.setValue('company_id', '');
+    if (!chosen && companyRequired && companyOptions.length === 1) form.setValue('company_id', companyOptions[0]!.value);
+  }, [companyOptions, companyRequired]);
 
   // Mercado sugerido por el país del cliente, solo si es inequívoco y el usuario
   // aún no eligió otro. Cambiar de cliente no pisa una elección explícita.
@@ -208,7 +240,14 @@ export function useOnboardingWizard() {
   /** Valida los campos del paso; si falta algo, dice cuántos. */
   async function validStep(n: number): Promise<boolean> {
     const fields = fieldsFor(n);
-    const ok = await form.trigger(fields as never);
+    let ok = await form.trigger(fields as never);
+    if (fields.includes('tenant_name') && companyRequired && !form.getValues('company_id')) {
+      form.setError('company_id', {
+        type: 'company-required',
+        message: `${product?.short_name ?? 'Esta app'} necesita la empresa del cliente para el alta`,
+      });
+      ok = false;
+    }
     if (!ok) {
       const errors = form.formState.errors as Record<string, unknown>;
       setStepIssue(fields.filter((f) => errors[f as string]).length || 1);
@@ -270,6 +309,7 @@ export function useOnboardingWizard() {
         p_tenant_type: v.tenant_type,
         p_deployment_mode: v.deployment_mode,
         p_managing_organization_id: v.managing_organization_id || undefined,
+        p_company_id: v.company_id || undefined,
         p_started_on: v.started_on,
         p_quantity: v.quantity,
         p_license_amount: v.license_amount ? Number(v.license_amount) : undefined,
@@ -328,6 +368,7 @@ export function useOnboardingWizard() {
         p_tenant_type: v.tenant_type,
         p_deployment_mode: v.deployment_mode,
         p_managing_organization_id: v.managing_organization_id || undefined,
+        p_company_id: v.company_id || undefined,
       });
       setCreated(baseCreated(tenantId, v));
       toast.success('Tenant creado', `${v.tenant_name} queda pendiente hasta su alta en la app.`);
@@ -380,6 +421,8 @@ export function useOnboardingWizard() {
     allowedModes,
     planOptions,
     targetOptions,
+    companyOptions,
+    companyRequired,
     listedPrice,
     listedImplementationFee,
     isDemo,

@@ -1,3 +1,4 @@
+import { contractAdapterFor } from '@/features/deployments/contractAdapters';
 import { ENVIRONMENT_ORDER, isEvaluable } from '@/features/platform/targetHealth';
 import {
   PROVISIONING_ENVIRONMENT_LABEL,
@@ -230,4 +231,17 @@ export function customerProgress(input: ProgressInput): { steps: ProgressStep[];
     },
   ];
   return { steps, next: steps.find((s) => s.state === 'todo') ?? null };
+}
+
+/**
+ * La solicitud pide «datos de alta en el producto» (p. ej. EWM: almacén
+ * inicial, zonas horarias, administrador) y todavía no se fijaron. Sin ellos el
+ * adaptador bloquea el envío con PRODUCT_CONFIGURATION_MISSING.
+ */
+export function needsProductConfiguration(request: unknown): boolean {
+  if (!request || typeof request !== 'object') return false;
+  const r = request as { adapter_key?: string | null; product_configuration?: unknown };
+  if (!contractAdapterFor(r.adapter_key ?? null).configurationSchema) return false;
+  const saved = r.product_configuration;
+  return !saved || typeof saved !== 'object' || Object.keys(saved as object).length === 0;
 }

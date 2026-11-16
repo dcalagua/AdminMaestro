@@ -4,7 +4,7 @@ import type { OnboardingWizard } from '../useOnboardingWizard';
 
 /** Paso 2 · Canal, modelo de despliegue y tenant. */
 export function TenantStep({ wizard }: { wizard: OnboardingWizard }) {
-  const { orgs, form, values, agreement, allowedModes, targetOptions, mode } = wizard;
+  const { orgs, form, values, agreement, allowedModes, targetOptions, mode, companyOptions, companyRequired } = wizard;
   const isApp = mode === 'APP';
   return (
     <div className="grid gap-4">
@@ -68,6 +68,24 @@ export function TenantStep({ wizard }: { wizard: OnboardingWizard }) {
           error={form.formState.errors.tenant_slug} {...form.register('tenant_slug')}
         />
       </FieldRow>
+
+      {companyRequired || companyOptions.length > 0 ? (
+        <SelectField
+          label="Empresa del cliente"
+          required={companyRequired}
+          placeholder={companyRequired ? 'Elige la empresa' : 'Sin empresa (opcional)'}
+          options={companyOptions}
+          hint={
+            companyRequired
+              ? companyOptions.length === 0
+                ? 'Esta app exige la empresa del cliente y la cuenta no tiene ninguna activa. Regístrala en la ficha de la cuenta.'
+                : 'Esta app da de alta el tenant sobre la empresa (razón social) del cliente.'
+              : 'La razón social con la que opera este tenant.'
+          }
+          error={form.formState.errors.company_id}
+          {...form.register('company_id')}
+        />
+      ) : null}
 
       <TextField
         label="Correo del administrador del cliente" required type="email"
