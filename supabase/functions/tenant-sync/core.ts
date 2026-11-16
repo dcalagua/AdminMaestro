@@ -10,6 +10,12 @@
  *   · estado operativo: `GET lifecycle.v1` (ACTIVE / SUSPENDED);
  *   · inventario: `GET tenant-inventory.v1` SOLO si la app lo anuncia.
  *
+ * Única escritura en la app: el vínculo de las altas MANUALES (§8 del contrato
+ * de inventario), antes de verificar, y solo si la integración lo anuncia. Crea
+ * el registro que une el tenant del Admin Maestro con un cliente que ya existía;
+ * no toca el cliente. Hasta que la app lo confirma, un alta manual que la app
+ * no reconoce queda «sin verificar», nunca como vínculo roto.
+ *
  * La base decide qué es un hallazgo (`record_tenant_sync_target_result`). Aquí
  * no hay reglas de negocio: solo transporte, clasificación prudente y un fallo
  * por destino que no detiene a los demás.
@@ -29,6 +35,7 @@ import type { RpcClient } from '../_shared/entitlements/sync-store.ts';
 import { SyncStoreError } from '../_shared/entitlements/sync-store.ts';
 import type { M2mGetDeps } from '../_shared/sync/m2m-get.ts';
 import { fetchInventory, hasInventory, hasLifecycleRead, readLifecycleState } from '../_shared/sync/readers.ts';
+import { hasTenantLink, needsAppLink, requestAppLink, type AppLinkResult } from '../_shared/sync/linker.ts';
 import {
   codeOf,
   type InventoryObservation,
@@ -69,6 +76,7 @@ export interface TenantSyncStore {
   executionContext(requestId: string): Promise<Omit<ProvisioningContext, 'actor'>>;
   recordTarget(runId: string, targetId: string, observation: TargetObservation): Promise<TargetRecordResult>;
   finish(runId: string, errorCode: string | null, targetsTotal: number): Promise<RunFinish>;
+  recordAppLink(mappingId: string, result: AppLinkResult): Promise<void>;
 }
 
 export function createRpcTenantSyncStore(client: RpcClient): TenantSyncStore {
@@ -95,6 +103,14 @@ export function createRpcTenantSyncStore(client: RpcClient): TenantSyncStore {
         p_error_code: errorCode,
         p_targets_total: targetsTotal,
       }),
+    recordAppLink: async (mappingId, result) => {
+      await call<unknown>('record_tenant_app_link', {
+        p_mapping_id: mappingId,
+        p_outcome: result.outcome,
+        p_http_status: result.httpStatus,
+        p_error_code: result.errorCode,
+      });
+    },
   };
 }
 
@@ -213,7 +229,51 @@ export async function observeLink(
     }
   }
   if (obs.exists === 'FOUND') obs.error_code = null;
+  // Un alta manual que la app aún no tiene vinculada es desconocida PARA LA APP,
+  // no un cliente que desapareció: sin verificar hasta que el vínculo se confirme.
+  if (obs.exists === 'NOT_FOUND' && link.registered_manually === true && link.app_link_status !== 'LINKED') {
+    obs.exists = 'UNKNOWN';
+    obs.error_code = 'LINK_PENDING_IN_APP';
+  }
   return obs;
+}
+
+export interface AppLinkSummary {
+  linked: number;
+  failed: number;
+}
+
+/**
+ * Vincula en la app las altas manuales pendientes del destino. Devuelve los
+ * vínculos con su estado actualizado (para que la verificación los trate como
+ * altas normales si quedaron LINKED) y el conteo.
+ */
+export async function linkManualTenants(
+  target: SyncPlanTarget,
+  deps: TenantSyncDeps,
+  actor: SyncActor,
+): Promise<{ links: SyncPlanLink[]; summary: AppLinkSummary }> {
+  const summary: AppLinkSummary = { linked: 0, failed: 0 };
+  if (!hasTenantLink(target)) return { links: target.links, summary };
+  const links = await mapLimit(target.links, LINK_CONCURRENCY, async (link) => {
+    if (!needsAppLink(link)) return link;
+    let result: AppLinkResult;
+    try {
+      result = await requestAppLink(target, link, actor, m2mDeps(deps));
+    } catch (error) {
+      result = { outcome: 'FAILED', httpStatus: null, errorCode: codeOf(error, 'LINK_FAILED') };
+    }
+    try {
+      await deps.store.recordAppLink(link.mapping_id, result);
+    } catch {
+      // Sin registro no se da por vinculado: la próxima corrida lo reintenta.
+      return link;
+    }
+    if (result.outcome === 'LINKED') summary.linked += 1;
+    else summary.failed += 1;
+    return { ...link, app_link_status: result.outcome };
+  });
+  return { links, summary };
 }
 
 function m2mDeps(deps: TenantSyncDeps): M2mGetDeps {
@@ -222,7 +282,12 @@ function m2mDeps(deps: TenantSyncDeps): M2mGetDeps {
 
 const NO_INVENTORY: InventoryObservation = { status: 'NOT_AVAILABLE', complete: false, error_code: null, items: [] };
 
-export async function observeTarget(target: SyncPlanTarget, deps: TenantSyncDeps, actor: SyncActor): Promise<TargetObservation> {
+export async function observeTarget(
+  target: SyncPlanTarget,
+  deps: TenantSyncDeps,
+  actor: SyncActor,
+  onLinks?: (summary: AppLinkSummary) => void,
+): Promise<TargetObservation> {
   const blocker = targetBlocker(target);
   const unchecked = (code: string | null): LinkObservation[] =>
     target.links.map((l) => ({
@@ -244,9 +309,14 @@ export async function observeTarget(target: SyncPlanTarget, deps: TenantSyncDeps
     };
   }
 
+  // Primero el vínculo de las altas manuales: así la verificación ya las encuentra.
+  const linked = await linkManualTenants(target, deps, actor);
+  onLinks?.(linked.summary);
+  const current: SyncPlanTarget = { ...target, links: linked.links };
+
   const linkCheck = hasGetStatus(target) || hasLifecycleRead(target);
   const [links, inventory] = await Promise.all([
-    linkCheck ? mapLimit(target.links, LINK_CONCURRENCY, (l) => observeLink(target, l, deps, actor)) : Promise.resolve(unchecked(null)),
+    linkCheck ? mapLimit(current.links, LINK_CONCURRENCY, (l) => observeLink(current, l, deps, actor)) : Promise.resolve(unchecked(null)),
     fetchInventory(target, actor, m2mDeps(deps)),
   ]);
 
@@ -269,6 +339,8 @@ export interface RunSummary {
     findings_opened: number;
     findings_closed: number;
     error_code: string | null;
+    app_links_linked: number;
+    app_links_failed: number;
   }>;
   findings_opened: number;
   findings_closed: number;
@@ -298,8 +370,11 @@ export async function runTenantSync(
       product_code: target.product.code,
     };
     let observation: TargetObservation;
+    let appLinks: AppLinkSummary = { linked: 0, failed: 0 };
     try {
-      observation = await observeTarget(target, deps, opts.actor);
+      observation = await observeTarget(target, deps, opts.actor, (s) => {
+        appLinks = s;
+      });
     } catch (error) {
       observation = {
         verify_methods: [],
@@ -316,9 +391,19 @@ export async function runTenantSync(
         findings_opened: recorded.findings_opened,
         findings_closed: recorded.findings_closed,
         error_code: observation.error_code,
+        app_links_linked: appLinks.linked,
+        app_links_failed: appLinks.failed,
       };
     } catch (error) {
-      return { ...base, outcome: 'NOT_RECORDED', findings_opened: 0, findings_closed: 0, error_code: codeOf(error, 'RECORD_FAILED') };
+      return {
+        ...base,
+        outcome: 'NOT_RECORDED',
+        findings_opened: 0,
+        findings_closed: 0,
+        error_code: codeOf(error, 'RECORD_FAILED'),
+        app_links_linked: appLinks.linked,
+        app_links_failed: appLinks.failed,
+      };
     }
   });
 

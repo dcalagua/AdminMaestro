@@ -5856,6 +5856,7 @@ export type Database = {
           status: Database['platform']['Enums']['integration_status'];
           status_path_template: string | null;
           subject: string;
+          tenant_link_scope: string | null;
           token_ttl_seconds: number | null;
           updated_at: string;
           usage_ingest_enabled: boolean;
@@ -5898,6 +5899,7 @@ export type Database = {
           status?: Database['platform']['Enums']['integration_status'];
           status_path_template?: string | null;
           subject?: string;
+          tenant_link_scope?: string | null;
           token_ttl_seconds?: number | null;
           updated_at?: string;
           usage_ingest_enabled?: boolean;
@@ -5940,6 +5942,7 @@ export type Database = {
           status?: Database['platform']['Enums']['integration_status'];
           status_path_template?: string | null;
           subject?: string;
+          tenant_link_scope?: string | null;
           token_ttl_seconds?: number | null;
           updated_at?: string;
           usage_ingest_enabled?: boolean;
@@ -8844,6 +8847,10 @@ export type Database = {
       };
       tenant_product_mappings: {
         Row: {
+          app_linked_at: string | null;
+          app_link_checked_at: string | null;
+          app_link_error: string | null;
+          app_link_status: string | null;
           created_at: string;
           deployment_target_id: string | null;
           external_company_id: string | null;
@@ -8860,6 +8867,10 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          app_linked_at?: string | null;
+          app_link_checked_at?: string | null;
+          app_link_error?: string | null;
+          app_link_status?: string | null;
           created_at?: string;
           deployment_target_id?: string | null;
           external_company_id?: string | null;
@@ -8876,6 +8887,10 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          app_linked_at?: string | null;
+          app_link_checked_at?: string | null;
+          app_link_error?: string | null;
+          app_link_status?: string | null;
           created_at?: string;
           deployment_target_id?: string | null;
           external_company_id?: string | null;
@@ -15305,6 +15320,10 @@ export type Database = {
         Args: { p_integration_id: string; p_inventory_path: string; p_read_scope: string };
         Returns: string;
       };
+      configure_tenant_link_integration: {
+        Args: { p_integration_id: string; p_link_scope: string };
+        Returns: string;
+      };
       configure_lifecycle_integration: {
         Args: {
           p_integration_id: string;
@@ -16470,6 +16489,10 @@ export type Database = {
           p_request_id: string;
         };
         Returns: number;
+      };
+      record_tenant_app_link: {
+        Args: { p_error_code?: string; p_http_status?: number; p_mapping_id: string; p_outcome: string };
+        Returns: Json;
       };
       record_tenant_sync_target_result: {
         Args: { p_deployment_target_id: string; p_result: Json; p_run_id: string };

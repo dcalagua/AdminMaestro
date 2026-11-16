@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { httpStatusFor, isServerCall, observeLink, observeTarget, runTenantSync, targetBlocker, type TenantSyncStore } from './core';
+import { httpStatusFor, isServerCall, linkManualTenants, observeLink, observeTarget, runTenantSync, targetBlocker, type TenantSyncStore } from './core';
 import type { SyncPlanLink, SyncPlanTarget } from '../_shared/sync/types';
 import type { AdapterOutcome, ProvisioningAdapter, ProvisioningContext } from '../_shared/provisioning/types';
 
@@ -14,7 +14,9 @@ import type { AdapterOutcome, ProvisioningAdapter, ProvisioningContext } from '.
  *   · un vínculo que GET_STATUS ya dio por inexistente no se vuelve a consultar;
  *   · destinos sin URL o sin credencial no llaman a nadie y lo dicen;
  *   · un destino que falla no detiene a los demás y la corrida SIEMPRE se cierra;
- *   · la función nunca escribe en una app: solo GET.
+ *   · la función solo lee en la app (GET), salvo el PUT de vínculo de las
+ *     altas manuales (§8), que va antes de verificar y nunca toca el cliente;
+ *   · un alta manual que la app aún no vinculó no se da por rota.
  */
 
 const T1 = '00000000-0000-4ccc-8000-000000000001';
@@ -62,6 +64,7 @@ function store(over: Partial<Record<keyof TenantSyncStore, unknown>> = {}) {
       inventory_status: 'NOT_AVAILABLE', inventory_unknown: 0, findings_opened: 1, findings_closed: 0,
     })),
     finish: vi.fn(async () => ({ run_id: 'run-1', status: 'COMPLETED', targets_checked: 1, findings_opened: 1, findings_closed: 0 })),
+    recordAppLink: vi.fn(async () => undefined),
     ...over,
   } as unknown as TenantSyncStore & Record<keyof TenantSyncStore, ReturnType<typeof vi.fn>>;
 }
@@ -140,6 +143,44 @@ describe('observeLink / observeTarget', () => {
   });
 });
 
+describe('vínculo de altas manuales (§8)', () => {
+  const linkable = { inventory_path: '/tenants', inventory_read_scope: 'fixture:tenants:list', tenant_link_scope: 'fixture:tenants:link' };
+
+  it('sin vínculo confirmado, un 404 de la app deja el alta manual sin verificar, no rota', async () => {
+    const t = target({ integration: { capabilities: ['PROVISION', 'GET_STATUS'] } });
+    const deps = { store: store(), secretResolver: () => undefined, adapterFor: () => adapter({ r1: notFound, r2: notFound }) };
+    const obs = await observeLink(t, link(1, { registered_manually: true, app_link_status: null }), deps, ACTOR);
+    expect(obs).toMatchObject({ exists: 'UNKNOWN', error_code: 'LINK_PENDING_IN_APP' });
+    const normal = await observeLink(t, link(2), deps, ACTOR);
+    expect(normal.exists).toBe('NOT_FOUND');
+    const linked = await observeLink(t, link(1, { registered_manually: true, app_link_status: 'LINKED' }), deps, ACTOR);
+    expect(linked.exists).toBe('NOT_FOUND');
+  });
+
+  it('vincula solo las altas manuales pendientes y registra el resultado', async () => {
+    const st = store({ recordAppLink: vi.fn(async () => undefined) });
+    const t = target({
+      integration: linkable,
+      links: [link(1, { registered_manually: true }), link(2), { ...link(2, { registered_manually: true, app_link_status: 'LINKED' }), mapping_id: 'm3' }],
+    });
+    // Sin secreto: la llamada falla antes de la red, pero se intenta y se registra FAILED.
+    const { links, summary } = await linkManualTenants(t, { store: st, secretResolver: () => undefined }, ACTOR);
+    expect(st.recordAppLink).toHaveBeenCalledTimes(1);
+    expect(st.recordAppLink.mock.calls[0]![0]).toBe('m1');
+    expect(st.recordAppLink.mock.calls[0]![1]).toMatchObject({ outcome: 'FAILED' });
+    expect(summary).toEqual({ linked: 0, failed: 1 });
+    expect(links[0]!.app_link_status).toBe('FAILED');
+  });
+
+  it('sin scope de vínculo no se llama a nadie', async () => {
+    const st = store({ recordAppLink: vi.fn() });
+    const t = target({ integration: { inventory_path: '/tenants', inventory_read_scope: 'fixture:tenants:list' }, links: [link(1, { registered_manually: true })] });
+    const { summary } = await linkManualTenants(t, { store: st, secretResolver: () => undefined }, ACTOR);
+    expect(summary).toEqual({ linked: 0, failed: 0 });
+    expect(st.recordAppLink).not.toHaveBeenCalled();
+  });
+});
+
 describe('runTenantSync', () => {
   it('abre, recorre cada destino, registra y cierra; un fallo en un destino no detiene a los demás', async () => {
     const st = store({
@@ -177,12 +218,17 @@ describe('canal servidor', () => {
     expect(isServerCall(null, 'abc')).toBe(false);
   });
 
-  it('el código de la función nunca usa un verbo de escritura contra una app', () => {
-    const files = ['./core.ts', '../_shared/sync/m2m-get.ts', '../_shared/sync/readers.ts'];
-    for (const f of files) {
+  it('el código de la función nunca usa un verbo de escritura contra una app, salvo el PUT de vínculo', () => {
+    for (const f of ['./core.ts', '../_shared/sync/readers.ts', '../_shared/sync/linker.ts']) {
       const src = readFileSync(resolve(__dirname, f), 'utf8');
       expect(src).not.toMatch(/method:\s*'(POST|PUT|PATCH|DELETE)'/);
       expect(src).not.toMatch(/\.provision\(/);
     }
+    // El transporte solo conoce GET y el PUT de vínculo; nunca POST/PATCH/DELETE.
+    const transport = readFileSync(resolve(__dirname, '../_shared/sync/m2m-get.ts'), 'utf8');
+    expect(transport).not.toMatch(/'(POST|PATCH|DELETE)'/);
+    expect(transport.match(/method:\s*'PUT'/g)?.length ?? 0).toBe(1);
+    // Y solo el vinculador lo usa.
+    expect(readFileSync(resolve(__dirname, './core.ts'), 'utf8')).not.toMatch(/m2mPut/);
   });
 });
