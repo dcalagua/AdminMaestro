@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Badge, DataTable, EmptyState, ErrorState, LoadingState } from '@/components/ui/primitives';
 import { SelectInput } from '@/components/ui/fields';
@@ -14,7 +14,9 @@ import {
 import { businessErrorMessage } from '@/lib/pgError';
 import { providerErrorLabel, type ProvisioningEnvironment } from '@/lib/provisioning';
 import { latestRequestByTenant, type ProvisioningRow, type TargetRow } from '@/features/suite/suiteModel';
-import { altaEnvironments, altaState } from './flowModel';
+import { altaEnvironments, altaState, needsProductConfiguration } from './flowModel';
+import { ProductConfigurationForm } from '@/features/deployments/ProductConfigurationForm';
+import { contractAdapterFor } from '@/features/deployments/contractAdapters';
 
 export interface AltaTenant {
   tenantId: string;
@@ -123,8 +125,11 @@ export function AppProvisioningPanel({ tenants }: { tenants: AltaTenant[] }) {
         const canExecute = access.canForProduct('platform.provisioning.execute', t.productId);
         const rowBusy = busy === t.tenantId;
         const error = errors[t.tenantId];
+        const configurable = Boolean(request) && contractAdapterFor((request as { adapter_key?: string | null } | null)?.adapter_key ?? null).configurationSchema !== null;
+        const missingConfig = needsProductConfiguration(request);
         return (
-          <tr key={t.tenantId} data-alta-app={t.productName} data-alta-outcome={state.outcome}>
+          <Fragment key={t.tenantId}>
+          <tr data-alta-app={t.productName} data-alta-outcome={state.outcome}>
             <td className="ebim-td">
               <span className="block font-semibold text-fg">{t.productName}</span>
               <Link className="ebim-link text-caption" to={`/tenants/${t.tenantId}`}>{t.tenantName}</Link>
@@ -176,6 +181,10 @@ export function AppProvisioningPanel({ tenants }: { tenants: AltaTenant[] }) {
                       {rowBusy ? 'Creando…' : 'Solicitar alta'}
                     </button>
                   )
+                ) : state.outcome === 'READY' && state.requestId && missingConfig ? (
+                  <span className="max-w-[220px] text-right text-caption text-warn">
+                    Completa los datos de alta en {t.productName} para ejecutar el alta
+                  </span>
                 ) : state.outcome === 'READY' && state.requestId ? (
                   <button
                     type="button"
@@ -212,6 +221,14 @@ export function AppProvisioningPanel({ tenants }: { tenants: AltaTenant[] }) {
               </div>
             </td>
           </tr>
+          {configurable && request && (state.outcome === 'READY' || state.outcome === 'PENDING' || missingConfig) ? (
+            <tr data-alta-config={t.productName}>
+              <td className="ebim-td" colSpan={4}>
+                <ProductConfigurationForm request={request as unknown as Record<string, unknown>} />
+              </td>
+            </tr>
+          ) : null}
+          </Fragment>
         );
       })}
     </DataTable>

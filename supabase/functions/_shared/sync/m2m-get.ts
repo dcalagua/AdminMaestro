@@ -1,11 +1,12 @@
 /**
- * GET firmado M2M para los canales de LECTURA de la sincronización
- * (`lifecycle.v1` GET y `tenant-inventory.v1`).
+ * Llamada firmada M2M de la sincronización: los GET de LECTURA (`lifecycle.v1`
+ * GET y `tenant-inventory.v1`) y el único PUT, el vínculo de un alta manual
+ * (`tenant-inventory.v1` §8), que solo escribe el registro de vínculo en la app.
  *
  * Mismo transporte que el resto de contratos —url-guard (SSRF), m2m (claims +
  * firma asimétrica), retry— usado tal cual. Reglas propias:
  *   · un token NUEVO por intento (las apps registran el `jti` como de un solo uso);
- *   · solo el scope de lectura del canal: nunca el de alta ni uno de escritura;
+ *   · solo el scope propio del canal: nunca el de alta;
  *   · no sigue redirecciones (una redirección es un error, no un salto);
  *   · un cuerpo que no es JSON se descarta: nunca llega texto del proveedor.
  */
@@ -80,15 +81,31 @@ function fail(errorCode: string, attempts = 0): M2mGetResult {
   return { status: null, body: null, errorCode, attempts };
 }
 
-export async function m2mGet(
+export interface M2mRequest {
+  pathTemplate: string;
+  params?: Record<string, string>;
+  query?: Record<string, string>;
+  scope: string;
+  contract: string;
+}
+
+export function m2mGet(target: SyncPlanTarget, request: M2mRequest, actor: SyncActor, deps: M2mGetDeps): Promise<M2mGetResult> {
+  return m2mCall(target, { ...request, method: 'GET' }, actor, deps);
+}
+
+/** PUT idempotente con cuerpo JSON (solo el vínculo §8). */
+export function m2mPut(
   target: SyncPlanTarget,
-  request: {
-    pathTemplate: string;
-    params?: Record<string, string>;
-    query?: Record<string, string>;
-    scope: string;
-    contract: string;
-  },
+  request: M2mRequest & { body: Record<string, unknown> },
+  actor: SyncActor,
+  deps: M2mGetDeps,
+): Promise<M2mGetResult> {
+  return m2mCall(target, { ...request, method: 'PUT' }, actor, deps);
+}
+
+async function m2mCall(
+  target: SyncPlanTarget,
+  request: M2mRequest & { method: 'GET' | 'PUT'; body?: Record<string, unknown> },
   actor: SyncActor,
   deps: M2mGetDeps,
 ): Promise<M2mGetResult> {
@@ -143,7 +160,7 @@ export async function m2mGet(
       return fail(error instanceof ProvisioningError && CODE_RE.test(error.code) ? error.code : 'CLIENT_ERROR', attempts);
     }
 
-    last = await once(url, token, deployment.timeout_ms, correlationId, request.contract, deps.fetchImpl);
+    last = await once(url, token, deployment.timeout_ms, correlationId, request, deps.fetchImpl);
     if (last.status !== null && last.status >= 300 && last.status < 400) {
       return { status: last.status, body: null, errorCode: 'REDIRECT_BLOCKED', attempts };
     }
@@ -163,20 +180,23 @@ async function once(
   token: string,
   timeoutMs: number,
   correlationId: string,
-  contract: string,
+  request: { method: 'GET' | 'PUT'; contract: string; body?: Record<string, unknown> },
   fetchImpl: typeof fetch | undefined,
 ): Promise<{ status: number | null; body: unknown; network: NetworkFailureKind | null }> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs || 15000);
+  const headers: Record<string, string> = {
+    authorization: `Bearer ${token}`,
+    accept: 'application/json',
+    'x-correlation-id': correlationId,
+    'x-masteradmin-contract': request.contract,
+  };
+  if (request.body) headers['content-type'] = 'application/json';
   try {
     const response = await (fetchImpl ?? fetch)(url.toString(), {
-      method: 'GET',
-      headers: {
-        authorization: `Bearer ${token}`,
-        accept: 'application/json',
-        'x-correlation-id': correlationId,
-        'x-masteradmin-contract': contract,
-      },
+      method: request.method,
+      headers,
+      body: request.body ? JSON.stringify(request.body) : undefined,
       redirect: 'manual',
       signal: controller.signal,
     });

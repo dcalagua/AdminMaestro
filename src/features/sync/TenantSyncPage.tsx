@@ -96,11 +96,19 @@ export function TenantSyncPage() {
 
   const syncNow = () =>
     run.mutate(undefined, {
-      onSuccess: (r) =>
+      onSuccess: (r) => {
+        const linked = (r.targets ?? []).reduce((n, t) => n + (t.app_links_linked ?? 0), 0);
+        const notLinked = (r.targets ?? []).reduce((n, t) => n + (t.app_links_failed ?? 0), 0);
+        const links =
+          linked + notLinked > 0
+            ? ` · ${formatNumber(linked)} clientes registrados a mano vinculados en su app` +
+              (notLinked > 0 ? `, ${formatNumber(notLinked)} sin vincular` : '')
+            : '';
         toast.success(
           'Sincronización terminada',
-          `${formatNumber(r.findings_opened ?? 0)} diferencias nuevas · ${formatNumber(r.findings_closed ?? 0)} resueltas solas.`,
-        ),
+          `${formatNumber(r.findings_opened ?? 0)} diferencias nuevas · ${formatNumber(r.findings_closed ?? 0)} resueltas solas${links}.`,
+        );
+      },
       onError: (e) => toast.error('No se pudo sincronizar', businessErrorMessage(e)),
     });
 

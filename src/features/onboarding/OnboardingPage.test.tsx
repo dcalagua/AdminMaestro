@@ -29,6 +29,15 @@ vi.mock('@/services/queries', () => ({
   useDeploymentTargets: () => q([]),
   useMarkets: () => q([]),
   usePlanPriceCatalog: () => q([]),
+  useOrganization: () =>
+    q({
+      companies: [
+        { id: 'co-1', name: 'Alpha SAC', tax_id: '20100000001', status: 'ACTIVE' },
+        { id: 'co-2', name: 'Alpha Norte', tax_id: null, status: 'ACTIVE' },
+      ],
+    }),
+  // EWM exige la empresa del cliente (adaptador EWM_V1).
+  useProductIntegrations: () => q([{ saas_product_id: 'p-ewm', enabled: true, adapter_key: 'EWM_V1' }]),
 }));
 vi.mock('@/services/mutations', () => ({
   useOnboardCustomer: () => ({ mutateAsync: m.onboard, isPending: false, error: null }),
@@ -115,6 +124,11 @@ describe('«Nuevo tenant»: sólo el alta en una app', () => {
     await userEvent.type(screen.getByLabelText(/Nombre del tenant/), 'Alpha EWM');
     await userEvent.type(screen.getByLabelText(/^Código/), 'alpha-ewm');
     await userEvent.type(screen.getByLabelText(/Correo del administrador/), 'admin@alpha.pe');
+    // EWM da de alta sobre la empresa del cliente: sin elegirla no se crea.
+    await userEvent.click(screen.getByRole('button', { name: 'Crear tenant' }));
+    expect(await screen.findByText('EWM necesita la empresa del cliente para el alta')).toBeInTheDocument();
+    expect(m.createTenant).not.toHaveBeenCalled();
+    await userEvent.selectOptions(screen.getByLabelText(/Empresa del cliente/), 'co-1');
     await userEvent.click(screen.getByRole('button', { name: 'Crear tenant' }));
 
     expect(m.createTenant).toHaveBeenCalledWith({
@@ -126,6 +140,7 @@ describe('«Nuevo tenant»: sólo el alta en una app', () => {
       p_tenant_type: 'PRODUCTION',
       p_deployment_mode: 'SHARED',
       p_managing_organization_id: undefined,
+      p_company_id: 'co-1',
     });
     expect(m.onboard).not.toHaveBeenCalled();
 

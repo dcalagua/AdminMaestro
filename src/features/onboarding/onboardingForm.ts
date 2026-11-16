@@ -24,6 +24,8 @@ export const schema = z
     tenant_name: z.string().trim().min(2, 'Obligatorio'),
     admin_email: z.string().trim().email('Correo inválido'),
     deployment_target_id: z.string().optional(),
+    /** Sociedad del cliente: obligatoria si el contrato de la app la exige (EWM). */
+    company_id: z.string().optional(),
     // 5 · Plan y licencia
     plan_id: z.string().uuid('Elige el plan'),
     billing_interval: z.enum(['MONTHLY', 'QUARTERLY', 'YEARLY', 'ONE_TIME']),

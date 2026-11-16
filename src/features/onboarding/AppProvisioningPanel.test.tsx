@@ -36,6 +36,9 @@ vi.mock('@/services/mutations', () => ({
 vi.mock('@/hooks/useProvisioningAccess', () => ({
   useProvisioningAccess: () => ({ canForProduct: () => m.canExecute }),
 }));
+vi.mock('@/features/deployments/ProductConfigurationForm', () => ({
+  ProductConfigurationForm: ({ request }: { request: { id: string } }) => <div data-testid="config-form">{request.id}</div>,
+}));
 vi.mock('@/components/ui/toast-context', () => ({
   useToast: () => ({ success: vi.fn(), error: vi.fn(), push: vi.fn() }),
 }));
@@ -147,5 +150,25 @@ describe('AppProvisioningPanel', () => {
     renderPanel();
     expect(within(row('EWM')).getByText('Tu rol no ejecuta altas en esta app')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Ejecutar alta' })).toBeNull();
+  });
+
+  it('EWM sin datos de alta: muestra el formulario y no deja ejecutar hasta guardarlos', () => {
+    m.requests = [req('READY_TO_PROVISION', { attempt_count: 0, adapter_key: 'EWM_V1', product_configuration: {} })];
+    renderPanel();
+    expect(within(row('EWM')).queryByRole('button', { name: 'Ejecutar alta' })).toBeNull();
+    expect(within(row('EWM')).getByText(/Completa los datos de alta en EWM/)).toBeInTheDocument();
+    expect(screen.getByTestId('config-form')).toHaveTextContent('r-1');
+  });
+
+  it('EWM con datos de alta guardados: «Ejecutar alta» vuelve a estar disponible', () => {
+    m.requests = [
+      req('READY_TO_PROVISION', {
+        attempt_count: 0,
+        adapter_key: 'EWM_V1',
+        product_configuration: { organizationTimezone: 'America/Lima', initialWarehouse: { code: 'WH-1' } },
+      }),
+    ];
+    renderPanel();
+    expect(within(row('EWM')).getByRole('button', { name: 'Ejecutar alta' })).toBeInTheDocument();
   });
 });

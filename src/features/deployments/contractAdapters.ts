@@ -35,6 +35,11 @@ export interface ContractAdapterDescriptor {
   configurationSchema: z.ZodType | null;
   fields: ConfigurationField[];
   prefill(input: PrefillInput): Record<string, unknown>;
+  /**
+   * El contrato exige la sociedad (empresa) del cliente en el tenant. Sin ella
+   * el adaptador bloquea el envío con COMPANY_REQUIRED: el asistente la pide.
+   */
+  requiresCompany: boolean;
 }
 
 const DEFAULT_TIMEZONE = 'America/Lima';
@@ -98,10 +103,12 @@ export const CONTRACT_ADAPTERS: Record<ContractAdapterKey, ContractAdapterDescri
     configurationSchema: null,
     fields: [],
     prefill: () => ({}),
+    requiresCompany: false,
   },
   EWM_V1: {
     label: 'EWM v1',
     configurationSchema: ewmConfigurationSchema,
+    requiresCompany: true,
     fields: [
       { name: 'initialWarehouse.code', label: 'Código de almacén', kind: 'text', required: true, placeholder: 'WH-001' },
       { name: 'initialWarehouse.name', label: 'Nombre del almacén', kind: 'text', required: true, placeholder: 'Almacén Principal' },

@@ -115,11 +115,62 @@ app lo siga listando.
 
 ## 7. Certificación por app
 
-1. La app implementa `GET /tenants` en su canal de plataforma (el mismo que `/tenants/{id}/lifecycle`) y acepta
-   el scope `<productCode>:tenants:list` con la clave pública de MasterAdmin.
+1. La app implementa `GET /tenants` y `PUT /tenants/{id}/link` en su canal de plataforma (el mismo que
+   `/tenants/{id}/lifecycle`) y acepta los scopes `<productCode>:tenants:list` y `<productCode>:tenants:link` con
+   la clave pública de MasterAdmin.
 2. En MasterAdmin: `select platform.configure_inventory_integration('<integración>', '/tenants', '<code>:tenants:list');`
+   y `select platform.configure_tenant_link_integration('<integración>', '<code>:tenants:link');`
 3. «Sincronizar ahora» en **Apps → Sincronización con las apps**: la fila de la app muestra «Inventario: N clientes».
 4. Evidencia en `docs/superpowers/evidence/<fecha>-<app>-tenant-inventory-certification.md`.
+
+## 8. Vínculo de un cliente que ya existía en la app (`PUT …/link`)
+
+Los clientes que existían en una app antes del Admin Maestro y se registraron a mano
+(`register_manual_provisioning`, o «Registrar en el Admin Maestro» desde un hallazgo) **no tienen registro de alta
+en la app**: el `GET` de estado, `entitlements.v1` y `lifecycle.v1` no los resuelven (404). Sin este vínculo, ni sus
+add-ons ni su suspensión pueden llegar. El vínculo crea en la app **solo** el registro que une el tenant del Admin
+Maestro con ese cliente; nunca crea ni modifica el cliente, sus usuarios, módulos o datos.
+
+| Pieza | Dónde |
+|---|---|
+| Ruta | `{inventory_path}/{controlPlaneTenantId}/link` (p. ej. `/tenants/{id}/link`) |
+| Scope | `product_integrations.tenant_link_scope` = `<productCode>:tenants:link`, distinto de todos los demás |
+| Alta de la capacidad | `platform.configure_tenant_link_integration(integración, scope)`; exige inventario configurado |
+
+```
+PUT {base_url}{inventory_path}/{controlPlaneTenantId}/link
+Authorization: Bearer <jwt con scope <productCode>:tenants:link>
+X-MasterAdmin-Contract: tenant-inventory.v1
+X-Correlation-Id: <uuid>
+Content-Type: application/json
+
+{"externalTenantId":"42","requestId":"<uuid>"}
+```
+
+Respuesta `200`:
+
+```json
+{"contract":"tenant-inventory.v1","productCode":"esupplier","environment":"PRD",
+ "controlPlaneTenantId":"…","externalTenantId":"42","status":"LINKED"}
+```
+
+| Caso | HTTP | Cuerpo |
+|---|---|---|
+| Vinculado ahora | 200 | `status: "LINKED"` |
+| Ya estaba vinculado (mismo par) | 200 | `status: "ALREADY_LINKED"` |
+| El cliente no existe en la app | 404 | `{"error":"EXTERNAL_TENANT_NOT_FOUND"}` |
+| El cliente ya está unido a otro tenant, o el tenant a otro cliente | 409 | `{"error":"LINK_CONFLICT"}` |
+| Cuerpo o id inválidos | 400 | `{"error":"INVALID_LINK_REQUEST"}` |
+| La app no tiene configurado el scope | 503 | `{"error":"TENANT_LINK_NOT_CONFIGURED"}` |
+
+Después del vínculo, `GET /tenants/{controlPlaneTenantId}`, `entitlements.v1` y `lifecycle.v1` resuelven ese
+cliente igual que si el Admin Maestro lo hubiera dado de alta, y el inventario lo lista con su `controlPlaneTenantId`.
+
+**Quién lo llama.** La sincronización (`tenant-sync`), en cada corrida y **antes** de verificar, para cada alta
+manual con id externo que todavía no está `LINKED` (`tenant_product_mappings.app_link_status`). Es la única
+escritura de la sincronización en una app. El resultado queda en el mapping (`app_link_status`, `app_link_error`) y
+en auditoría (`TENANT_APP_LINKED` / `TENANT_APP_LINK_FAILED`). Mientras no se confirma, un alta manual que la app
+no reconoce queda «sin verificar» (`LINK_PENDING_IN_APP`), nunca como vínculo roto.
 
 Estado por app (2026-11-13): ninguna lo implementa. Auditoría de referencia: 32 clientes solo en las apps
 (eChange 3, eCommerce 5, Comerza 6, TMS 3, eSupplier 6, EWM 5, eExpense 2, GMAO 2).

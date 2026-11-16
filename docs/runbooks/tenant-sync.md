@@ -16,6 +16,11 @@ Una vez al día (05:30 Lima) y con «Sincronizar ahora», la función recorre lo
 | ¿Está en el mismo estado? | `GET /tenants/{id}/lifecycle` frente al estado del tenant en MasterAdmin (ACTIVE → ACTIVE; SUSPENDED/CHURNED/ARCHIVED → SUSPENDED). Con una entrega lifecycle pendiente no es hallazgo | apps con `lifecycle_path` |
 | ¿Tiene clientes que MasterAdmin no conoce? | `GET /tenants` del contrato `tenant-inventory.v1` | **ninguna** (las apps deben implementarlo) |
 
+**Única escritura en la app:** antes de verificar, la corrida vincula las altas manuales pendientes
+(`PUT {inventory_path}/{id}/link`, §8 del contrato) si la integración tiene `tenant_link_scope`. El resultado queda en
+`tenant_product_mappings.app_link_status` / `app_link_error` y en la respuesta de la función (`app_links_linked`,
+`app_links_failed`). Un alta manual sin vínculo confirmado nunca se da por rota (`LINK_PENDING_IN_APP`).
+
 La base decide y deduplica los hallazgos (`tenant_sync_findings`), y cierra sola (`NO_LONGER_DETECTED`) lo que la
 corrida comprobó que ya no ocurre. Un inventario incompleto o un vínculo sin verificar no cierran nada.
 
