@@ -4,10 +4,12 @@ import { TextAreaField, CheckboxField } from '@/components/ui/fields';
 import { formatMoney } from '@/lib/format';
 import { INTERVALS, TENANT_TYPES } from '../onboardingForm';
 import type { OnboardingWizard } from '../useOnboardingWizard';
+import { trialEndPreview } from '@/features/tenants/tenantTrial';
 
 /** Paso 5 · Confirmación: lo que se creará en una sola transacción. */
 export function ConfirmStep({ wizard }: { wizard: OnboardingWizard }) {
-  const { agents, form, values, manager, plan, market, isDemo, effectiveLicense } = wizard;
+  const { agents, form, values, manager, plan, market, isDemo, effectiveLicense, product } = wizard;
+  const trialEnd = values.tenant_type === 'TRIAL' ? trialEndPreview(product?.trial_days) : null;
   return (
     <div className="grid gap-4">
       <Card title="Lo que se creará en una sola transacción">
@@ -16,6 +18,7 @@ export function ConfirmStep({ wizard }: { wizard: OnboardingWizard }) {
             ['Tenant', `${values.tenant_name} (${values.tenant_slug})`],
             ['Administrador del cliente', values.admin_email],
             ['Tipo', TENANT_TYPES.find((t) => t.value === values.tenant_type)?.label ?? values.tenant_type],
+            ...(trialEnd ? [['Prueba', `${product?.trial_days} días · vence el ${trialEnd}`]] : []),
             ['Canal', manager?.display_name ?? 'Venta directa EBIM'],
             ['Mercado', market ? `${market.name} (${market.code})` : '—'],
             ['Moneda contractual', values.currency || '—'],

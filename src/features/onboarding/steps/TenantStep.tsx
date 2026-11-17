@@ -1,11 +1,14 @@
 import { TextField, SelectField, NumberField, FieldRow } from '@/components/ui/fields';
 import { TENANT_TYPES } from '../onboardingForm';
 import type { OnboardingWizard } from '../useOnboardingWizard';
+import { trialEndPreview } from '@/features/tenants/tenantTrial';
 
 /** Paso 2 · Canal, modelo de despliegue y tenant. */
 export function TenantStep({ wizard }: { wizard: OnboardingWizard }) {
-  const { orgs, form, values, agreement, allowedModes, targetOptions, mode, companyOptions, companyRequired } = wizard;
+  const { orgs, form, values, agreement, allowedModes, targetOptions, mode, companyOptions, companyRequired, product } = wizard;
   const isApp = mode === 'APP';
+  // La base fija el vencimiento al crear (now() + días del producto); esto es la vista previa.
+  const trialEnd = values.tenant_type === 'TRIAL' ? trialEndPreview(product?.trial_days) : null;
   return (
     <div className="grid gap-4">
       <FieldRow>
@@ -51,7 +54,11 @@ export function TenantStep({ wizard }: { wizard: OnboardingWizard }) {
         />
         <SelectField
           label="Tipo de tenant" options={TENANT_TYPES}
-          hint="DEMO no genera suscripción recurrente."
+          hint={
+            trialEnd
+              ? `Prueba de ${product?.trial_days} días: vence el ${trialEnd}. Se extiende o convierte desde el tenant.`
+              : 'DEMO no genera suscripción recurrente.'
+          }
           error={form.formState.errors.tenant_type}
           {...form.register('tenant_type')}
         />

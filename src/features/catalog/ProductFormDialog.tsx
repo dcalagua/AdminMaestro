@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { FormDialog } from '@/components/ui/FormDialog';
 import { TextField, SelectField, NumberField, CheckboxField, TextAreaField, FieldRow } from '@/components/ui/fields';
 import { useToast } from '@/components/ui/toast-context';
-import { useUpsertProduct } from '@/services/mutations';
+import { useSetProductTrialDays, useUpsertProduct } from '@/services/mutations';
 import type { SaasProduct } from '@/types/domain';
 
 /**
@@ -38,7 +38,16 @@ const schema = z.object({
   status: z.enum(['ACTIVE', 'INACTIVE', 'SUSPENDED', 'ARCHIVED']),
   is_billable: z.boolean(),
   sort_order: z.coerce.number().int().min(0).max(9999),
+  /** Mismo CHECK que `saas_products_trial_days_ck` (1..90). */
+  trial_days: z.coerce
+    .number({ message: 'Indica los días de prueba' })
+    .int('Debe ser un número entero de días')
+    .min(1, 'Mínimo 1 día')
+    .max(90, 'Máximo 90 días'),
 });
+
+/** Días de prueba con los que nace un producto (default de la columna en la base). */
+const DEFAULT_TRIAL_DAYS = 7;
 
 type FormValues = z.input<typeof schema>;
 
@@ -66,6 +75,7 @@ export function ProductFormDialog({
 }) {
   const toast = useToast();
   const upsert = useUpsertProduct();
+  const setTrialDays = useSetProductTrialDays();
   const isEdit = Boolean(product);
 
   const form = useForm<FormValues>({
@@ -80,12 +90,14 @@ export function ProductFormDialog({
       status: 'ACTIVE',
       is_billable: true,
       sort_order: 100,
+      trial_days: DEFAULT_TRIAL_DAYS,
     },
   });
 
   useEffect(() => {
     if (!open) return;
     upsert.reset();
+    setTrialDays.reset();
     form.reset({
       code: product?.code ?? '',
       name: product?.name ?? '',
@@ -96,6 +108,7 @@ export function ProductFormDialog({
       status: (product?.status as FormValues['status']) ?? 'ACTIVE',
       is_billable: product?.is_billable ?? true,
       sort_order: product?.sort_order ?? 100,
+      trial_days: product?.trial_days ?? DEFAULT_TRIAL_DAYS,
     });
     // Deliberadamente solo `open`/`product`: `form` y `upsert` son estables entre
     // renders, e incluirlos reejecutaría el reset durante la edición.
@@ -104,7 +117,7 @@ export function ProductFormDialog({
   const submit = form.handleSubmit(async (values) => {
     const parsed = schema.parse(values);
     try {
-      await upsert.mutateAsync({
+      const productId = await upsert.mutateAsync({
         p_id: product?.id,
         p_code: parsed.code,
         p_name: parsed.name,
@@ -116,6 +129,11 @@ export function ProductFormDialog({
         p_billing_unit: parsed.billing_unit,
         p_sort_order: parsed.sort_order,
       });
+      // La prueba va por su propia RPC (auditada): `upsert_saas_product` no la toca.
+      const currentDays = product?.trial_days ?? DEFAULT_TRIAL_DAYS;
+      if (parsed.trial_days !== currentDays) {
+        await setTrialDays.mutateAsync({ p_product_id: productId, p_days: parsed.trial_days });
+      }
       toast.success(
         isEdit ? 'Producto actualizado' : 'Producto creado',
         `${parsed.short_name} (${parsed.code})`,
@@ -136,8 +154,8 @@ export function ProductFormDialog({
           : 'Un SaaS nuevo es una fila del catálogo: no requiere cambios de código ni migraciones.'
       }
       submitLabel={isEdit ? 'Guardar cambios' : 'Crear producto'}
-      busy={upsert.isPending}
-      error={upsert.error}
+      busy={upsert.isPending || setTrialDays.isPending}
+      error={upsert.error ?? setTrialDays.error}
       onSubmit={() => void submit()}
       onCancel={onClose}
     >
@@ -206,6 +224,16 @@ export function ProductFormDialog({
           {...form.register('sort_order')}
         />
       </FieldRow>
+
+      <NumberField
+        label="Días de prueba"
+        required
+        min={1}
+        max={90}
+        hint="Duración de la prueba de cada tenant TRIAL nuevo (1 a 90 días). No cambia las pruebas ya iniciadas."
+        error={form.formState.errors.trial_days}
+        {...form.register('trial_days')}
+      />
 
       <CheckboxField
         label="Es facturable"

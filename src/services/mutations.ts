@@ -71,6 +71,11 @@ export function useArchiveProduct() {
   return useRpc('archive_saas_product', ['saas-products', 'saas-product']);
 }
 
+/** Días de prueba del producto (1..90). RPC dedicada: `upsert_saas_product` no los toca. */
+export function useSetProductTrialDays() {
+  return useRpc('set_product_trial_days', ['saas-products', 'saas-product']);
+}
+
 export function useUpsertPlan() {
   return useRpc('upsert_plan', ['plans']);
 }
@@ -221,6 +226,16 @@ export function useCancelTenantAddon() {
 export function useRequestTenantSuspension() {
   return useRpc('request_tenant_suspension', [
     'tenant-overview', 'tenant', 'provisioning-requests', 'org360', ...LIFECYCLE_KEYS,
+  ]);
+}
+
+/**
+ * Extiende (fecha futura) o convierte (`p_ends_at` null) la prueba de un tenant
+ * TRIAL. Solo plataforma; si estaba suspendido por prueba vencida, lo reactiva.
+ */
+export function useSetTenantTrialEnd() {
+  return useRpc('set_tenant_trial_end', [
+    'tenant-overview', 'tenant', 'tenants', 'provisioning-requests', 'org360', ...LIFECYCLE_KEYS,
   ]);
 }
 

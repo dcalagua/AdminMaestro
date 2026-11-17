@@ -104,6 +104,17 @@ export interface ProvisioningPayload {
   company: Record<string, unknown> | null;
   plan: Record<string, unknown> | null;
   masterAdmin: Record<string, unknown>;
+  /**
+   * Solo para `tenantType: 'TRIAL'` con vencimiento (migración 20261024000100).
+   * `endsAt` en ISO-8601 UTC sin milisegundos. Un tenant PRODUCTION no trae la clave.
+   */
+  trial?: ProvisioningTrial;
+}
+
+/** Periodo de prueba en el payload estándar (contrato trial.v1, TRIAL_CONTRACT.md §2). */
+export interface ProvisioningTrial {
+  days: number;
+  endsAt: string;
 }
 
 /**
