@@ -122,6 +122,13 @@ export type Database = {
             referencedColumns: ['saas_product_id'];
           },
           {
+            foreignKeyName: 'ai_credit_ledger_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
             foreignKeyName: 'ai_credit_ledger_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: false;
@@ -133,6 +140,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'ai_credit_ledger_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -272,6 +286,13 @@ export type Database = {
             columns: ['saas_product_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'ai_credit_policies_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
             referencedColumns: ['saas_product_id'];
           },
         ];
@@ -426,6 +447,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'audit_logs_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -689,6 +717,13 @@ export type Database = {
             referencedColumns: ['saas_product_id'];
           },
           {
+            foreignKeyName: 'billing_shadow_comparisons_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
             foreignKeyName: 'billing_shadow_comparisons_subscription_id_fkey';
             columns: ['subscription_id'];
             isOneToOne: false;
@@ -749,6 +784,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'billing_shadow_comparisons_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -826,6 +868,13 @@ export type Database = {
             columns: ['saas_product_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'capability_aliases_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
             referencedColumns: ['saas_product_id'];
           },
         ];
@@ -1125,6 +1174,13 @@ export type Database = {
             referencedColumns: ['saas_product_id'];
           },
           {
+            foreignKeyName: 'catalog_items_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
             foreignKeyName: 'catalog_items_usage_meter_id_fkey';
             columns: ['usage_meter_id'];
             isOneToOne: false;
@@ -1178,6 +1234,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'product_integrations';
             referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'commercial_cutover_events_product_integration_id_fkey';
+            columns: ['product_integration_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['integration_id'];
           },
         ];
       };
@@ -1330,6 +1393,13 @@ export type Database = {
             referencedColumns: ['saas_product_id'];
           },
           {
+            foreignKeyName: 'commission_events_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
             foreignKeyName: 'commission_events_sales_agent_id_fkey';
             columns: ['sales_agent_id'];
             isOneToOne: false;
@@ -1362,6 +1432,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'commission_events_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -1444,6 +1521,13 @@ export type Database = {
             columns: ['saas_product_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'commission_plans_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
             referencedColumns: ['saas_product_id'];
           },
         ];
@@ -1871,6 +1955,13 @@ export type Database = {
             referencedColumns: ['deployment_target_id'];
           },
           {
+            foreignKeyName: 'cost_alloc_deployment_target_fk';
+            columns: ['deployment_target_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['deployment_target_id'];
+          },
+          {
             foreignKeyName: 'cost_allocations_cost_entry_id_fkey';
             columns: ['cost_entry_id'];
             isOneToOne: false;
@@ -1955,6 +2046,13 @@ export type Database = {
             referencedColumns: ['saas_product_id'];
           },
           {
+            foreignKeyName: 'cost_allocations_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
             foreignKeyName: 'cost_allocations_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: false;
@@ -1966,6 +2064,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'cost_allocations_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -2119,6 +2224,13 @@ export type Database = {
             columns: ['saas_product_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'credential_profiles_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
             referencedColumns: ['saas_product_id'];
           },
         ];
@@ -2302,6 +2414,13 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'deployment_targets_product_integration_id_fkey';
+            columns: ['product_integration_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['integration_id'];
+          },
+          {
             foreignKeyName: 'deployment_targets_saas_product_id_fkey';
             columns: ['saas_product_id'];
             isOneToOne: false;
@@ -2327,6 +2446,13 @@ export type Database = {
             columns: ['saas_product_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'deployment_targets_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
             referencedColumns: ['saas_product_id'];
           },
         ];
@@ -2395,6 +2521,13 @@ export type Database = {
             referencedColumns: ['saas_product_id'];
           },
           {
+            foreignKeyName: 'entitlement_desired_state_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
             foreignKeyName: 'entitlement_desired_state_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: false;
@@ -2406,6 +2539,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'entitlement_desired_state_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -2565,6 +2705,13 @@ export type Database = {
             referencedRelation: 'v_tenant_overview';
             referencedColumns: ['saas_product_id'];
           },
+          {
+            foreignKeyName: 'entitlement_registry_checks_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
         ];
       };
       entitlement_snapshots: {
@@ -2649,6 +2796,13 @@ export type Database = {
             referencedColumns: ['saas_product_id'];
           },
           {
+            foreignKeyName: 'entitlement_snapshots_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
             foreignKeyName: 'entitlement_snapshots_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: false;
@@ -2660,6 +2814,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'entitlement_snapshots_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -2754,6 +2915,13 @@ export type Database = {
             referencedColumns: ['saas_product_id'];
           },
           {
+            foreignKeyName: 'entitlement_sync_attempts_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
             foreignKeyName: 'entitlement_sync_attempts_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: false;
@@ -2765,6 +2933,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'entitlement_sync_attempts_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -2889,6 +3064,13 @@ export type Database = {
             referencedColumns: ['saas_product_id'];
           },
           {
+            foreignKeyName: 'entitlement_sync_state_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
             foreignKeyName: 'entitlement_sync_state_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: false;
@@ -2900,6 +3082,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'entitlement_sync_state_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -3259,6 +3448,13 @@ export type Database = {
             referencedColumns: ['saas_product_id'];
           },
           {
+            foreignKeyName: 'invoice_lines_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
             foreignKeyName: 'invoice_lines_subscription_item_id_fkey';
             columns: ['subscription_item_id'];
             isOneToOne: false;
@@ -3277,6 +3473,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'invoice_lines_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -3487,22 +3690,22 @@ export type Database = {
       };
       lifecycle_job_runs: {
         Row: {
-          detail: Json;
+          detail: NonNullable<Json>;
           id: number;
           job: string;
           outcome: string;
           ran_at: string;
         };
         Insert: {
-          detail?: Json;
-          id?: number;
+          detail?: NonNullable<Json>;
+          id?: never;
           job: string;
           outcome: string;
           ran_at?: string;
         };
         Update: {
-          detail?: Json;
-          id?: number;
+          detail?: NonNullable<Json>;
+          id?: never;
           job?: string;
           outcome?: string;
           ran_at?: string;
@@ -4315,6 +4518,13 @@ export type Database = {
             referencedRelation: 'v_tenant_overview';
             referencedColumns: ['saas_product_id'];
           },
+          {
+            foreignKeyName: 'organization_product_agreements_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
         ];
       };
       organization_relationships: {
@@ -4616,6 +4826,13 @@ export type Database = {
             referencedColumns: ['saas_product_id'];
           },
           {
+            foreignKeyName: 'partner_fee_statement_lines_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
             foreignKeyName: 'partner_fee_statement_lines_statement_id_fkey';
             columns: ['statement_id'];
             isOneToOne: false;
@@ -4690,6 +4907,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -5651,6 +5875,13 @@ export type Database = {
             referencedRelation: 'v_tenant_overview';
             referencedColumns: ['saas_product_id'];
           },
+          {
+            foreignKeyName: 'plans_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
         ];
       };
       platform_admins: {
@@ -5815,6 +6046,13 @@ export type Database = {
             referencedRelation: 'v_tenant_overview';
             referencedColumns: ['saas_product_id'];
           },
+          {
+            foreignKeyName: 'product_capabilities_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
         ];
       };
       product_integrations: {
@@ -5858,6 +6096,8 @@ export type Database = {
           subject: string;
           tenant_link_scope: string | null;
           token_ttl_seconds: number | null;
+          trial_path: string | null;
+          trial_write_scope: string | null;
           updated_at: string;
           usage_ingest_enabled: boolean;
         };
@@ -5901,6 +6141,8 @@ export type Database = {
           subject?: string;
           tenant_link_scope?: string | null;
           token_ttl_seconds?: number | null;
+          trial_path?: string | null;
+          trial_write_scope?: string | null;
           updated_at?: string;
           usage_ingest_enabled?: boolean;
         };
@@ -5944,6 +6186,8 @@ export type Database = {
           subject?: string;
           tenant_link_scope?: string | null;
           token_ttl_seconds?: number | null;
+          trial_path?: string | null;
+          trial_write_scope?: string | null;
           updated_at?: string;
           usage_ingest_enabled?: boolean;
         };
@@ -5981,6 +6225,13 @@ export type Database = {
             columns: ['saas_product_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'product_integrations_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
             referencedColumns: ['saas_product_id'];
           },
         ];
@@ -6056,6 +6307,13 @@ export type Database = {
             columns: ['saas_product_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'product_owners_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
             referencedColumns: ['saas_product_id'];
           },
           {
@@ -6754,6 +7012,13 @@ export type Database = {
             referencedColumns: ['deployment_target_id'];
           },
           {
+            foreignKeyName: 'provisioning_requests_deployment_target_id_fkey';
+            columns: ['deployment_target_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['deployment_target_id'];
+          },
+          {
             foreignKeyName: 'provisioning_requests_requested_by_fkey';
             columns: ['requested_by'];
             isOneToOne: false;
@@ -6789,6 +7054,13 @@ export type Database = {
             referencedColumns: ['saas_product_id'];
           },
           {
+            foreignKeyName: 'provisioning_requests_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
             foreignKeyName: 'provisioning_requests_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: false;
@@ -6800,6 +7072,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'provisioning_requests_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -6907,6 +7186,7 @@ export type Database = {
           short_name: string;
           sort_order: number;
           status: Database['platform']['Enums']['entity_status'];
+          trial_days: number;
           updated_at: string;
         };
         Insert: {
@@ -6923,6 +7203,7 @@ export type Database = {
           short_name: string;
           sort_order?: number;
           status?: Database['platform']['Enums']['entity_status'];
+          trial_days?: number;
           updated_at?: string;
         };
         Update: {
@@ -6939,6 +7220,7 @@ export type Database = {
           short_name?: string;
           sort_order?: number;
           status?: Database['platform']['Enums']['entity_status'];
+          trial_days?: number;
           updated_at?: string;
         };
         Relationships: [];
@@ -7121,11 +7403,25 @@ export type Database = {
             referencedColumns: ['deployment_target_id'];
           },
           {
+            foreignKeyName: 'saas_provisioning_requests_deployment_target_id_fkey';
+            columns: ['deployment_target_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['deployment_target_id'];
+          },
+          {
             foreignKeyName: 'saas_provisioning_requests_product_integration_id_fkey';
             columns: ['product_integration_id'];
             isOneToOne: false;
             referencedRelation: 'product_integrations';
             referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'saas_provisioning_requests_product_integration_id_fkey';
+            columns: ['product_integration_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['integration_id'];
           },
           {
             foreignKeyName: 'saas_provisioning_requests_requested_by_fkey';
@@ -7160,6 +7456,13 @@ export type Database = {
             columns: ['saas_product_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'saas_provisioning_requests_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
             referencedColumns: ['saas_product_id'];
           },
           {
@@ -7223,6 +7526,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'saas_provisioning_requests_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -7515,6 +7825,13 @@ export type Database = {
             referencedColumns: ['saas_product_id'];
           },
           {
+            foreignKeyName: 'sales_attributions_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
             foreignKeyName: 'sales_attributions_sales_agent_id_fkey';
             columns: ['sales_agent_id'];
             isOneToOne: false;
@@ -7582,6 +7899,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'sales_attributions_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -8053,6 +8377,13 @@ export type Database = {
             foreignKeyName: 'subscription_items_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'subscription_items_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
             referencedRelation: 'v_tenant_margin';
             referencedColumns: ['tenant_id'];
           },
@@ -8225,6 +8556,13 @@ export type Database = {
             referencedColumns: ['saas_product_id'];
           },
           {
+            foreignKeyName: 'subscriptions_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
             foreignKeyName: 'subscriptions_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: false;
@@ -8236,6 +8574,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'subscriptions_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -8383,6 +8728,13 @@ export type Database = {
             foreignKeyName: 'tenant_addons_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_addons_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
             referencedRelation: 'v_tenant_margin';
             referencedColumns: ['tenant_id'];
           },
@@ -8452,6 +8804,13 @@ export type Database = {
             referencedColumns: ['deployment_target_id'];
           },
           {
+            foreignKeyName: 'tenant_deployments_deployment_target_id_fkey';
+            columns: ['deployment_target_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['deployment_target_id'];
+          },
+          {
             foreignKeyName: 'tenant_deployments_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: false;
@@ -8463,6 +8822,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_deployments_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -8570,6 +8936,13 @@ export type Database = {
             foreignKeyName: 'tenant_entitlement_overrides_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_entitlement_overrides_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
             referencedRelation: 'v_tenant_margin';
             referencedColumns: ['tenant_id'];
           },
@@ -8626,6 +8999,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_features_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -8714,18 +9094,74 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "tenant_lifecycle_delivery_saas_product_id_fkey";
-            columns: ["saas_product_id"];
+            foreignKeyName: 'tenant_lifecycle_delivery_saas_product_id_fkey';
+            columns: ['saas_product_id'];
             isOneToOne: false;
-            referencedRelation: "saas_products";
-            referencedColumns: ["id"];
+            referencedRelation: 'saas_products';
+            referencedColumns: ['id'];
           },
           {
-            foreignKeyName: "tenant_lifecycle_delivery_tenant_id_fkey";
-            columns: ["tenant_id"];
+            foreignKeyName: 'tenant_lifecycle_delivery_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_product_finance';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'tenant_lifecycle_delivery_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_product_margin';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'tenant_lifecycle_delivery_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'tenant_lifecycle_delivery_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'tenant_lifecycle_delivery_tenant_id_fkey';
+            columns: ['tenant_id'];
             isOneToOne: true;
-            referencedRelation: "tenants";
-            referencedColumns: ["id"];
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenant_lifecycle_delivery_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: true;
+            referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_lifecycle_delivery_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: true;
+            referencedRelation: 'v_tenant_lifecycle';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_lifecycle_delivery_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: true;
+            referencedRelation: 'v_tenant_margin';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_lifecycle_delivery_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: true;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['tenant_id'];
           },
         ];
       };
@@ -8826,6 +9262,13 @@ export type Database = {
             foreignKeyName: 'tenant_memberships_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_memberships_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
             referencedRelation: 'v_tenant_margin';
             referencedColumns: ['tenant_id'];
           },
@@ -8847,10 +9290,10 @@ export type Database = {
       };
       tenant_product_mappings: {
         Row: {
-          app_linked_at: string | null;
           app_link_checked_at: string | null;
           app_link_error: string | null;
           app_link_status: string | null;
+          app_linked_at: string | null;
           created_at: string;
           deployment_target_id: string | null;
           external_company_id: string | null;
@@ -8867,10 +9310,10 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
-          app_linked_at?: string | null;
           app_link_checked_at?: string | null;
           app_link_error?: string | null;
           app_link_status?: string | null;
+          app_linked_at?: string | null;
           created_at?: string;
           deployment_target_id?: string | null;
           external_company_id?: string | null;
@@ -8887,10 +9330,10 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
-          app_linked_at?: string | null;
           app_link_checked_at?: string | null;
           app_link_error?: string | null;
           app_link_status?: string | null;
+          app_linked_at?: string | null;
           created_at?: string;
           deployment_target_id?: string | null;
           external_company_id?: string | null;
@@ -8929,6 +9372,13 @@ export type Database = {
             referencedColumns: ['deployment_target_id'];
           },
           {
+            foreignKeyName: 'tenant_product_mappings_deployment_target_id_fkey';
+            columns: ['deployment_target_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['deployment_target_id'];
+          },
+          {
             foreignKeyName: 'tenant_product_mappings_saas_product_id_fkey';
             columns: ['saas_product_id'];
             isOneToOne: false;
@@ -8957,6 +9407,13 @@ export type Database = {
             referencedColumns: ['saas_product_id'];
           },
           {
+            foreignKeyName: 'tenant_product_mappings_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
             foreignKeyName: 'tenant_product_mappings_saas_provisioning_request_id_fkey';
             columns: ['saas_provisioning_request_id'];
             isOneToOne: false;
@@ -8982,6 +9439,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_product_mappings_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -9038,6 +9502,13 @@ export type Database = {
             foreignKeyName: 'tenant_settings_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: true;
+            referencedRelation: 'v_tenant_lifecycle';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_settings_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: true;
             referencedRelation: 'v_tenant_margin';
             referencedColumns: ['tenant_id'];
           },
@@ -9053,7 +9524,7 @@ export type Database = {
       tenant_suspensions: {
         Row: {
           cause: string;
-          detail: Json;
+          detail: NonNullable<Json>;
           id: string;
           provisioning_request_id: string | null;
           reason: string;
@@ -9068,7 +9539,7 @@ export type Database = {
         };
         Insert: {
           cause: string;
-          detail?: Json;
+          detail?: NonNullable<Json>;
           id?: string;
           provisioning_request_id?: string | null;
           reason: string;
@@ -9083,7 +9554,7 @@ export type Database = {
         };
         Update: {
           cause?: string;
-          detail?: Json;
+          detail?: NonNullable<Json>;
           id?: string;
           provisioning_request_id?: string | null;
           reason?: string;
@@ -9098,11 +9569,67 @@ export type Database = {
         };
         Relationships: [
           {
+            foreignKeyName: 'tenant_suspensions_provisioning_request_id_fkey';
+            columns: ['provisioning_request_id'];
+            isOneToOne: false;
+            referencedRelation: 'provisioning_requests';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenant_suspensions_resume_request_id_fkey';
+            columns: ['resume_request_id'];
+            isOneToOne: false;
+            referencedRelation: 'provisioning_requests';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenant_suspensions_resumed_by_fkey';
+            columns: ['resumed_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenant_suspensions_suspended_by_fkey';
+            columns: ['suspended_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
             foreignKeyName: 'tenant_suspensions_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'tenants';
             referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenant_suspensions_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_suspensions_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_suspensions_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_margin';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_suspensions_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['tenant_id'];
           },
         ];
       };
@@ -9113,7 +9640,7 @@ export type Database = {
           app_state: string | null;
           app_status: string | null;
           deployment_target_id: string;
-          detail: Json;
+          detail: NonNullable<Json>;
           external_company_id: string | null;
           external_organization_id: string | null;
           external_tenant_id: string | null;
@@ -9142,7 +9669,7 @@ export type Database = {
           app_state?: string | null;
           app_status?: string | null;
           deployment_target_id: string;
-          detail?: Json;
+          detail?: NonNullable<Json>;
           external_company_id?: string | null;
           external_organization_id?: string | null;
           external_tenant_id?: string | null;
@@ -9171,7 +9698,7 @@ export type Database = {
           app_state?: string | null;
           app_status?: string | null;
           deployment_target_id?: string;
-          detail?: Json;
+          detail?: NonNullable<Json>;
           external_company_id?: string | null;
           external_organization_id?: string | null;
           external_tenant_id?: string | null;
@@ -9587,6 +10114,143 @@ export type Database = {
           },
         ];
       };
+      tenant_trial_delivery: {
+        Row: {
+          applied_at: string | null;
+          applied_ends_at: string | null;
+          applied_state: string | null;
+          applied_version: number | null;
+          attempts: number;
+          desired_at: string;
+          desired_ends_at: string | null;
+          desired_reason: string;
+          desired_version: number;
+          last_attempt_at: string | null;
+          last_error_code: string | null;
+          last_http_status: number | null;
+          last_result: string | null;
+          lease_owner: string | null;
+          lease_until: string | null;
+          next_attempt_at: string;
+          saas_product_id: string;
+          tenant_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          applied_at?: string | null;
+          applied_ends_at?: string | null;
+          applied_state?: string | null;
+          applied_version?: number | null;
+          attempts?: number;
+          desired_at?: string;
+          desired_ends_at?: string | null;
+          desired_reason: string;
+          desired_version?: number;
+          last_attempt_at?: string | null;
+          last_error_code?: string | null;
+          last_http_status?: number | null;
+          last_result?: string | null;
+          lease_owner?: string | null;
+          lease_until?: string | null;
+          next_attempt_at?: string;
+          saas_product_id: string;
+          tenant_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          applied_at?: string | null;
+          applied_ends_at?: string | null;
+          applied_state?: string | null;
+          applied_version?: number | null;
+          attempts?: number;
+          desired_at?: string;
+          desired_ends_at?: string | null;
+          desired_reason?: string;
+          desired_version?: number;
+          last_attempt_at?: string | null;
+          last_error_code?: string | null;
+          last_http_status?: number | null;
+          last_result?: string | null;
+          lease_owner?: string | null;
+          lease_until?: string | null;
+          next_attempt_at?: string;
+          saas_product_id?: string;
+          tenant_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'tenant_trial_delivery_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'saas_products';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenant_trial_delivery_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_product_finance';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'tenant_trial_delivery_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_product_margin';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'tenant_trial_delivery_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'tenant_trial_delivery_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'tenant_trial_delivery_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: true;
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenant_trial_delivery_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: true;
+            referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_trial_delivery_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: true;
+            referencedRelation: 'v_tenant_lifecycle';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_trial_delivery_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: true;
+            referencedRelation: 'v_tenant_margin';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_trial_delivery_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: true;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['tenant_id'];
+          },
+        ];
+      };
       tenants: {
         Row: {
           accent_color: string | null;
@@ -9608,6 +10272,9 @@ export type Database = {
           slug: string;
           status: Database['platform']['Enums']['tenant_status'];
           tenant_type: Database['platform']['Enums']['tenant_type'];
+          trial_converted_at: string | null;
+          trial_days: number | null;
+          trial_ends_at: string | null;
           updated_at: string;
           white_label: boolean;
         };
@@ -9631,6 +10298,9 @@ export type Database = {
           slug: string;
           status?: Database['platform']['Enums']['tenant_status'];
           tenant_type?: Database['platform']['Enums']['tenant_type'];
+          trial_converted_at?: string | null;
+          trial_days?: number | null;
+          trial_ends_at?: string | null;
           updated_at?: string;
           white_label?: boolean;
         };
@@ -9654,6 +10324,9 @@ export type Database = {
           slug?: string;
           status?: Database['platform']['Enums']['tenant_status'];
           tenant_type?: Database['platform']['Enums']['tenant_type'];
+          trial_converted_at?: string | null;
+          trial_days?: number | null;
+          trial_ends_at?: string | null;
           updated_at?: string;
           white_label?: boolean;
         };
@@ -9784,6 +10457,13 @@ export type Database = {
             referencedRelation: 'v_tenant_overview';
             referencedColumns: ['saas_product_id'];
           },
+          {
+            foreignKeyName: 'tenants_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
         ];
       };
       usage_alert_acks: {
@@ -9904,6 +10584,13 @@ export type Database = {
             referencedColumns: ['saas_product_id'];
           },
           {
+            foreignKeyName: 'usage_alerts_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
             foreignKeyName: 'usage_alerts_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: false;
@@ -9915,6 +10602,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'usage_alerts_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -10034,6 +10728,13 @@ export type Database = {
             referencedColumns: ['saas_product_id'];
           },
           {
+            foreignKeyName: 'usage_events_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
             foreignKeyName: 'usage_events_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: false;
@@ -10045,6 +10746,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'usage_events_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -10142,6 +10850,13 @@ export type Database = {
             referencedRelation: 'v_tenant_overview';
             referencedColumns: ['saas_product_id'];
           },
+          {
+            foreignKeyName: 'usage_ingest_credentials_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
         ];
       };
       usage_ingest_rejections: {
@@ -10208,6 +10923,13 @@ export type Database = {
             columns: ['saas_product_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'usage_ingest_rejections_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
             referencedColumns: ['saas_product_id'];
           },
         ];
@@ -10318,6 +11040,13 @@ export type Database = {
             columns: ['saas_product_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'usage_meters_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
             referencedColumns: ['saas_product_id'];
           },
         ];
@@ -10439,6 +11168,13 @@ export type Database = {
             referencedColumns: ['saas_product_id'];
           },
           {
+            foreignKeyName: 'usage_period_aggregates_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
             foreignKeyName: 'usage_period_aggregates_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: false;
@@ -10450,6 +11186,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'usage_period_aggregates_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -10621,6 +11364,13 @@ export type Database = {
             referencedRelation: 'v_tenant_overview';
             referencedColumns: ['saas_product_id'];
           },
+          {
+            foreignKeyName: 'workspace_apps_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
         ];
       };
     };
@@ -10671,6 +11421,13 @@ export type Database = {
             referencedColumns: ['saas_product_id'];
           },
           {
+            foreignKeyName: 'ai_credit_ledger_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
             foreignKeyName: 'ai_credit_ledger_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: false;
@@ -10682,6 +11439,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'ai_credit_ledger_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -10915,6 +11679,13 @@ export type Database = {
             referencedRelation: 'v_tenant_overview';
             referencedColumns: ['saas_product_id'];
           },
+          {
+            foreignKeyName: 'catalog_items_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
         ];
       };
       v_collected_payments: {
@@ -11078,6 +11849,13 @@ export type Database = {
             referencedColumns: ['saas_product_id'];
           },
           {
+            foreignKeyName: 'invoice_lines_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
             foreignKeyName: 'invoice_lines_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: false;
@@ -11089,6 +11867,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'invoice_lines_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -11261,6 +12046,13 @@ export type Database = {
             foreignKeyName: 'audit_logs_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'audit_logs_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
             referencedRelation: 'v_tenant_margin';
             referencedColumns: ['tenant_id'];
           },
@@ -11406,6 +12198,13 @@ export type Database = {
             referencedColumns: ['saas_product_id'];
           },
           {
+            foreignKeyName: 'commission_events_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
             foreignKeyName: 'commission_events_sales_agent_id_fkey';
             columns: ['sales_agent_id'];
             isOneToOne: false;
@@ -11431,6 +12230,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'commission_events_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -11744,6 +12550,13 @@ export type Database = {
             referencedColumns: ['saas_product_id'];
           },
           {
+            foreignKeyName: 'entitlement_sync_state_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
             foreignKeyName: 'entitlement_sync_state_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: false;
@@ -11755,6 +12568,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'entitlement_sync_state_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -12189,6 +13009,13 @@ export type Database = {
             referencedRelation: 'v_tenant_overview';
             referencedColumns: ['saas_product_id'];
           },
+          {
+            foreignKeyName: 'organization_product_agreements_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
         ];
       };
       v_partner_fee_statement_lines: {
@@ -12261,6 +13088,13 @@ export type Database = {
             columns: ['saas_product_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
             referencedColumns: ['saas_product_id'];
           },
           {
@@ -12338,6 +13172,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'partner_fee_statement_lines_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -12848,6 +13689,13 @@ export type Database = {
             referencedRelation: 'v_tenant_overview';
             referencedColumns: ['saas_product_id'];
           },
+          {
+            foreignKeyName: 'plans_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
         ];
       };
       v_product_finance: {
@@ -13205,6 +14053,13 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'deployment_targets_product_integration_id_fkey';
+            columns: ['product_integration_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['integration_id'];
+          },
+          {
             foreignKeyName: 'deployment_targets_saas_product_id_fkey';
             columns: ['saas_product_id'];
             isOneToOne: false;
@@ -13230,6 +14085,13 @@ export type Database = {
             columns: ['saas_product_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'deployment_targets_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
             referencedColumns: ['saas_product_id'];
           },
         ];
@@ -13315,6 +14177,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'subscriptions_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -13421,6 +14290,13 @@ export type Database = {
             foreignKeyName: 'subscriptions_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'subscriptions_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
             referencedRelation: 'v_tenant_margin';
             referencedColumns: ['tenant_id'];
           },
@@ -13513,11 +14389,25 @@ export type Database = {
             referencedColumns: ['deployment_target_id'];
           },
           {
+            foreignKeyName: 'saas_provisioning_requests_deployment_target_id_fkey';
+            columns: ['deployment_target_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['deployment_target_id'];
+          },
+          {
             foreignKeyName: 'saas_provisioning_requests_product_integration_id_fkey';
             columns: ['product_integration_id'];
             isOneToOne: false;
             referencedRelation: 'product_integrations';
             referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'saas_provisioning_requests_product_integration_id_fkey';
+            columns: ['product_integration_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['integration_id'];
           },
           {
             foreignKeyName: 'saas_provisioning_requests_requested_by_fkey';
@@ -13552,6 +14442,13 @@ export type Database = {
             columns: ['saas_product_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'saas_provisioning_requests_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
             referencedColumns: ['saas_product_id'];
           },
           {
@@ -13615,6 +14512,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'saas_provisioning_requests_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -13839,6 +14743,13 @@ export type Database = {
             referencedColumns: ['saas_product_id'];
           },
           {
+            foreignKeyName: 'subscriptions_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
             foreignKeyName: 'subscriptions_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: false;
@@ -13850,6 +14761,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'subscriptions_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -14038,6 +14956,13 @@ export type Database = {
             referencedColumns: ['saas_product_id'];
           },
           {
+            foreignKeyName: 'subscriptions_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
             foreignKeyName: 'subscriptions_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: false;
@@ -14049,6 +14974,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'subscriptions_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -14211,6 +15143,13 @@ export type Database = {
             foreignKeyName: 'tenant_addons_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'tenant_addons_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
             referencedRelation: 'v_tenant_margin';
             referencedColumns: ['tenant_id'];
           },
@@ -14247,6 +15186,13 @@ export type Database = {
             columns: ['saas_product_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'tenants_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
             referencedColumns: ['saas_product_id'];
           },
         ];
@@ -14316,6 +15262,13 @@ export type Database = {
             referencedRelation: 'v_tenant_overview';
             referencedColumns: ['saas_product_id'];
           },
+          {
+            foreignKeyName: 'tenants_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
         ];
       };
       v_tenant_lifecycle: {
@@ -14371,7 +15324,127 @@ export type Database = {
           tenant_slug: string | null;
           tenant_status: Database['platform']['Enums']['tenant_status'] | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'tenants_customer_organization_id_fkey';
+            columns: ['customer_organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenants_customer_organization_id_fkey';
+            columns: ['customer_organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_billing_contact_readiness';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'tenants_customer_organization_id_fkey';
+            columns: ['customer_organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_partner_finance';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'tenants_customer_organization_id_fkey';
+            columns: ['customer_organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_partner_margin';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'tenants_customer_organization_id_fkey';
+            columns: ['customer_organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['customer_organization_id'];
+          },
+          {
+            foreignKeyName: 'tenants_customer_organization_id_fkey';
+            columns: ['customer_organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['managing_organization_id'];
+          },
+          {
+            foreignKeyName: 'tenants_managing_organization_id_fkey';
+            columns: ['managing_organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenants_managing_organization_id_fkey';
+            columns: ['managing_organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_billing_contact_readiness';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'tenants_managing_organization_id_fkey';
+            columns: ['managing_organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_partner_finance';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'tenants_managing_organization_id_fkey';
+            columns: ['managing_organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_partner_margin';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'tenants_managing_organization_id_fkey';
+            columns: ['managing_organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['customer_organization_id'];
+          },
+          {
+            foreignKeyName: 'tenants_managing_organization_id_fkey';
+            columns: ['managing_organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['managing_organization_id'];
+          },
+          {
+            foreignKeyName: 'tenants_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'saas_products';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'tenants_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_product_finance';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'tenants_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_product_margin';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'tenants_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_overview';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
+            foreignKeyName: 'tenants_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+        ];
       };
       v_tenant_margin: {
         Row: {
@@ -14414,12 +15487,16 @@ export type Database = {
           product_code: string | null;
           product_lockup: string | null;
           product_short_name: string | null;
+          product_trial_days: number | null;
           saas_product_id: string | null;
           slug: string | null;
           status: Database['platform']['Enums']['tenant_status'] | null;
           subscription_id: string | null;
           tenant_id: string | null;
           tenant_type: Database['platform']['Enums']['tenant_type'] | null;
+          trial_converted_at: string | null;
+          trial_days: number | null;
+          trial_ends_at: string | null;
         };
         Relationships: [];
       };
@@ -14758,6 +15835,13 @@ export type Database = {
             referencedColumns: ['saas_product_id'];
           },
           {
+            foreignKeyName: 'usage_alerts_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
             foreignKeyName: 'usage_alerts_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: false;
@@ -14769,6 +15853,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'usage_alerts_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -14857,6 +15948,13 @@ export type Database = {
             referencedColumns: ['saas_product_id'];
           },
           {
+            foreignKeyName: 'usage_period_aggregates_saas_product_id_fkey';
+            columns: ['saas_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_sync_targets';
+            referencedColumns: ['saas_product_id'];
+          },
+          {
             foreignKeyName: 'usage_period_aggregates_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: false;
@@ -14868,6 +15966,13 @@ export type Database = {
             columns: ['tenant_id'];
             isOneToOne: false;
             referencedRelation: 'v_tenant_entitlements';
+            referencedColumns: ['tenant_id'];
+          },
+          {
+            foreignKeyName: 'usage_period_aggregates_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_tenant_lifecycle';
             referencedColumns: ['tenant_id'];
           },
           {
@@ -14888,6 +15993,102 @@ export type Database = {
       };
     };
     Functions: {
+      _enqueue_provisioning_core: {
+        Args: {
+          p_action: Database['platform']['Enums']['provisioning_action'];
+          p_deployment_target_id: string;
+          p_idempotency_key: string;
+          p_mode: string;
+          p_origin?: string;
+          p_payload: Json;
+          p_saas_product_id: string;
+          p_tenant_id: string;
+        };
+        Returns: string;
+      };
+      _mail_billing_contact: {
+        Args: { p_fallback?: string; p_org: string };
+        Returns: {
+          email: string;
+          name: string;
+          org_name: string;
+        }[];
+      };
+      _mail_date: { Args: { p_date: string }; Returns: string };
+      _mail_datetime: { Args: { p_at: string }; Returns: string };
+      _mail_enqueue: {
+        Args: {
+          p_category: string;
+          p_event_type: string;
+          p_idempotency_key: string;
+          p_invoice_id?: string;
+          p_needs_link?: boolean;
+          p_organization_id?: string;
+          p_payment_id?: string;
+          p_reference_label?: string;
+          p_template_key: string;
+          p_tenant_id?: string;
+          p_to: string;
+          p_to_name: string;
+          p_variables: Json;
+        };
+        Returns: string;
+      };
+      _mail_kick: { Args: Record<PropertyKey, never>; Returns: undefined };
+      _mail_money: { Args: { p_amount: number; p_currency: string }; Returns: string };
+      _mail_ops: {
+        Args: {
+          p_enlace_path: string;
+          p_event_type: string;
+          p_key: string;
+          p_motivo: string;
+          p_nuevas: number;
+          p_tenant?: string;
+          p_titulo: string;
+        };
+        Returns: undefined;
+      };
+      _mail_status_rank: { Args: { p_status: string }; Returns: number };
+      _mark_lifecycle_desired: { Args: { p_tenant_id: string }; Returns: undefined };
+      _mark_trial_desired: { Args: { p_reason: string; p_tenant_id: string }; Returns: undefined };
+      _refresh_billing_alerts_core: { Args: { p_as_of?: string }; Returns: number };
+      _resume_tenant_after_payment: {
+        Args: { p_as_of: string; p_source: string; p_tenant_id: string };
+        Returns: boolean;
+      };
+      _suspend_tenant_for_nonpayment: {
+        Args: { p_as_of: string; p_detail: Json; p_mode: string; p_tenant_id: string };
+        Returns: string;
+      };
+      _tenant_status_transition: {
+        Args: {
+          p_reason: string;
+          p_status: Database['platform']['Enums']['tenant_status'];
+          p_tenant_id: string;
+        };
+        Returns: undefined;
+      };
+      _upsert_tenant_sync_finding: {
+        Args: {
+          p_app_code: string;
+          p_app_name: string;
+          p_app_state: string;
+          p_app_status: string;
+          p_detail: Json;
+          p_ext_company: string;
+          p_ext_org: string;
+          p_ext_tenant: string;
+          p_fingerprint: string;
+          p_kind: string;
+          p_ma_state: string;
+          p_mapping_id: string;
+          p_product_id: string;
+          p_run_id: string;
+          p_target_id: string;
+          p_tenant_id: string;
+        };
+        Returns: boolean;
+      };
       accept_my_invitations: { Args: Record<PropertyKey, never>; Returns: number };
       acknowledge_usage_alert: { Args: { p_alert_id: string; p_note?: string }; Returns: Json };
       admin_list_users: {
@@ -14947,6 +16148,7 @@ export type Database = {
       ai_credit_pool_key: { Args: { p_product_id: string; p_scope: string }; Returns: string };
       ai_credit_weights_snapshot: { Args: { p_at: string; p_product_id: string }; Returns: Json };
       apply_due_suspensions: { Args: { p_as_of?: string; p_mode?: string }; Returns: Json };
+      apply_due_trial_expirations: { Args: { p_as_of?: string; p_mode?: string }; Returns: Json };
       approve_commercial_document: {
         Args: { p_document_id: string; p_notes?: string; p_valid_to?: string };
         Returns: undefined;
@@ -15170,6 +16372,17 @@ export type Database = {
           tenant_id: string;
         }[];
       };
+      claim_trial_deliveries: {
+        Args: { p_lease_seconds?: number; p_limit?: number; p_worker: string };
+        Returns: {
+          desired_at: string;
+          desired_ends_at: string;
+          desired_reason: string;
+          desired_version: number;
+          saas_product_id: string;
+          tenant_id: string;
+        }[];
+      };
       clear_catalog_item_usage_binding: {
         Args: { p_catalog_item_code: string; p_reason: string };
         Returns: Json;
@@ -15320,10 +16533,6 @@ export type Database = {
         Args: { p_integration_id: string; p_inventory_path: string; p_read_scope: string };
         Returns: string;
       };
-      configure_tenant_link_integration: {
-        Args: { p_integration_id: string; p_link_scope: string };
-        Returns: string;
-      };
       configure_lifecycle_integration: {
         Args: {
           p_integration_id: string;
@@ -15331,6 +16540,14 @@ export type Database = {
           p_read_scope: string;
           p_write_scope: string;
         };
+        Returns: string;
+      };
+      configure_tenant_link_integration: {
+        Args: { p_integration_id: string; p_link_scope: string };
+        Returns: string;
+      };
+      configure_trial_integration: {
+        Args: { p_integration_id: string; p_trial_path: string; p_write_scope: string };
         Returns: string;
       };
       configure_usage_ingest_credential: {
@@ -15984,6 +17201,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      invoke_scheduled_function: { Args: { p_job: string }; Returns: Json };
       is_blocked_provisioning_host: { Args: { p_host: string }; Returns: boolean };
       is_currency_active: { Args: { p_currency: string }; Returns: boolean };
       is_currency_allowed_in_market: {
@@ -16031,10 +17249,8 @@ export type Database = {
       };
       jcs_canonical: { Args: { p_value: Json }; Returns: string };
       jsonb_deep_merge: { Args: { a: Json; b: Json }; Returns: Json };
-      lifecycle_delivery_context: {
-        Args: { p_tenant_id: string };
-        Returns: Json;
-      };
+      lifecycle_channel_of: { Args: { p_tenant_id: string }; Returns: string };
+      lifecycle_delivery_context: { Args: { p_tenant_id: string }; Returns: Json };
       link_user_sales_agent: {
         Args: { p_reason?: string; p_sales_agent_id: string; p_user_id: string };
         Returns: string;
@@ -16491,12 +17707,29 @@ export type Database = {
         Returns: number;
       };
       record_tenant_app_link: {
-        Args: { p_error_code?: string; p_http_status?: number; p_mapping_id: string; p_outcome: string };
+        Args: {
+          p_error_code?: string;
+          p_http_status?: number;
+          p_mapping_id: string;
+          p_outcome: string;
+        };
         Returns: Json;
       };
       record_tenant_sync_target_result: {
         Args: { p_deployment_target_id: string; p_result: Json; p_run_id: string };
         Returns: Json;
+      };
+      record_trial_delivery_result: {
+        Args: {
+          p_applied_state?: string;
+          p_error_code?: string;
+          p_http_status?: number;
+          p_result: string;
+          p_tenant_id: string;
+          p_version: number;
+          p_worker: string;
+        };
+        Returns: string;
       };
       record_user_invitation: {
         Args: {
@@ -16745,7 +17978,10 @@ export type Database = {
       revoke_payment_link: { Args: { p_link_id: string; p_reason: string }; Returns: Json };
       revoke_platform_role: { Args: { p_reason: string; p_user_id: string }; Returns: string };
       revoke_provisioning_role: { Args: { p_id: string }; Returns: string };
-      run_tenant_lifecycle_cycle: { Args: { p_as_of?: string; p_dry_run?: boolean }; Returns: Json };
+      run_tenant_lifecycle_cycle: {
+        Args: { p_as_of?: string; p_dry_run?: boolean };
+        Returns: Json;
+      };
       schedule_cancel_tenant_addon: {
         Args: { p_effective_to?: string; p_reason: string; p_tenant_addon_id: string };
         Returns: string;
@@ -16892,6 +18128,7 @@ export type Database = {
         };
         Returns: string;
       };
+      set_product_trial_days: { Args: { p_days: number; p_product_id: string }; Returns: number };
       set_reporting_settings: {
         Args: { p_fx_max_rate_age_days?: number; p_reporting_currency: string };
         Returns: undefined;
@@ -16960,6 +18197,10 @@ export type Database = {
         Returns: undefined;
       };
       set_tenant_sync_enabled: { Args: { p_enabled: boolean }; Returns: boolean };
+      set_tenant_trial_end: {
+        Args: { p_ends_at: string; p_reason: string; p_tenant_id: string };
+        Returns: Json;
+      };
       set_usage_ingest_enabled: {
         Args: { p_enabled: boolean; p_product_code: string; p_reason: string };
         Returns: number;
@@ -17013,6 +18254,10 @@ export type Database = {
           p_subscription_id: string;
         };
         Returns: string;
+      };
+      tenant_has_blocking_debt: {
+        Args: { p_as_of?: string; p_tenant_id: string };
+        Returns: boolean;
       };
       tenant_overdue_invoices: {
         Args: { p_as_of?: string; p_tenant_id?: string };
@@ -17094,6 +18339,9 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      trial_channel_of: { Args: { p_tenant_id: string }; Returns: string };
+      trial_delivery_context: { Args: { p_tenant_id: string }; Returns: Json };
+      trial_iso_utc: { Args: { p_at: string }; Returns: string };
       unenroll_card_on_file: {
         Args: { p_client_fingerprint?: string; p_token_hash: string };
         Returns: Json;

@@ -136,6 +136,7 @@ export function ContractSummary({
   modeText,
   channelText,
   tenantText,
+  trialText,
   planName,
   intervalText,
   quantity,
@@ -155,6 +156,8 @@ export function ContractSummary({
   modeText?: string;
   channelText: string;
   tenantText?: string;
+  /** Solo tenants TRIAL: «7 días · vence el 24 nov 2026». */
+  trialText?: string | null;
   planName?: string;
   intervalText?: string;
   quantity: number;
@@ -199,6 +202,7 @@ export function ContractSummary({
             <Line label="Tenant" muted={!tenantText}>
               {tenantText ?? 'Sin nombre aún'}
             </Line>
+            {trialText ? <Line label="Prueba">{trialText}</Line> : null}
             <Line label="Plan" muted={!planName}>
               {planName ? `${planName}${quantity > 1 ? ` × ${quantity}` : ''}` : 'Sin elegir'}
             </Line>
