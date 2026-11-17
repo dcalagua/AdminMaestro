@@ -14,6 +14,7 @@ import { tenantDimensions } from './tenantDimensions';
 import { TenantDimensionsView } from './TenantDimensionsView';
 import { TenantAddonsPanel } from './TenantAddonsPanel';
 import { TenantUsagePanel } from './TenantUsagePanel';
+import { TenantTrialCard } from './TenantTrialCard';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { isFinance, canManagePlatform } from '@/features/auth/session';
@@ -235,6 +236,7 @@ export function TenantDetailPage() {
                   ) : null}
                   <TenantDimensionsView dims={dims} />
                 </div>
+                <TenantTrialCard tenant={t} canManage={perms.canManagePlatform} />
                 {showFinanceView ? <AccountTrendCharts query={series} subject={t.name as string} /> : null}
                 <Card title="Datos del tenant">
                   <DetailFacts

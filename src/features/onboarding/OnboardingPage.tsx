@@ -11,6 +11,7 @@ import { TenantStep } from './steps/TenantStep';
 import { PlanStep } from './steps/PlanStep';
 import { CommercialStep } from './steps/CommercialStep';
 import { ConfirmStep } from './steps/ConfirmStep';
+import { trialEndPreview } from '@/features/tenants/tenantTrial';
 import { AppsStep, FirstInvoiceStep, PaymentLinkStep } from './steps/AfterSaleSteps';
 import { Link, useSearchParams } from 'react-router-dom';
 
@@ -194,6 +195,11 @@ function OnboardingFlow() {
           modeText={DEPLOYMENT_MODE_LABEL[values.deployment_mode]}
           channelText={manager?.display_name ?? 'Venta directa EBIM'}
           tenantText={values.tenant_name || undefined}
+          trialText={
+            values.tenant_type === 'TRIAL' && product?.trial_days
+              ? `${product.trial_days} días · vence el ${trialEndPreview(product.trial_days)}`
+              : null
+          }
           planName={plan?.name}
           intervalText={INTERVALS.find((i) => i.value === values.billing_interval)?.label}
           quantity={Number(values.quantity) || 1}

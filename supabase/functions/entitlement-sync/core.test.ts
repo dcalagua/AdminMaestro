@@ -197,6 +197,21 @@ describe('runJob y entrada HTTP', () => {
     expect(without.lifecycle).toBeUndefined();
   });
 
+  it('trial.v1 viaja en `all` y en su propio job; sin canal configurado no se toca', async () => {
+    const trial = {
+      store: { claim: vi.fn(async () => []), context: vi.fn(), record: vi.fn() },
+      client: { putTrial: vi.fn() },
+    };
+    const deps = { store: store(), client: client(), worker: 'w', trial } as unknown as Parameters<typeof runJob>[0];
+    const all = await runJob(deps, parseJobRequest({ job: 'all', limit: 4 }));
+    expect(all.trial).toEqual({ claimed: 0, results: [] });
+    expect(trial.store.claim).toHaveBeenCalledWith('w', 4, 120);
+    const only = await runJob(deps, parseJobRequest({ job: 'trial' }));
+    expect(Object.keys(only).sort()).toEqual(['job', 'trial', 'worker']);
+    const without = await runJob({ store: store(), client: client(), worker: 'w' }, parseJobRequest({ job: 'trial' }));
+    expect(without.trial).toBeUndefined();
+  });
+
   it('solo el canal servidor: la clave de servicio en x-provisioning-secret, comparada en tiempo constante', () => {
     expect(isServerCall('k-123', 'k-123')).toBe(true);
     expect(isServerCall('k-124', 'k-123')).toBe(false);

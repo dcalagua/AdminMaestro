@@ -50,6 +50,13 @@ const EXACT: Record<string, string> = {
   TENANT_AUTO_RESUME_FAILED: 'Fallo de la reactivación automática del tenant',
   TENANT_LIFECYCLE_APPLIED: 'Corte o reactivación aplicado en la app',
   TENANT_LIFECYCLE_CYCLE: 'Revisión de cortes por deuda',
+  // 20261024000100 · periodo de prueba.
+  PRODUCT_TRIAL_DAYS_CHANGED: 'Cambio de días de prueba del producto',
+  TENANT_TRIAL_EXTENDED: 'Prueba del tenant extendida',
+  TENANT_TRIAL_CONVERTED: 'Prueba del tenant convertida en cliente',
+  TENANT_TRIAL_DELIVERED: 'Vencimiento de prueba aplicado en la app',
+  TRIAL_EXPIRATIONS_APPLIED: 'Suspensiones por prueba vencida aplicadas',
+  TRIAL_INTEGRATION_CONFIGURED: 'Configuración del aviso de prueba a la app',
 };
 
 /** Sufijos de acción (de más largo a más corto al buscar). */

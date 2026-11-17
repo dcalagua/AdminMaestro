@@ -195,6 +195,7 @@ export function ProductDetailPage() {
                     ['Nombre con marca', p.lockup_name ?? '—'],
                     ['Unidad de cobro', billingUnitLabel(p.billing_unit)],
                     ['Facturable', p.is_billable ? 'Sí' : 'No'],
+                    ['Días de prueba', `${p.trial_days} ${p.trial_days === 1 ? 'día' : 'días'} por tenant TRIAL`],
                     ['Color de marca', p.accent_color ? 'Propio del producto' : 'Hereda de EBIM'],
                     ['Integración técnica', integrationText],
                     ['Código técnico', <span key="code" className="font-mono text-caption">{p.code}</span>],
