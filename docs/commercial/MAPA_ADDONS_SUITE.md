@@ -100,7 +100,9 @@ _La app no tiene add-ons vendibles registrados._
 |---|---|---|---|
 | eChange (núcleo: mesa de servicio + flota IA incluida + portal) | — | — | No existe tabla de planes ni precio de lista del núcleo en la base ni en el repo. Lo incluido = billing=incluido en ai_agents/channels. billing_plans es POR TEN |
 
-> **2026-11-18:** la Flota IA de eChange viene incluida en el plan (A o B; la reportería con el B). Los nueve agentes quedaron `RETIRED` en el catálogo (migración `20261025000200`); los canales siguen en borrador.
+> **2026-11-18:** la Flota IA de eChange viene incluida en el plan (A o B; la reportería con el B). Los nueve agentes quedaron `RETIRED` en el catálogo (migración `20261025000200`).
+>
+> **2026-11-18 (2):** los canales también vienen incluidos (migración `20261026000200`): el portal y el correo los pone EBIM; WhatsApp, Teams y el teléfono los pone el cliente con sus propias cuentas (Meta le factura a él). La Línea telefónica, que era el número que revendía EBIM, se dio de baja. Los siete quedaron `RETIRED`.
 
 | Add-on | Tipo | Precio en la app (mes) | Unidad | Estado en la app | Código en el Admin Maestro |
 |---|---|---|---|---|---|
@@ -113,13 +115,13 @@ _La app no tiene add-ons vendibles registrados._
 | Sentimiento de encuestas | IA | — | Tenant | **Retirado (incluido en el plan, 2026-11-18)** | `echange_survey_sentiment` |
 | Clasificador ITIL | IA | — | Tenant | **Retirado (incluido en el plan, 2026-11-18)** | `echange_triage` |
 | Notas de voz | IA | — | Tenant | **Retirado (incluido en el plan, 2026-11-18)** | `echange_voice_transcriber` |
-| Correo electrónico | Canal | 25 USD | Tenant | Activo en la app | `echange_email` |
-| Portal de proveedores | Canal | 60 USD | Tenant | Activo en la app | `echange_esupplier` |
-| Teléfono | Canal | 120 USD | Tenant | Activo en la app | `echange_phone` |
-| Portal de autoservicio | Canal | — | Tenant | Activo en la app | `echange_portal` |
-| Microsoft Teams | Canal | — | Tenant | Activo en la app | `echange_teams` |
-| WhatsApp | Canal | 60 USD | Tenant | Activo en la app | `echange_whatsapp` |
-| Línea telefónica de la mesa (número) | Servicio | 149 USD | Tenant | Activo en la app | `echange_service_line` |
+| Correo electrónico | Canal | 25 USD | Tenant | **Retirado (incluido en el plan, 2026-11-18)** | `echange_email` |
+| Portal de proveedores | Canal | 60 USD | Tenant | **Retirado (incluido en el plan, 2026-11-18)** | `echange_esupplier` |
+| Teléfono | Canal | 120 USD | Tenant | **Retirado (incluido en el plan, 2026-11-18)** | `echange_phone` |
+| Portal de autoservicio | Canal | — | Tenant | **Retirado (incluido en el plan, 2026-11-18)** | `echange_portal` |
+| Microsoft Teams | Canal | — | Tenant | **Retirado (incluido en el plan, 2026-11-18)** | `echange_teams` |
+| WhatsApp | Canal | 60 USD | Tenant | **Retirado (incluido en el plan, 2026-11-18)** | `echange_whatsapp` |
+| Línea telefónica de la mesa (número) | Servicio | 149 USD | Tenant | **Retirado (incluido en el plan, 2026-11-18)** | `echange_service_line` |
 
 ## Comerza
 
