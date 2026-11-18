@@ -41,14 +41,18 @@ function audienceFor(roles: SessionRoles, perms: { platform?: boolean; commercia
     canManageCommercial: Boolean(perms.commercial),
     canReadFinance: Boolean(perms.finance),
     hasProvisioningAccess: Boolean(perms.provisioning),
+    isSalesAgent: Boolean(roles.salesAgentId),
   });
 }
 
+// `reminder` es solo del comercial: el super admin no es comercial.
 const ALL: InboxAudience = {
-  invoice: true, alta: true, health: true, confirm: true, lead: true, document: true, 'billing-alert': true, settlement: true,
+  reminder: false, invoice: true, alta: true, health: true, confirm: true, 'trial-request': true, lead: true,
+  document: true, 'billing-alert': true, settlement: true,
 };
 const NONE: InboxAudience = {
-  invoice: false, alta: false, health: false, confirm: false, lead: false, document: false, 'billing-alert': false, settlement: false,
+  reminder: false, invoice: false, alta: false, health: false, confirm: false, 'trial-request': false, lead: false,
+  document: false, 'billing-alert': false, settlement: false,
 };
 
 describe('permisos: cada rol ve sólo lo suyo', () => {
@@ -75,8 +79,11 @@ describe('permisos: cada rol ve sólo lo suyo', () => {
     expect(audienceFor(roles, {})).toEqual({ ...NONE, invoice: true, 'billing-alert': true, alta: true });
   });
 
-  it('un comercial o un usuario de tenant no reciben avisos operativos (comercial ≠ acceso operativo)', () => {
-    expect(audienceFor({ ...base, salesAgentId: 'sa-1' }, {})).toEqual(NONE);
+  it('un comercial: sus recordatorios y las solicitudes de la web; nunca avisos operativos (comercial ≠ acceso operativo)', () => {
+    expect(audienceFor({ ...base, salesAgentId: 'sa-1' }, {})).toEqual({ ...NONE, reminder: true, lead: true });
+  });
+
+  it('un usuario de tenant no recibe nada', () => {
     expect(audienceFor({ ...base, tenantRoles: [{ tenantId: 't', role: 'TENANT_ADMIN' }] }, {})).toEqual(NONE);
   });
 

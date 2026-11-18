@@ -1202,6 +1202,7 @@ export type Database = {
           last_seen_at: string;
           message: string | null;
           organization_id: string | null;
+          owner_sales_agent_id: string | null;
           phone: string | null;
           plan_code: string | null;
           received_at: string;
@@ -1225,6 +1226,7 @@ export type Database = {
           last_seen_at?: string;
           message?: string | null;
           organization_id?: string | null;
+          owner_sales_agent_id?: string | null;
           phone?: string | null;
           plan_code?: string | null;
           received_at: string;
@@ -1248,6 +1250,7 @@ export type Database = {
           last_seen_at?: string;
           message?: string | null;
           organization_id?: string | null;
+          owner_sales_agent_id?: string | null;
           phone?: string | null;
           plan_code?: string | null;
           received_at?: string;
@@ -10574,6 +10577,69 @@ export type Database = {
           },
         ];
       };
+      trial_requests: {
+        Row: {
+          admin_email: string;
+          company_name: string;
+          contact_name: string;
+          country_code: string | null;
+          created_at: string;
+          decided_at: string | null;
+          decided_by: string | null;
+          decision_note: string | null;
+          id: string;
+          lead_id: string | null;
+          notes: string | null;
+          organization_id: string | null;
+          plan_id: string | null;
+          requested_by: string | null;
+          saas_product_id: string;
+          sales_agent_id: string;
+          status: string;
+          tenant_id: string | null;
+        };
+        Insert: {
+          admin_email: string;
+          company_name: string;
+          contact_name: string;
+          country_code?: string | null;
+          created_at?: string;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          decision_note?: string | null;
+          id?: string;
+          lead_id?: string | null;
+          notes?: string | null;
+          organization_id?: string | null;
+          plan_id?: string | null;
+          requested_by?: string | null;
+          saas_product_id: string;
+          sales_agent_id: string;
+          status?: string;
+          tenant_id?: string | null;
+        };
+        Update: {
+          admin_email?: string;
+          company_name?: string;
+          contact_name?: string;
+          country_code?: string | null;
+          created_at?: string;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          decision_note?: string | null;
+          id?: string;
+          lead_id?: string | null;
+          notes?: string | null;
+          organization_id?: string | null;
+          plan_id?: string | null;
+          requested_by?: string | null;
+          saas_product_id?: string;
+          sales_agent_id?: string;
+          status?: string;
+          tenant_id?: string | null;
+        };
+        Relationships: [];
+      };
       usage_alert_acks: {
         Row: {
           acknowledged_at: string;
@@ -16381,6 +16447,7 @@ export type Database = {
         Args: { p_reason: string; p_tenant_addon_id: string };
         Returns: undefined;
       };
+      cancel_trial_request: { Args: { p_request_id: string }; Returns: string };
       card_on_file_due_invoices: {
         Args: {
           p_as_of?: string;
@@ -16589,6 +16656,7 @@ export type Database = {
         Returns: Json;
       };
       complete_scheduled_addon_cancellations: { Args: { p_as_of?: string }; Returns: number };
+      complete_trial_request: { Args: { p_request_id: string; p_tenant_id: string }; Returns: string };
       compute_all_partner_fee_statements: { Args: { p_period_start: string }; Returns: Json };
       compute_entitlements: {
         Args: { p_at?: string; p_product_id: string; p_tenant_id: string };
@@ -17554,7 +17622,9 @@ export type Database = {
       my_provisioning_actor_role: { Args: Record<PropertyKey, never>; Returns: string };
       my_provisioning_permissions: { Args: Record<PropertyKey, never>; Returns: Json };
       my_provisioning_product_ids: { Args: Record<PropertyKey, never>; Returns: string[] };
+      my_own_sales_agent_id: { Args: Record<PropertyKey, never>; Returns: string };
       my_sales_agent_ids: { Args: Record<PropertyKey, never>; Returns: string[] };
+      my_sales_reminders: { Args: Record<PropertyKey, never>; Returns: Json };
       my_tenant_ids: { Args: Record<PropertyKey, never>; Returns: string[] };
       next_renewal_date: {
         Args: {
@@ -17963,6 +18033,7 @@ export type Database = {
         Args: { p_reason: string; p_tenant_addon_id: string };
         Returns: undefined;
       };
+      reject_trial_request: { Args: { p_note: string; p_request_id: string }; Returns: string };
       release_ai_credit_reservation: { Args: { p_reservation_id: string }; Returns: string };
       release_invoice_charge_lock: {
         Args: { p_lock_id: string; p_outcome?: string; p_outcome_code?: string };
@@ -18003,6 +18074,19 @@ export type Database = {
       request_tenant_suspension: {
         Args: { p_mode?: string; p_reason: string; p_tenant_id: string };
         Returns: Json;
+      };
+      request_trial: {
+        Args: {
+          p_admin_email: string;
+          p_company_name: string;
+          p_contact_name: string;
+          p_country_code?: string;
+          p_lead_id?: string;
+          p_notes?: string;
+          p_plan_id?: string;
+          p_saas_product_id: string;
+        };
+        Returns: string;
       };
       require_active_market: {
         Args: { p_market_code: string };

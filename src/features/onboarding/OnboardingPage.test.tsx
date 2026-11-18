@@ -40,7 +40,11 @@ vi.mock('@/services/queries', () => ({
   useProductIntegrations: () => q([{ saas_product_id: 'p-ewm', enabled: true, adapter_key: 'EWM_V1' }]),
 }));
 // La solicitud de la web (`?solicitud=`) no es parte de estas pruebas.
-vi.mock('@/features/leads/leadsApi', () => ({ useCommercialLead: () => ({ data: null }) }));
+vi.mock('@/features/leads/leadsApi', () => ({
+  useCommercialLead: () => ({ data: null }),
+  useTrialRequest: () => ({ data: null }),
+  useCompleteTrialRequest: () => ({ mutateAsync: vi.fn(), isPending: false }),
+}));
 vi.mock('@/services/mutations', () => ({
   useOnboardCustomer: () => ({ mutateAsync: m.onboard, isPending: false, error: null }),
   useCreateTenant: () => ({ mutateAsync: m.createTenant, isPending: false, error: null }),

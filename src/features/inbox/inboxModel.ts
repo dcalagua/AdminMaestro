@@ -16,6 +16,7 @@ import {
   type ProvisioningRow,
   type TenantRow,
 } from '@/features/suite/suiteModel';
+import type { SalesReminder } from '@/features/leads/leadsModel';
 
 /**
  * Bandeja (V5 · F5): todo lo que requiere una acción, calculado con datos que
@@ -33,7 +34,8 @@ import {
 // Tipos
 // ---------------------------------------------------------------------------
 
-export type InboxKind = 'invoice' | 'alta' | 'health' | 'confirm' | 'lead' | 'document' | 'billing-alert' | 'settlement';
+export type InboxKind =
+  | 'reminder' | 'invoice' | 'alta' | 'health' | 'confirm' | 'trial-request' | 'lead' | 'document' | 'billing-alert' | 'settlement';
 
 /** 1 = urgente · 2 = importante · 3 = normal. */
 export type InboxPriority = 1 | 2 | 3;
@@ -42,13 +44,17 @@ export const PRIORITY_LABEL: Record<InboxPriority, string> = { 1: 'Urgente', 2: 
 export const PRIORITY_TONE: Record<InboxPriority, 'danger' | 'warn' | 'neutral'> = { 1: 'danger', 2: 'warn', 3: 'neutral' };
 
 /** Orden de los grupos en la pantalla: primero el dinero y lo que está caído. */
-export const KIND_ORDER: InboxKind[] = ['invoice', 'health', 'alta', 'confirm', 'lead', 'billing-alert', 'document', 'settlement'];
+export const KIND_ORDER: InboxKind[] = [
+  'reminder', 'invoice', 'health', 'alta', 'confirm', 'trial-request', 'lead', 'billing-alert', 'document', 'settlement',
+];
 
 export const KIND_LABEL: Record<InboxKind, string> = {
+  reminder: 'Recordatorios de tus clientes',
   invoice: 'Facturas vencidas',
   alta: 'Altas en las apps',
   health: 'Salud de las apps',
   confirm: 'Tenants por confirmar',
+  'trial-request': 'Pruebas por aprobar',
   lead: 'Solicitudes de la web',
   document: 'Documentos por aprobar',
   'billing-alert': 'Renovaciones y alertas de cobranza',
@@ -103,6 +109,8 @@ export interface AudienceInput {
   canReadFinance: boolean;
   /** Tiene algún alcance en el plano de provisioning (verificar salud). */
   hasProvisioningAccess: boolean;
+  /** Comercial con registro ACTIVO: recordatorios de lo suyo y solicitudes de la web. */
+  isSalesAgent?: boolean;
 }
 
 function tabVisible(to: string, tabId: string, access: NavAccess): boolean {
@@ -130,7 +138,11 @@ export function inboxAudience(input: AudienceInput): InboxAudience {
     alta: tabVisible('/apps', 'altas', access) && (access.persona !== 'EBIM' || input.hasProvisioningAccess),
     health: entryVisible('/suite', access) && input.hasProvisioningAccess,
     confirm: input.canManagePlatform,
-    lead: input.canManageCommercial && entryVisible('/solicitudes', access),
+    // Perfil comercial: todo comercial ve todas las solicitudes; EBIM aprueba sus pedidos de prueba.
+    lead: (input.canManageCommercial || Boolean(input.isSalesAgent)) && entryVisible('/solicitudes', access),
+    'trial-request': input.canManageCommercial && entryVisible('/solicitudes', access),
+    // Lo suyo y nada más (my_sales_reminders): no son avisos operativos.
+    reminder: Boolean(input.isSalesAgent),
     document: input.canManageCommercial && entryVisible('/subscriptions', access),
     settlement: input.canReadFinance && tabVisible('/commissions', 'comisiones', access),
   };
@@ -203,6 +215,8 @@ export interface InboxSources {
   documents?: readonly InboxDocument[];
   settlements?: readonly InboxSettlement[];
   leads?: readonly InboxLead[];
+  reminders?: readonly SalesReminder[];
+  trialRequests?: readonly InboxTrialRequest[];
 }
 
 // ---------------------------------------------------------------------------
@@ -485,6 +499,122 @@ export function leadItems(rows: readonly InboxLead[], now: Date): InboxItem[] {
     });
 }
 
+/** Pedido de prueba de un comercial, como lo lee EBIM de `trial_requests`. */
+export interface InboxTrialRequest {
+  id: string;
+  status: string;
+  company_name: string;
+  created_at: string;
+  saas_products?: { short_name?: string | null } | null;
+  sales_agents?: { full_name?: string | null } | null;
+}
+
+/** Pedidos de prueba PENDIENTES: el comercial espera; pasado un día, urgente. */
+export function trialRequestItems(rows: readonly InboxTrialRequest[], now: Date): InboxItem[] {
+  return rows
+    .filter((r) => r.status === 'PENDING')
+    .map((r) => {
+      const old = now.getTime() - new Date(r.created_at).getTime() > DAY_MS;
+      const agent = r.sales_agents?.full_name ?? 'Un comercial';
+      return {
+        key: `trial-request:${r.id}:PENDING`,
+        kind: 'trial-request' as const,
+        priority: (old ? 1 : 2) as InboxPriority,
+        title: `${agent} pidió una prueba para ${r.company_name}`,
+        detail: 'Aprobar crea el cliente y el tenant de prueba',
+        account: null,
+        app: r.saas_products?.short_name ?? null,
+        since: r.created_at,
+        ageText: `pedida ${relativeAge(r.created_at, now)}`,
+        screen: { label: 'Abrir solicitudes de la web', to: '/solicitudes' },
+        action: { type: 'link' as const, label: 'Revisar', to: '/solicitudes' },
+      };
+    });
+}
+
+/**
+ * Recordatorios del comercial (`my_sales_reminders`): cobros de sus clientes,
+ * renovaciones, pruebas por vencer y la respuesta a sus pedidos de prueba.
+ * Llevan a lo que el comercial PUEDE abrir: la ficha del cliente o del tenant.
+ */
+export function reminderItems(rows: readonly SalesReminder[], now: Date): InboxItem[] {
+  return rows.map((r) => {
+    const account = orgLink(r.organization_id, r.organization_name);
+    const clientTo = r.organization_id ? `/organizations/${r.organization_id}` : '/';
+    const tenantTo = r.tenant_id ? `/tenants/${r.tenant_id}` : clientTo;
+    const amount = r.amount != null && r.currency ? { value: Number(r.amount), currency: r.currency } : null;
+    const base = { key: `reminder:${r.type}:${r.ref_id}:${r.date ?? ''}`, kind: 'reminder' as const, account, app: r.product };
+    switch (r.type) {
+      case 'INVOICE_OVERDUE': {
+        const days = r.date ? Math.max(1, Math.floor((now.getTime() - new Date(r.date).getTime()) / DAY_MS)) : 0;
+        return {
+          ...base, priority: (days > 30 ? 1 : 2) as InboxPriority, amount,
+          title: `Factura ${r.title} vencida: recuérdale el pago`,
+          detail: r.date ? `Venció el ${formatDate(r.date)}` : undefined,
+          since: r.date, ageText: age(r.date, now),
+          screen: { label: 'Abrir el cliente', to: clientTo },
+          action: { type: 'link' as const, label: 'Ver cliente', to: clientTo },
+        };
+      }
+      case 'INVOICE_DUE_SOON':
+        return {
+          ...base, priority: 3 as InboxPriority, amount,
+          title: `Factura ${r.title} vence el ${r.date ? formatDate(r.date) : 'pronto'}`,
+          detail: 'Buen momento para recordarle el pago',
+          since: r.date, ageText: r.date ? `vence el ${formatDate(r.date)}` : 'sin fecha',
+          screen: { label: 'Abrir el cliente', to: clientTo },
+          action: { type: 'link' as const, label: 'Ver cliente', to: clientTo },
+        };
+      case 'RENEWAL':
+        return {
+          ...base, priority: 2 as InboxPriority,
+          title: `Renovación del contrato ${r.title}`,
+          detail: r.note ?? (r.date ? `Renueva el ${formatDate(r.date)}` : undefined),
+          since: r.date, ageText: r.date ? `renueva el ${formatDate(r.date)}` : 'sin fecha',
+          screen: { label: 'Abrir el cliente', to: clientTo },
+          action: { type: 'link' as const, label: 'Ver cliente', to: clientTo },
+        };
+      case 'TRIAL_ENDING':
+        return {
+          ...base, priority: 2 as InboxPriority,
+          title: `La prueba de ${r.title} vence el ${r.date ? formatDate(r.date) : 'pronto'}`,
+          detail: 'Llámalo para cerrar la venta o pide a EBIM que la extienda',
+          since: r.date, ageText: r.date ? `vence el ${formatDate(r.date)}` : 'sin fecha',
+          screen: { label: 'Abrir el tenant', to: tenantTo },
+          action: { type: 'link' as const, label: 'Ver tenant', to: tenantTo },
+        };
+      case 'TRIAL_EXPIRED':
+        return {
+          ...base, priority: 1 as InboxPriority,
+          title: `La prueba de ${r.title} venció`,
+          detail: 'La app ya no le deja operar: es el momento de cerrar la venta',
+          since: r.date, ageText: age(r.date, now),
+          screen: { label: 'Abrir el tenant', to: tenantTo },
+          action: { type: 'link' as const, label: 'Ver tenant', to: tenantTo },
+        };
+      case 'TRIAL_APPROVED':
+        return {
+          ...base, priority: 3 as InboxPriority,
+          title: `EBIM aprobó la prueba de ${r.title}`,
+          detail: 'El administrador recibe la invitación de la app',
+          since: r.date, ageText: age(r.date, now),
+          screen: { label: 'Abrir el tenant', to: tenantTo },
+          action: { type: 'link' as const, label: 'Ver tenant', to: tenantTo },
+        };
+      case 'TRIAL_REJECTED':
+      default:
+        return {
+          ...base, priority: 2 as InboxPriority,
+          title: `EBIM rechazó la prueba de ${r.title}`,
+          detail: r.note ?? undefined,
+          since: r.date, ageText: age(r.date, now),
+          screen: { label: 'Abrir solicitudes de la web', to: '/solicitudes' },
+          action: { type: 'link' as const, label: 'Ver pedido', to: '/solicitudes' },
+        };
+    }
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Bandeja completa
 // ---------------------------------------------------------------------------
@@ -510,6 +640,8 @@ export function buildInbox(sources: InboxSources, audience: InboxAudience, now: 
     const ids = new Set(invoices.map((i) => i.key.slice('invoice:'.length)));
     items.push(...alertItems(sources.alerts ?? [], now, ids));
   }
+  if (audience.reminder) items.push(...reminderItems(sources.reminders ?? [], now));
+  if (audience['trial-request']) items.push(...trialRequestItems(sources.trialRequests ?? [], now));
   if (audience.lead) items.push(...leadItems(sources.leads ?? [], now));
   if (audience.document) items.push(...documentItems(sources.documents ?? [], now));
   if (audience.settlement) items.push(...settlementItems(sources.settlements ?? [], now));

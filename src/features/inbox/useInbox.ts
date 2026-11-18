@@ -31,11 +31,12 @@ import {
   type InboxInvoice,
   type InboxItem,
   type InboxLead,
+  type InboxTrialRequest,
   type InboxKind,
   type InboxSettlement,
 } from './inboxModel';
 import { useInboxDismissals } from './inboxDismissals';
-import { useCommercialLeads } from '@/features/leads/leadsApi';
+import { useCommercialLeads, useSalesReminders, useTrialRequests } from '@/features/leads/leadsApi';
 
 /** Tope de facturas vencidas que se leen para la bandeja (las más antiguas). */
 export const INBOX_INVOICE_LIMIT = 200;
@@ -67,8 +68,9 @@ export function useInbox() {
         canManageCommercial: perms.canManageCommercial,
         canReadFinance: perms.canReadFinance,
         hasProvisioningAccess: prov.hasAnyAccess,
+        isSalesAgent: perms.isSalesAgent,
       }),
-    [access, perms.canManagePlatform, perms.canManageCommercial, perms.canReadFinance, prov.hasAnyAccess],
+    [access, perms.canManagePlatform, perms.canManageCommercial, perms.canReadFinance, prov.hasAnyAccess, perms.isSalesAgent],
   );
   const ready = !access.loading;
 
@@ -82,6 +84,8 @@ export function useInbox() {
   const documents = useReceivedCommercialDocuments({ enabled: ready && audience.document });
   const settlements = useSettlements({ enabled: ready && audience.settlement });
   const leads = useCommercialLeads({ enabled: ready && audience.lead });
+  const reminders = useSalesReminders({ enabled: ready && audience.reminder });
+  const trialRequests = useTrialRequests({ enabled: ready && audience['trial-request'] });
 
   const all = useMemo<InboxItem[]>(() => {
     const now = new Date();
@@ -104,11 +108,13 @@ export function useInbox() {
         documents: (documents.data ?? []) as unknown as InboxDocument[],
         settlements: (settlements.data ?? []) as unknown as InboxSettlement[],
         leads: (leads.data ?? []) as unknown as InboxLead[],
+        reminders: reminders.data ?? [],
+        trialRequests: (trialRequests.data ?? []) as unknown as InboxTrialRequest[],
       },
       audience,
       now,
     );
-  }, [audience, prov, invoices.data, requests.data, tenants.data, products.data, targets.data, integrations.data, alerts.data, documents.data, settlements.data, leads.data]);
+  }, [audience, prov, invoices.data, requests.data, tenants.data, products.data, targets.data, integrations.data, alerts.data, documents.data, settlements.data, leads.data, reminders.data, trialRequests.data]);
 
   const marks = useInboxDismissals(roles?.userId);
   const items = useMemo(() => all.filter((i) => !marks.done.has(i.key)), [all, marks.done]);
@@ -125,6 +131,8 @@ export function useInbox() {
     pick('health', products, targets, integrations),
     pick('alta', requests),
     pick('confirm', requests, tenants),
+    pick('reminder', reminders),
+    pick('trial-request', trialRequests),
     pick('lead', leads),
     pick('billing-alert', alerts),
     pick('document', documents),

@@ -199,7 +199,7 @@ export function App() {
                     <Route
                       path="solicitudes"
                       element={
-                        <RequirePersona personas={['EBIM']}>
+                        <RequirePersona personas={['EBIM', 'SALES_AGENT']}>
                           <LeadsPage />
                         </RequirePersona>
                       }

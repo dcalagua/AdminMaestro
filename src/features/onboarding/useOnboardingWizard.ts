@@ -20,8 +20,8 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/components/ui/toast-context';
 import { MODES, STEP_FIELDS, schema, type FormValues } from './onboardingForm';
 import { flowFor, type FlowMode } from './flowModel';
-import { useCommercialLead } from '@/features/leads/leadsApi';
-import { leadPrefill } from '@/features/leads/leadsModel';
+import { useCommercialLead, useCompleteTrialRequest, useTrialRequest } from '@/features/leads/leadsApi';
+import { leadPrefill, trialRequestPrefill } from '@/features/leads/leadsModel';
 
 /** Lo que quedó creado al cerrar la venta (o el tenant): alimenta los pasos siguientes. */
 export interface CreatedSale {
@@ -151,6 +151,38 @@ export function useOnboardingWizard() {
       form.setValue(key as keyof FormValues, value as never, { shouldDirty: true });
     }
   }, [lead.data, products.data, plans.data, marketList]);
+
+  /**
+   * «Nueva venta» desde una prueba pedida por un comercial (`?prueba=`): se
+   * propone la app, el plan, el tenant TRIAL, el administrador, el país y el
+   * comercial. Al crear, el pedido se cierra con ese tenant (complete_trial_request).
+   */
+  const trialRequestId = params.get('prueba');
+  const trialRequest = useTrialRequest(trialRequestId);
+  const completeTrial = useCompleteTrialRequest();
+  const trialPrefilled = useRef(false);
+  useEffect(() => {
+    if (trialPrefilled.current || !trialRequest.data || !products.data) return;
+    trialPrefilled.current = true;
+    const values = trialRequestPrefill(trialRequest.data, products.data, marketList);
+    for (const [key, value] of Object.entries(values)) {
+      form.setValue(key as keyof FormValues, value as never, { shouldDirty: true });
+    }
+  }, [trialRequest.data, products.data, marketList]);
+
+  /** Cierra el pedido de prueba con el tenant recién creado. No deshace el alta si falla. */
+  async function closeTrialRequest(tenantId: string) {
+    if (!trialRequestId || trialRequest.data?.status !== 'PENDING') return;
+    try {
+      await completeTrial.mutateAsync({ id: trialRequestId, tenantId });
+      toast.success('Prueba aprobada', 'El comercial recibe el aviso en su Bandeja.');
+    } catch (error) {
+      toast.error(
+        'El tenant se creó, pero el pedido de prueba quedó pendiente',
+        error instanceof Error ? error.message : 'Ciérralo desde Solicitudes de la web.',
+      );
+    }
+  }
 
   // Cambiar de cliente invalida la sociedad elegida.
   useEffect(() => {
@@ -366,6 +398,7 @@ export function useOnboardingWizard() {
         activated: v.activate,
       });
       toast.success('Cliente creado', `${v.tenant_name}: contrato listo. Sigue con la primera factura.`);
+      await closeTrialRequest(result.tenant_id);
       setStep(flow.createStep + 1);
     } catch {
       /* el error de la base se muestra bajo los botones */
@@ -390,6 +423,7 @@ export function useOnboardingWizard() {
       });
       setCreated(baseCreated(tenantId, v));
       toast.success('Tenant creado', `${v.tenant_name} queda pendiente hasta su alta en la app.`);
+      await closeTrialRequest(tenantId);
       setStep(flow.createStep + 1);
     } catch {
       /* el error de la base se muestra bajo los botones */
