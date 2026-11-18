@@ -33,6 +33,7 @@ const ProductDetailPage = lazyPage(() => import('@/features/catalog/ProductDetai
 const OrganizationDetailPage = lazyPage(() => import('@/features/organizations/OrganizationDetailPage'), 'OrganizationDetailPage');
 const PartnersPage = lazyPage(() => import('@/features/organizations/PartnersPage'), 'PartnersPage');
 const OnboardingPage = lazyPage(() => import('@/features/onboarding/OnboardingPage'), 'OnboardingPage');
+const LeadsPage = lazyPage(() => import('@/features/leads/LeadsPage'), 'LeadsPage');
 const TenantsPage = lazyPage(() => import('@/features/tenants/TenantsPage'), 'TenantsPage');
 const TenantDetailPage = lazyPage(() => import('@/features/tenants/TenantDetailPage'), 'TenantDetailPage');
 const SubscriptionsPage = lazyPage(() => import('@/features/billing/SubscriptionsPage'), 'SubscriptionsPage');
@@ -191,6 +192,15 @@ export function App() {
                       element={
                         <RequirePersona personas={['EBIM']}>
                           <RequireFinanceView><PartnerFeesPage /></RequireFinanceView>
+                        </RequirePersona>
+                      }
+                    />
+
+                    <Route
+                      path="solicitudes"
+                      element={
+                        <RequirePersona personas={['EBIM']}>
+                          <LeadsPage />
                         </RequirePersona>
                       }
                     />

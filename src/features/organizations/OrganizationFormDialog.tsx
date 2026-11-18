@@ -99,12 +99,18 @@ export function OrganizationFormDialog({
   open,
   organization,
   defaultCapability,
+  initial,
+  onSaved,
   onClose,
 }: {
   open: boolean;
   organization?: OrganizationDraft | null;
   /** Capacidad preseleccionada al crear desde «Partners» o «Clientes». */
   defaultCapability?: Enums<'org_capability'>;
+  /** Datos propuestos al CREAR (p. ej. desde una solicitud de la web). Se pueden corregir. */
+  initial?: Partial<Pick<OrganizationDraft, 'slug' | 'legal_name' | 'display_name' | 'country_code' | 'billing_email'>>;
+  /** Se llama con el id de la organización guardada, antes de cerrar. */
+  onSaved?: (organizationId: string) => void;
   onClose: () => void;
 }) {
   const toast = useToast();
@@ -135,13 +141,13 @@ export function OrganizationFormDialog({
     upsert.reset();
     const caps = new Set(organization?.capabilities ?? (defaultCapability ? [defaultCapability] : ['CUSTOMER']));
     form.reset({
-      slug: organization?.slug ?? '',
-      legal_name: organization?.legal_name ?? '',
-      display_name: organization?.display_name ?? '',
+      slug: organization?.slug ?? initial?.slug ?? '',
+      legal_name: organization?.legal_name ?? initial?.legal_name ?? '',
+      display_name: organization?.display_name ?? initial?.display_name ?? '',
       // V3: sin país por defecto; el país sugiere el mercado de cada venta.
-      country_code: organization?.country_code ?? '',
+      country_code: organization?.country_code ?? initial?.country_code ?? '',
       tax_id: organization?.tax_id ?? '',
-      billing_email: organization?.billing_email ?? '',
+      billing_email: organization?.billing_email ?? initial?.billing_email ?? '',
       status: (organization?.status as FormValues['status']) ?? 'ACTIVE',
       accent_color: organization?.accent_color ?? '',
       cap_CUSTOMER: caps.has('CUSTOMER'),
@@ -150,7 +156,7 @@ export function OrganizationFormDialog({
       cap_CONSULTING: caps.has('CONSULTING'),
     });
     // Solo reacciona a la apertura y al registro editado.
-  }, [open, organization, defaultCapability]);
+  }, [open, organization, defaultCapability, initial]);
 
   const submit = form.handleSubmit(async (values) => {
     const selected = CAPABILITIES.map((c) => c.value).filter(
@@ -158,7 +164,7 @@ export function OrganizationFormDialog({
     );
 
     try {
-      await upsert.mutateAsync({
+      const savedId = await upsert.mutateAsync({
         p_id: organization?.id,
         p_slug: values.slug,
         p_legal_name: values.legal_name,
@@ -174,6 +180,7 @@ export function OrganizationFormDialog({
         isEdit ? 'Organización actualizada' : 'Organización creada',
         values.display_name,
       );
+      if (typeof savedId === 'string') onSaved?.(savedId);
       onClose();
     } catch {
       // El mensaje de la base se muestra dentro del diálogo.

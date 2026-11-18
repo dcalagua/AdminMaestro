@@ -20,6 +20,8 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/components/ui/toast-context';
 import { MODES, STEP_FIELDS, schema, type FormValues } from './onboardingForm';
 import { flowFor, type FlowMode } from './flowModel';
+import { useCommercialLead } from '@/features/leads/leadsApi';
+import { leadPrefill } from '@/features/leads/leadsModel';
 
 /** Lo que quedó creado al cerrar la venta (o el tenant): alimenta los pasos siguientes. */
 export interface CreatedSale {
@@ -133,6 +135,22 @@ export function useOnboardingWizard() {
         (i) => i.saas_product_id === product.id && i.enabled && contractAdapterFor(i.adapter_key).requiresCompany,
       ),
   );
+
+  /**
+   * «Nueva venta» desde una solicitud de la web (`?solicitud=`): se proponen
+   * producto, plan, prueba, administrador y país UNA vez, cuando ya cargó todo.
+   * Son propuestas: el asistente las deja editar como cualquier otro campo.
+   */
+  const lead = useCommercialLead(params.get('solicitud'));
+  const prefilled = useRef(false);
+  useEffect(() => {
+    if (prefilled.current || !lead.data || !products.data || !plans.data) return;
+    prefilled.current = true;
+    const values = leadPrefill(lead.data, products.data, plans.data, marketList);
+    for (const [key, value] of Object.entries(values)) {
+      form.setValue(key as keyof FormValues, value as never, { shouldDirty: true });
+    }
+  }, [lead.data, products.data, plans.data, marketList]);
 
   // Cambiar de cliente invalida la sociedad elegida.
   useEffect(() => {
