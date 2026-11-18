@@ -30,10 +30,12 @@ import {
   type InboxDocument,
   type InboxInvoice,
   type InboxItem,
+  type InboxLead,
   type InboxKind,
   type InboxSettlement,
 } from './inboxModel';
 import { useInboxDismissals } from './inboxDismissals';
+import { useCommercialLeads } from '@/features/leads/leadsApi';
 
 /** Tope de facturas vencidas que se leen para la bandeja (las más antiguas). */
 export const INBOX_INVOICE_LIMIT = 200;
@@ -79,6 +81,7 @@ export function useInbox() {
   const alerts = useBillingAlerts('OPEN', { enabled: ready && audience['billing-alert'] });
   const documents = useReceivedCommercialDocuments({ enabled: ready && audience.document });
   const settlements = useSettlements({ enabled: ready && audience.settlement });
+  const leads = useCommercialLeads({ enabled: ready && audience.lead });
 
   const all = useMemo<InboxItem[]>(() => {
     const now = new Date();
@@ -100,11 +103,12 @@ export function useInbox() {
         alerts: (alerts.data ?? []) as unknown as InboxAlert[],
         documents: (documents.data ?? []) as unknown as InboxDocument[],
         settlements: (settlements.data ?? []) as unknown as InboxSettlement[],
+        leads: (leads.data ?? []) as unknown as InboxLead[],
       },
       audience,
       now,
     );
-  }, [audience, prov, invoices.data, requests.data, tenants.data, products.data, targets.data, integrations.data, alerts.data, documents.data, settlements.data]);
+  }, [audience, prov, invoices.data, requests.data, tenants.data, products.data, targets.data, integrations.data, alerts.data, documents.data, settlements.data, leads.data]);
 
   const marks = useInboxDismissals(roles?.userId);
   const items = useMemo(() => all.filter((i) => !marks.done.has(i.key)), [all, marks.done]);
@@ -121,6 +125,7 @@ export function useInbox() {
     pick('health', products, targets, integrations),
     pick('alta', requests),
     pick('confirm', requests, tenants),
+    pick('lead', leads),
     pick('billing-alert', alerts),
     pick('document', documents),
     pick('settlement', settlements),

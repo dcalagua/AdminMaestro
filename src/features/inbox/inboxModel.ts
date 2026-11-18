@@ -33,7 +33,7 @@ import {
 // Tipos
 // ---------------------------------------------------------------------------
 
-export type InboxKind = 'invoice' | 'alta' | 'health' | 'confirm' | 'document' | 'billing-alert' | 'settlement';
+export type InboxKind = 'invoice' | 'alta' | 'health' | 'confirm' | 'lead' | 'document' | 'billing-alert' | 'settlement';
 
 /** 1 = urgente · 2 = importante · 3 = normal. */
 export type InboxPriority = 1 | 2 | 3;
@@ -42,13 +42,14 @@ export const PRIORITY_LABEL: Record<InboxPriority, string> = { 1: 'Urgente', 2: 
 export const PRIORITY_TONE: Record<InboxPriority, 'danger' | 'warn' | 'neutral'> = { 1: 'danger', 2: 'warn', 3: 'neutral' };
 
 /** Orden de los grupos en la pantalla: primero el dinero y lo que está caído. */
-export const KIND_ORDER: InboxKind[] = ['invoice', 'health', 'alta', 'confirm', 'billing-alert', 'document', 'settlement'];
+export const KIND_ORDER: InboxKind[] = ['invoice', 'health', 'alta', 'confirm', 'lead', 'billing-alert', 'document', 'settlement'];
 
 export const KIND_LABEL: Record<InboxKind, string> = {
   invoice: 'Facturas vencidas',
   alta: 'Altas en las apps',
   health: 'Salud de las apps',
   confirm: 'Tenants por confirmar',
+  lead: 'Solicitudes de la web',
   document: 'Documentos por aprobar',
   'billing-alert': 'Renovaciones y alertas de cobranza',
   settlement: 'Liquidaciones de comisión',
@@ -129,6 +130,7 @@ export function inboxAudience(input: AudienceInput): InboxAudience {
     alta: tabVisible('/apps', 'altas', access) && (access.persona !== 'EBIM' || input.hasProvisioningAccess),
     health: entryVisible('/suite', access) && input.hasProvisioningAccess,
     confirm: input.canManagePlatform,
+    lead: input.canManageCommercial && entryVisible('/solicitudes', access),
     document: input.canManageCommercial && entryVisible('/subscriptions', access),
     settlement: input.canReadFinance && tabVisible('/commissions', 'comisiones', access),
   };
@@ -200,6 +202,7 @@ export interface InboxSources {
   alerts?: readonly InboxAlert[];
   documents?: readonly InboxDocument[];
   settlements?: readonly InboxSettlement[];
+  leads?: readonly InboxLead[];
 }
 
 // ---------------------------------------------------------------------------
@@ -446,6 +449,42 @@ export function settlementItems(rows: readonly InboxSettlement[], now: Date): In
     });
 }
 
+/** Solicitud de la web (leads.v1): lo que se lee de `commercial_leads`. */
+export interface InboxLead {
+  id: string;
+  status: string;
+  company_name: string;
+  contact_name: string;
+  received_at: string;
+  organization_id: string | null;
+  saas_products?: { short_name?: string | null } | null;
+}
+
+const DAY_MS = 24 * 3600 * 1000;
+
+/** Solicitudes NUEVAS: un prospecto sin contestar se enfría; pasado un día, urgente. */
+export function leadItems(rows: readonly InboxLead[], now: Date): InboxItem[] {
+  return rows
+    .filter((l) => l.status === 'NEW')
+    .map((l) => {
+      const old = now.getTime() - new Date(l.received_at).getTime() > DAY_MS;
+      const to = '/solicitudes';
+      return {
+        key: `lead:${l.id}:NEW`,
+        kind: 'lead' as const,
+        priority: (old ? 1 : 2) as InboxPriority,
+        title: `${l.company_name} pidió una prueba`,
+        detail: l.contact_name,
+        account: null,
+        app: l.saas_products?.short_name ?? null,
+        since: l.received_at,
+        ageText: `recibida ${relativeAge(l.received_at, now)}`,
+        screen: { label: 'Abrir solicitudes de la web', to },
+        action: { type: 'link' as const, label: 'Contactar', to },
+      };
+    });
+}
+
 // ---------------------------------------------------------------------------
 // Bandeja completa
 // ---------------------------------------------------------------------------
@@ -471,6 +510,7 @@ export function buildInbox(sources: InboxSources, audience: InboxAudience, now: 
     const ids = new Set(invoices.map((i) => i.key.slice('invoice:'.length)));
     items.push(...alertItems(sources.alerts ?? [], now, ids));
   }
+  if (audience.lead) items.push(...leadItems(sources.leads ?? [], now));
   if (audience.document) items.push(...documentItems(sources.documents ?? [], now));
   if (audience.settlement) items.push(...settlementItems(sources.settlements ?? [], now));
   return items.sort(byUrgency);
