@@ -122,3 +122,123 @@ export function leadPrefill(
   if (lead.country_code && markets.some((m) => m.code === lead.country_code)) out.market_code = lead.country_code;
   return out;
 }
+
+// ---------------------------------------------------------------------------
+// Perfil comercial (20261026000100): quién mueve una solicitud y pruebas pedidas
+// ---------------------------------------------------------------------------
+
+export type TrialRequestBase = Database['platform']['Tables']['trial_requests']['Row'];
+export type TrialRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+
+export const TRIAL_REQUEST_LABEL: Record<TrialRequestStatus, string> = {
+  PENDING: 'Por aprobar',
+  APPROVED: 'Aprobada',
+  REJECTED: 'Rechazada',
+  CANCELLED: 'Retirada',
+};
+
+export const TRIAL_REQUEST_TONE: Record<TrialRequestStatus, 'warn' | 'ok' | 'danger' | 'neutral'> = {
+  PENDING: 'warn',
+  APPROVED: 'ok',
+  REJECTED: 'danger',
+  CANCELLED: 'neutral',
+};
+
+export function asTrialStatus(value: string): TrialRequestStatus {
+  return (['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'] as const).includes(value as TrialRequestStatus)
+    ? (value as TrialRequestStatus)
+    : 'PENDING';
+}
+
+/**
+ * ¿Puede ESTE comercial mover la solicitud? La base lo decide igual
+ * (`set_commercial_lead_status`, `request_trial`): libre o tomada por él, y sin
+ * convertir. EBIM (`canManageCommercial`) siempre puede.
+ */
+export function canWorkLead(
+  lead: Pick<LeadRow, 'status' | 'owner_sales_agent_id'>,
+  me: { canManageCommercial: boolean; salesAgentId: string | null },
+): boolean {
+  if (me.canManageCommercial) return true;
+  if (!me.salesAgentId || lead.status === 'CONVERTED') return false;
+  return !lead.owner_sales_agent_id || lead.owner_sales_agent_id === me.salesAgentId;
+}
+
+/** «Tomada por …»: el nombre propio, o «otro comercial» (RLS no deja ver el de otro). */
+export function ownerLabel(
+  lead: Pick<LeadRow, 'owner_sales_agent_id'> & { owner?: { full_name: string } | null },
+  mySalesAgentId: string | null,
+): string | null {
+  if (!lead.owner_sales_agent_id) return null;
+  if (lead.owner_sales_agent_id === mySalesAgentId) return 'Tomada por ti';
+  return `Tomada por ${lead.owner?.full_name ?? 'otro comercial'}`;
+}
+
+/** Lo que el diálogo «Pedir prueba» propone desde una solicitud de la web. */
+export function trialDraftFrom(
+  lead: Pick<LeadRow, 'id' | 'saas_product_id' | 'plan_code' | 'company_name' | 'contact_name' | 'email' | 'country_code' | 'message'> | null,
+  plans: Array<{ id: string; code: string; saas_product_id: string | null }>,
+) {
+  if (!lead) {
+    return { leadId: null, productId: '', planId: '', companyName: '', contactName: '', adminEmail: '', countryCode: '', notes: '' };
+  }
+  const plan = plans.find((p) => p.code === lead.plan_code && p.saas_product_id === lead.saas_product_id);
+  return {
+    leadId: lead.id,
+    productId: lead.saas_product_id,
+    planId: plan?.id ?? '',
+    companyName: lead.company_name,
+    contactName: lead.contact_name,
+    adminEmail: lead.email,
+    countryCode: lead.country_code ?? '',
+    notes: '',
+  };
+}
+
+/** «Nueva venta» desde una prueba pedida: tenant TRIAL para ese cliente y el comercial atribuido. */
+export function onboardingUrlForTrial(requestId: string, organizationId?: string | null): string {
+  const q = new URLSearchParams({ prueba: requestId });
+  if (organizationId) q.set('cuenta', organizationId);
+  return `/onboarding?${q.toString()}`;
+}
+
+/**
+ * Lo que «Nueva venta» propone desde una prueba pedida por un comercial: la
+ * app, el plan, el tenant TRIAL, el administrador, el país y el comercial
+ * (para que la atribución nazca con el alta). La suscripción NO se activa.
+ */
+export function trialRequestPrefill(
+  req: Pick<TrialRequestBase, 'saas_product_id' | 'plan_id' | 'admin_email' | 'company_name' | 'country_code' | 'created_at' | 'sales_agent_id'>,
+  products: Array<{ id: string; code: string }>,
+  markets: Array<{ code: string }>,
+): Record<string, string | boolean> {
+  const out: Record<string, string | boolean> = {
+    tenant_type: 'TRIAL',
+    tenant_name: req.company_name,
+    tenant_slug: slugFromCompany(req.company_name),
+    admin_email: req.admin_email,
+    activate: false,
+    sales_agent_id: req.sales_agent_id,
+    notes: `Prueba pedida por el comercial el ${new Date(req.created_at).toLocaleDateString('es-PE')}.`,
+  };
+  const product = products.find((p) => p.id === req.saas_product_id);
+  if (product) out.saas_product_code = product.code;
+  if (req.plan_id) out.plan_id = req.plan_id;
+  if (req.country_code && markets.some((m) => m.code === req.country_code)) out.market_code = req.country_code;
+  return out;
+}
+
+/** Un recordatorio del comercial, como lo devuelve `my_sales_reminders()`. */
+export interface SalesReminder {
+  type: 'INVOICE_OVERDUE' | 'INVOICE_DUE_SOON' | 'RENEWAL' | 'TRIAL_ENDING' | 'TRIAL_EXPIRED' | 'TRIAL_APPROVED' | 'TRIAL_REJECTED';
+  ref_id: string;
+  title: string;
+  organization_id: string | null;
+  organization_name: string | null;
+  product: string | null;
+  date: string | null;
+  amount: number | string | null;
+  currency: string | null;
+  tenant_id: string | null;
+  note: string | null;
+}

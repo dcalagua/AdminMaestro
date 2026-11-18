@@ -32,6 +32,11 @@ export function usePermissions() {
       canReadFinance: finance,
       /** Espejo de `platform.can_manage_commercial()`: catálogo comercial y suscripciones. */
       canManageCommercial: managePlatform || finance,
+      /**
+       * Comercial con registro ACTIVO (espejo de `my_own_sales_agent_id()`): trabaja
+       * las solicitudes de la web y PIDE pruebas; no crea tenants (comercial ≠ acceso operativo).
+       */
+      isSalesAgent: Boolean(roles?.salesAgentId),
       /** Solo el super admin puede pedir provisioning LIVE (contrato §13). */
       isSuperAdmin: roles?.platformRole === 'EBIM_SUPER_ADMIN',
       /** Espejo de `platform.is_org_admin()` para una organización concreta. */

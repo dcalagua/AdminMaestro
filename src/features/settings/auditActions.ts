@@ -59,6 +59,10 @@ const EXACT: Record<string, string> = {
   TRIAL_INTEGRATION_CONFIGURED: 'Configuración del aviso de prueba a la app',
   COMMERCIAL_LEAD_STATUS_CHANGED: 'Seguimiento de una solicitud de la web',
   COMMERCIAL_LEAD_CONVERTED: 'Solicitud de la web convertida en cliente',
+  TRIAL_REQUESTED: 'Comercial pidió una prueba',
+  TRIAL_REQUEST_CANCELLED: 'Comercial retiró su pedido de prueba',
+  TRIAL_REQUEST_REJECTED: 'Pedido de prueba rechazado',
+  TRIAL_REQUEST_APPROVED: 'Pedido de prueba aprobado',
 };
 
 /** Sufijos de acción (de más largo a más corto al buscar). */
@@ -273,6 +277,7 @@ const ENTITY: Record<string, string> = {
   exchange_rate: 'Tipo de cambio',
   product_integration: 'Integración',
   commercial_lead: 'Solicitud de la web',
+  trial_request: 'Pedido de prueba',
   deployment_target: 'Destino de despliegue',
   credential_profile: 'Perfil de credencial',
   profile: 'Usuario',

@@ -96,6 +96,14 @@ vi.mock('@/services/queries', () => ({
 }));
 vi.mock('@/features/leads/leadsApi', () => ({
   useCommercialLeads: ({ enabled }: { enabled: boolean }) => q('leads', enabled, []),
+  useTrialRequests: ({ enabled }: { enabled: boolean }) => q('trialRequests', enabled, []),
+  useSalesReminders: ({ enabled }: { enabled: boolean }) =>
+    q('reminders', enabled, [
+      {
+        type: 'INVOICE_OVERDUE', ref_id: 'inv-9', title: 'F001-99', organization_id: 'o-9', organization_name: 'Cliente Nueve',
+        product: null, date: '2026-09-01', amount: 500, currency: 'USD', tenant_id: null, note: null,
+      },
+    ]),
 }));
 vi.mock('@/services/mutations', () => ({
   useProvisionTenant: () => ({ mutateAsync: m.provision, isPending: false }),
@@ -274,12 +282,14 @@ describe('Bandeja', () => {
     expect(within(alta).getByRole('link', { name: 'Abrir Altas en las apps' })).toHaveAttribute('href', '/apps?tab=altas');
   });
 
-  it('un comercial no recibe avisos operativos y ninguna consulta se dispara', () => {
+  it('un comercial recibe sus recordatorios y las solicitudes; ninguna consulta operativa se dispara', () => {
     m.persona = 'SALES_AGENT';
     m.roles = { ...base, salesAgentId: 'sa-1' };
     m.canProvision = false;
     renderInbox();
-    expect(screen.getByText('Nada que atender desde tu rol')).toBeInTheDocument();
-    expect(Object.values(m.enabled).every((v) => v === false)).toBe(true);
+    expect(group('Recordatorios de tus clientes')).toBeInTheDocument();
+    expect(screen.getByText('Factura F001-99 vencida: recuérdale el pago')).toBeInTheDocument();
+    const fired = Object.entries(m.enabled).filter(([, v]) => v).map(([k]) => k).sort();
+    expect(fired).toEqual(['leads', 'reminders']);
   });
 });
