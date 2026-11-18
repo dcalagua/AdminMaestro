@@ -45,10 +45,10 @@ function audienceFor(roles: SessionRoles, perms: { platform?: boolean; commercia
 }
 
 const ALL: InboxAudience = {
-  invoice: true, alta: true, health: true, confirm: true, document: true, 'billing-alert': true, settlement: true,
+  invoice: true, alta: true, health: true, confirm: true, lead: true, document: true, 'billing-alert': true, settlement: true,
 };
 const NONE: InboxAudience = {
-  invoice: false, alta: false, health: false, confirm: false, document: false, 'billing-alert': false, settlement: false,
+  invoice: false, alta: false, health: false, confirm: false, lead: false, document: false, 'billing-alert': false, settlement: false,
 };
 
 describe('permisos: cada rol ve sólo lo suyo', () => {

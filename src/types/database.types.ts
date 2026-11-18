@@ -1189,6 +1189,78 @@ export type Database = {
           },
         ];
       };
+      commercial_leads: {
+        Row: {
+          company_name: string;
+          contact_name: string;
+          country_code: string | null;
+          deployment_target_id: string;
+          email: string;
+          external_id: string;
+          first_seen_at: string;
+          id: string;
+          last_seen_at: string;
+          message: string | null;
+          organization_id: string | null;
+          phone: string | null;
+          plan_code: string | null;
+          received_at: string;
+          saas_product_id: string;
+          source: string;
+          status: string;
+          status_changed_at: string | null;
+          status_changed_by: string | null;
+          status_note: string | null;
+          team_size: string | null;
+        };
+        Insert: {
+          company_name: string;
+          contact_name: string;
+          country_code?: string | null;
+          deployment_target_id: string;
+          email: string;
+          external_id: string;
+          first_seen_at?: string;
+          id?: string;
+          last_seen_at?: string;
+          message?: string | null;
+          organization_id?: string | null;
+          phone?: string | null;
+          plan_code?: string | null;
+          received_at: string;
+          saas_product_id: string;
+          source?: string;
+          status?: string;
+          status_changed_at?: string | null;
+          status_changed_by?: string | null;
+          status_note?: string | null;
+          team_size?: string | null;
+        };
+        Update: {
+          company_name?: string;
+          contact_name?: string;
+          country_code?: string | null;
+          deployment_target_id?: string;
+          email?: string;
+          external_id?: string;
+          first_seen_at?: string;
+          id?: string;
+          last_seen_at?: string;
+          message?: string | null;
+          organization_id?: string | null;
+          phone?: string | null;
+          plan_code?: string | null;
+          received_at?: string;
+          saas_product_id?: string;
+          source?: string;
+          status?: string;
+          status_changed_at?: string | null;
+          status_changed_by?: string | null;
+          status_note?: string | null;
+          team_size?: string | null;
+        };
+        Relationships: [];
+      };
       commercial_cutover_events: {
         Row: {
           actor_user_id: string | null;
@@ -3688,6 +3760,36 @@ export type Database = {
           },
         ];
       };
+      lead_sync_state: {
+        Row: {
+          cursor: string | null;
+          deployment_target_id: string;
+          last_error_code: string | null;
+          last_new: number;
+          last_outcome: string | null;
+          last_received: number;
+          last_run_at: string | null;
+        };
+        Insert: {
+          cursor?: string | null;
+          deployment_target_id: string;
+          last_error_code?: string | null;
+          last_new?: number;
+          last_outcome?: string | null;
+          last_received?: number;
+          last_run_at?: string | null;
+        };
+        Update: {
+          cursor?: string | null;
+          deployment_target_id?: string;
+          last_error_code?: string | null;
+          last_new?: number;
+          last_outcome?: string | null;
+          last_received?: number;
+          last_run_at?: string | null;
+        };
+        Relationships: [];
+      };
       lifecycle_job_runs: {
         Row: {
           detail: NonNullable<Json>;
@@ -6080,6 +6182,8 @@ export type Database = {
           integration_type: Database['platform']['Enums']['integration_type'];
           inventory_path: string | null;
           inventory_read_scope: string | null;
+          leads_path: string | null;
+          leads_read_scope: string | null;
           issuer: string;
           lifecycle_path: string | null;
           lifecycle_read_scope: string | null;
@@ -6125,6 +6229,8 @@ export type Database = {
           integration_type: Database['platform']['Enums']['integration_type'];
           inventory_path?: string | null;
           inventory_read_scope?: string | null;
+          leads_path?: string | null;
+          leads_read_scope?: string | null;
           issuer?: string;
           lifecycle_path?: string | null;
           lifecycle_read_scope?: string | null;
@@ -6170,6 +6276,8 @@ export type Database = {
           integration_type?: Database['platform']['Enums']['integration_type'];
           inventory_path?: string | null;
           inventory_read_scope?: string | null;
+          leads_path?: string | null;
+          leads_read_scope?: string | null;
           issuer?: string;
           lifecycle_path?: string | null;
           lifecycle_read_scope?: string | null;
@@ -17251,6 +17359,10 @@ export type Database = {
       jsonb_deep_merge: { Args: { a: Json; b: Json }; Returns: Json };
       lifecycle_channel_of: { Args: { p_tenant_id: string }; Returns: string };
       lifecycle_delivery_context: { Args: { p_tenant_id: string }; Returns: Json };
+      link_commercial_lead_organization: {
+        Args: { p_lead_id: string; p_organization_id: string };
+        Returns: string;
+      };
       link_user_sales_agent: {
         Args: { p_reason?: string; p_sales_agent_id: string; p_user_id: string };
         Returns: string;
@@ -18126,6 +18238,10 @@ export type Database = {
           p_plan_id: string;
           p_valid_from?: string;
         };
+        Returns: string;
+      };
+      set_commercial_lead_status: {
+        Args: { p_lead_id: string; p_note?: string; p_status: string };
         Returns: string;
       };
       set_product_trial_days: { Args: { p_days: number; p_product_id: string }; Returns: number };

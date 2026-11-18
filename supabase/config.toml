@@ -497,6 +497,12 @@ verify_jwt = true
 # Solo hace GET en las apps. Runbook: docs/runbooks/tenant-sync.md.
 verify_jwt = true
 
+[functions.lead-sync]
+# Solicitudes de la web de las apps (leads.v1, 20261025000100). Exige JWT; el
+# canal humano pide además `can_manage_commercial()` antes de usar service_role.
+# Solo hace GET en las apps.
+verify_jwt = true
+
 [functions.usage-ingest]
 # Ingest de uso firmado por cada SaaS (fase 17, spec §11.3). PÚBLICO a nivel de
 # gateway porque el SaaS NO tiene un JWT de Supabase: presenta SU JWT ES256

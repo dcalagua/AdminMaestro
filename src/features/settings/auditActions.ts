@@ -57,6 +57,8 @@ const EXACT: Record<string, string> = {
   TENANT_TRIAL_DELIVERED: 'Vencimiento de prueba aplicado en la app',
   TRIAL_EXPIRATIONS_APPLIED: 'Suspensiones por prueba vencida aplicadas',
   TRIAL_INTEGRATION_CONFIGURED: 'Configuración del aviso de prueba a la app',
+  COMMERCIAL_LEAD_STATUS_CHANGED: 'Seguimiento de una solicitud de la web',
+  COMMERCIAL_LEAD_CONVERTED: 'Solicitud de la web convertida en cliente',
 };
 
 /** Sufijos de acción (de más largo a más corto al buscar). */
@@ -270,6 +272,7 @@ const ENTITY: Record<string, string> = {
   platform_admin: 'Rol de plataforma',
   exchange_rate: 'Tipo de cambio',
   product_integration: 'Integración',
+  commercial_lead: 'Solicitud de la web',
   deployment_target: 'Destino de despliegue',
   credential_profile: 'Perfil de credencial',
   profile: 'Usuario',

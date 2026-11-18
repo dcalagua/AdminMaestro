@@ -1,7 +1,7 @@
 import {
   type Icon, ArrowsClockwiseIcon, BuildingOfficeIcon, BuildingsIcon, ChartLineUpIcon, EnvelopeSimpleIcon, GearSixIcon,
   HandCoinsIcon, HandshakeIcon, HouseIcon, PlugsConnectedIcon, ReceiptIcon, RocketLaunchIcon, ShieldCheckIcon,
-  SquaresFourIcon, StackIcon, StorefrontIcon, TrayIcon, UserGearIcon, UsersThreeIcon,
+  SquaresFourIcon, StackIcon, StorefrontIcon, TrayIcon, ChatCircleTextIcon, UserGearIcon, UsersThreeIcon,
 } from '@phosphor-icons/react';
 import type { PersonaKind } from '@/features/auth/session';
 import type { SessionRoles } from '@/types/domain';
@@ -141,6 +141,10 @@ export const NAV_ITEMS: NavItem[] = [
   },
 
   // ---- Comercial ----------------------------------------------------------
+  {
+    to: '/solicitudes', label: 'Solicitudes de la web', icon: ChatCircleTextIcon, group: 'Comercial', personas: ['EBIM'],
+    description: 'Lo que llenan los prospectos en la landing de cada app, para contactarlos o convertirlos.',
+  },
   { to: '/onboarding', label: 'Nueva venta', icon: RocketLaunchIcon, group: 'Comercial', personas: ['EBIM'] },
   {
     to: '/subscriptions', label: 'Contratos', icon: ArrowsClockwiseIcon, group: 'Comercial',

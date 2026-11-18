@@ -65,7 +65,7 @@ function oldScreens(persona: PersonaKind, options: Options = {}): string[] {
 }
 
 /** Entradas nuevas de la V5 sin pantalla anterior. */
-const NEW_ENTRIES = ['/bandeja', '/suite', '/correos'];
+const NEW_ENTRIES = ['/bandeja', '/suite', '/correos', '/solicitudes'];
 
 describe('menú V5: seis grupos, 19 entradas (plan §4 + Correos enviados)', () => {
   it('grupos por tarea, en orden', () => {
@@ -82,11 +82,11 @@ describe('menú V5: seis grupos, 19 entradas (plan §4 + Correos enviados)', () 
       Inicio: ['Resumen', 'Bandeja'],
       Clientes: ['Cuentas', 'Partners', 'Equipo comercial'],
       Suite: ['Centro de la suite', 'Tenants', 'Apps'],
-      Comercial: ['Nueva venta', 'Contratos', 'Catálogo'],
+      Comercial: ['Solicitudes de la web', 'Nueva venta', 'Contratos', 'Catálogo'],
       Finanzas: ['Cobranza', 'Comisiones', 'Costos y margen', 'Tarifas de partners'],
       Gobierno: ['Usuarios', 'Auditoría', 'Correos enviados', 'Configuración'],
     });
-    expect(NAV_ITEMS).toHaveLength(19);
+    expect(NAV_ITEMS).toHaveLength(20);
   });
 
   it('las fusiones llevan sus pestañas', () => {
