@@ -94,6 +94,9 @@ vi.mock('@/services/queries', () => ({
       { id: 'st-1', code: 'LQ-1', status: 'APPROVED', total_amount: 500, currency: 'USD', created_at: DAYS_AGO(9), approved_at: DAYS_AGO(4), sales_agents: { full_name: 'Ana Ruiz' } },
     ]),
 }));
+vi.mock('@/features/leads/leadsApi', () => ({
+  useCommercialLeads: ({ enabled }: { enabled: boolean }) => q('leads', enabled, []),
+}));
 vi.mock('@/services/mutations', () => ({
   useProvisionTenant: () => ({ mutateAsync: m.provision, isPending: false }),
   useCheckDeploymentHealth: () => ({ mutateAsync: m.checkHealth, isPending: false }),
