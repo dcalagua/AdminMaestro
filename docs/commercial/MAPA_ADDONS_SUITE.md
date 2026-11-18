@@ -100,7 +100,7 @@ _La app no tiene add-ons vendibles registrados._
 |---|---|---|---|
 | eChange (núcleo: mesa de servicio + flota IA incluida + portal) | — | — | No existe tabla de planes ni precio de lista del núcleo en la base ni en el repo. Lo incluido = billing=incluido en ai_agents/channels. billing_plans es POR TEN |
 
-> **2026-11-18:** la Flota IA de eChange viene incluida en el plan (A o B; la reportería con el B). Los nueve agentes quedaron `RETIRED` en el catálogo (migración `20261027000100`); los canales siguen en borrador.
+> **2026-11-18:** la Flota IA de eChange viene incluida en el plan (A o B; la reportería con el B). Los nueve agentes quedaron `RETIRED` en el catálogo (migración `20261025000200`); los canales siguen en borrador.
 
 | Add-on | Tipo | Precio en la app (mes) | Unidad | Estado en la app | Código en el Admin Maestro |
 |---|---|---|---|---|---|
