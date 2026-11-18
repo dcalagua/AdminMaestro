@@ -100,17 +100,19 @@ _La app no tiene add-ons vendibles registrados._
 |---|---|---|---|
 | eChange (núcleo: mesa de servicio + flota IA incluida + portal) | — | — | No existe tabla de planes ni precio de lista del núcleo en la base ni en el repo. Lo incluido = billing=incluido en ai_agents/channels. billing_plans es POR TEN |
 
+> **2026-11-18:** la Flota IA de eChange viene incluida en el plan (A o B; la reportería con el B). Los nueve agentes quedaron `RETIRED` en el catálogo (migración `20261027000100`); los canales siguen en borrador.
+
 | Add-on | Tipo | Precio en la app (mes) | Unidad | Estado en la app | Código en el Admin Maestro |
 |---|---|---|---|---|---|
-| Analista de adopción | IA | — | Tenant | Activo en la app | `echange_adoption_analyst` |
-| Altas, bajas y equipos | IA | 140 USD | Tenant | Borrador en la app | `echange_asset_clerk` |
-| Autoservicio | IA | — | Tenant | Activo en la app | `echange_deflector` |
-| Correo entrante | IA | 60 USD | Tenant | Borrador en la app | `echange_email_intake` |
-| Asistente de ingreso | IA | — | Tenant | Activo en la app | `echange_intake_assistant` |
-| Reportería mensual | IA | 90 USD | Tenant | Activo en la app | `echange_report_writer` |
-| Sentimiento de encuestas | IA | — | Tenant | Activo en la app | `echange_survey_sentiment` |
-| Clasificador ITIL | IA | — | Tenant | Activo en la app | `echange_triage` |
-| Notas de voz | IA | — | Tenant | Activo en la app | `echange_voice_transcriber` |
+| Analista de adopción | IA | — | Tenant | **Retirado (incluido en el plan, 2026-11-18)** | `echange_adoption_analyst` |
+| Altas, bajas y equipos | IA | 140 USD | Tenant | **Retirado (incluido en el plan, 2026-11-18)** | `echange_asset_clerk` |
+| Autoservicio | IA | — | Tenant | **Retirado (incluido en el plan, 2026-11-18)** | `echange_deflector` |
+| Correo entrante | IA | 60 USD | Tenant | **Retirado (incluido en el plan, 2026-11-18)** | `echange_email_intake` |
+| Asistente de ingreso | IA | — | Tenant | **Retirado (incluido en el plan, 2026-11-18)** | `echange_intake_assistant` |
+| Reportería mensual | IA | 90 USD | Tenant | **Retirado (incluido en el plan, 2026-11-18)** | `echange_report_writer` |
+| Sentimiento de encuestas | IA | — | Tenant | **Retirado (incluido en el plan, 2026-11-18)** | `echange_survey_sentiment` |
+| Clasificador ITIL | IA | — | Tenant | **Retirado (incluido en el plan, 2026-11-18)** | `echange_triage` |
+| Notas de voz | IA | — | Tenant | **Retirado (incluido en el plan, 2026-11-18)** | `echange_voice_transcriber` |
 | Correo electrónico | Canal | 25 USD | Tenant | Activo en la app | `echange_email` |
 | Portal de proveedores | Canal | 60 USD | Tenant | Activo en la app | `echange_esupplier` |
 | Teléfono | Canal | 120 USD | Tenant | Activo en la app | `echange_phone` |
