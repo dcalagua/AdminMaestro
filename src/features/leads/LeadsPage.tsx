@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowClockwiseIcon } from '@phosphor-icons/react';
 import { usePlans } from '@/services/queries';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useAuth } from '@/hooks/useAuth';
 import { useSearchFilter } from '@/hooks/useSearchFilter';
 import { StatusTabs } from '@/components/ui/SectionTabs';
 import {
@@ -18,12 +19,15 @@ import { businessErrorMessage } from '@/lib/pgError';
 import { formatDateTime } from '@/lib/format';
 import { OrganizationFormDialog } from '@/features/organizations/OrganizationFormDialog';
 import {
-  useCommercialLeads, useLeadSyncState, useLinkLeadOrganization, useRunLeadSync, useSetLeadStatus, type LeadWithRefs,
+  useCommercialLeads, useLeadSyncState, useLinkLeadOrganization, useRequestTrial, useRunLeadSync, useSetLeadStatus,
+  type LeadWithRefs, type RequestTrialInput,
 } from './leadsApi';
 import {
-  COUNTRY_LABEL, STATUS_LABEL, STATUS_TONE, ageLabel, asStatus, matchesTab, onboardingUrl, organizationDraftFrom,
-  planLabel, tabOptions, type LeadTab,
+  COUNTRY_LABEL, STATUS_LABEL, STATUS_TONE, ageLabel, asStatus, canWorkLead, matchesTab, onboardingUrl,
+  organizationDraftFrom, ownerLabel, planLabel, tabOptions, type LeadTab,
 } from './leadsModel';
+import { RequestTrialDialog } from './RequestTrialDialog';
+import { TrialRequestsCard } from './TrialRequestsCard';
 
 /**
  * Solicitudes de la web (leads.v1).
@@ -32,13 +36,24 @@ import {
  * 10 minutos —o al pulsar «Traer ahora»— y se trabaja sin salir del Admin
  * Maestro: contactar, descartar con motivo, o convertir creando la cuenta
  * cliente y abriendo «Nueva venta» con sus datos.
+ *
+ * Perfil comercial (2026-11-18): todo comercial activo ve todas las
+ * solicitudes; quien la mueve la toma. El comercial no convierte ni crea
+ * tenants: PIDE la prueba y EBIM la aprueba (comercial ≠ acceso operativo).
  */
 export function LeadsPage() {
   const perms = usePermissions();
+  const { roles } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
-  const leads = useCommercialLeads({ enabled: perms.canManageCommercial });
-  const syncState = useLeadSyncState();
+  const isEbim = perms.canManageCommercial;
+  const canSee = isEbim || perms.isSalesAgent;
+  const me = { canManageCommercial: isEbim, salesAgentId: roles?.salesAgentId ?? null };
+  const leads = useCommercialLeads({ enabled: canSee });
+  const syncState = useLeadSyncState({ enabled: isEbim });
+  const requestTrial = useRequestTrial();
+  // `undefined` = cerrado; `null` = pedido sin solicitud de la web.
+  const [askingTrial, setAskingTrial] = useState<LeadWithRefs | null | undefined>(undefined);
   const plans = usePlans();
   const runSync = useRunLeadSync();
   const setStatus = useSetLeadStatus();
@@ -88,6 +103,12 @@ export function LeadsPage() {
     }
   }
 
+  async function pedirPrueba(input: RequestTrialInput) {
+    await requestTrial.mutateAsync(input);
+    toast.success('Prueba pedida', `${input.companyName}: EBIM la revisa y te avisa en la Bandeja.`);
+    setAskingTrial(undefined);
+  }
+
   async function vincular(lead: LeadWithRefs, organizationId: string) {
     try {
       await linkOrg.mutateAsync({ id: lead.id, organizationId });
@@ -99,11 +120,25 @@ export function LeadsPage() {
 
   function acciones(l: LeadWithRefs) {
     const status = asStatus(l.status);
+    const open = status === 'NEW' || status === 'CONTACTED';
+    const mine = canWorkLead(l, me);
+    if (!isEbim) {
+      // Comercial: contacta, pide la prueba o descarta lo que es suyo o está libre.
+      return [
+        { label: 'Ver solicitud', onSelect: () => setOpenId(l.id) },
+        { label: 'Escribir correo', onSelect: () => { window.location.href = `mailto:${l.email}`; } },
+        status === 'NEW' && mine ? { label: 'Marcar como contactada', onSelect: () => void marcar(l, 'CONTACTED') } : null,
+        // El panel se cierra: el diálogo no puede quedar debajo de él.
+        open && mine ? { label: 'Pedir prueba…', onSelect: () => { setOpenId(null); setAskingTrial(l); } } : null,
+        status === 'DISCARDED' && mine ? { label: 'Reabrir', onSelect: () => void marcar(l, 'NEW') } : null,
+        open && mine ? { label: 'Descartar…', tone: 'danger' as const, onSelect: () => setDiscarding(l) } : null,
+      ];
+    }
     return [
       { label: 'Ver solicitud', onSelect: () => setOpenId(l.id) },
       { label: 'Escribir correo', onSelect: () => { window.location.href = `mailto:${l.email}`; } },
       status === 'NEW' ? { label: 'Marcar como contactada', onSelect: () => void marcar(l, 'CONTACTED') } : null,
-      status === 'NEW' || status === 'CONTACTED'
+      open
         ? { label: 'Crear cliente y nueva venta…', onSelect: () => setConverting(l) }
         : null,
       status === 'CONVERTED' && l.organization_id
@@ -117,11 +152,11 @@ export function LeadsPage() {
     ];
   }
 
-  if (!perms.canManageCommercial) {
+  if (!canSee) {
     return (
       <PageContainer title="Solicitudes de la web">
         <Card>
-          <EmptyState title="Sin acceso" description="Las solicitudes de la web las trabaja el área comercial de EBIM." />
+          <EmptyState title="Sin acceso" description="Las solicitudes de la web las trabajan el área comercial de EBIM y los comerciales." />
         </Card>
       </PageContainer>
     );
@@ -132,19 +167,31 @@ export function LeadsPage() {
   return (
     <PageContainer
       title="Solicitudes de la web"
-      description="Lo que llenan los prospectos en la landing de cada app. Contáctalos, descártalos con motivo o conviértelos en cliente y nueva venta."
+      description={
+        isEbim
+          ? 'Lo que llenan los prospectos en la landing de cada app. Contáctalos, descártalos con motivo o conviértelos en cliente y nueva venta.'
+          : 'Lo que llenan los prospectos en la landing de cada app. Al contactar una, queda tomada por ti. Para que la prueben, pide la prueba: EBIM crea el tenant.'
+      }
       actions={
-        <button type="button" className="ebim-btn-secondary" disabled={runSync.isPending} onClick={() => void traer()}>
-          <ArrowClockwiseIcon size={16} aria-hidden />
-          {runSync.isPending ? 'Trayendo…' : 'Traer ahora'}
-        </button>
+        isEbim ? (
+          <button type="button" className="ebim-btn-secondary" disabled={runSync.isPending} onClick={() => void traer()}>
+            <ArrowClockwiseIcon size={16} aria-hidden />
+            {runSync.isPending ? 'Trayendo…' : 'Traer ahora'}
+          </button>
+        ) : (
+          <button type="button" className="ebim-btn-primary" onClick={() => setAskingTrial(null)}>
+            Pedir prueba
+          </button>
+        )
       }
     >
-      <p className="mb-3 text-caption text-muted">
-        {lastRun ? `Última lectura: ${formatDateTime(lastRun)}. ` : 'Todavía no se leyó ninguna app. '}
-        Se leen solas cada 10 minutos.
-        {failing.length ? <span className="text-warn"> La última lectura falló en {failing.length} app(s): {failing.map((f) => f.last_error_code).join(', ')}.</span> : null}
-      </p>
+      {isEbim ? (
+        <p className="mb-3 text-caption text-muted">
+          {lastRun ? `Última lectura: ${formatDateTime(lastRun)}. ` : 'Todavía no se leyó ninguna app. '}
+          Se leen solas cada 10 minutos.
+          {failing.length ? <span className="text-warn"> La última lectura falló en {failing.length} app(s): {failing.map((f) => f.last_error_code).join(', ')}.</span> : null}
+        </p>
+      ) : null}
       <Card>
         <SearchBar
           value={term}
@@ -208,7 +255,13 @@ export function LeadsPage() {
                     <StatusCell
                       label={STATUS_LABEL[status]}
                       tone={STATUS_TONE[status]}
-                      detail={status === 'CONVERTED' ? l.organizations?.display_name : status === 'DISCARDED' ? l.status_note ?? undefined : undefined}
+                      detail={
+                        status === 'CONVERTED'
+                          ? l.organizations?.display_name
+                          : status === 'DISCARDED'
+                            ? l.status_note ?? undefined
+                            : ownerLabel(l, me.salesAgentId) ?? undefined
+                      }
                     />
                   </td>
                   <td className="ebim-td w-12 text-right" onClick={(e) => e.stopPropagation()}>
@@ -221,13 +274,23 @@ export function LeadsPage() {
         )}
       </Card>
 
+      <div className="mt-4">
+        <TrialRequestsCard canApprove={isEbim} />
+      </div>
+
       <DetailDrawer
         open={Boolean(open)}
         title={open?.company_name ?? ''}
         subtitle={open ? `${STATUS_LABEL[asStatus(open.status)]} · recibida ${ageLabel(open.received_at)}` : undefined}
         onClose={() => setOpenId(null)}
         actions={
-          open && (open.status === 'NEW' || open.status === 'CONTACTED') ? (
+          !isEbim ? (
+            open && (open.status === 'NEW' || open.status === 'CONTACTED') && canWorkLead(open, me) ? (
+              <button type="button" className="ebim-btn-primary" onClick={() => { setOpenId(null); setAskingTrial(open); }}>
+                Pedir prueba
+              </button>
+            ) : null
+          ) : open && (open.status === 'NEW' || open.status === 'CONTACTED') ? (
             <button type="button" className="ebim-btn-primary" onClick={() => setConverting(open)}>
               Crear cliente y nueva venta
             </button>
@@ -298,6 +361,14 @@ export function LeadsPage() {
           }
         }}
         onCancel={() => setDiscarding(null)}
+      />
+
+      <RequestTrialDialog
+        open={askingTrial !== undefined}
+        lead={askingTrial ?? null}
+        busy={requestTrial.isPending}
+        onSubmit={pedirPrueba}
+        onCancel={() => setAskingTrial(undefined)}
       />
 
       <OrganizationFormDialog

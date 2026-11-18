@@ -142,7 +142,7 @@ export const NAV_ITEMS: NavItem[] = [
 
   // ---- Comercial ----------------------------------------------------------
   {
-    to: '/solicitudes', label: 'Solicitudes de la web', icon: ChatCircleTextIcon, group: 'Comercial', personas: ['EBIM'],
+    to: '/solicitudes', label: 'Solicitudes de la web', icon: ChatCircleTextIcon, group: 'Comercial', personas: ['EBIM', 'SALES_AGENT'],
     description: 'Lo que llenan los prospectos en la landing de cada app, para contactarlos o convertirlos.',
   },
   { to: '/onboarding', label: 'Nueva venta', icon: RocketLaunchIcon, group: 'Comercial', personas: ['EBIM'] },
