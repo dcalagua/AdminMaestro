@@ -103,6 +103,8 @@ _La app no tiene add-ons vendibles registrados._
 > **2026-11-18:** la Flota IA de eChange viene incluida en el plan (A o B; la reportería con el B). Los nueve agentes quedaron `RETIRED` en el catálogo (migración `20261025000200`).
 >
 > **2026-11-18 (2):** los canales también vienen incluidos (migración `20261026000200`): el portal y el correo los pone EBIM; WhatsApp, Teams y el teléfono los pone el cliente con sus propias cuentas (Meta le factura a él). La Línea telefónica, que era el número que revendía EBIM, se dio de baja. Los siete quedaron `RETIRED`.
+>
+> **2026-11-18 (3):** regla de los planes: la Torre de Control, el informe PDF y el anexo Excel son de los dos planes; lo que **redacta** la IA (informe mensual y recomendación de la Torre) es del Plan B. Las descripciones de los planes se alinearon (migración `20261026000300`).
 
 | Add-on | Tipo | Precio en la app (mes) | Unidad | Estado en la app | Código en el Admin Maestro |
 |---|---|---|---|---|---|
